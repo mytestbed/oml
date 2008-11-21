@@ -1,0 +1,239 @@
+/*
+ * Copyright 2007-2008 National ICT Australia (NICTA), Australia
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+/*!\file file_writer.c
+  \brief Implements a writer which stores results in a local file.
+*/
+
+#include <stdio.h>
+#include <malloc.h>
+#include <string.h>
+
+#include <ocomm/o_log.h>
+#include "oml2/omlc.h"
+#include "client.h"
+#include "oml2/oml_filter.h"
+#include "oml2/oml_writer.h"
+
+typedef struct _omlFileWriter {
+
+  oml_writer_meta meta;
+  oml_writer_header_done header_done;
+
+
+  //! Called before and after writing individual
+  // filter results with 'out'
+  oml_writer_row_start row_start;
+  oml_writer_row_end row_end;
+
+  //! Writing a result.
+  oml_writer_out out;
+
+  oml_writer_close close;
+
+  OmlWriter* next;
+
+  //----------------------------
+
+  FILE* f;			/* File to write result to */
+  int   first_row;
+
+} OmlFileWriter;
+
+
+static int meta(OmlWriter* writer, char* str);
+static int header_done(OmlWriter* writer);
+static int row_start(OmlWriter* writer, OmlMStream* ms, double now);
+static int out(OmlWriter* writer, OmlValue* values, int value_count);
+static int row_end(OmlWriter* writer, OmlMStream* ms);
+static int close(OmlWriter* writer);
+
+OmlWriter*
+file_writer_new(
+  char* fileName
+) {
+  OmlFileWriter* self = (OmlFileWriter *)malloc(sizeof(OmlFileWriter));
+  memset(self, 0, sizeof(OmlFileWriter));
+  self->first_row = 1;
+
+  if (strcmp(fileName, "stdout") == 0 || strcmp(fileName, "-") == 0) {
+    self->f = stdout;
+  } else {
+    if ((self->f = fopen(fileName, "a+")) == NULL) {
+      o_log(O_LOG_ERROR, "Can't open local storage file '%s'\n", fileName);
+      return 0;
+    }
+  }
+
+  self->meta = meta;
+  self->header_done = header_done;
+  self->row_start = row_start;
+  self->row_end = row_end;
+  self->out = out;
+  self->close = close;
+
+  return (OmlWriter*)self;
+}
+
+static int
+meta(
+  OmlWriter* writer,
+  char*      str
+) {
+  OmlFileWriter* self = (OmlFileWriter*)writer;
+  FILE* f = self->f;
+  if (f == NULL) return 0;
+
+  fprintf(f, "%s\n", str);
+  return 0;
+}
+
+static int
+header_done(
+  OmlWriter* writer
+) {
+  meta(writer, "content: text");
+  meta(writer, "");
+}
+
+
+//int
+//meta(
+//  OmlWriter* writer,
+//  OmlMStream* ms
+//) {
+//  OmlFileWriter* self = (OmlFileWriter*)writer;
+//  FILE* f = self->f;
+//
+//  fprintf(f, "schema: %s ", ms->table_name);
+//
+//  // Loop over all the filters
+//  OmlMPDef2* def = ms->mp->param_defs;
+//  int i;
+//  for (i = 0; i < ms->mp->param_count; i++) {
+//    char* prefix = def[i].name;
+//    OmlFilter* filter = ms->filters[i];
+//    int j;
+//    for (j = 0; j < filter->output_cnt; j++) {
+//      char* name;
+//      OmlValueT type;
+//      if (filter->meta(filter, j, &name, &type)) {
+//        char* type_s = oml_type_to_s(type);
+//        if (name == NULL) {
+//          fprintf(f, " %s:%s", prefix, type_s);
+//        } else {
+//          fprintf(f, " %s_%s:%s", prefix, name, type_s);
+//        }
+//      }
+//    }
+//  }
+//  fprintf(f, "\n");
+//  return 1;
+//}
+
+static int
+out(
+  OmlWriter* writer, //! pointer to writer instance
+  OmlValue*  values,  //! type of sample
+  int        value_count //! size of above array
+) {
+  OmlFileWriter* self = (OmlFileWriter*)writer;
+  FILE* f = self->f;
+  if (f == NULL) return 1;
+
+  int i;
+  OmlValue* v = values;
+
+  for (i = 0; i < value_count; i++, v++) {
+    switch (v->type) {
+    case OML_LONG_VALUE:
+      fprintf(f, "\t%ld", v->value.longValue);
+      break;
+    case OML_DOUBLE_VALUE:
+      fprintf(f, "\t%f", v->value.doubleValue);
+      break;
+    case OML_STRING_PTR_VALUE:
+      fprintf(f, "\t%s", v->value.stringPtrValue);
+      break;
+    case OML_STRING_VALUE:
+      fprintf(f, "\t%s", v->value.stringValue.text);
+      break;
+    default:
+      o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", v->type);
+      return 0;
+    }
+  }
+  return 1;
+}
+
+int
+row_start(
+  OmlWriter* writer,
+  OmlMStream* ms,
+  double now
+) {
+  OmlFileWriter* self = (OmlFileWriter*)writer;
+  FILE* f = self->f;
+  if (f == NULL) return 1;
+
+  if (self->first_row) {
+    // need to add eoln to separate from header
+    fprintf(f, "\n");
+    self->first_row = 0;
+  }
+
+  fprintf(f, "%f\t%d\t%ld", now, ms->index, ms->seq_no);
+  return 1;
+}
+
+int
+row_end(
+  OmlWriter* writer,
+  OmlMStream* ms
+) {
+  OmlFileWriter* self = (OmlFileWriter*)writer;
+  FILE* f = self->f;
+  if (f == NULL) return 1;
+
+  fprintf(f, "\n");
+  return 1;
+}
+
+static int
+close(
+  OmlWriter* writer
+) {
+  OmlFileWriter* self = (OmlFileWriter*)writer;
+
+  if (self->f != 0) {
+    fclose(self->f);
+    self->f= NULL;
+  }
+  return 0;
+}
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 4
+ indent-tabs-mode: nil
+*/

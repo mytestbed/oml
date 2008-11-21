@@ -1,0 +1,8 @@
+<omlc exp_id="exp99" id="node11">
+    <collect url="tcp://localhost:1234">
+        <mp name="sin" samples="1"/>
+    </collect>
+    <collect url="file:stdout">
+        <mp name="sin" samples="1"/> <!-- collect everything -->
+    </collect>
+</omlc> 

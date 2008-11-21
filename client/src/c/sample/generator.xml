@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<orbit>
+  <application id="generator">
+    <name>generator</name>
+    <id>generator</id>
+    <version major="0" minor="1" revision="0"/>
+    <organization>
+      <name>ORBIT</name>
+      <url>http://www.orbit-lab.org/</url>
+    </organization>
+    <shortDescription>Simple waveform generator measured by OML</shortDescription>
+    <description>
+       </description>
+    <url>http://apps.orbit-lab.org/test/generator</url>
+    <properties>
+      <property>
+        <name>amplitude</name>
+        <mnemonic>a</mnemonic>
+        <type>xsd:float</type>
+        <dynamic>no</dynamic>
+        <description>Amplitude of produce signal</description>
+      </property>
+      <property>
+        <name>frequency</name>
+        <mnemonic>f</mnemonic>
+        <type>xsd:float</type>
+        <dynamic>no</dynamic>
+        <description>Frequency of the wave generated [Hz]</description>
+      </property>
+      <property>
+        <name>sample-interval</name>
+        <mnemonic>s</mnemonic>
+        <type>xsd:float</type>
+        <dynamic>no</dynamic>
+        <description>Time between consecutive measurements [sec]</description>
+      </property>
+    </properties>
+    <measurement-points>
+      <measurement-point name="lin">
+        <metric name="label" type="string">
+          <description>String label identifying measurment sample</description>
+        </metric>
+        <metric name="seq_no" type="float">
+          <description>Sequence number of measurement</description>
+        </metric>
+      </measurement-point>
+      <measurement-point name="sin">
+        <metric name="label" type="string">
+          <description>String label identifying measurment sample</description>
+        </metric>
+        <metric name="angle" type="float">
+          <description>Signal phase</description>
+        </metric>
+        <metric name="value" type="float">
+          <description>Signal strength</description>
+        </metric>
+      </measurement-point>
+    </measurement-points>
+  </application>
+</orbit>

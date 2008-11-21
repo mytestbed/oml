@@ -1,0 +1,15 @@
+*~
+*.bak
+*.swp
+Makefile.in
+aclocal.m4
+config.h.in
+config.guess
+config.sub
+configure
+depcomp
+install-sh
+ltmain.sh
+missing
+autom4te.cache
+m4/*.m4
