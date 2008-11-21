@@ -1,0 +1,6 @@
+oml (2.0.1-1) unstable; urgency=low
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Mon, 04 May 2009 20:29:53 +1000
+
