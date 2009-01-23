@@ -1,0 +1,384 @@
+/*
+ *  C Implementation: app_sigar
+ *
+ * Description:  An application based on the libsigar that communicates with 
+ * 				 the oml library
+ *
+ *
+ * Author: Guillaume Jourjon <guillaume.jourjon@nicta.com.au>, (C) 2008
+ *
+ * Copyright (c) 2007-2009 National ICT Australia (NICTA)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+*/
+
+
+
+
+#include <errno.h>
+#include <string.h>
+#include "oml2/omlc.h"
+#include "app_sigar.h"
+#include "oml2/oml_filter.h"
+#include "client.h"
+#include "version.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <time.h>
+#include <pcap.h>
+#include <malloc.h>
+#include <errno.h>
+
+
+OmlSigar* sigar_mp; 
+extern int errno;
+
+static void o_log_default(int log_level, const char* format, ...); 
+
+static FILE* logfile;
+int o_log_level = O_LOG_INFO;
+
+o_log_fn o_log = o_log_default;
+
+void
+o_set_log_file(
+		  char* name
+	      ) {
+  if (*name == '-') {
+      logfile = NULL;
+      setlinebuf(stdout);
+  } else {
+      logfile = fopen(name, "a");
+      if (logfile == NULL) {
+          fprintf(stderr, "Can't open logfile '%s'\n", name);
+          return;
+      }
+  setvbuf ( logfile, NULL , _IOLBF , 1024 );
+  }
+}
+
+void
+o_set_log_level(
+		  int level
+	       ) {
+  o_log_level = level;
+}
+
+o_log_fn 
+o_set_log(
+	  o_log_fn new_log_fn
+	 ) {
+  if ((o_log = new_log_fn) == NULL) {
+      o_log = o_log_default;
+  }  
+  return o_log;
+}
+
+void 
+o_log_default(
+  int log_level, 
+  const char* format, 
+  ...) {
+  va_list va;
+  if (log_level > o_log_level) return;
+  va_start(va, format);
+
+  if (logfile == NULL) {
+    switch (log_level) {
+        case O_LOG_INFO:
+            printf("# ");
+            vprintf(format, va);
+          break;
+     case O_LOG_WARN:
+        fprintf(stdout, "# WARN ");
+      vfprintf(stdout, format, va);
+           break;
+     case O_LOG_ERROR:
+          fprintf(stderr, "# ERROR ");
+        vfprintf(stderr, format, va);
+      break;
+      default:
+          printf("# ");
+          for (; log_level > 0; log_level--) {
+              printf("..");
+        }
+        printf(" ");
+      vprintf(format, va);
+            break;
+   }
+			        
+   } else {
+       time_t t;
+       time(&t);
+       struct tm* ltime = localtime(&t);
+       char now[20];
+       strftime(now, 20, "%b %d %H:%M:%S", ltime);
+       if (log_level > O_LOG_INFO) {
+            int dlevel = log_level - O_LOG_INFO;
+            if (dlevel > 1)
+	          fprintf(logfile, "%s  DEBUG%d ", now, dlevel);
+           else
+     	          fprintf(logfile, "%s  DEBUG  ", now);
+           vfprintf(logfile, format, va);
+       } else {
+           switch (log_level) {
+	      case O_LOG_INFO:
+                  fprintf(logfile, "%s  INFO   ", now);
+                  vfprintf(logfile, format, va);
+                  break;
+              case O_LOG_WARN:
+                  fprintf(logfile, "%s  WARN   ", now);
+                  vfprintf(logfile, format, va);
+                  break;
+              case O_LOG_ERROR:
+                  fprintf(logfile, "%s  ERROR  ", now);
+                  vfprintf(logfile, format, va);
+                  break;
+              default:
+                  fprintf(logfile, "%s  UNKNOWN  ", now);
+                  vfprintf(logfile, format, va);
+                  break;
+           }
+        }    
+       }
+       va_end(va);
+}
+
+
+
+static void* thread_sigarstart(void* handle){
+	
+	OmlSigar* self = (OmlSigar*) handle;
+	OmlValueU v[5];
+	sigar_t *sigar_t;
+        sigar_mem_t memory_info;
+        sigar_cpu_t cpu_info;
+        sigar_net_interface_stat_t interface_stat;
+	while(1){
+		sigar_open(&sigar_t);
+		sigar_mem_get(sigar_t, &memory_info);
+		sigar_net_interface_stat_get(sigar_t, "eth0"/*self->name_interface*/, &interface_stat);	  
+			  
+		
+		sigar_cpu_get(sigar_t, &cpu_info);
+		
+		v[0].longValue = (long)interface_stat.rx_bytes;
+		v[1].longValue = (long)interface_stat.tx_bytes;
+		v[2].longValue = (long)memory_info.used;
+		v[3].longValue = (long)cpu_info.user;
+		v[4].longValue = (long)cpu_info.total;
+		
+		
+		omlc_process(self->mp, v);
+
+	    sigar_close(sigar_t);
+	    
+	    //sleep(self->granularity);
+	    sleep(1);
+		
+	}
+	
+	
+}
+
+void
+    sigar_engine_start(
+    OmlSigar* sigar
+                     ){
+	pthread_create(&sigar->thread_pcap, NULL, thread_sigarstart, (void*)sigar);
+	
+}
+
+OmlSigar* create_sigar_measurement(
+    char* name
+){
+	OmlSigar* self = (OmlSigar*)malloc(sizeof(OmlSigar));
+	  memset(self, 0, sizeof(OmlSigar));
+	  
+	  OmlMPDef* def = create_sigar_filter(name);
+	  self->def = def;
+	  
+	  self->mp = omlc_add_mp("oml_sigar", def);
+
+	  //sigar_open(&self->system_info);
+	  
+//	  sigar_net_interface_stat_get(self->system_info,
+//	                               ,
+//	                               self->interface_stat);
+//	TODO put this in another configuration function just before the omlc_start
+	  
+	  //sigar_mem_get(self->system_info, self->memory_info);
+	  
+	  //sigar_cpu_get(self->system_info, self->cpu_info);
+	  
+	  
+	  return self;
+	
+}
+
+/**
+ * \fn OmlMPDef* createSigarFilter(char* file)
+ * \brief function called to create OML Definition 
+ *
+ * \param file the file that contains the pcap filter command
+ * \return the OML Definition for the creation of the Measurement points
+ */
+OmlMPDef* create_sigar_filter(char* file)
+{
+  int cnt = 0;
+  OmlMPDef* self = NULL;
+  int j = 0;
+
+    o_log(O_LOG_INFO, "Creation of pcap default conf\n");
+    cnt = 6; 
+    self = (OmlMPDef*)malloc(cnt*sizeof(OmlMPDef));
+ 
+    self[0].name = "rx_bytes";
+    self[0].param_types = OML_LONG_VALUE;
+
+    self[1].name = "tx_bytes";
+    self[1].param_types = OML_LONG_VALUE;
+    self[2].name = "ram_used";
+    self[2].param_types = OML_LONG_VALUE;
+    self[3].name = "cpu_user";
+    self[3].param_types = OML_LONG_VALUE;
+    self[4].name = "cpu_total_used";
+    self[4].param_types = OML_LONG_VALUE;
+    self[5].name = NULL;
+    self[5].param_types = (OmlValueT)0;
+
+  
+  
+  
+  return self;
+}
+
+int
+main(
+		int argc,
+		const char *argv[]
+) {
+	OmlValueU v[5];
+        sigar_t *sigar_t;
+        sigar_mem_t memory_info;
+        sigar_cpu_t cpu_info;
+        sigar_net_interface_stat_t interface_stat;
+	int* argc_;
+	  const char** argv_;
+	const char* name = argv[ 0 ];
+	const char* p = name + strlen(argv[ 0 ]);
+	while (! (p == name || *p == '/')) p--; 
+	if (*p == '/') p++;
+	name = p; 
+	omlc_init(name, &argc, argv, o_log);
+
+	argc_ =&argc;
+	argv_ = argv;
+
+	OmlSigar* sigar = NULL; 
+	//char* filter_pcap = NULL;
+	char* if_sigar = NULL;
+	char src_pcap[50] = " ";
+	char dst_pcap[50] = " ";
+	int period = 1;
+	int disconnected = 0;
+	int i =0;
+
+	
+	for (i = *argc_; i > 0; i--, *argv_++) {
+		if (strcmp(*argv_, "--sigar") == 0) {
+			if (--i <= 0) {
+				o_log(O_LOG_ERROR, "Missing argument for '--sigar'\n");
+				return 0;
+			}
+			
+			sigar = create_sigar_measurement(*++argv_);
+			*argc_ -= 2;
+		}else if (strcmp(*argv_, "--sigar-if") == 0) {
+			if (--i <= 0) {
+				o_log(O_LOG_ERROR, "Missing argument for '--sigar-if'\n");
+				return 0;
+			}
+			
+			if_sigar = (char*)*++argv_;
+			*argc_ -= 2;
+		}else if (strcmp(*argv_, "--sigar-period") == 0) {
+			if (--i <= 0) {
+				o_log(O_LOG_ERROR, "Missing argument for '--sigar-period'\n");
+				return 0;
+			}
+			
+			period = atoi(*++argv_);
+			*argc_ -= 2;
+		}
+			printf("Creation of pcap %s\n ", *argv_);
+
+	}
+	
+	sigar_mp = sigar;
+	
+	if(sigar_mp != NULL){
+		
+
+		//strcat(pcap_mp->filter_exp, " and not ether proto \\arp");
+		//printf(" filter %s \n", omlc_instance->pcap_mp->filter_exp);
+		//omlc_instance->pcap_mp->filter_exp = "dst host 10.211.55.4"; 
+		sigar_mp->name_interface = if_sigar;
+		//pcap_mp->promiscuous = promisc;
+		sigar_mp->granularity = period;
+		
+		//preparation_pcap(pcap_mp);  TODO start of the configuration of the network 
+		// configuration
+		
+		
+		omlc_start();
+
+	while(1){
+		sigar_open(&sigar_t);
+		sigar_mem_get(sigar_t, &memory_info);
+		sigar_net_interface_stat_get(sigar_t, "eth0"/*self->name_interface*/, &interface_stat);	  
+			  
+		
+		sigar_cpu_get(sigar_t, &cpu_info);
+		
+		v[0].longValue = (long)interface_stat.rx_bytes;
+		v[1].longValue = (long)interface_stat.tx_bytes;
+		v[2].longValue = (long)memory_info.used;
+		v[3].longValue = (long)cpu_info.user;
+		v[4].longValue = (long)cpu_info.total;
+		
+		
+		omlc_process(sigar_mp->mp, v);
+
+	    sigar_close(sigar_t);
+	    
+	    //sleep(self->granularity);
+	    sleep(1);
+		
+	}
+		
+		
+	}else{
+		printf("exit");
+		exit(0);
+	}
+	exit(0);	
+}

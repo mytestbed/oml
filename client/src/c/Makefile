@@ -6,7 +6,7 @@ INSTALL_INC_DIR = /usr/include
 
 #### FOR EXPERTS ONLY  ###
 SRCS = file_writer.c filter.c init.c misc.c net_writer.c \
-    parse_config.c api.c oml_pcap.c
+    parse_config.c api.c 
 FILTER_SRCS = factory.c average_filter.c first_filter.c
 SHARED_SRCS = marshall.c
 

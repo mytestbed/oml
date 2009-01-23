@@ -32,7 +32,7 @@
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
 #include "oml2/oml_writer.h"
-#include "oml2/omlc_pcap.h"
+
 
 
 #define CONFIG_ROOT_NAME "omlc"
@@ -50,7 +50,7 @@ typedef struct _omlClient {
   const char* app_name;
   const char* experiment_id;
   const char* node_name;
-  OmlPcap*    pcap_mp;
+
 
   //  int      mp_count;
   //  OmlMPDef** mp_definitions;
