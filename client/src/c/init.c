@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2008 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2009 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,7 @@
 #include "oml2/oml.h"
 #include "oml2/oml_filter.h"
 #include "client.h"
-#include "oml2/omlc_pcap.h"
+
 //#include "filter/builtin.h"
 #include "version.h"
 
@@ -81,12 +81,6 @@ omlc_init(
   const char* serverUri = NULL;
   int sample_count = 0;
   double sample_interval = 0.0;
-  OmlPcap* pcap = NULL;
-  char* filter_pcap = NULL;
-  char* dev_pcap = NULL;
-  char src_pcap[50] = " ";
-  char dst_pcap[50] = " ";
-  int promisc = 1;
   const char** argvPtr = argv;
   int i;
   for (i = *argcPtr; i > 0; i--, *argvPtr++) {
@@ -153,52 +147,7 @@ omlc_init(
       }
       serverUri = (char*)*++argvPtr;
       *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-pcap") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument for '--oml-pcap'\n");
-        return 0;
-      }
-      //printf("Creation of pcap");
-      pcap = create_pcap_measurement(*++argvPtr);
-      *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-pcap-ip-src") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument for '--oml-pcap-ip-src'\n");
-        return 0;
-      }
-      //printf("Creation of pcap");
-       strcat(src_pcap,  " src host ");
-      strcat(src_pcap, *++argvPtr);
-//strcat(src_pcap, *++argvPtr);
-      *argcPtr -= 2;
-    }else if (strcmp(*argvPtr, "--oml-pcap-ip-dst") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument for '--oml-pcap-ip-dst'\n");
-        return 0;
-      }
-      //printf("Creation of pcap %s \n", dst_pcap);
-      strcat(dst_pcap,  " dst host ");
-      strcat(dst_pcap, *++argvPtr);
-      //dst_pcap =  *++argvPtr;
-      ///printf("Creation of pcap %s \n",  dst_pcap);
-      *argcPtr -= 2;
-    }else if (strcmp(*argvPtr, "--oml-pcap-if") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument for '--oml-pcap-if'\n");
-        return 0;
-      }
-      //printf("Creation of pcap");
-      dev_pcap = (char*)*++argvPtr;
-      *argcPtr -= 2;
-    }else if (strcmp(*argvPtr, "--oml-pcap-promiscuous") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument for '--oml-pcap-promiscuous'\n");
-        return 0;
-      }
-      //printf("Creation of pcap");
-      promisc = atoi(*++argvPtr);
-      *argcPtr -= 2;
-    }else if (strcmp(*argvPtr, "--oml-noop") == 0) {
+    } else if (strcmp(*argvPtr, "--oml-noop") == 0) {
       *argcPtr -= 1;
       omlc_instance = NULL;
       return 1;
@@ -238,25 +187,8 @@ omlc_init(
   omlc_instance->experiment_id = experimentId;
   omlc_instance->sample_count = sample_count;
   omlc_instance->sample_interval = sample_interval;
-  omlc_instance->pcap_mp = pcap;
 
-  if(omlc_instance->pcap_mp != NULL){
-    if(strcmp(src_pcap, " ") != 0)
-      strcat(omlc_instance->pcap_mp->filter_exp, src_pcap);
-    if(strcmp(dst_pcap, " ") != 0){
-       if(strcmp(src_pcap, " ") != 0){
-        strcat(omlc_instance->pcap_mp->filter_exp, " and ");
-        strcat(omlc_instance->pcap_mp->filter_exp, dst_pcap);
-      }else
-        strcat(omlc_instance->pcap_mp->filter_exp, dst_pcap);
-    }
 
-    strcat(omlc_instance->pcap_mp->filter_exp, " and not ether proto \\arp");
-    //printf(" filter %s \n", omlc_instance->pcap_mp->filter_exp);
-//omlc_instance->pcap_mp->filter_exp = "dst host 10.211.55.4";
-    omlc_instance->pcap_mp->dev = dev_pcap;
-    omlc_instance->pcap_mp->promiscuous = promisc;
-  }
 
   if (localDataFile != NULL) {
     // dump every sample into localDataFile
@@ -267,13 +199,7 @@ omlc_init(
   }
   omlc_instance->configFile = configFile;
 
-  if (omlc_instance->pcap_mp ==NULL)
-    ;
-  else{
-    preparation_pcap(omlc_instance->pcap_mp);
-    pcap_engine_start(omlc_instance->pcap_mp);
 
-  }
   return 0;
 }
 
@@ -431,7 +357,6 @@ usage()
   printf("  --oml-log-file file    .. Writes log messages to 'file'\n");
   printf("  --oml-log-level level  .. Log level used (error: 1 .. debug:4)\n");
   printf("  --oml-noop             .. Do not collect measurements\n");
-  printf("  --oml-pcap file        .. Activate the pcap measurement procedure with the pcap filtering instruction described in the 'file'\n");
   printf("  --oml-help             .. print this message\n");
   printf("\n");
   printf("Valid URI: tcp|udp:host:port:[bindAddr] or file:localPath\n");
