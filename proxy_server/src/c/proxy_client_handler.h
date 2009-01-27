@@ -24,7 +24,7 @@
 #ifndef CLIENT_HANDLER_H_
 #define CLIENT_HANDLER_H_
 
-#include "database.h"
+//#include "database.h"
 #include <stdio.h>
 #include <malloc.h>
 #include <stdlib.h>
@@ -42,9 +42,7 @@ typedef struct _proxyClientHandler {
   //! Name used for debugging
   char name[64];
 
-  Database*   database;
-  DbTable**   tables;
-  int         table_size;    // size of tables array
+
 
 //  char        app_name[MAX_STRING_SIZE];
   int         sender_id;

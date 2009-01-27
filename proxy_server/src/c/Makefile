@@ -6,8 +6,8 @@ INSTALL_DIR = /usr/bin
 #### FOR EXPERTS ONLY  ###
 TOP = ../../..
 
-SRCS = main.c proxy_client_handler.c database.c \
-    sqlite_adapter.c
+SRCS = main.c proxy_client_handler.c  \
+
 SHARED_SRCS = marshall.c
 
 SHARED_SRC_DIR = $(TOP)/shared/src/c
@@ -77,7 +77,4 @@ debug:
 
 main.c: version.h proxy_server.h
 proxy_client_handler.c: proxy_server.h proxy_client_handler.h $(SHARED_SRC_DIR)/marshall.h
-proxy_client_handler.h: database.h
-database.c: database.h sqlite_adapter.h
-sqlite_adapter.c: sqlite_adapter.h
 $(TOP)/shared/src/c/marshall.c: $(TOP)/shared/src/c/marshall.h
