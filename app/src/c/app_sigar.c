@@ -297,7 +297,7 @@ main(
 		v[0].longValue = (long)interface_stat.rx_bytes;
 		v[1].longValue = (long)interface_stat.tx_bytes;
 		v[2].stringPtrValue = (char*) mem_used;
-		printf("memory %s \n", mem_used);
+		//printf("memory %s \n", mem_used);
 		v[3].longValue = (long)cpu_info.user;
 		v[4].longValue = (long)cpu_info.total;
 		
