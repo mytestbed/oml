@@ -75,5 +75,7 @@ OmlSigar* create_sigar_measurement(
 OmlMPDef* create_sigar_filter(
     char* file
                             );
+                            
+char *ulltostr(sigar_uint64_t value, char *ptr, int base);
 
 #endif /*APP_SIGAR_H_*/

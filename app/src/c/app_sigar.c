@@ -52,6 +52,49 @@
 OmlSigar* sigar_mp; 
 
 
+char *ulltostr(sigar_uint64_t value, char *ptr, int base)
+{
+  sigar_uint64_t t = 0, res = 0;
+  sigar_uint64_t tmp = value;
+  int count = 0;
+ 
+  if (NULL == ptr)
+  {
+    return NULL;
+  }
+ 
+  if (tmp == 0)
+  {
+    count++;
+  }
+ 
+  while(tmp > 0)
+  {
+    tmp = tmp/base;
+    count++;
+  }
+ 
+  ptr += count;
+ 
+  *ptr = '\0';
+ 
+  do
+  {
+    res = value - base * (t = value / base);
+    if (res < 10)
+    {
+      *--ptr = '0' + res;
+    }
+    else if ((res >= 10) && (res < 16))
+    {
+        *--ptr = 'A' - 10 + res;
+    }
+  } while ((value = t) != 0);
+ 
+  return(ptr);
+}
+
+
 
 static void* thread_sigarstart(void* handle){
 	
@@ -146,7 +189,7 @@ OmlMPDef* create_sigar_filter(char* file)
     self[1].name = "tx_bytes";
     self[1].param_types = OML_LONG_VALUE;
     self[2].name = "ram_used";
-    self[2].param_types = OML_LONG_VALUE;
+    self[2].param_types = OML_STRING_PTR_VALUE;
     self[3].name = "cpu_user";
     self[3].param_types = OML_LONG_VALUE;
     self[4].name = "cpu_total_used";
@@ -166,12 +209,13 @@ main(
 		const char *argv[]
 ) {
 	OmlValueU v[5];
-        sigar_t *sigar_t;
-        sigar_mem_t memory_info;
-        sigar_cpu_t cpu_info;
-        sigar_net_interface_stat_t interface_stat;
+    sigar_t *sigar_t;
+    sigar_mem_t memory_info;
+    sigar_cpu_t cpu_info;
+    sigar_net_interface_stat_t interface_stat;
 	int* argc_;
-	  const char** argv_;
+	const char** argv_;
+	char mem_used[64];
 //	const char* name = argv[ 0 ];
 //	const char* p = name + strlen(argv[ 0 ]);
 //	while (! (p == name || *p == '/')) p--; 
@@ -243,14 +287,17 @@ main(
 	while(1){
 		sigar_open(&sigar_t);
 		sigar_mem_get(sigar_t, &memory_info);
-		sigar_net_interface_stat_get(sigar_t, "eth0"/*self->name_interface*/, &interface_stat);	  
+		sigar_net_interface_stat_get(sigar_t, if_sigar/*"eth1"self->name_interface*/, &interface_stat);	  
 			  
 		
 		sigar_cpu_get(sigar_t, &cpu_info);
 		
+		ulltostr(memory_info.used,(char*) mem_used, 10);
+		
 		v[0].longValue = (long)interface_stat.rx_bytes;
 		v[1].longValue = (long)interface_stat.tx_bytes;
-		v[2].longValue = (long)memory_info.used;
+		v[2].stringPtrValue = (char*) mem_used;
+		printf("memory %s \n", mem_used);
 		v[3].longValue = (long)cpu_info.user;
 		v[4].longValue = (long)cpu_info.total;
 		
