@@ -57,125 +57,12 @@
 //#include "filter/builtin.h"
 //#include "version.h"
 #include "app_pcap.h"
+#include "log.h"
 
 
 //static OmlPcap pcap;
 
 OmlPcap* pcap_mp;
-
-extern int errno;
-
-static void o_log_default(int log_level, const char* format, ...); 
-
-static FILE* logfile;
-int o_log_level = O_LOG_INFO;
-
-o_log_fn o_log = o_log_default;
-
-void
-o_set_log_file(
-		  char* name
-	      ) {
-  if (*name == '-') {
-      logfile = NULL;
-      setlinebuf(stdout);
-  } else {
-      logfile = fopen(name, "a");
-      if (logfile == NULL) {
-          fprintf(stderr, "Can't open logfile '%s'\n", name);
-          return;
-      }
-  setvbuf ( logfile, NULL , _IOLBF , 1024 );
-  }
-}
-
-void
-o_set_log_level(
-		  int level
-	       ) {
-  o_log_level = level;
-}
-
-o_log_fn 
-o_set_log(
-	  o_log_fn new_log_fn
-	 ) {
-  if ((o_log = new_log_fn) == NULL) {
-      o_log = o_log_default;
-  }
-  return o_log;
-}
-
-void 
-o_log_default(
-  int log_level, 
-  const char* format, 
-  ...) {
-  va_list va;
-  if (log_level > o_log_level) return;
-  va_start(va, format);
-
-  if (logfile == NULL) {
-    switch (log_level) {
-        case O_LOG_INFO:
-            printf("# ");
-            vprintf(format, va);
-          break;
-     case O_LOG_WARN:
-        fprintf(stdout, "# WARN ");
-      vfprintf(stdout, format, va);
-           break;
-     case O_LOG_ERROR:
-          fprintf(stderr, "# ERROR ");
-        vfprintf(stderr, format, va);
-      break;
-      default:
-          printf("# ");
-          for (; log_level > 0; log_level--) {
-              printf("..");
-        }
-        printf(" ");
-      vprintf(format, va);
-            break;
-   }
-			        
-   } else {
-       time_t t;
-       time(&t);
-       struct tm* ltime = localtime(&t);
-       char now[20];
-       strftime(now, 20, "%b %d %H:%M:%S", ltime);
-       if (log_level > O_LOG_INFO) {
-            int dlevel = log_level - O_LOG_INFO;
-            if (dlevel > 1)
-	          fprintf(logfile, "%s  DEBUG%d ", now, dlevel);
-           else
-     	          fprintf(logfile, "%s  DEBUG  ", now);
-           vfprintf(logfile, format, va);
-       } else {
-           switch (log_level) {
-	      case O_LOG_INFO:
-                  fprintf(logfile, "%s  INFO   ", now);
-                  vfprintf(logfile, format, va);
-                  break;
-              case O_LOG_WARN:
-                  fprintf(logfile, "%s  WARN   ", now);
-                  vfprintf(logfile, format, va);
-                  break;
-              case O_LOG_ERROR:
-                  fprintf(logfile, "%s  ERROR  ", now);
-                  vfprintf(logfile, format, va);
-                  break;
-              default:
-                  fprintf(logfile, "%s  UNKNOWN  ", now);
-                  vfprintf(logfile, format, va);
-                  break;
-           }
-        }    
-       }
-       va_end(va);
-}
-
 
 /**
  * \fn void packet_treatment( uchar* useless, const struct pcap_pkthdr* pkthdr, const u_char* pkt)
@@ -604,13 +491,48 @@ main(
 		pcap_mp->promiscuous = promisc;
 		
 		preparation_pcap(pcap_mp);
-		pcap_engine_start(pcap_mp);
+		//pcap_engine_start(pcap_mp);
 		
 		omlc_start();
-
 		
-		while(1)
-			;
+
+			//pcap->dev = pcap_lookupdev(self->errbuf);
+			if(pcap_mp->dev == NULL)
+			{ 
+				pcap_mp->dev = pcap_lookupdev(pcap_mp->errbuf);
+				if(pcap_mp->dev == NULL){
+					printf("%s\n",pcap_mp->errbuf); 
+					exit(1); 
+				}
+			}
+			pcap_lookupnet(pcap_mp->dev,&pcap_mp->netp,&pcap_mp->maskp,pcap_mp->errbuf);
+
+			//pcap->mp = omlc_add_mp("pcap", omlc_instance->pcap_mp->def);
+
+			pcap_mp->descr = pcap_open_live(pcap_mp->dev,BUFSIZ,pcap_mp->promiscuous,-1,pcap_mp->errbuf);
+			if(pcap_mp->descr == NULL)
+			{ printf("pcap_open_live(): %s\n",pcap_mp->errbuf); exit(1); }
+
+
+			if(pcap_mp->filter_exp != NULL)
+			{
+
+				//     /* Lets try and compile the program.. non-optimized */
+				if(pcap_compile(pcap_mp->descr,&pcap_mp->fp,pcap_mp->filter_exp,0,pcap_mp->netp) == -1)
+				{ 
+					fprintf(stderr,"Error calling pcap_compile\n"); 
+					exit(1); 
+				}
+				// 
+				/* set the compiled program as the filter */
+				if(pcap_setfilter(pcap_mp->descr,&pcap_mp->fp) == -1){ 
+					fprintf(stderr,"Error setting filter\n"); 
+					exit(1); 
+				}
+			}
+
+			/* ... and loop */ 
+			pcap_loop(pcap_mp->descr,-1,packet_treatment,(unsigned char*)NULL);
 	}else{
 		printf("exit");
 		exit(0);

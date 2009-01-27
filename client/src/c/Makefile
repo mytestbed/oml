@@ -6,7 +6,7 @@ INSTALL_INC_DIR = /usr/include
 
 #### FOR EXPERTS ONLY  ###
 SRCS = file_writer.c filter.c init.c misc.c net_writer.c \
-    parse_config.c api.c 
+    parse_config.c api.c
 FILTER_SRCS = factory.c average_filter.c first_filter.c
 SHARED_SRCS = marshall.c
 
@@ -38,7 +38,7 @@ LIB_FILES = $(LIB_FILE_A) $(LIB_FILE_SO)
 #SAMPLE_OBJS = $(SAMPLE_SRCS:%.c=$(BUILD_DIR)/%.o)
 #SAMPLE_BINS = $(SAMPLES:%=$(BUILD_DIR)/sample/%)
 
-build: $(LIBRARY) $(BIN_DIR)/test_app
+build: $(LIBRARY)
 #	echo $(LIB_FILES)
 
 $(LIBRARY): $(OBJ_DIR)/filter $(OBJ_DIR)/shared ocommLib $(LIB_DIR) $(LIB_FILES:%=$(LIB_DIR)/%)
@@ -54,18 +54,14 @@ ocommLib:
 	@echo '>>> Building $@'
 	cd ../../../external/ocommLib; make BUILD_DIR=../../build/client/objs/ocomm objs
 
-$(BIN_DIR)/test_app: $(BIN_DIR) $(OBJ_DIR)/test_app.o $(OBJS)
-	$(CC) -o $@  $(OBJ_DIR)/test_app.o $(OBJS) $(shell ls $(OBJ_DIR)/ocomm/*.o) \
-	   -lpopt -lxml2 -lpthread -lm -lpcap
+
 
 #samples: $(LIBRARY) $(BUILD_DIR)/sample  $(SAMPLE_BINS)
 
 TEST_ID = foo
 TEST_ARGS = --oml-id $(TEST_ID) --oml-exp-id test1
 #TEST_ARGS = --oml-file -
-run-test: $(BIN_DIR)/test_app
-	$(BIN_DIR)/test_app --oml-server localhost \
-        --oml-log-file - --oml-log-level 99 $(TEST_ARGS)
+
 
 #$(BUILD_DIR)/sample/%: $(BUILD_DIR)/sample/%.o $(BUILD_DIR)/sample/%_wrapper.o $(LIB_DIR)/$(LIB_FILE_A)
 #	$(CC) -o $@ $< $(<:%.o=%_wrapper.o) $(LIB_DIR)/$(LIB_FILE_A) $(SAMPLE_LIBS)
