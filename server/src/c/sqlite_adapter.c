@@ -101,14 +101,14 @@ sq3_add_sender_id(
   Database* db,
   char*     sender_id
 ) {
-//  Sq3DB* self = (Sq3DB*)db->adapter_hdl;
-//  int index = ++self->sender_cnt;
+  Sq3DB* self = (Sq3DB*)db->adapter_hdl;
+  int index = ++self->sender_cnt;
 
-//  char s[512];  // don't check for length
+  char s[512];  // don't check for length
   // TDEBUG
   //sprintf(s, "INSERT INTO _senders VALUES (%d, '%s');\0", index, sender_id);
   //if (sql_stmt(self, s)) return -1;
-  return 0;
+  return index;
 }
 
 int
@@ -144,47 +144,47 @@ sq3_create_table(
   is += strlen(is);
 
   int first = 0;
-   DbColumn* col = table->columns[0];
-   int i = 0;
-   while (col != NULL && max > 0) {
-     char* t;
+  DbColumn* col = table->columns[0];
+  int i = 0;
+  while (col != NULL && max > 0) {
+    char* t;
     col = table->columns[i];
-     switch (col->type) {
-       case OML_LONG_VALUE: t = "INTEGER"; break;
-       case OML_DOUBLE_VALUE: t = "REAL"; break;
-       case OML_STRING_VALUE: t = "TEXT"; break;
-       default:
-         o_log(O_LOG_ERROR, "Bug: Unknown type %d in col '%s'\n", col->type, col->name);
-     }
-     if (first) {
-       sprintf(cs, "%s %s", col->name, t);
-       sprintf(is, "?");
-       first = 0;
-     } else {
-       sprintf(cs, ", %s %s", col->name, t);
-       sprintf(is, ", ?");
-     }
-     cs += strlen(cs);
-     is += strlen(is);
-     i++;
-     max--;
-   }
-   sprintf(cs, ");");
-   sprintf(is, ");");
-   o_log(O_LOG_INFO, "schema: %s\n", create);
-   o_log(O_LOG_INFO, "insert: %s\n", insert);
+    switch (col->type) {
+      case OML_LONG_VALUE: t = "INTEGER"; break;
+      case OML_DOUBLE_VALUE: t = "REAL"; break;
+      case OML_STRING_VALUE: t = "TEXT"; break;
+      default:
+        o_log(O_LOG_ERROR, "Bug: Unknown type %d in col '%s'\n", col->type, col->name);
+    }
+    if (first) {
+      sprintf(cs, "%s %s", col->name, t);
+      sprintf(is, "?");
+      first = 0;
+    } else {
+      sprintf(cs, ", %s %s", col->name, t);
+      sprintf(is, ", ?");
+    }
+    cs += strlen(cs);
+    is += strlen(is);
+    i++;
+    max--;
+  }
+  sprintf(cs, ");");
+  sprintf(is, ");");
+  o_log(O_LOG_INFO, "schema: %s\n", create);
+  o_log(O_LOG_INFO, "insert: %s\n", insert);
 
-   Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
+  Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
 
-   if (sql_stmt(sq3db, create)) return -1;
+  if (sql_stmt(sq3db, create)) return -1;
 
-   Sq3Table* sq3table = (Sq3Table*)malloc(sizeof(Sq3Table));
-   memset(sq3table, 0, sizeof(Sq3Table));
-   table->adapter_hdl = sq3table;
-   if (sqlite3_prepare_v2(sq3db->db_hdl, insert, -1, &sq3table->insert_stmt, 0) != SQLITE_OK) {
-     o_log(O_LOG_ERROR, "Could not prepare statement (%s).\n", sqlite3_errmsg(sq3db->db_hdl));
+  Sq3Table* sq3table = (Sq3Table*)malloc(sizeof(Sq3Table));
+  memset(sq3table, 0, sizeof(Sq3Table));
+  table->adapter_hdl = sq3table;
+  if (sqlite3_prepare_v2(sq3db->db_hdl, insert, -1, &sq3table->insert_stmt, 0) != SQLITE_OK) {
+    o_log(O_LOG_ERROR, "Could not prepare statement (%s).\n", sqlite3_errmsg(sq3db->db_hdl));
     return -1;
-   }
+  }
   return 0;
 }
 
@@ -198,60 +198,60 @@ sq3_insert(
   OmlValue* values,
   int       value_count
 ) {
- //   Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
- //   Sq3Table* sq3table = (Sq3Table*)table->adapter_hdl;
- //   int i;
- //   sqlite3_stmt* stmt = sq3table->insert_stmt;
+  Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
+  Sq3Table* sq3table = (Sq3Table*)table->adapter_hdl;
+  int i;
+  sqlite3_stmt* stmt = sq3table->insert_stmt;
   //o_log(O_LOG_DEBUG, "insert");
- //   o_log(O_LOG_DEBUG, "TDEBUG - into sq3_insert - %d \n", seq_no);
+  o_log(O_LOG_DEBUG, "TDEBUG - into sq3_insert - %d \n", seq_no);
 
- //   if (sqlite3_bind_int(stmt, 1, sender_id) != SQLITE_OK) {
- //     o_log(O_LOG_ERROR, "Could not bind 'oml_sender_id' (%s).\n",
- //         sqlite3_errmsg(sq3db->db_hdl));
- //   }
- //   if (sqlite3_bind_int(stmt, 2, seq_no) != SQLITE_OK) {
- //     o_log(O_LOG_ERROR, "Could not bind 'oml_seq' (%s).\n",
- //         sqlite3_errmsg(sq3db->db_hdl));
- //   }
- //   if (sqlite3_bind_double(stmt, 3, time_stamp) != SQLITE_OK) {
- //     o_log(O_LOG_ERROR, "Could not bind 'oml_ts' (%s).\n",
- //         sqlite3_errmsg(sq3db->db_hdl));
- //   }
+  if (sqlite3_bind_int(stmt, 1, sender_id) != SQLITE_OK) {
+    o_log(O_LOG_ERROR, "Could not bind 'oml_sender_id' (%s).\n",
+        sqlite3_errmsg(sq3db->db_hdl));
+  }
+  if (sqlite3_bind_int(stmt, 2, seq_no) != SQLITE_OK) {
+    o_log(O_LOG_ERROR, "Could not bind 'oml_seq' (%s).\n",
+        sqlite3_errmsg(sq3db->db_hdl));
+  }
+  if (sqlite3_bind_double(stmt, 3, time_stamp) != SQLITE_OK) {
+    o_log(O_LOG_ERROR, "Could not bind 'oml_ts' (%s).\n",
+        sqlite3_errmsg(sq3db->db_hdl));
+  }
 
- //   OmlValue* v = values;
- //   for (i = 0; i < value_count; i++, v++) {
- //     DbColumn* col = table->columns[i];
- //     if (v->type != col->type) {
- //       o_log(O_LOG_ERROR, "Mismatch in %dth value type fo rtable '%s'\n", i, table->name);
- //       return -1;
-  //    }
- //     int res;
- //     switch (col->type) {
- //       case OML_LONG_VALUE:
- //         res = sqlite3_bind_int(stmt, i + 4, (int)v->value.longValue);
- //         break;
- //       case OML_DOUBLE_VALUE:
-  //        res = sqlite3_bind_double(stmt, i + 4, v->value.doubleValue);
- //         break;
-   //     case OML_STRING_VALUE:
-  //        res = sqlite3_bind_text (stmt, i + 4, v->value.stringValue.text,
- //                 -1, SQLITE_TRANSIENT);
- //         break;
- //       default:
- //         o_log(O_LOG_ERROR, "Bug: Unknown type %d in col '%s'\n", col->type, col->name);
- //         return -1;
- //     }
- //     if (res != SQLITE_OK) {
- //       o_log(O_LOG_ERROR, "Could not bind column '%s' (%s).\n",
- //           col->name, sqlite3_errmsg(sq3db->db_hdl));
- //     }
- //   }
- //   o_log(O_LOG_DEBUG, "TDEBUG - into sq3_insert - %d \n", seq_no);
- //   if (sqlite3_step(stmt) != SQLITE_DONE) {
- //     o_log(O_LOG_ERROR, "Could not step (execute) stmt.\n");
- //     return -1;
- //   }
-  return 0;//  qlite3_reset(stmt);
+  OmlValue* v = values;
+  for (i = 0; i < value_count; i++, v++) {
+    DbColumn* col = table->columns[i];
+    if (v->type != col->type) {
+      o_log(O_LOG_ERROR, "Mismatch in %dth value type fo rtable '%s'\n", i, table->name);
+      return -1;
+    }
+    int res;
+    switch (col->type) {
+      case OML_LONG_VALUE:
+        res = sqlite3_bind_int(stmt, i + 4, (int)v->value.longValue);
+        break;
+      case OML_DOUBLE_VALUE:
+        res = sqlite3_bind_double(stmt, i + 4, v->value.doubleValue);
+        break;
+      case OML_STRING_VALUE:
+        res = sqlite3_bind_text (stmt, i + 4, v->value.stringValue.text,
+                -1, SQLITE_TRANSIENT);
+        break;
+      default:
+        o_log(O_LOG_ERROR, "Bug: Unknown type %d in col '%s'\n", col->type, col->name);
+        return -1;
+    }
+    if (res != SQLITE_OK) {
+      o_log(O_LOG_ERROR, "Could not bind column '%s' (%s).\n",
+          col->name, sqlite3_errmsg(sq3db->db_hdl));
+    }
+  }
+  o_log(O_LOG_DEBUG, "TDEBUG - into sq3_insert - %d \n", seq_no);
+  if (sqlite3_step(stmt) != SQLITE_DONE) {
+    o_log(O_LOG_ERROR, "Could not step (execute) stmt.\n");
+    return -1;
+  }
+  return sqlite3_reset(stmt);
 }
 
 
@@ -263,35 +263,35 @@ select_callback(
   char** p_col_names
 ) {
 
- //   int i;
+  int i;
 
- //   int* nof_records = (int*) p_data;
- //   (*nof_records)++;
+  int* nof_records = (int*) p_data;
+  (*nof_records)++;
 
- //   if (first_row) {
- //     first_row = 0;
+  if (first_row) {
+    first_row = 0;
 
- //     for (i=0; i < num_fields; i++) {
- //       printf("%20s", p_col_names[i]);
- //     }
+    for (i=0; i < num_fields; i++) {
+      printf("%20s", p_col_names[i]);
+    }
 
- //     printf("\n");
- //     for (i=0; i< num_fields*20; i++) {
- //       printf("=");
- //     }
- //     printf("\n");
- //   }
+    printf("\n");
+    for (i=0; i< num_fields*20; i++) {
+      printf("=");
+    }
+    printf("\n");
+  }
 
- //   for(i=0; i < num_fields; i++) {
- //     if (p_fields[i]) {
- //       printf("%20s", p_fields[i]);
- //     }
- //     else {
- //       printf("%20s", " ");
- //     }
- //   }
+  for(i=0; i < num_fields; i++) {
+    if (p_fields[i]) {
+      printf("%20s", p_fields[i]);
+    }
+    else {
+      printf("%20s", " ");
+    }
+  }
 
- //   printf("\n");
+  printf("\n");
   return 0;
 }
 
@@ -300,19 +300,19 @@ select_stmt(
   Sq3DB* self,
   const char* stmt
 ) {
- //   char* errmsg;
- //   int   ret;
- //   int   nrecs = 0;
- //   o_log(O_LOG_DEBUG, "prepare to exec 1 \n");
- //   first_row = 1;
+  char* errmsg;
+  int   ret;
+  int   nrecs = 0;
+  o_log(O_LOG_DEBUG, "prepare to exec 1 \n");
+  first_row = 1;
 
- //   ret = sqlite3_exec(self->db_hdl, stmt, select_callback, &nrecs, &errmsg);
+  ret = sqlite3_exec(self->db_hdl, stmt, select_callback, &nrecs, &errmsg);
 
- //   if (ret != SQLITE_OK) {
- //     o_log(O_LOG_ERROR, "Error in select statement %s [%s].\n", stmt, errmsg);
- //     return -1;
- //   }
-  return 0;
+  if (ret != SQLITE_OK) {
+    o_log(O_LOG_ERROR, "Error in select statement %s [%s].\n", stmt, errmsg);
+    return -1;
+  }
+  return nrecs;
 }
 
 static int
@@ -320,104 +320,17 @@ sql_stmt(
   Sq3DB* self,
   const char* stmt
 ) {
- //   char *errmsg;
- //   int   ret;
- //   o_log(O_LOG_DEBUG, "prepare to exec %s \n", stmt);
- //   ret = sqlite3_exec(self->db_hdl, stmt, 0, 0, &errmsg);
+  char *errmsg;
+  int   ret;
+  o_log(O_LOG_DEBUG, "prepare to exec %s \n", stmt);
+  ret = sqlite3_exec(self->db_hdl, stmt, 0, 0, &errmsg);
 
- //   if (ret != SQLITE_OK) {
- //     o_log(O_LOG_WARN, "Error in statement: %s [%s].\n", stmt, errmsg);
- //     return -1;
- //   }
+  if (ret != SQLITE_OK) {
+    o_log(O_LOG_WARN, "Error in statement: %s [%s].\n", stmt, errmsg);
+    return -1;
+  }
   return 0;
 }
-
-
-//int main2() {
-//  sqlite3_open("./bind_insert.db", &db);
-//
-//  if(db == 0) {
-//    printf("\nCould not open database.");
-//    return 1;
-//  }
-//
-//  sql_stmt("create table foo (bar, baz)");
-//
-//  sqlite3_stmt *stmt;
-//
-//  if ( sqlite3_prepare(
-//         db,
-//         "insert into foo values (?,?)",  // stmt
-//        -1, // If than zero, then stmt is read up to the first nul terminator
-//        &stmt,
-//         0  // Pointer to unused portion of stmt
-//       )
-//       != SQLITE_OK) {
-//    printf("\nCould not prepare statement.");
-//    return 1;
-//  }
-//
-//  printf("\nThe statement has %d wildcards\n", sqlite3_bind_parameter_count(stmt));
-//
-//  if (sqlite3_bind_double(
-//        stmt,
-//        1,  // Index of wildcard
-//        4.2
-//        )
-//      != SQLITE_OK) {
-//    printf("\nCould not bind double.\n");
-//    return 1;
-//  }
-//
-//  if (sqlite3_bind_int(
-//        stmt,
-//        2,  // Index of wildcard
-//        42
-//        )
-//      != SQLITE_OK) {
-//    printf("\nCould not bind int.\n");
-//    return 1;
-//  }
-//
-//  if (sqlite3_step(stmt) != SQLITE_DONE) {
-//    printf("\nCould not step (execute) stmt.\n");
-//    return 1;
-//  }
-//
-//  sqlite3_reset(stmt);
-//
-//  if (sqlite3_bind_null(
-//        stmt,
-//        1  // Index of wildcard
-//        )
-//      != SQLITE_OK) {
-//    printf("\nCould not bind double.\n");
-//    return 1;
-//  }
-//
-//  if (sqlite3_bind_text (
-//        stmt,
-//        2,  // Index of wildcard
-//        "hello",
-//        5,  // length of text
-//        SQLITE_STATIC
-//        )
-//      != SQLITE_OK) {
-//    printf("\nCould not bind int.\n");
-//    return 1;
-//  }
-//
-//  if (sqlite3_step(stmt) != SQLITE_DONE) {
-//    printf("\nCould not step (execute) stmt.\n");
-//    return 1;
-//  }
-//
-//  printf("\n");
-//  select_stmt("select * from foo");
-//
-//  sqlite3_close(db);
-//  return 0;
-//}
 
 /*
  Local Variables:

@@ -148,7 +148,7 @@ OmlSigar* create_sigar_measurement(
 	  OmlMPDef* def = create_sigar_filter(name);
 	  self->def = def;
 	  
-	  self->mp = omlc_add_mp("oml_sigar", def);
+	  self->mp = omlc_add_mp("omlsigar", def);
 
 	  //sigar_open(&self->system_info);
 	  
@@ -208,7 +208,7 @@ main(
 		int argc,
 		const char *argv[]
 ) {
-	OmlValueU v[5];
+	OmlValueU v[4];
     sigar_t *sigar_t;
     sigar_mem_t memory_info;
     sigar_cpu_t cpu_info;
@@ -262,7 +262,7 @@ main(
 			period = atoi(*++argv_);
 			*argc_ -= 2;
 		}
-			printf("Creation of pcap %s\n ", *argv_);
+			//printf("Creation of pcap %s\n ", *argv_);
 
 	}
 	
