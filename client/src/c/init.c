@@ -73,6 +73,15 @@ omlc_init(
   //  o_set_log_level(DEF_LOG_LEVEL);
   o_set_log_level(3);
 
+
+  const char* appliName = appName;
+  const char* p = appliName + strlen(appName);
+  while (! (p == appliName || *p == '/')) p--;
+  if (*p == '/') p++;
+  appliName = p;
+
+
+
   omlc_instance = NULL;
   const char* name = NULL;
   const char* experimentId = NULL;
@@ -182,7 +191,7 @@ omlc_init(
   omlc_instance = &instance_storage;
   memset(omlc_instance, 0, sizeof(OmlClient));
 
-  omlc_instance->app_name = appName;
+  omlc_instance->app_name = appliName;
   omlc_instance->node_name = name;
   omlc_instance->experiment_id = experimentId;
   omlc_instance->sample_count = sample_count;

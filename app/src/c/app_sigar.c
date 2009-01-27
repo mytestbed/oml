@@ -172,12 +172,12 @@ main(
         sigar_net_interface_stat_t interface_stat;
 	int* argc_;
 	  const char** argv_;
-	const char* name = argv[ 0 ];
-	const char* p = name + strlen(argv[ 0 ]);
-	while (! (p == name || *p == '/')) p--; 
-	if (*p == '/') p++;
-	name = p; 
-	omlc_init(name, &argc, argv, o_log);
+//	const char* name = argv[ 0 ];
+//	const char* p = name + strlen(argv[ 0 ]);
+//	while (! (p == name || *p == '/')) p--; 
+//	if (*p == '/') p++;
+//	name = p; 
+	omlc_init(argv[ 0 ], &argc, argv, o_log);
 
 	argc_ =&argc;
 	argv_ = argv;
