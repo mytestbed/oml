@@ -13,7 +13,7 @@ SRCS2 = app_pcap.c log.c
 CFLAGS = -g -I. \
     -I$(TOP)/client/src/c -I/usr/local/include    -I$(SHARED_SRC_DIR) -I/usr/include/libxml2
 LDFLAGS = -L$(TOP)/build/client/lib
-LIBS = -lsigar-x86-linux -loml2 -lxml2  -lpopt -lpthread -lpcap -lsqlite3
+LIBS = -lsigar-x86-linux -loml2 -lxml2 -lpopt -lpthread -lpcap -lsqlite3
 
 
 BUILD_TOP = $(TOP)/build
