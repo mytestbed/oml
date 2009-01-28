@@ -61,12 +61,7 @@ typedef struct _omlSigar{
   pthread_t thread_pcap;
 } OmlSigar;
 
-static void* thread_pcapstart(void* handle);
 
-void
-    sigar_engine_start(
-    OmlSigar* pcap
-                     );
 
 OmlSigar* create_sigar_measurement(
     char* name

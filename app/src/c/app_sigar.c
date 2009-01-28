@@ -96,48 +96,9 @@ char *ulltostr(sigar_uint64_t value, char *ptr, int base)
 
 
 
-static void* thread_sigarstart(void* handle){
-	
-	OmlSigar* self = (OmlSigar*) handle;
-	OmlValueU v[5];
-	sigar_t *sigar_t;
-        sigar_mem_t memory_info;
-        sigar_cpu_t cpu_info;
-        sigar_net_interface_stat_t interface_stat;
-	while(1){
-		sigar_open(&sigar_t);
-		sigar_mem_get(sigar_t, &memory_info);
-		sigar_net_interface_stat_get(sigar_t, "eth0"/*self->name_interface*/, &interface_stat);	  
-			  
-		
-		sigar_cpu_get(sigar_t, &cpu_info);
-		
-		v[0].longValue = (long)interface_stat.rx_bytes;
-		v[1].longValue = (long)interface_stat.tx_bytes;
-		v[2].longValue = (long)memory_info.used;
-		v[3].longValue = (long)cpu_info.user;
-		v[4].longValue = (long)cpu_info.total;
-		
-		
-		omlc_process(self->mp, v);
 
-	    sigar_close(sigar_t);
-	    
-	    //sleep(self->granularity);
-	    sleep(1);
-		
-	}
-	
-	
-}
 
-void
-    sigar_engine_start(
-    OmlSigar* sigar
-                     ){
-	pthread_create(&sigar->thread_pcap, NULL, thread_sigarstart, (void*)sigar);
-	
-}
+
 
 OmlSigar* create_sigar_measurement(
     char* name
@@ -216,18 +177,12 @@ main(
 	int* argc_;
 	const char** argv_;
 	char mem_used[64];
-//	const char* name = argv[ 0 ];
-//	const char* p = name + strlen(argv[ 0 ]);
-//	while (! (p == name || *p == '/')) p--; 
-//	if (*p == '/') p++;
-//	name = p; 
 	omlc_init(argv[ 0 ], &argc, argv, o_log);
 
 	argc_ =&argc;
 	argv_ = argv;
 
 	OmlSigar* sigar = NULL; 
-	//char* filter_pcap = NULL;
 	char* if_sigar = NULL;
 	char src_pcap[50] = " ";
 	char dst_pcap[50] = " ";
@@ -269,18 +224,9 @@ main(
 	sigar_mp = sigar;
 	
 	if(sigar_mp != NULL){
-		
-
-		//strcat(pcap_mp->filter_exp, " and not ether proto \\arp");
-		//printf(" filter %s \n", omlc_instance->pcap_mp->filter_exp);
-		//omlc_instance->pcap_mp->filter_exp = "dst host 10.211.55.4"; 
 		sigar_mp->name_interface = if_sigar;
 		//pcap_mp->promiscuous = promisc;
 		sigar_mp->granularity = period;
-		
-		//preparation_pcap(pcap_mp);  TODO start of the configuration of the network 
-		// configuration
-		
 		
 		omlc_start();
 
@@ -306,7 +252,6 @@ main(
 
 	    sigar_close(sigar_t);
 	    
-	    //sleep(self->granularity);
 	    sleep(1);
 		
 	}

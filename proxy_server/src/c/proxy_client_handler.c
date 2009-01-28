@@ -95,6 +95,7 @@ status_callback(
       ProxyClientHandler* self = (ProxyClientHandler*)handle;
 
       fclose(self->queue);
+
       o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
       break;
     }

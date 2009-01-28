@@ -139,62 +139,6 @@ OmlPcap* create_pcap_measurement(char* file)
 
 	return self;
 }
-/**
- * \fn void pcap_engine_start(OmlPcap* pcap)
- * \brief creation of a new thread that will make the pcap measurement
- *
- * \param pcap an instance of the OmlPcap structure 
- */
-void
-pcap_engine_start(
-		OmlPcap* pcap
-) {
-	pthread_create(&pcap->thread_pcap, NULL, thread_pcapstart, (void*)pcap);
-}
-
-static void* thread_pcapstart(void* handle) 
-{
-	OmlPcap* pcap = (OmlPcap*)handle;
-
-	//pcap->dev = pcap_lookupdev(self->errbuf);
-	if(pcap->dev == NULL)
-	{ 
-		pcap->dev = pcap_lookupdev(pcap->errbuf);
-		if(pcap->dev == NULL){
-			printf("%s\n",pcap->errbuf); 
-			exit(1); 
-		}
-	}
-	pcap_lookupnet(pcap->dev,&pcap->netp,&pcap->maskp,pcap->errbuf);
-
-	//pcap->mp = omlc_add_mp("pcap", omlc_instance->pcap_mp->def);
-
-	pcap->descr = pcap_open_live(pcap->dev,BUFSIZ,pcap->promiscuous,-1,pcap->errbuf);
-	if(pcap->descr == NULL)
-	{ printf("pcap_open_live(): %s\n",pcap_mp->errbuf); exit(1); }
-
-
-	if(pcap->filter_exp != NULL)
-	{
-
-		//     /* Lets try and compile the program.. non-optimized */
-		if(pcap_compile(pcap->descr,&pcap->fp,pcap->filter_exp,0,pcap->netp) == -1)
-		{ 
-			fprintf(stderr,"Error calling pcap_compile\n"); 
-			exit(1); 
-		}
-		// 
-		/* set the compiled program as the filter */
-		if(pcap_setfilter(pcap->descr,&pcap->fp) == -1){ 
-			fprintf(stderr,"Error setting filter\n"); 
-			exit(1); 
-		}
-	}
-
-	/* ... and loop */ 
-	pcap_loop(pcap_mp->descr,-1,packet_treatment,(unsigned char*)NULL);
-}
-
 
 /**
  * \fn void preparation_pcap(OmlPcap* pcap)

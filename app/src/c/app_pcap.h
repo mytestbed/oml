@@ -160,12 +160,6 @@ u_int16_t handle_ethernet(
     OmlValueU* value
                          );
 
-static void* thread_pcapstart(void* handle);
-
-void
-    pcap_engine_start(
-    OmlPcap* pcap
-                     );
 
 
 #endif /*APP_PCAP_H_*/
