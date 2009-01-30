@@ -29,6 +29,11 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <errno.h>
+
+
+struct _proxyClientBuffer;
+
+
 typedef enum _cstate {
   C_HEADER,       // processing header info
   C_BINARY_DATA,  // data is of binary format
@@ -38,32 +43,51 @@ typedef enum _cstate {
 #define DEF_NUM_VALUES 30
 #define MAX_STRING_SIZE 64
 
+
+
+
+
+
+typedef struct _proxyClientBuffer{
+    int pageNumber;
+
+    char* current_pointer;
+
+    int sizeBuf;
+
+    int currentBufSize;
+
+    char buff[256];
+
+    struct _proxyClientBuffer* next;
+
+
+}ProxyClientBuffer;
+
 typedef struct _proxyClientHandler {
   //! Name used for debugging
   char name[64];
 
-
-
-//  char        app_name[MAX_STRING_SIZE];
   int         sender_id;
 
-  CState      state;
-  CState      content;
   Socket*     socket;
   OmlMBuffer  mbuf;
 
-  OmlValue    values[DEF_NUM_VALUES];
-  int         value_count;
+  struct _proxyClientBuffer* buffer;
 
-  OmlValue    table_name;
-
-  long        time_offset;  // value to add to remote ts to
-                            // sync time across all connections
   FILE *      queue;
 
   int         fd_queue;
 
-} ProxyClientHandler;
+}ProxyClientHandler;
+
+
+
+ProxyClientBuffer* initPCB(
+        int size,
+        int number
+        );
+
 
 
 #endif /*CLIENT_HANDLER_H_*/
