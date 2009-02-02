@@ -40,12 +40,17 @@
 
 #define DEF_PORT 3003
 #define DEF_PORT_STR "3003"
-#define DEFAULT_LOG_FILE "oml_server.log"
+#define DEFAULT_LOG_FILE "oml_proxy_server.log"
+#define DEFAULT_RESULT_FILE "oml_result_proxy.res"
+#define DEF_PAGE_SIZE 512
 
 static int listen_port = DEF_PORT;
 
 static int log_level = O_LOG_INFO;
 static char* logfile_name = DEFAULT_LOG_FILE;
+static char* resultfile_name = DEFAULT_RESULT_FILE;
+static int page_size = DEF_PAGE_SIZE;
+
 
 struct poptOption options[] = {
   POPT_AUTOHELP
@@ -57,6 +62,10 @@ struct poptOption options[] = {
   { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0,
         "File to log to", DEFAULT_LOG_FILE },
   { "version", 'v', 0, 0, 'v', "Print version information and exit" },
+  { "resultfile", 'r', POPT_ARG_STRING, &resultfile_name, 0,
+        "File to put the result", DEFAULT_RESULT_FILE},
+  { "size", 's', POPT_ARG_INT, &page_size, 0,
+        "Size of the bufferised data",  POPT_ARG_INT},
   { NULL, 0, 0, NULL, 0 }
 };
 
@@ -69,7 +78,7 @@ on_connect(
 //  Socket* outSock = (Socket*)handle;
 
   o_log(O_LOG_DEBUG, "New client connected\n");
-  proxy_client_handler_new(newSock);
+  proxy_client_handler_new(newSock, page_size, resultfile_name);
 }
 
 

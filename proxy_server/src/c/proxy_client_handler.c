@@ -41,9 +41,9 @@ ProxyClientBuffer* initPCB( int size, int number){
     self->pageNumber = number;
     self->currentBufSize = 0;
 
-    self->buff = (char*) malloc(512*sizeof(char));
+    self->buff = (char*) malloc(size*sizeof(char));
 
-    memset(self->buff, 0, 512*sizeof(char));
+    memset(self->buff, 0, size*sizeof(char));
 
     self->current_pointer = self->buff;
     self->next = NULL;
@@ -69,15 +69,18 @@ status_callback(
 
 void*
 proxy_client_handler_new(
-    Socket* newSock
+    Socket* newSock,
+    int size_page,
+    char* file_name
 ) {
   ProxyClientHandler* self = (ProxyClientHandler *)malloc(sizeof(ProxyClientHandler));
   memset(self, 0, sizeof(ProxyClientHandler));
 
   self->socket = newSock;
-  self->buffer = initPCB( 512, 0); //TODO change it to integrate option of the command line
-
-  self->queue = fopen("./testproxy", "wa");
+  self->buffer = initPCB( size_page, 0); //TODO change it to integrate option of the command line
+  self->firstBuffer = buffer;
+  self->currentPageNumber = 0;
+  self->queue = fopen(file_name, "wa");
   eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
 }
 
@@ -90,7 +93,7 @@ client_callback(
 ) {
   ProxyClientHandler* self = (ProxyClientHandler*)handle;
   OmlMBuffer* mbuf = &self->mbuf;
-  int available = 512 - (self->buffer->currentBufSize) ;
+  int available = self->buffer->sizeBuf - self->buffer->currentBufSize ;
 
   if(self->queue == NULL)
 	  ;
@@ -108,7 +111,10 @@ client_callback(
 
         fwrite(self->buffer->buff,sizeof(char), self->buffer->currentBufSize, self->queue);
         fflush(self->queue);
-        self->buffer->current_pointer = self->buffer->buff;
+        self->currentPageNumber += 1;
+        self->buffer->next = initPCB(self->buffer->sizeBuf, self->currentPageNumber);
+        self->buffer = self->buffer->next;
+
         strcpy(self->buffer->current_pointer, (const char*) buf);
         self->buffer->current_pointer += buf_size;
         self->buffer->currentBufSize = buf_size;

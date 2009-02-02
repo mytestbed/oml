@@ -71,9 +71,13 @@ typedef struct _proxyClientHandler {
   int         sender_id;
 
   Socket*     socket;
+
   OmlMBuffer  mbuf;
 
+  int currentPageNumber;
+
   struct _proxyClientBuffer* buffer;
+  struct _proxyClientBuffer* firstBuffer;
 
   FILE *      queue;
 
