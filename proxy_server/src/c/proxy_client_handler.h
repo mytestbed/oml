@@ -57,7 +57,7 @@ typedef struct _proxyClientBuffer{
 
     int currentBufSize;
 
-    char buff[256];
+    char* buff;
 
     struct _proxyClientBuffer* next;
 

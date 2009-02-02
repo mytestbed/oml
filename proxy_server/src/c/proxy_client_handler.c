@@ -40,8 +40,12 @@ ProxyClientBuffer* initPCB( int size, int number){
     self->sizeBuf = size;
     self->pageNumber = number;
     self->currentBufSize = 0;
-    self->current_pointer = self->buff[0];
 
+    self->buff = (char*) malloc(512*sizeof(char));
+
+    memset(self->buff, 0, 512*sizeof(char));
+
+    self->current_pointer = self->buff;
     self->next = NULL;
 
     return self;
@@ -71,7 +75,8 @@ proxy_client_handler_new(
   memset(self, 0, sizeof(ProxyClientHandler));
 
   self->socket = newSock;
-  self->buffer = initPCB( 256, 0); //TODO change it to integrate option of the command line
+  self->buffer = initPCB( 512, 0); //TODO change it to integrate option of the command line
+
   self->queue = fopen("./testproxy", "wa");
   eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
 }
@@ -85,23 +90,27 @@ client_callback(
 ) {
   ProxyClientHandler* self = (ProxyClientHandler*)handle;
   OmlMBuffer* mbuf = &self->mbuf;
-  int available = 256 - (self->buffer->currentBufSize) ;
+  int available = 512 - (self->buffer->currentBufSize) ;
 
   if(self->queue == NULL)
 	  ;
   else{
-    if(available > buf_size){
+    if(available >= buf_size){
+
         strncpy(self->buffer->current_pointer, (const char*) buf, buf_size);
-        self->buffer->current_pointer = self->buffer->buff[self->buffer->currentBufSize+buf_size];
-        self->buffer->currentBufSize = self->buffer->currentBufSize + buf_size;
+
+        self->buffer->current_pointer += buf_size;
+        self->buffer->currentBufSize += buf_size;
 
     }
     else{
-        fputs(self->buffer->buff, self->queue);
+
+
+        fwrite(self->buffer->buff,sizeof(char), self->buffer->currentBufSize, self->queue);
         fflush(self->queue);
-        self->buffer->current_pointer = self->buffer->buff[0];
-        //strncpy(self->buffer->current_pointer, (const char*) buf, buf_size);
-        self->buffer->current_pointer = self->buffer->buff[buf_size];
+        self->buffer->current_pointer = self->buffer->buff;
+        strcpy(self->buffer->current_pointer, (const char*) buf);
+        self->buffer->current_pointer += buf_size;
         self->buffer->currentBufSize = buf_size;
 
     }
@@ -119,8 +128,8 @@ status_callback(
   switch (status) {
     case SOCKET_CONN_CLOSED: {
       ProxyClientHandler* self = (ProxyClientHandler*)handle;
-      fputs(self->buffer->buff, self->queue);
-      fflush(self->queue);
+       fwrite(self->buffer->buff,sizeof(char), self->buffer->currentBufSize, self->queue);
+        fflush(self->queue);
       fclose(self->queue);
 
       o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
