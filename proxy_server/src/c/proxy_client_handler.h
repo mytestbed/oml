@@ -51,13 +51,13 @@ typedef enum _cstate {
 typedef struct _proxyClientBuffer{
     int pageNumber;
 
-    char* current_pointer;
+    unsigned char* current_pointer;
 
-    int sizeBuf;
+    int max_length;
 
-    int currentBufSize;
+    int currentSize;
 
-    char* buff;
+    unsigned char* buff;
 
     struct _proxyClientBuffer* next;
 
@@ -79,9 +79,9 @@ typedef struct _proxyClientHandler {
   struct _proxyClientBuffer* buffer;
   struct _proxyClientBuffer* firstBuffer;
 
-  FILE *      queue;
+  FILE *      file;
 
-  int         fd_queue;
+  int         fd_file;
 
 }ProxyClientHandler;
 
