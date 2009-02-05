@@ -30,7 +30,12 @@
 #include "client.h"
 #include "version.h"
 
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 OmlMPDef* split_line(char* line)
 {
   int nb_def = 0;
@@ -49,7 +54,12 @@ OmlMPDef* split_line(char* line)
   self = (OmlMPDef*)malloc((nb_def-2)*sizeof(OmlMPDef));
 
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 int main(int argc,char **argv)
 {
 //  const char* name = argv[0];

@@ -42,7 +42,12 @@ static void
 store_col(DbTable* table, DbColumn* col, int index);
 
 static Database* firstDB = NULL;
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 Database*
 database_find(
     char* name
@@ -73,7 +78,12 @@ database_find(
 
   return self;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 /**
  * Client no longer uses this database. If this
  * was the last client checking out, close database.
@@ -111,7 +121,12 @@ database_release(
   }
   free(self);
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 DbTable*
 database_get_table(
     Database* database,
@@ -163,7 +178,12 @@ database_get_table(
   }
   return table;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static int
 parse_col_decl(
   DbTable* self,
@@ -210,7 +230,12 @@ parse_col_decl(
   }
   return 1;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static void
 store_col(
   DbTable*  table,
@@ -230,7 +255,12 @@ store_col(
   }
   table->columns[index] = col;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static void
 table_free(
   DbTable* table

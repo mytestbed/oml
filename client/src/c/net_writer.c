@@ -39,6 +39,11 @@
 #define DEF_PROTOCOL "tcp"
 #define DEF_PORT 3003
 
+/**
+ * \struct OmlNetWriter
+ * \brief a structure that send the data to the server
+ */
+
 typedef struct _omlNetWriter {
 
   oml_writer_meta meta;
@@ -75,7 +80,13 @@ static int out(OmlWriter* writer, OmlValue* values, int value_count);
 static int row_end(OmlWriter* writer, OmlMStream* ms);
 static int close(OmlWriter* writer);
 
-
+/**
+ * \fn OmlWriter* net_writer_new(char* protocol, char* location)
+ * \brief Create a new +OmlWriter+
+ * \param protocol the transport protocol
+ * \param location the host and the port number of the server
+ * \return a new +OmlWriter+
+ */
 OmlWriter*
 net_writer_new(
   char* protocol,
@@ -120,21 +131,16 @@ net_writer_new(
 
   self->first_row = 1;
 
-//  char s[128];
-//  sprintf(s, "protocol: %d", OML_PROTOCOL_VERSION);
-//  write_meta(self, s);
-//  sprintf(s, "experiment-id: %s", omlc_instance->experiment_id);
-//  write_meta(self, s);
-//  sprintf(s, "content: binary");
-//  write_meta(self, s);
-//  sprintf(s, "sender-id: %s", omlc_instance->node_name);
-//  write_meta(self, s);
-//  sprintf(s, "app-name: %s", omlc_instance->app_name);
-//  write_meta(self, s);
-
   return (OmlWriter*)self;
 }
 
+/**
+ * \fn static int write_meta(OmlWriter* writer, char* str)
+ * \brief Definition of the write_meta function of the oml net writer
+ * \param writer the net writer that will send the data to the server
+ * \param str the string to send
+ * \return 1 if the socket is not open, 0 if successful
+ */
 static int
 write_meta(
   OmlWriter* writer,
@@ -149,6 +155,12 @@ write_meta(
   return (socket_sendto(self->socket, s, len) == len);
 }
 
+/**
+ * \fn static int header_done(OmlWriter* writer)
+ * \brief finish the writing of the first information
+ * \param writer the writer that write this information
+ * \return
+ */
 static int
 header_done(
   OmlWriter* writer
@@ -157,47 +169,19 @@ header_done(
   write_meta(writer, "");
 }
 
-//int
-//write_schema(
-//  OmlWriter* writer,
-//  OmlMStream* ms
-//) {
-//  OmlNetWriter* self = (OmlNetWriter*)writer;
-//  char s[512];
-//
-//  ms->index = self->stream_count++;
-//  sprintf(s, "schema: %d %s ", ms->index, ms->table_name);
-//
-//  // Loop over all the filters
-//  //OmlMPDef2* def = ms->mp->param_defs;
-//  OmlMP* mp = ms->mp;
-//  int i;
-//  for (i = 0; i < mp->param_count; i++) {
-//    const char* prefix = mp->param_defs[i].name;
-//    OmlFilter* filter = ms->filters[i];
-//    int j;
-//    for (j = 0; j < filter->output_cnt; j++) {
-//      char* name;
-//      OmlValueT type;
-//      if (filter->meta(filter, j, &name, &type)) {
-//        char* type_s = oml_type_to_s(type);
-//        if (name == NULL) {
-//          sprintf(s, "%s %s:%s", s, prefix, type_s);
-//        } else {
-//          sprintf(s, "%s %s_%s:%s", s, prefix, name, type_s);
-//        }
-//      }
-//    }
-//  }
-//  write_meta(self, s);
-//  return 1;
-//}
-
+/**
+ * \fn static int out(OmlWriter* writer, OmlValue*  values, int value_count)
+ * \brief marshallize and then transfer the values
+ * \param writer pointer to writer instance
+ * \param values type of sample
+ * \param value_count size of above array
+ * \return 0 if sucessful 1 otherwise
+ */
 static int
 out(
-  OmlWriter* writer, //! pointer to writer instance
-  OmlValue*  values,  //! type of sample
-  int        value_count //! size of above array
+  OmlWriter* writer,
+  OmlValue*  values,
+  int        value_count
 ) {
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
@@ -206,6 +190,14 @@ out(
   return cnt == value_count;
 }
 
+/**
+ * \fn int row_start(OmlWriter* writer, OmlMStream* ms, double now)
+ * \brief before sending datastore information about the time and the stream
+ * \param writer the netwriter to send data
+ * \param ms the stream to store the measruement from
+ * \param now a timestamp that represensent the current time
+ * \return 1
+ */
 int
 row_start(
   OmlWriter* writer,
@@ -226,6 +218,13 @@ row_start(
   return 1;
 }
 
+/**
+ * \fn int row_end(OmlWriter* writer, OmlMStream* ms)
+ * \brief send the data after finalysing the data structure
+ * \param writer the net writer that send the measurements
+ * \param ms the stream of measurmenent
+ * \return 1
+ */
 int
 row_end(
   OmlWriter* writer,
@@ -242,6 +241,12 @@ row_end(
   return 1;
 }
 
+/**
+ * \fn static int close(OmlWriter* writer)
+ * \brief Called to close the socket
+ * \param writer the netwriter to close the socket in
+ * \return 0
+ */
 static int
 close(
   OmlWriter* writer

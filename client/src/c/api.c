@@ -35,11 +35,22 @@
 
 extern OmlClient* omlc_instance;
 
+ /**
+ * \fn static void omlc_ms_process( OmlMStream* ms)
+ * \brief Called when the particular MStream has been filled.
+ * \param ms the oml stream to process
+ */
 static void
 omlc_ms_process(
   OmlMStream* ms
 );
-
+/**
+ * \fn void omlc_process( OmlMP* mp, OmlValueU*  values)
+ * \brief Called when a measure has to be treated
+ * \param mp the measurement point in the application
+ * \param values the new values to analyse
+ * \return
+ */
 void
 omlc_process(
   OmlMP*      mp,
@@ -75,7 +86,11 @@ omlc_process(
 //  return mp_lock(mp) ? mp : NULL;
 //}
 
-//! Called when the particular MStream has been filled.
+/**
+ * \fn static void omlc_ms_process( OmlMStream* ms)
+ * \brief Called when the particular MStream has been filled.
+ * \param ms the oml stream to process
+ */
 static void
 omlc_ms_process(
   OmlMStream* ms

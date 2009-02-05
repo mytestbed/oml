@@ -85,7 +85,10 @@ typedef int
   struct _omlWriter* writer //! pointer to writer instance
 );
 
-
+/**
+ * \struct
+ * \brief
+ */
 typedef struct _omlWriter {
 
   oml_writer_meta meta;

@@ -48,14 +48,22 @@ static void* thread_start(void* handle);
 //static void send(OmlValue* values, int value_count);
 
 extern OmlClient* omlc_instance;
-
+/**
+ * \fn void filter_engine_start( OmlMStream* ms )
+ * \brief function that will start the filter thread
+ * \param ms the stream to filter
+ */
 void
 filter_engine_start(
   OmlMStream* ms
 ) {
   pthread_create(&ms->filter_thread, NULL, thread_start, (void*)ms);
 }
-
+/**
+ * \fn static void* thread_start(void* handle)
+ * \brief start the filter thread
+ * \param handle the stream to use the filters on
+ */
 static void*
 thread_start(
   void* handle
@@ -80,31 +88,13 @@ thread_start(
   }
 }
 
-/* //! Implements the logic for sample based filters */
-/* static void */
-/* sample_based( */
-/*   OmlMStream* mp */
-/* ) { */
-/*   //  OmlValue values[MAX_VALUES]; */
-/*   int val_count; */
-/*   OmlValue* filter_values; */
 
-/*   // Set first value to MP index - keep second free for transport timestamp */
-
-/*   for (;;) { */
-/*     if (!mp_lock(mp)) return; */
-/*     int rc = 0; */
-/*     while(rc != 0 || mp->sample_size < mp->sample_thres) { */
-/*       rc = pthread_cond_wait(&mp->condVar, mp->mutexP); */
-/*     } */
-/*     val_count = process(mp, filter_values, MAX_VALUES - 2); */
-/*     if (!mp_unlock(mp)) return; */
-
-/*     store(values); */
-/*   } */
-/* } */
-
-//! Run filters on all queues in MP. Return 1 if success, 0 if not.
+/**
+ * \fn int filter_process( OmlMStream* ms )
+ * \brief Run filters on all queues in MP.
+ * \param ms the stream to filterise
+ * \return 1 if success, 0 if not.
+ */
 int
 filter_process(
   OmlMStream* ms

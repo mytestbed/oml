@@ -32,7 +32,12 @@
 #include <oml2/omlc.h>
 
 #include "client.h"
-
+/**
+ * \fn int mp_lock(OmlMP* mp)
+ * \brief lock of the measurement point mutex
+ * \param mp the measurement point
+ * \return 0 if successful, -1 otherwise
+ */
 int
 mp_lock(
   OmlMP* mp
@@ -46,7 +51,11 @@ mp_lock(
   }
   return 0;
 }
-
+/**
+ * \fn void mp_unlock(OmlMP* mp)
+ * \brief unlock of the measurement point mutex
+ * \param mp the measurement point
+ */
 void
 mp_unlock(
   OmlMP* mp
@@ -59,7 +68,14 @@ mp_unlock(
   }
 }
 
-
+/**
+ * \fn int oml_value_copy(OmlValueU* value, OmlValueT  type, OmlValue*  to)
+ * \brief copy the value +value+ inside +to+
+ * \param value the unique value
+ * \param type the type of +value+
+ * \param to the receiving enum of the value
+ * \return 0 if successful, -1 otherwise
+ */
 int
 oml_value_copy(
   OmlValueU* value,
@@ -100,7 +116,12 @@ oml_value_copy(
   }
   return 0;
 }
-
+/**
+ * \fn int oml_value_reset(OmlValue* v)
+ * \brief reset the set of values in +v+
+ * \param v the +OmlValue+ to reset
+ * \return 0 if successful, -1 otherwise
+ */
 int
 oml_value_reset(
   OmlValue* v
@@ -127,7 +148,12 @@ oml_value_reset(
   }
   return 0;
 }
-
+/**
+ * \fn char* oml_type_to_s(OmlValueT type)
+ * \brief give the type of the value
+ * \param type the type to return
+ * \return a string that represent the type +type+
+ */
 char*
 oml_type_to_s(
     OmlValueT type

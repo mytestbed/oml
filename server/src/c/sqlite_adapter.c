@@ -51,7 +51,12 @@ sq3_add_sender_id(Database* db, char* sender_id);
 
 static sqlite3* db;
 static int first_row;
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 int
 sq3_create_database(
   Database* db
@@ -83,7 +88,12 @@ sq3_create_database(
 
   return 0;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 void
 sq3_release(
   Database* db
@@ -95,7 +105,12 @@ sq3_release(
   free(self);
   db->adapter_hdl = NULL;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static int
 sq3_add_sender_id(
   Database* db,
@@ -110,7 +125,12 @@ sq3_add_sender_id(
   //if (sql_stmt(self, s)) return -1;
   return index;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 int
 sq3_create_table(
   Database* db,
@@ -187,7 +207,12 @@ sq3_create_table(
   }
   return 0;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static int
 sq3_insert(
   Database* db,
@@ -254,7 +279,12 @@ sq3_insert(
   return sqlite3_reset(stmt);
 }
 
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static int
 select_callback(
   void*  p_data,
@@ -294,7 +324,12 @@ select_callback(
   printf("\n");
   return 0;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static int
 select_stmt(
   Sq3DB* self,
@@ -314,7 +349,12 @@ select_stmt(
   }
   return nrecs;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static int
 sql_stmt(
   Sq3DB* self,

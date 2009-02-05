@@ -66,7 +66,10 @@ typedef int (*oml_filter_meta)(
   OmlValueT* type
 );
 
-
+/**
+ * \struct
+ * \brief
+ */
 typedef struct _omlFilter {
   //! Prefix for column name
   char name[64];

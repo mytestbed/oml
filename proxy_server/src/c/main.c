@@ -69,6 +69,12 @@ struct poptOption options[] = {
   { NULL, 0, 0, NULL, 0 }
 };
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 //! Called when a node connects via TCP
 void
 on_connect(
@@ -81,7 +87,12 @@ on_connect(
   proxy_client_handler_new(newSock, page_size, resultfile_name);
 }
 
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 int
 main(
   int argc,

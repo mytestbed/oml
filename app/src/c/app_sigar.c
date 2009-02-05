@@ -140,7 +140,7 @@ OmlMPDef* create_sigar_filter(char* file)
   OmlMPDef* self = NULL;
   int j = 0;
 
-    o_log(O_LOG_INFO, "Creation of pcap default conf\n");
+    //o_log(O_LOG_INFO, "Creation of pcap default conf\n");
     cnt = 6; 
     self = (OmlMPDef*)malloc(cnt*sizeof(OmlMPDef));
  

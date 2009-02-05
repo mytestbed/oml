@@ -34,6 +34,10 @@
 struct _omlFilter;   // can't include oml_filter.h yet
 struct _omlWriter;   // forward declaration
 
+/**
+ * \struct
+ * \brief
+ */
 typedef struct _omlString {
   int size;
   char* text;
@@ -54,6 +58,10 @@ typedef enum _omlValueE {
   //OML_STRING32_VALUE
 } OmlValueT;
 
+/**
+ * \struct
+ * \brief
+ */
 typedef struct _omlValue {
   OmlValueT type;
   OmlValueU value;
@@ -83,6 +91,10 @@ extern int oml_value_reset(OmlValue* v);
 //  struct _omlMPDef* next;
 //} XXOmlMPDef;
 
+/**
+ * \struct
+ * \brief
+ */
 //! Structure to store the definition of a measurement point
 typedef struct _omlMPDef {
   //! Name of MP
@@ -96,6 +108,10 @@ typedef struct _omlMPDef {
 
 struct _omlMP;
 
+/**
+ * \struct
+ * \brief
+ */
 //! Structure to store how to collect a measurement point
 typedef struct _omlMStream {
 
@@ -149,6 +165,10 @@ typedef struct _omlMStream {
 
 } OmlMStream;
 
+/**
+ * \struct
+ * \brief
+ */
 //! Structure to store how to collect a measurement point
 typedef struct _omlMP {
   const char* name;

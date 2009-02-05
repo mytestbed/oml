@@ -66,7 +66,12 @@ static int row_start(OmlWriter* writer, OmlMStream* ms, double now);
 static int out(OmlWriter* writer, OmlValue* values, int value_count);
 static int row_end(OmlWriter* writer, OmlMStream* ms);
 static int close(OmlWriter* writer);
-
+/**
+ * \fn OmlWriter* file_writer_new(char* fileName)
+ * \brief Create a new +OmlWriter+
+ * \param fileName the destination file
+ * \return a new +OmlWriter+
+ */
 OmlWriter*
 file_writer_new(
   char* fileName
@@ -93,7 +98,13 @@ file_writer_new(
 
   return (OmlWriter*)self;
 }
-
+/**
+ * \fn static int meta(OmlWriter* writer, char* str)
+ * \brief Definition of the meta function of the oml net writer
+ * \param writer the net writer that will send the data to the server
+ * \param str the string to send
+ * \return 1 if the socket is not open, 0 if successful
+ */
 static int
 meta(
   OmlWriter* writer,
@@ -107,6 +118,12 @@ meta(
   return 0;
 }
 
+/**
+ * \fn static int header_done(OmlWriter* writer)
+ * \brief finish the writing of the first information
+ * \param writer the writer that write this information
+ * \return
+ */
 static int
 header_done(
   OmlWriter* writer
@@ -116,45 +133,19 @@ header_done(
 }
 
 
-//int
-//meta(
-//  OmlWriter* writer,
-//  OmlMStream* ms
-//) {
-//  OmlFileWriter* self = (OmlFileWriter*)writer;
-//  FILE* f = self->f;
-//
-//  fprintf(f, "schema: %s ", ms->table_name);
-//
-//  // Loop over all the filters
-//  OmlMPDef2* def = ms->mp->param_defs;
-//  int i;
-//  for (i = 0; i < ms->mp->param_count; i++) {
-//    char* prefix = def[i].name;
-//    OmlFilter* filter = ms->filters[i];
-//    int j;
-//    for (j = 0; j < filter->output_cnt; j++) {
-//      char* name;
-//      OmlValueT type;
-//      if (filter->meta(filter, j, &name, &type)) {
-//        char* type_s = oml_type_to_s(type);
-//        if (name == NULL) {
-//          fprintf(f, " %s:%s", prefix, type_s);
-//        } else {
-//          fprintf(f, " %s_%s:%s", prefix, name, type_s);
-//        }
-//      }
-//    }
-//  }
-//  fprintf(f, "\n");
-//  return 1;
-//}
-
+/**
+ * \fn static int out(OmlWriter* writer, OmlValue*  values, int value_count)
+ * \brief write the result inside the file
+ * \param writer pointer to writer instance
+ * \param values type of sample
+ * \param value_count size of above array
+ * \return 0 if sucessful 1 otherwise
+ */
 static int
 out(
-  OmlWriter* writer, //! pointer to writer instance
-  OmlValue*  values,  //! type of sample
-  int        value_count //! size of above array
+  OmlWriter* writer,
+  OmlValue*  values,
+  int        value_count
 ) {
   OmlFileWriter* self = (OmlFileWriter*)writer;
   FILE* f = self->f;
@@ -185,6 +176,14 @@ out(
   return 1;
 }
 
+/**
+ * \fn int row_start(OmlWriter* writer, OmlMStream* ms, double now)
+ * \brief before sending datastore information about the time and the stream
+ * \param writer the netwriter to send data
+ * \param ms the stream to store the measruement from
+ * \param now a timestamp that represensent the current time
+ * \return 1
+ */
 int
 row_start(
   OmlWriter* writer,
@@ -205,6 +204,13 @@ row_start(
   return 1;
 }
 
+/**
+ * \fn int row_end(OmlWriter* writer, OmlMStream* ms)
+ * \brief write the data after finalysing the data structure
+ * \param writer the net writer that send the measurements
+ * \param ms the stream of measurmenent
+ * \return 1
+ */
 int
 row_end(
   OmlWriter* writer,
@@ -218,6 +224,12 @@ row_end(
   return 1;
 }
 
+/**
+ * \fn static int close(OmlWriter* writer)
+ * \brief Called to close the file
+ * \param writer the file writer to close the socket in
+ * \return 0
+ */
 static int
 close(
   OmlWriter* writer

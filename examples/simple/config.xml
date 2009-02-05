@@ -1,13 +1,10 @@
 <omlc exp_id="exp99" id="node11">
-    <collect url="tcp://localhost:1234">
-        <mp name="sin" interval="2" > <!-- interval="" -->
+    <collect url="file:-">
+        <mp name="omlsigar" interval="2" > <!-- interval="" -->
             <f i="0"/> <!-- default filter -->
             <f i="1" name="avg">
                 <p name="key">3</p>  <!-- filter specific parameter -->
             </f>
         </mp>
-    </collect>
-    <collect url="file:-">
-        <mp name="sin" samples="1"/> <!-- collect everything -->
     </collect>
 </omlc> 

@@ -33,8 +33,12 @@
 
 #define DEF_TABLE_COUNT 10
 
-
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 ProxyClientBuffer* initPCB( int size, int number){
     ProxyClientBuffer* self = ( ProxyClientBuffer*) malloc(sizeof(ProxyClientBuffer));
     memset(self, 0, sizeof(ProxyClientBuffer));
@@ -68,6 +72,12 @@ status_callback(
   void* handle
 );
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 void*
 proxy_client_handler_new(
     Socket* newSock,
@@ -85,6 +95,12 @@ proxy_client_handler_new(
   eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
 }
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 void
 client_callback(
   SockEvtSource* source,
@@ -111,9 +127,6 @@ client_callback(
         //self->buffer->current_pointer += buf_size;
         //self->buffer->currentSize += buf_size;
 
-
-
-
     }
 
 
@@ -127,6 +140,12 @@ client_callback(
 
 }
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 void
 status_callback(
  SockEvtSource* source,

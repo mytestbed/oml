@@ -50,7 +50,12 @@
 
 inline int marshall_value(OmlMBuffer* mbuf, OmlValueT val_type,  OmlValueU* val);
 
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 OmlMBuffer*
 marshall_init(
   OmlMBuffer*  mbuf,
@@ -74,6 +79,12 @@ marshall_init(
   return mbuf;
 }
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 int
 marshall_measurements(
   OmlMBuffer* mbuf,
@@ -107,6 +118,12 @@ marshall_measurements(
 }
 
 /**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
+/**
  * Marshall the array of +values+ into +buffer+ and
  * return the size of the buffer used. If the returned
  * number is negative marshalling didn't finish as the
@@ -129,6 +146,12 @@ marshall_values(
   return 1;
 }
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 inline int
 marshall_value(
   OmlMBuffer*    mbuf,
@@ -208,6 +231,12 @@ marshall_value(
   return 1;
 }
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 int
 marshall_finalize(
   OmlMBuffer*  mbuf
@@ -222,6 +251,12 @@ marshall_finalize(
   return 1;
 }
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 unsigned char*
 marshall_resize(
   OmlMBuffer*  mbuf,
@@ -251,6 +286,12 @@ marshall_resize(
   return mbuf->curr_p;
 }
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 /* Reads the header information contained in the
  * +buffer+ contained in +mbuf+. It stores the
  * message type in +type_p+. It returns 1 if
@@ -295,6 +336,12 @@ unmarshall_init(
   return 1;
 }
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 int
 unmarshall_measurements(
   OmlMBuffer* mbuf,
@@ -338,7 +385,12 @@ unmarshall_measurements(
   return unmarshall_values(mbuf, values, max_value_count);
 }
 
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 /**
  * Unmarshalls the content of +buffer+ into an array of
  * +values+ whose max. allocated size is +value_count+.
@@ -385,6 +437,12 @@ unmarshall_values(
   return value_count;
 }
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 int
 unmarshall_value(
   OmlMBuffer*  mbuffer,
@@ -472,7 +530,12 @@ unmarshall_value(
 
 
 
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 int
 oml_marshall_test()
 
@@ -591,6 +654,12 @@ oml_marshall_test()
   return 1;
 }
 
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 #ifdef MARSHALL_TEST
 void
 main(

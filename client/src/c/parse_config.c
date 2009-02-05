@@ -55,6 +55,12 @@ parse_filter(
 
 /**************************************************/
 
+/**
+ * \fn int parse_config(char* configFile)
+ * \brief Parse the config file to configure the oml deaomon
+ * \param configFile
+ * \return 0 if successful <0 otherwise
+ */
 int
 parse_config(
   char* configFile
@@ -103,9 +109,11 @@ parse_config(
   return 0;
 }
 
-/* Parse the definition of a single collector. A collector
- * is effectively a writer plus an associated set of fiters
- * for a set of measurement points.
+/**
+ * \fn static int parse_collector(xmlNodePtr el)
+ * \brief Parse the definition of a single collector. A collector is effectively a writer plus an associated set of fiters for a set of measurement points.
+ * \param el the element to analyse
+ * \return 0 if successful <0 otherwise
  */
 static int
 parse_collector(
@@ -132,7 +140,13 @@ parse_collector(
   return 0;
 }
 
-/* Parse the collect information for a specific MP */
+/**
+ * \fn static int parse_mp(xmlNodePtr el, OmlWriter* writer)
+ * \brief Parse the collect information for a specific MP
+ * \param el the element to analyse
+ * \param writer the writer that will be use when creating the stream
+ * \return 0 if successful <0 otherwise
+ */
 static int
 parse_mp(
     xmlNodePtr el,
@@ -196,7 +210,14 @@ parse_mp(
   return 0;
 }
 
-/* Parse a filter def and return the configured filter. */
+/**
+ * \fn static OmlFilter* parse_filter(xmlNodePtr  el, OmlMStream* ms, OmlMP* mp)
+ * \brief Parse a filter def and return the configured filter.
+ * \param el the xml node
+ * \param ms the stream to associate with the filter
+ * \param mp the measurement point structure
+ * \return an OmlFilter if successful NULL otherwise
+ */
 static OmlFilter*
 parse_filter(
     xmlNodePtr  el,
@@ -226,6 +247,13 @@ parse_filter(
   return f;
 }
 
+/**
+ * \fn static char* getAttr(xmlNodePtr el, const char* attrName)
+ * \brief give a char* representation of the value of an xml node
+ * \param el the element the function will retrun the value
+ * \param attrName the name of the node
+ * \return a char* representing the value of the attribute
+ */
 static char*
 getAttr(
     xmlNodePtr el,

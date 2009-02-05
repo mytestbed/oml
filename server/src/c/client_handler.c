@@ -51,7 +51,12 @@ status_callback(
   int errno,
   void* handle
 );
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 void*
 client_handler_new(
     Socket* newSock
@@ -64,7 +69,12 @@ client_handler_new(
   self->socket = newSock;
   eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 process_schema(
   ClientHandler* self,
   char* value
@@ -93,7 +103,12 @@ process_schema(
   }
   self->tables[index] = t;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 /** Process a singel key/value pair contained in the header
  */
 static void
@@ -141,7 +156,12 @@ process_meta(
     o_log(O_LOG_WARN, "Unknown meta info '%s' (%s)\n", key, value);
   }
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static int
 process_header(
   ClientHandler* self,
@@ -175,7 +195,12 @@ process_header(
   }
   return 1; // still in header
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static void
 process_data_message(
   ClientHandler* self
@@ -201,7 +226,12 @@ process_data_message(
   //o_log(O_LOG_DEBUG, "Received %d values\n", cnt);
 
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 static int
 process_message(
   ClientHandler* self,
@@ -240,7 +270,12 @@ process_message(
 //  return remaining;
   return 1;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 void
 client_callback(
   SockEvtSource* source,
@@ -288,7 +323,12 @@ client_callback(
   }
   mbuf->curr_p = mbuf->buffer;
 }
-
+/**
+ * \fn
+ * \brief
+ * \param
+ * \return
+ */
 void
 status_callback(
  SockEvtSource* source,

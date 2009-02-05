@@ -58,7 +58,15 @@ static void install_close_handler();
 
 extern int parse_config(char* configFile);
 
-
+/**
+ * \fn int omlc_init( const char* appName, int* argcPtr, const char** argv, oml_log_fn custom_oml_log)
+ * \brief function called by the application to initialise the oml measurements
+ * \param appName the name of the application
+ * \param argcPtr the argc of the command line of the application
+ * \param agrv the argv of the command line of the application
+ * \param custom_oml_log the reference to the log file of oml
+ * \return 0 when finished
+ */
 int
 omlc_init(
   const char* appName,
@@ -212,14 +220,13 @@ omlc_init(
   return 0;
 }
 
-//! Register a measurement point. Needs to be called
-// for every measurment point AFTER +omlc_init2+
-// and before a final +omlc_start+.
-//
-// The returned +OmlMStream+ needs to be the first
-// argument in every +omlc_process+ call for this
-// specific measurment point.
-//
+/**
+ * \fn OmlMP* omlc_add_mp(const char* mp_name, OmlMPDef*   mp_def)
+ * \brief Register a measurement point. Needs to be called for every measurment point AFTER +omlc_init+ and before a final +omlc_start+.
+ * \param  mp_name the name of the measurement point
+ * \param mp_def the definition of the set of measurements in this measurement point
+ * \return a new measurement point
+ */
 OmlMP*
 omlc_add_mp(
   const char* mp_name,
@@ -245,8 +252,11 @@ omlc_add_mp(
   omlc_instance->mpoints = mp;
 }
 
-//! Finalizes inital configurations and get
-// ready for consecutive 'omlc_process' calls
+/**
+ * \fn int omlc_start()
+ * \brief Finalizes inital configurations and get ready for consecutive +omlc_process+ calls
+ * \return 0 if successful, <0 otherwise
+ */
 int
 omlc_start()
 
@@ -285,6 +295,11 @@ omlc_start()
   return 0;
 }
 
+/**
+ * \fn static void termination_handler( int signum)
+ * \brief Close the oml process
+ * \param signum the signal number
+ */
 static void
 termination_handler(
   int signum
@@ -294,6 +309,10 @@ termination_handler(
   exit(-1 * signum);
 }
 
+/**
+ * \fn static void install_close_handler()
+ * \brief start the signal handler
+ */
 static void
 install_close_handler()
 
@@ -318,13 +337,11 @@ install_close_handler()
     sigaction (SIGTERM, &new_action, NULL);
 }
 
-//! Finalizes all open connections. Any
-// futher cllas to 'omlc_process' are being
-// ignored.
-// NOTE: This call doesn't free all the memory
-// at this stage. There may also be a few threads
-// which will take some time to finish.
-//
+/**
+ * \fn int omlc_close()
+ * \brief Finalizes all open connections. Any futher calls to +omlc_process+ are being ignored
+ * \return -1 if fails
+ */
 int
 omlc_close()
 
@@ -347,7 +364,10 @@ omlc_close()
   }
 }
 
-
+/**
+ * \fn static void usage()
+ * \brief print the possible OML parameters
+ */
 static void
 usage()
 
@@ -373,7 +393,12 @@ usage()
   printf("\n");
 }
 
-
+/**
+ * \fn OmlWriter* create_writer( char* serverUri)
+ * \brief Creates either a file writer or a network writer
+ * \param serverUri the option file or server and the output
+ * \return a writer
+ */
 OmlWriter*
 create_writer(
   char* serverUri
@@ -408,7 +433,15 @@ create_writer(
   }
   return writer;
 }
-
+/**
+ * \fn OmlMStream* create_mstream(double sample_interval, int    sample_thres, OmlMP* mp, OmlWriter* writer)
+ * \brief Function called when creating a new stream of measurement
+ * \param sample_interval the sample interval for the filter
+ * \param sample_thres the threshold for the filter
+ * \param mp the measurement point
+ * \param writer the oml writer
+ * \return the new measurement stream
+ */
 OmlMStream*
 create_mstream(
     double sample_interval,
@@ -445,9 +478,11 @@ create_mstream(
   }
   return ms;
 }
-
-// Loop through registered measurment points and define
-// sample based filters with sampling rate '1' and 'FIRST' filters
+/**
+ * \fn static int default_configuration()
+ * \brief Loop through registered measurment points and define sample based filters with sampling rate '1' and 'FIRST' filters
+ * \return 0 if successful -1 otherwise
+ */
 static int
 default_configuration()
 
@@ -485,7 +520,12 @@ default_configuration()
   }
   return 0;
 }
-
+/**
+ * \fn void createDefaultFilters(OmlMP*      mp, OmlMStream* ms)
+ * \brief create the default filters
+ * \param mp the associated measurement point
+ * \param ns the associated measurement stream
+ */
 void
 createDefaultFilters(
     OmlMP*      mp,
@@ -501,7 +541,14 @@ createDefaultFilters(
     ms->firstFilter = f;
   }
 }
-
+/**
+ * \fn OmlFilter* createDefaultFilter(OmlMPDef*   def, OmlMStream* ms, int index)
+ * \brief Create a new filter for the measurement associated with the stream
+ * \param def the oml definition
+ * \param ms the stream to filter
+ * \param index the index in the measurement point
+ * \return a new filter
+ */
 OmlFilter*
 createDefaultFilter(
     OmlMPDef*   def,
@@ -522,7 +569,11 @@ createDefaultFilter(
   OmlFilter* f = create_filter(fname, name, type, index);
   return f;
 }
-
+/**
+ * \fn static int write_meta()
+ * \brief write the meta data for the application
+ * \return 0 if successful
+ */
 static int
 write_meta()
 
@@ -559,6 +610,14 @@ write_meta()
   return 0;
 }
 
+
+/**
+ * \fn static int write_schema(OmlMStream* ms, int index)
+ * \brief Write the different schemas of the application
+ * \param ms the stream definition
+ * \param index the index in the measurement points
+ * \return 0 if successful
+ */
 static int
 write_schema(
   OmlMStream* ms,
