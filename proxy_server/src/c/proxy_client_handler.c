@@ -72,6 +72,22 @@ status_callback(
   void* handle
 );
 
+int pauseConnection(){
+    return 0;
+}
+
+int resumeConnection(){
+    return 0;
+}
+
+int stopConnection(){
+    return 0;
+}
+
+int startConnection(){
+    return 0;
+}
+
 /**
  * \fn
  * \brief

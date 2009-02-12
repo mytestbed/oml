@@ -48,9 +48,10 @@ static int listen_port = DEF_PORT;
 
 static int log_level = O_LOG_INFO;
 static char* logfile_name = DEFAULT_LOG_FILE;
-static char* resultfile_name = DEFAULT_RESULT_FILE;
+static char resultfile_name[128] = DEFAULT_RESULT_FILE;
 static int page_size = DEF_PAGE_SIZE;
 
+int numberSocket = 0;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
@@ -81,9 +82,14 @@ on_connect(
   void* handle
 ) {
 //  Socket* outSock = (Socket*)handle;
-
+  char integer_string[32];
+  sprintf(integer_string, "%d", numberSocket);
+  strcat(resultfile_name, integer_string);
   o_log(O_LOG_DEBUG, "New client connected\n");
+  numberSocket++;
   proxy_client_handler_new(newSock, page_size, resultfile_name);
+
+
 }
 
 /**

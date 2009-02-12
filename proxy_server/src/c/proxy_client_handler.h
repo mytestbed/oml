@@ -97,7 +97,13 @@ ProxyClientBuffer* initPCB(
         int number
         );
 
+int pauseConnection();
 
+int resumeConnection();
+
+int stopConnection();
+
+int startConnection();
 
 #endif /*CLIENT_HANDLER_H_*/
 
