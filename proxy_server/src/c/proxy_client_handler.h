@@ -30,6 +30,9 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include <ocomm/o_log.h>
+#include <ocomm/o_socket.h>
+
 
 struct _proxyClientBuffer;
 
@@ -82,6 +85,8 @@ typedef struct _proxyClientHandler {
   FILE *      file;
 
   int         fd_file;
+
+  Socket*     socket_to_server;
 
 }ProxyClientHandler;
 

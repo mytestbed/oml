@@ -56,7 +56,6 @@ struct poptOption options[] = {
   POPT_AUTOHELP
   { "listen", 'l', POPT_ARG_INT, &listen_port, 0,
         "Port to listen for TCP based clients", DEF_PORT_STR},
-
   { "debug-level", 'd', POPT_ARG_INT, &log_level, 0,
         "Debug level - error:1 .. debug:4"  },
   { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0,

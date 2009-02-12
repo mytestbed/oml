@@ -76,7 +76,7 @@ $(BUILD_DIR2)/app_pcap_oml2:
 
 install: $(PROGRAM) $(PROGRAM2)
 	install -m 755 $(BIN_DIR)/$(PROGRAM) $(INSTALL_DIR)
-	install -m 755 $(BIN_DIR2)/$(PROGRAM2) $(INSTALL_DIR2)
+	install -m 755 $(BIN_DIR2)/$(PROGRAM2) $(INSTALL_DIR)
 
 clean:
 	rm -fr $(BUILD_DIR) *~ $(BUILD_DIR2)

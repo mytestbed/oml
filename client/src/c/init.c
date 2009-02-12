@@ -403,6 +403,12 @@ OmlWriter*
 create_writer(
   char* serverUri
 ) {
+  if (omlc_instance == NULL){
+    o_log(O_LOG_ERROR,"no omlc\n");
+
+    return NULL;
+  }
+
   OmlWriter* writer = NULL;
   char* p = serverUri;
   if (p == NULL) {
@@ -417,7 +423,7 @@ create_writer(
   } else {
     // Net writer needs NAME and EXPERIMENT_ID
     if (omlc_instance->node_name == NULL) {
-      o_log(O_LOG_ERROR, "Missing '--oml-id' flag \n");
+      //o_log(O_LOG_ERROR, "Missing '--oml-id' flag \n");
       return NULL;
     }
     if (omlc_instance->experiment_id == NULL) {
