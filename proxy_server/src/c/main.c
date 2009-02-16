@@ -37,7 +37,8 @@
 
 #include "version.h"
 #include "marshall.h"
-
+#include "proxy_server.h"
+#include "proxy_client_handler.h"
 #define DEF_PORT 3003
 #define DEF_PORT_STR "3003"
 #define DEFAULT_LOG_FILE "oml_proxy_server.log"
@@ -52,6 +53,8 @@ static char resultfile_name[128] = DEFAULT_RESULT_FILE;
 static int page_size = DEF_PAGE_SIZE;
 
 int numberSocket = 0;
+
+ProxyServer* proxyServer = NULL;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
@@ -70,12 +73,11 @@ struct poptOption options[] = {
 };
 
 /**
- * \fn
- * \brief
+ * \fn void on_connect(Socket* newSock, void* handle)
+ * \brief Called when a node connects via TCP
  * \param
  * \return
  */
-//! Called when a node connects via TCP
 void
 on_connect(
   Socket* newSock,
@@ -92,9 +94,23 @@ on_connect(
 
 }
 
+
+static void* thread_stdinstart(void* handle) {
+
+  ProxyServer* proxy = ( ProxyServer* ) handle;
+  char command[80];
+
+  while(1){
+    scanf ("%s",command);
+    printf ("command: %s ", command);
+  }
+
+}
+
+
 /**
- * \fn
- * \brief
+ * \fn int main(int argc, const char *argv[])
+ * \brief Start the proxy server
  * \param
  * \return
  */
@@ -131,11 +147,19 @@ main(
   o_log(O_LOG_INFO, COPYRIGHT);
 
   eventloop_init(100);
+   proxyServer = (ProxyServer*) malloc(sizeof(ProxyServer));
+  memset(proxyServer, 0, sizeof(ProxyServer));
+  proxyServer->first = NULL;
+  proxyServer->current = NULL;
+  proxyServer->cmdSocket = "OMLPROXY-PAUSE";
 
   Socket* serverSock;
   serverSock = socket_server_new("proxy_server", listen_port, on_connect, NULL);
 
+  pthread_create(&proxyServer->thread_stdin, NULL, thread_stdinstart, (void*)proxyServer);
+
   eventloop_run();
+
   return(0);
 }
 

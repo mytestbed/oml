@@ -27,8 +27,12 @@
 
 void*
 proxy_client_handler_new(
-    Socket* newSock
+    Socket* newSock,
+    int size_page,
+    char* file_name
 );
+
+
 
 #endif /*PROXY_SERVER_H_*/
 

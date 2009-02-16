@@ -29,6 +29,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
@@ -36,6 +37,7 @@
 
 struct _proxyClientBuffer;
 
+struct _proxyClientHandler;
 
 typedef enum _cstate {
   C_HEADER,       // processing header info
@@ -45,9 +47,6 @@ typedef enum _cstate {
 
 #define DEF_NUM_VALUES 30
 #define MAX_STRING_SIZE 64
-
-
-
 
 
 
@@ -86,11 +85,25 @@ typedef struct _proxyClientHandler {
 
   int         fd_file;
 
+  struct _proxyClientHandler* next;
+
+  pthread_t thread_pcap;
+
   Socket*     socket_to_server;
 
 }ProxyClientHandler;
 
+typedef struct _proxyServer{
 
+  struct _proxyClientHandler* first;
+
+  struct _proxyClientHandler* current;
+
+  char* cmdSocket;
+
+  pthread_t thread_stdin;
+
+}ProxyServer;
 
 ProxyClientBuffer* initPCB(
         int size,
