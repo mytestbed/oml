@@ -87,7 +87,9 @@ typedef struct _proxyClientHandler {
 
   struct _proxyClientHandler* next;
 
-  pthread_t thread_pcap;
+  pthread_t thread_pch;
+
+  char* cmdSocket;
 
   Socket*     socket_to_server;
 
@@ -109,6 +111,20 @@ ProxyClientBuffer* initPCB(
         int size,
         int number
         );
+
+void setCommand( ProxyClientHandler* proxy, char* cmd );
+
+ProxyClientHandler*
+proxy_client_handler_new(
+    Socket* newSock,
+    int size_page,
+    char* file_name,
+    int portServer,
+    char* addressServer
+);
+
+void*
+startLoopChannel(Socket* newSock, ProxyClientHandler* proxy);
 
 int pauseConnection();
 

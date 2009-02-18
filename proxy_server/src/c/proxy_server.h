@@ -25,12 +25,7 @@
 #define PROXY_SERVER_H_
 
 
-void*
-proxy_client_handler_new(
-    Socket* newSock,
-    int size_page,
-    char* file_name
-);
+
 
 
 

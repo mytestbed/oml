@@ -89,8 +89,15 @@ on_connect(
   strcat(resultfile_name, integer_string);
   o_log(O_LOG_DEBUG, "New client connected\n");
   numberSocket++;
-  proxy_client_handler_new(newSock, page_size, resultfile_name);
+  ProxyClientHandler* proxy = proxy_client_handler_new(newSock, page_size, resultfile_name, 1234, "localhost");
+  //store in the proxy
+  //mp->next = omlc_instance->mpoints;  omlc_instance->mpoints = mp;
 
+    proxy->next = proxyServer->current;
+    proxyServer->current = proxy;
+
+
+  startLoopChannel( newSock,  proxy);
 
 }
 
@@ -99,10 +106,35 @@ static void* thread_stdinstart(void* handle) {
 
   ProxyServer* proxy = ( ProxyServer* ) handle;
   char command[80];
+  char* cmd;
 
   while(1){
     scanf ("%s",command);
-    printf ("command: %s ", command);
+    //strcpy(cmd,command);
+    ProxyClientHandler* tmp = proxy->current;
+    if (strcmp(command, "resume") == 0){
+//      while(tmp =! NULL){
+//      	setCommand( tmp,  command );
+//      	tmp = tmp->next;
+//      }
+  	  printf(" command %s \n", command);
+  	  proxy->cmdSocket = command;
+  	}else if (strcmp(command, "stop") == 0){
+//  	  while(tmp =! NULL){
+//      	setCommand( tmp,  command );
+//      	tmp = tmp->next;
+//      }
+  	  printf(" command %s \n", command);
+  	  proxy->cmdSocket = command;
+  	}else if (strcmp(command, "pause") == 0){
+//  	  while(tmp =! NULL){
+//      	setCommand( tmp,  command );
+//      	tmp = tmp->next;
+//      }
+  	  printf(" command %s \n", command);
+  	  proxy->cmdSocket = command;
+
+  	}
   }
 
 }
@@ -149,8 +181,7 @@ main(
   eventloop_init(100);
    proxyServer = (ProxyServer*) malloc(sizeof(ProxyServer));
   memset(proxyServer, 0, sizeof(ProxyServer));
-  proxyServer->first = NULL;
-  proxyServer->current = NULL;
+
   proxyServer->cmdSocket = "OMLPROXY-PAUSE";
 
   Socket* serverSock;

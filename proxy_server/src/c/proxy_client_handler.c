@@ -33,6 +33,7 @@
 
 #define DEF_TABLE_COUNT 10
 
+extern ProxyServer* proxyServer;
 /**
  * \fn
  * \brief
@@ -88,17 +89,46 @@ int startConnection(){
     return 0;
 }
 
+
+static void* thread_proxystart(void* handle) {
+
+  ProxyClientHandler* proxy = ( ProxyClientHandler* ) handle;
+
+  while(1){
+  	if (strcmp(proxyServer->cmdSocket, "resume") == 0){
+  		printf(" change %s\n",proxyServer->cmdSocket);
+  	}else if (strcmp(proxyServer->cmdSocket, "stop") == 0){
+  		printf(" change %s\n",proxyServer->cmdSocket);
+
+  	}else if (strcmp(proxyServer->cmdSocket, "pause") == 0){
+  	  printf(" change %s\n",proxyServer->cmdSocket);
+  	  sleep(1);
+  	}
+
+  }
+
+}
+
+void setCommand( ProxyClientHandler* proxy, char* cmd ){
+
+  proxy->cmdSocket= cmd;
+  printf(" cmdSocket %s\n",proxy->cmdSocket);
+
+
+}
 /**
  * \fn
  * \brief
  * \param
  * \return
  */
-void*
+ProxyClientHandler*
 proxy_client_handler_new(
     Socket* newSock,
     int size_page,
-    char* file_name
+    char* file_name,
+    int portServer,
+    char* addressServer
 ) {
   ProxyClientHandler* self = (ProxyClientHandler *)malloc(sizeof(ProxyClientHandler));
   memset(self, 0, sizeof(ProxyClientHandler));
@@ -108,7 +138,17 @@ proxy_client_handler_new(
   self->firstBuffer = self->buffer;
   self->currentPageNumber = 0;
   self->file = fopen(file_name, "wa");
-  eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
+  self->cmdSocket = "pause";
+
+  self->socket_to_server = socket_tcp_out_new("test","localhost",1234);
+  pthread_create(&self->thread_pch, NULL, thread_proxystart, (void*)self);
+  return self;
+  //eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
+}
+
+void*
+startLoopChannel(Socket* newSock, ProxyClientHandler* proxy){
+  eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)proxy);
 }
 
 /**
@@ -134,6 +174,7 @@ client_callback(
     if(available < buf_size){
         fwrite(self->buffer->buff,sizeof(char), self->buffer->currentSize, self->file);
         //fflush(self->queue);
+        socket_sendto(self->socket_to_server,self->buffer->buff,self->buffer->currentSize);
         self->currentPageNumber += 1;
         self->buffer->next = initPCB(self->buffer->max_length, self->currentPageNumber);
         self->buffer = self->buffer->next;
