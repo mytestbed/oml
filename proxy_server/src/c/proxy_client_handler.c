@@ -46,11 +46,11 @@ ProxyClientBuffer* initPCB( int size, int number){
     self->max_length = size;
     self->pageNumber = number;
     self->currentSize = 0;
-
+    self->byteAlreadySent = 0;
     self->buff = (char*) malloc(size*sizeof(char));
 
     memset(self->buff, 0, size*sizeof(char));
-
+    self->buffToSend = self->buff;
     self->current_pointer = self->buff;
     self->next = NULL;
 
@@ -93,15 +93,32 @@ int startConnection(){
 static void* thread_proxystart(void* handle) {
 
   ProxyClientHandler* proxy = ( ProxyClientHandler* ) handle;
-
+  //ProxyClientBuffer* buffer = proxy->currentBuffertoSend;
   while(1){
-  	if (strcmp(proxyServer->cmdSocket, "resume") == 0){
-  		printf(" change %s\n",proxyServer->cmdSocket);
-  	}else if (strcmp(proxyServer->cmdSocket, "stop") == 0){
-  		printf(" change %s\n",proxyServer->cmdSocket);
+    ProxyClientBuffer* buffer = proxy->currentBuffertoSend;
+  	if (strcmp(proxyServer->cmdSocket, "OMLPROXY-RESUME") == 0){
+  	  //printf(" change %s\n",proxyServer->cmdSocket);
+      //socket_sendto(proxy->socket_to_server,proxy->buffer->buff,proxy->buffer->currentSize);
+      if((buffer->currentSize - buffer->byteAlreadySent)>0){
+        if(socket_sendto(proxy->socket_to_server, buffer->buffToSend, (buffer->currentSize - buffer->byteAlreadySent))==0){
+          buffer->buffToSend += (buffer->currentSize - buffer->byteAlreadySent);
+          //printf(" test \n");
+          buffer->byteAlreadySent = buffer->currentSize;
+        }
 
-  	}else if (strcmp(proxyServer->cmdSocket, "pause") == 0){
-  	  printf(" change %s\n",proxyServer->cmdSocket);
+      }
+      if(buffer->next != NULL){
+          //printf(" change %s\n",proxyServer->cmdSocket);
+          proxy->currentBuffertoSend = buffer->next;
+
+        }
+      //sleep(1);
+
+  	}else if (strcmp(proxyServer->cmdSocket, "OMLPROXY-STOP") == 0){
+  		//printf(" change %s\n",proxyServer->cmdSocket);
+
+  	}else if (strcmp(proxyServer->cmdSocket, "OMLPROXY-PAUSE") == 0){
+  	  //printf(" change %s\n",proxyServer->cmdSocket);
   	  sleep(1);
   	}
 
@@ -136,11 +153,12 @@ proxy_client_handler_new(
   self->socket = newSock;
   self->buffer = initPCB( size_page, 0); //TODO change it to integrate option of the command line
   self->firstBuffer = self->buffer;
+  self->currentBuffertoSend = self->buffer;
   self->currentPageNumber = 0;
   self->file = fopen(file_name, "wa");
   self->cmdSocket = "pause";
 
-  self->socket_to_server = socket_tcp_out_new("test","localhost",1234);
+  self->socket_to_server = socket_tcp_out_new(file_name,"localhost",3003);
   pthread_create(&self->thread_pch, NULL, thread_proxystart, (void*)self);
   return self;
   //eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
@@ -174,7 +192,8 @@ client_callback(
     if(available < buf_size){
         fwrite(self->buffer->buff,sizeof(char), self->buffer->currentSize, self->file);
         //fflush(self->queue);
-        socket_sendto(self->socket_to_server,self->buffer->buff,self->buffer->currentSize);
+        //socket_sendto(self->socket_to_server,self->buffer->buff,self->buffer->currentSize);
+
         self->currentPageNumber += 1;
         self->buffer->next = initPCB(self->buffer->max_length, self->currentPageNumber);
         self->buffer = self->buffer->next;
@@ -216,7 +235,8 @@ status_callback(
       fwrite(self->buffer->buff,sizeof(char), self->buffer->currentSize, self->file);
       fflush(self->file);
       fclose(self->file);
-
+      while(strcmp(proxyServer->cmdSocket, "OMLPROXY-STOP") != 0)
+        sleep(1);
       o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
       break;
     }

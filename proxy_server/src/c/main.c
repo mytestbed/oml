@@ -44,6 +44,7 @@
 #define DEFAULT_LOG_FILE "oml_proxy_server.log"
 #define DEFAULT_RESULT_FILE "oml_result_proxy.res"
 #define DEF_PAGE_SIZE 512
+#define DEFAULT_SERVER_ADDRESS "localhost"
 
 static int listen_port = DEF_PORT;
 
@@ -51,6 +52,8 @@ static int log_level = O_LOG_INFO;
 static char* logfile_name = DEFAULT_LOG_FILE;
 static char resultfile_name[128] = DEFAULT_RESULT_FILE;
 static int page_size = DEF_PAGE_SIZE;
+static int dstport = DEF_PORT;
+static char* address_server = DEFAULT_SERVER_ADDRESS;
 
 int numberSocket = 0;
 
@@ -69,6 +72,10 @@ struct poptOption options[] = {
         "File to put the result", DEFAULT_RESULT_FILE},
   { "size", 's', POPT_ARG_INT, &page_size, 0,
         "Size of the bufferised data",  POPT_ARG_INT},
+  { "dstport", 'p', POPT_ARG_INT, &dstport, 0,
+        "Destination port of the server",  POPT_ARG_INT},
+  { "dstaddress", 'a', POPT_ARG_STRING, &address_server, 0,
+        "Address of the OML Server", DEFAULT_LOG_FILE },
   { NULL, 0, 0, NULL, 0 }
 };
 
@@ -89,7 +96,7 @@ on_connect(
   strcat(resultfile_name, integer_string);
   o_log(O_LOG_DEBUG, "New client connected\n");
   numberSocket++;
-  ProxyClientHandler* proxy = proxy_client_handler_new(newSock, page_size, resultfile_name, 1234, "localhost");
+  ProxyClientHandler* proxy = proxy_client_handler_new(newSock, page_size, resultfile_name, dstport, address_server);
   //store in the proxy
   //mp->next = omlc_instance->mpoints;  omlc_instance->mpoints = mp;
 
@@ -112,21 +119,21 @@ static void* thread_stdinstart(void* handle) {
     scanf ("%s",command);
     //strcpy(cmd,command);
     ProxyClientHandler* tmp = proxy->current;
-    if (strcmp(command, "resume") == 0){
+    if (strcmp(command, "OMLPROXY-RESUME") == 0){
 //      while(tmp =! NULL){
 //      	setCommand( tmp,  command );
 //      	tmp = tmp->next;
 //      }
   	  printf(" command %s \n", command);
   	  proxy->cmdSocket = command;
-  	}else if (strcmp(command, "stop") == 0){
+  	}else if (strcmp(command, "OMLPROXY-STOP") == 0){
 //  	  while(tmp =! NULL){
 //      	setCommand( tmp,  command );
 //      	tmp = tmp->next;
 //      }
   	  printf(" command %s \n", command);
   	  proxy->cmdSocket = command;
-  	}else if (strcmp(command, "pause") == 0){
+  	}else if (strcmp(command, "OMLPROXY-PAUSE") == 0){
 //  	  while(tmp =! NULL){
 //      	setCommand( tmp,  command );
 //      	tmp = tmp->next;

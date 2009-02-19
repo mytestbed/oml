@@ -55,9 +55,13 @@ typedef struct _proxyClientBuffer{
 
     unsigned char* current_pointer;
 
+    unsigned char* buffToSend;
+
     int max_length;
 
     int currentSize;
+
+    int byteAlreadySent;
 
     unsigned char* buff;
 
@@ -80,6 +84,8 @@ typedef struct _proxyClientHandler {
 
   struct _proxyClientBuffer* buffer;
   struct _proxyClientBuffer* firstBuffer;
+
+  struct _proxyClientBuffer* currentBuffertoSend;
 
   FILE *      file;
 
