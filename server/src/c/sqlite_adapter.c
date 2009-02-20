@@ -52,10 +52,10 @@ sq3_add_sender_id(Database* db, char* sender_id);
 static sqlite3* db;
 static int first_row;
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn int sq3_create_database(Database* db)
+ * \brief Create a sqlite3 database
+ * \param db the databse to associate with the sqlite3 database
+ * \return 0 if successful, -1 otherwise
  */
 int
 sq3_create_database(
@@ -89,10 +89,9 @@ sq3_create_database(
   return 0;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn void sq3_release(Database* db)
+ * \brief Release the sqlite3 database
+ * \param db the database that contains the sqlite3 database
  */
 void
 sq3_release(
@@ -106,10 +105,11 @@ sq3_release(
   db->adapter_hdl = NULL;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static int sq3_add_sender_id(Database* db, char* sender_id)
+ * \brief  Add sender ID to the table
+ * \param db the database that contains the sqlite3 db
+ * \param sender_id the sender ID
+ * \return the index of the sender
  */
 static int
 sq3_add_sender_id(
@@ -126,10 +126,11 @@ sq3_add_sender_id(
   return index;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn int sq3_create_table(Database* db, DbTable* table)
+ * \brief Create a sqlite3 table
+ * \param db the database that contains the sqlite3 db
+ * \param table the table to associate in sqlite3 database
+ * \return 0 if successful, -1 otherwise
  */
 int
 sq3_create_table(
@@ -208,10 +209,16 @@ sq3_create_table(
   return 0;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static intsq3_insert(Database* db, DbTable*  table, int sender_id, int seq_no, double time_stamp, OmlValue* values, int value_count)
+ * \brief Insert value in the sqlite3 database
+ * \param db the database that contains the sqlite3 db
+ * \param table the table to insert data in
+ * \param sender_id the sender ID
+ * \param seq_no the sequence number
+ * \param time_stamp the timestamp of the receiving data
+ * \param values the values to insert
+ * \param value_count the number of values
+ * \return 0 if successful, -1 otherwise
  */
 static int
 sq3_insert(
@@ -280,9 +287,12 @@ sq3_insert(
 }
 
 /**
- * \fn
+ * \fn static int select_callback(void*  p_data, int    num_fields, char** p_fields, char** p_col_names)
  * \brief
- * \param
+ * \param p_data
+ * \param num_fields
+ * \param p_fields
+ * \param p_col_names
  * \return
  */
 static int
@@ -325,10 +335,11 @@ select_callback(
   return 0;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static int select_stmt(Sq3DB* self, const char* stmt)
+ * \brief Prespare sqlite statement
+ * \param self the sqlite3 database
+ * \param stmt the statement to prepare
+ * \return 0 if successfull, -1 otherwise
  */
 static int
 select_stmt(
@@ -350,10 +361,11 @@ select_stmt(
   return nrecs;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static int sql_stmt(Sq3DB* self, const char* stmt)
+ * \brief Execute sqlite3 statement
+ * \param self the sqlite3 database
+ * \param stmt the statement to prepare
+ * \return 0 if successfull, -1 otherwise
  */
 static int
 sql_stmt(

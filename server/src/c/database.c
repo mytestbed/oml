@@ -43,10 +43,10 @@ store_col(DbTable* table, DbColumn* col, int index);
 
 static Database* firstDB = NULL;
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn Database* database_find(char* name)
+ * \brief create a date with the name +name+
+ * \param name the name of the database
+ * \return a new database
  */
 Database*
 database_find(
@@ -79,14 +79,9 @@ database_find(
   return self;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
- */
-/**
- * Client no longer uses this database. If this
- * was the last client checking out, close database.
+ * \fn void database_release(Database* self)
+ * \brief Client no longer uses this database. If this was the last client checking out, close database.
+ * \param self the database to release
  */
 void
 database_release(
@@ -122,10 +117,11 @@ database_release(
   free(self);
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn DbTable* database_get_table(Database* database, char* schema)
+ * \brief get a table from the database
+ * \param database the database to extract the table
+ * \param schema name of the table
+ * \return the table of or NULL if not successful
  */
 DbTable*
 database_get_table(
@@ -179,17 +175,20 @@ database_get_table(
   return table;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static int parse_col_decl( DbTable* self, char* col_decl, int index, int check_only)
+ * \brief Create a column in the database
+ * \param self the database where we create the column
+ * \param col_decl the name of the column
+ * \param index the index of the column
+ * \param check_only don't create col, just check it
+ * \return 1 if successful 0 otherwise
  */
 static int
 parse_col_decl(
   DbTable* self,
   char*    col_decl,
   int      index,
-  int      check_only  // don't create col, just check it
+  int      check_only
 ) {
   char* name = col_decl;
   char* p = name;
@@ -231,10 +230,11 @@ parse_col_decl(
   return 1;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static void store_col( DbTable*  table, DbColumn* col, int index)
+ * \brief store the column in the databse
+ * \param table the table of the
+ * \param col the column to store
+ * \param index the index of the column
  */
 static void
 store_col(
@@ -256,10 +256,9 @@ store_col(
   table->columns[index] = col;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static void table_free(DbTable* table)
+ * \brief Free the table
+ * \param table the table to free
  */
 static void
 table_free(

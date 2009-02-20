@@ -52,10 +52,9 @@ status_callback(
   void* handle
 );
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn void* client_handler_new(Socket* newSock)
+ * \brief Create a client handler and associates it with the socket
+ * \param newSock the socket from which the client is connected
  */
 void*
 client_handler_new(
@@ -70,10 +69,10 @@ client_handler_new(
   eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn process_schema(ClientHandler* self,char* value)
+ * \brief Process the data and put value inside the database
+ * \param self the clienat handler
+ * \param value the value to put in the database
  */
 process_schema(
   ClientHandler* self,
@@ -104,13 +103,13 @@ process_schema(
   self->tables[index] = t;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static void process_meta(ClientHandler* self, char* key, char* value)
+ * \brief Process a singel key/value pair contained in the header
+ * \param self the client handler
+ * \param key the key
+ * \param value the value
  */
-/** Process a singel key/value pair contained in the header
- */
+
 static void
 process_meta(
   ClientHandler* self,
@@ -157,10 +156,11 @@ process_meta(
   }
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static int process_header(ClientHandler* self, OmlMBuffer* mbuf)
+ * \brief analyse the header
+ * \param self the client handler
+ * \param mbuf the buffer that contain the header and the data
+ * \return 1 if successful, 0 otherwise
  */
 static int
 process_header(
@@ -196,10 +196,9 @@ process_header(
   return 1; // still in header
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static void process_data_message(ClientHandler* self)
+ * \brief process a subset of the data
+ * \param selfthe client handler
  */
 static void
 process_data_message(
@@ -227,10 +226,11 @@ process_data_message(
 
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn static int process_message( ClientHandler* self, OmlMBuffer*    mbuf)
+ * \brief analyse the data from the buffer
+ * \param self the client handler
+ * \param mbuf the buffer that contain the data
+ * \return 1 when successfull, 0 otherwise
  */
 static int
 process_message(
@@ -271,10 +271,12 @@ process_message(
   return 1;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn void client_callback(SockEvtSource* source, void* handle, void* buf,int buf_size)
+ * \brief function called when the socket receive some data
+ * \param source the socket event
+ * \param handle the cleint handler
+ * \param buf data received from the socket
+ * \param bufsize the size of the data set from the socket
  */
 void
 client_callback(
@@ -324,10 +326,12 @@ client_callback(
   mbuf->curr_p = mbuf->buffer;
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn void status_callback( SockEvtSource* source, SocketStatus status, int errno, void* handle)
+ * \brief Call back function when the status of the socket change
+ * \param source the socket event
+ * \param status the status of the socket
+ * \param errno the value of the error if there is
+ * \param handle the Client handler structure
  */
 void
 status_callback(

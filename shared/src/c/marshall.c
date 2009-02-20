@@ -51,9 +51,10 @@
 inline int marshall_value(OmlMBuffer* mbuf, OmlValueT val_type,  OmlValueU* val);
 
 /**
- * \fn
+ * \fn OmlMBuffer* marshall_init(OmlMBuffer*  mbuf, OmlMsgType  packet_type)
  * \brief
- * \param
+ * \param mbuf
+ * \param packet_type
  * \return
  */
 OmlMBuffer*
@@ -80,10 +81,12 @@ marshall_init(
 }
 
 /**
- * \fn
+ * \fn int marshall_measurements(OmlMBuffer* mbuf, OmlMStream* ms, double      now)
  * \brief
- * \param
- * \return
+ * \param mbuf
+ * \param ms
+ * \param now
+ * \return 1 if successful
  */
 int
 marshall_measurements(
@@ -118,17 +121,12 @@ marshall_measurements(
 }
 
 /**
- * \fn
- * \brief
- * \param
- * \return
- */
-/**
- * Marshall the array of +values+ into +buffer+ and
- * return the size of the buffer used. If the returned
- * number is negative marshalling didn't finish as the
- * provided buffer was short of the number of bytes
- * returned (when multiplied by -1).
+ * \fn int marshall_values(OmlMBuffer* mbuf, OmlValue* values, int value_count)
+ * \brief Marshall the array of +values+ into +buffer+ and return the size of the buffer used. If the returned number is negative marshalling didn't finish as the provided buffer was short of the number of bytes returned (when multiplied by -1).
+ * \param mbuf
+ * \param values
+ * \param value_count
+ * \return 1 when finished
  */
 int
 marshall_values(
@@ -147,10 +145,12 @@ marshall_values(
 }
 
 /**
- * \fn
+ * \fn inline int marshall_value(OmlMBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
  * \brief
- * \param
- * \return
+ * \param mbuf
+ * \param val_type
+ * \param val
+ * \return 1 if successful, 0 otherwise
  */
 inline int
 marshall_value(
@@ -232,10 +232,10 @@ marshall_value(
 }
 
 /**
- * \fn
+ * \fn int marshall_finalize(OmlMBuffer*  mbuf)
  * \brief
- * \param
- * \return
+ * \param mbuf
+ * \return 1 when finished
  */
 int
 marshall_finalize(
@@ -252,10 +252,11 @@ marshall_finalize(
 }
 
 /**
- * \fn
+ * \fn unsigned char* marshall_resize( OmlMBuffer*  mbuf, int new_size)
  * \brief
- * \param
- * \return
+ * \param mbuf
+ * \param new_size
+ * \return the current ointer to the buffer
  */
 unsigned char*
 marshall_resize(
@@ -288,20 +289,10 @@ marshall_resize(
 
 /**
  * \fn
- * \brief
- * \param
- * \return
- */
-/* Reads the header information contained in the
- * +buffer+ contained in +mbuf+. It stores the
- * message type in +type_p+. It returns 1 if
- * everything is fine. If the buffer is too short
- * it returns the size of the missing section
- * as a negative number.
- *
- * TODO: If +buffer+ doesn't start with the "magic
- * pattern" 0 is returned. A re-sync method needs
- * to be implemented.
+ * \brief Reads the header information contained in the +buffer+ contained in +mbuf+. It stores the message type in +type_p+.
+ * \param mbuf
+ * \param type_p
+ * \return It returns 1 if everything is fine. If the buffer is too short it returns the size of the missing section as a negative number.
  */
 int
 unmarshall_init(
@@ -337,10 +328,15 @@ unmarshall_init(
 }
 
 /**
- * \fn
+ * \fn int unmarshall_measurements(OmlMBuffer* mbuf, int* table_index, int* seq_no_p,  double* ts_p, OmlValue*   values, int         max_value_count)
  * \brief
- * \param
- * \return
+ * \param mbuf
+ * \param table_index
+ * \param seq_no_p
+ * \param ts_p
+ * \param values measurement values
+ * \param max_value_count max. length of above array
+ * \return 1 if successful, 0 otherwise
  */
 int
 unmarshall_measurements(
@@ -348,8 +344,8 @@ unmarshall_measurements(
   int*        table_index,
   int*        seq_no_p,
   double*     ts_p,
-  OmlValue*   values,          //! measurement values
-  int         max_value_count  //! max. length of above array
+  OmlValue*   values,
+  int         max_value_count
 ) {
   mbuf->curr_p++;           // That's where we keep the number of values
   mbuf->buffer_remaining--;
@@ -386,25 +382,18 @@ unmarshall_measurements(
 }
 
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn int unmarshall_values(OmlMBuffer*  mbuffer, OmlValue*    values, int max_value_count)
+ * \brief Unmarshalls the content of +buffer+ into an array of +values+ whose max. allocated size is +value_count+.
+ * \param mbuffer
+ * \param values type of sample
+ * \param max_value_count max. length of above array
+ * \return the number of values found. If the returned number is negative, there were more values in the buffer. The number (when multiplied by -1) indicates  by how much the +values+ array should be extended. If the number is less then -100, it indicates an error.
  */
-/**
- * Unmarshalls the content of +buffer+ into an array of
- * +values+ whose max. allocated size is +value_count+.
- * Returns the number of values found. If the returned
- * number is negative, there were more values in the
- * buffer. The number (when multiplied by -1) indicates
- * by how much the +values+ array should be extended.
- * If the number is less then -100, it indicates an error.
-  */
 int
 unmarshall_values(
   OmlMBuffer*  mbuffer,
-  OmlValue*    values,       //! type of sample
-  int          max_value_count  //! max. length of above array
+  OmlValue*    values,
+  int          max_value_count
 ) {
 //  if (*(p++) != DATA_P) {
 //    o_log(O_LOG_ERROR, "Expected buffer to start with 'DATA_P', but it was '%c'\n", *(p - 1));
@@ -438,10 +427,11 @@ unmarshall_values(
 }
 
 /**
- * \fn
+ * \fn int unmarshall_value(OmlMBuffer*  mbuffer, OmlValue*    value)
  * \brief
- * \param
- * \return
+ * \param mbuffer
+ * \param value
+ * \return 1 if successful, 0 otherwise
  */
 int
 unmarshall_value(
@@ -531,10 +521,9 @@ unmarshall_value(
 
 
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn int oml_marshall_test()
+ * \brief Test function of the marshalling library
+ * \return 1 when finished
  */
 int
 oml_marshall_test()

@@ -35,9 +35,10 @@
 
 extern ProxyServer* proxyServer;
 /**
- * \fn
- * \brief
- * \param
+ * \fn ProxyClientBuffer* initPCB( int size, int number)
+ * \brief Create and initialise a new +ProxyClientBuffer+ structure
+ * \param size the maximum lenght of the buffer
+ * \param number the page number
  * \return
  */
 ProxyClientBuffer* initPCB( int size, int number){
@@ -89,7 +90,11 @@ int startConnection(){
     return 0;
 }
 
-
+/**
+ * \fn static void* thread_proxystart(void* handle)
+ * \brief function that will try to send data to the real OML server
+ * \param handle the proxy Client Handler
+ */
 static void* thread_proxystart(void* handle) {
 
   ProxyClientHandler* proxy = ( ProxyClientHandler* ) handle;
@@ -134,10 +139,14 @@ void setCommand( ProxyClientHandler* proxy, char* cmd ){
 
 }
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn ProxyClientHandler* proxy_client_handler_new(Socket* newSock, int size_page, char* file_name, int portServer, char* addressServer)
+ * \brief Create and initialise a +ProxyClientHandler+ structure
+ * \param newSock the socket associated to the client transmition
+ * \param size_page the size of the buffers
+ * \param file_name the name of the file to save the measurements
+ * \param portServer the destination port of the OML server
+ * \param addressServer the address of the OML Server
+ * \return a new ProxyClientHandler structure
  */
 ProxyClientHandler*
 proxy_client_handler_new(
@@ -170,10 +179,12 @@ startLoopChannel(Socket* newSock, ProxyClientHandler* proxy){
 }
 
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn void client_callback(SockEvtSource* source, void* handle, void* buf,int buf_size)
+ * \brief function called when the socket receive some data
+ * \param source the socket event
+ * \param handle the cleint handler
+ * \param buf data received from the socket
+ * \param bufsize the size of the data set from the socket
  */
 void
 client_callback(
@@ -217,10 +228,12 @@ client_callback(
 }
 
 /**
- * \fn
- * \brief
- * \param
- * \return
+ * \fn void status_callback( SockEvtSource* source, SocketStatus status, int errno, void* handle)
+ * \brief Call back function when the status of the socket change
+ * \param source the socket event
+ * \param status the status of the socket
+ * \param errno the value of the error if there is
+ * \param handle the Client handler structure
  */
 void
 status_callback(
