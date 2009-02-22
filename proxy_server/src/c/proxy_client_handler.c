@@ -167,7 +167,7 @@ proxy_client_handler_new(
   self->file = fopen(file_name, "wa");
   self->cmdSocket = "pause";
 
-  self->socket_to_server = socket_tcp_out_new(file_name,"localhost",3003);
+  self->socket_to_server = socket_tcp_out_new(file_name, addressServer,portServer);
   pthread_create(&self->thread_pch, NULL, thread_proxystart, (void*)self);
   return self;
   //eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
