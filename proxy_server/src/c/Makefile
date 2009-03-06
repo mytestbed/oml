@@ -16,7 +16,7 @@ SHARED_SRC_DIR = $(TOP)/shared/src/c
 CFLAGS = -g -I. -I$(TOP)/external/ocommLib \
     -I$(TOP)/client/src/c -I/usr/local/include    -I$(SHARED_SRC_DIR) -I/usr/include/libxml2
 LDFLAGS =
-LIBS = -lpopt -lsqlite3
+LIBS = -lpopt -lpthread
 
 
 BUILD_TOP = $(TOP)/build

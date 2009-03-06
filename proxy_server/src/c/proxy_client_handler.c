@@ -113,10 +113,16 @@ static void* thread_proxystart(void* handle) {
 
       }
       if(buffer->next != NULL){
-          //printf(" change %s\n",proxyServer->cmdSocket);
+
           proxy->currentBuffertoSend = buffer->next;
 
         }
+       else{
+         if(proxy->socketClosed == 1){
+           socket_close(proxy->socket_to_server);
+           proxy->cmdSocket = "OMLPROXY-STOP";
+         }
+       }
       //sleep(1);
 
   	}else if (strcmp(proxyServer->cmdSocket, "OMLPROXY-STOP") == 0){
@@ -134,7 +140,7 @@ static void* thread_proxystart(void* handle) {
 void setCommand( ProxyClientHandler* proxy, char* cmd ){
 
   proxy->cmdSocket= cmd;
-  printf(" cmdSocket %s\n",proxy->cmdSocket);
+  //printf(" cmdSocket %s\n",proxy->cmdSocket);
 
 
 }
@@ -166,6 +172,7 @@ proxy_client_handler_new(
   self->currentPageNumber = 0;
   self->file = fopen(file_name, "wa");
   self->cmdSocket = "pause";
+  self->socketClosed = 0;
 
   self->socket_to_server = socket_tcp_out_new(file_name, addressServer,portServer);
   pthread_create(&self->thread_pch, NULL, thread_proxystart, (void*)self);
@@ -248,7 +255,8 @@ status_callback(
       fwrite(self->buffer->buff,sizeof(char), self->buffer->currentSize, self->file);
       fflush(self->file);
       fclose(self->file);
-      while(strcmp(proxyServer->cmdSocket, "OMLPROXY-STOP") != 0)
+      self->socketClosed = 1;
+      while(strcmp(self->cmdSocket, "OMLPROXY-STOP") != 0)
         sleep(1);
       o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
       break;

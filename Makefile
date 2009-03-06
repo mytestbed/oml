@@ -20,6 +20,7 @@ VERSION = 2.0.1
 
 DIRS = client app proxy_server server
 
+
 TOP_DIR = $(shell pwd)
 
 all: build

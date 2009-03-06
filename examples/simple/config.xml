@@ -1,4 +1,20 @@
 <omlc exp_id="exp99" id="node11">
+    <collect url="tcp:localhost:15500">
+        <mp name="omlsigar" interval="2" > <!-- interval="" -->
+            <f i="3"/> <!-- default filter -->
+            
+        </mp>
+    </collect>
+
+    <collect url="tcp:localhost:15502">
+        <mp name="omlsigar" interval="2" > <!-- interval="" -->
+            <f i="0"/> <!-- default filter -->
+            <f i="1" name="avg">
+                <p name="key">2</p>  <!-- filter specific parameter -->
+            </f>
+        </mp>
+    </collect>
+
     <collect url="file:-">
         <mp name="omlsigar" interval="2" > <!-- interval="" -->
             <f i="0"/> <!-- default filter -->

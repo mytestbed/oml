@@ -97,6 +97,8 @@ typedef struct _proxyClientHandler {
 
   char* cmdSocket;
 
+  int socketClosed;
+
   Socket*     socket_to_server;
 
 }ProxyClientHandler;
