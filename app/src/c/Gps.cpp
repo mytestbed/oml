@@ -311,14 +311,15 @@ int main( int argc, char **argv ) {
     int* argc_;
     const char** argv_;
     omlc_init(argv[0], &argc, (const char**)argv, o_log);
-    argc_ =&argc;
-    argv_ = argv;
+    
 
     
     Gps      *theGPS      = NULL;
 
     
-    theGPS = new Gps(argv_[1]);
+    theGPS = new Gps(argv[1]);
+    
+    cout << "argv " <<argv[1] <<endl;
     
     omlc_start();
     while(1){
