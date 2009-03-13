@@ -46,10 +46,11 @@
 #include "log.h"
 
 
-static OmlMPDef oml_def[] = { 
+static OmlMPDef oml_def[] = {  
 {"macAddress", OML_STRING_PTR_VALUE},
 {"RSSI", OML_LONG_VALUE},
-{"DBM", OML_LONG_VALUE},
+{"DBM", OML_LONG_VALUE}, 
+{"myMacAddress", OML_STRING_PTR_VALUE}, 
 {NULL, (OmlValueT)0},
 };
 static OmlMP* oml_mp = NULL;
@@ -63,36 +64,72 @@ main(
 ) {
     
    int i = 0;
+   int j = 0;
    int stop = 1;
-    OmlValueU v[3];
-    pid_t pid;
-    int mypipe[2];
-    char command[256]; 
-    char command2[256] = "256";
-    char addressToCheck[256] = "000";
-    //memset(command2, 0, 256*sizeof(char));
-    int* argc_;
-    const char** argv_;
-    char mem_used[64];
-    omlc_init(argv[ 0 ], &argc, argv, o_log);
-
-    argc_ =&argc;
-    argv_ = argv;
-
+   OmlValueU v[4];
+   pid_t pid;
+   int mypipe[2];
+   char command[256]; 
+   char command2[256] = "256";
+   char addressToCheck[256] = "000";
+   char macAddress[256] = "e";
+   //memset(command2, 0, 256*sizeof(char));
+   int* argc_;
+   const char** argv_;
+   char* ifwifi;
+   char mem_used[64];
+   omlc_init(argv[ 0 ], &argc, argv, o_log);
+   argc_ = &argc;
+   argv_ = argv;
+   
+   ifwifi = "ath0";
+   if (pipe (mypipe))
+   {
+     fprintf (stderr, "Pipe failed.\n");
+     return EXIT_FAILURE;
+   }
+   pid = fork ();
+   if (pid == (pid_t) 0)
+   {
+     close (mypipe[0]);
+     close(1);
+     dup(mypipe[1]);
+     if (execl("/sbin/ifconfig", "ifconfig", "ath0", NULL) < 0){
+        printf("execl failed\n");
+        exit(1);
+     
+     }
+       
+        
+   }else if (pid < (pid_t) 0){
+     fprintf (stderr, "Fork failed.\n");
+     return EXIT_FAILURE;
+   }
+   else {
+     close(mypipe[1]);
+     close(0);
+     dup(mypipe[0]);
+     scanf ("%s",command);
+     scanf ("%s",command);
+     scanf ("%s",command);
+     scanf ("%s",command);
+     scanf ("%s",command);
+     strcpy(macAddress, command);
+     close(mypipe[0]);
+     while(strcmp(command,command2) != 0){
+        strcpy(command2, command);
+        scanf ("%s",command);
+     }
+     
+   }
    
       
-      oml_mp = omlc_add_mp("wifi_info", oml_def);
+    oml_mp = omlc_add_mp("wifi_info", oml_def);
     
-    
-     
-    
-    
- 
-        
-        
-     omlc_start();
+   
+    omlc_start();
+    printf("mac address %s \n",macAddress);
 
-    //command2 = "cmd";
    while(1){
        i = 0;
        stop = 1;
@@ -128,42 +165,47 @@ main(
            strcpy(command2, command);
            
            if(strcmp(command,"ADDR") != 0){
-            printf("result wlanconfig: %s \n ", command);
-             //if(strcmp(command, addressToCheck) != 0)
-                v[0].stringPtrValue = command; 
+
+                v[0].stringPtrValue =  command2; 
                 scanf ("%s",command);
-                printf("result wlanconfig: %s \n ", command);
+
                 scanf ("%s",command);
-                printf("result wlanconfig: %s \n ", command);
+
                 scanf ("%s",command);
-                printf("result wlanconfig: %s \n ", command);
+
                 scanf ("%s",command);
-                printf("result wlanconfig: %s \n ", command);
+
                 v[1].longValue = atol(command);
                 scanf ("%s",command);
-                printf("result wlanconfig: %s \n ", command);
+
                 v[2].longValue = atol(command);
+                v[3].stringPtrValue =  macAddress; 
+                
                  omlc_process(oml_mp, v);
-                 stop=0;
-                 scanf ("%s",command);
-                 scanf ("%s",command);
-                 scanf ("%s",command);
-                 scanf ("%s",command);
-                 scanf ("%s",command);
-                 scanf ("%s",command);
-                 scanf ("%s",command);
-                 scanf ("%s",command);
-                 scanf ("%s",command);
-                 scanf ("%s",command);
-                 scanf ("%s",command);
-                 scanf ("%s",command);
+                 //stop=0;
+                 for(j = 0; j < 7; j++){
+                   scanf ("%s",command);
+                   strcpy(command2, command);
+                 }
+                 while(command[0] != '0' && command[1] != '0' && command[2] != ':'){  
+                 //printf("result wlanconfig 11: %s \n ", command);
+                   scanf ("%s",command);
+                   if(strcmp(command,command2) == 0){
+                     stop = 0;
+                     break;
+                   }
+                   strcpy(command2, command);
+                 }
+                 
+                 
+                 //printf("result wlanconfig 2: %s \n ", command);
                 //printf("result wlanconfig: %s \n ", command);
            }else{
-            for(i = 0; i < 14; i++){
+             for(i = 0; i < 14; i++){
                 
                 scanf ("%s",command);
-            }
-            }
+             }
+           }
            //scanf ("%s",command);
         
          }

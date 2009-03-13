@@ -25,7 +25,8 @@
 #include <malloc.h>
 #include <string.h>
 #include <stdio.h>
-
+#include <time.h>
+#include <sys/time.h>
 #include <ocomm/o_log.h>
 
 #include "database.h"
@@ -66,6 +67,10 @@ database_find(
   o_log(O_LOG_DEBUG, "Creation of the database %s\n", name);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
   self->ref_count = 1;
+
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  self->start_time = tv.tv_sec;
 
   // hook this one into the list of active databases
   self->next = firstDB;

@@ -25,7 +25,8 @@
 #include <malloc.h>
 #include <sqlite3.h>
 #include <ocomm/o_log.h>
-
+#include <time.h>
+#include <sys/time.h>
 #include "database.h"
 
 typedef struct _sq3DB {
@@ -157,11 +158,11 @@ sq3_create_table(
   char insert[512];  // don't check for length
 
   char* cs = create;
-  sprintf(cs, "CREATE TABLE %s (oml_sender_id INTEGER, oml_seq INTEGER, oml_ts REAL", table->name);
+  sprintf(cs, "CREATE TABLE %s (oml_sender_id INTEGER, oml_seq INTEGER, oml_ts_client REAL, oml_ts_server REAL", table->name);
   cs += strlen(cs);
 
   char* is = insert;
-  sprintf(is, "INSERT INTO %s VALUES (?, ?, ?", table->name);
+  sprintf(is, "INSERT INTO %s VALUES (?, ?, ?, ?", table->name);
   is += strlen(is);
 
   int first = 0;
@@ -233,6 +234,7 @@ sq3_insert(
   Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
   Sq3Table* sq3table = (Sq3Table*)table->adapter_hdl;
   int i;
+  double time_stamp_server;
   sqlite3_stmt* stmt = sq3table->insert_stmt;
   //o_log(O_LOG_DEBUG, "insert");
   o_log(O_LOG_DEBUG, "TDEBUG - into sq3_insert - %d \n", seq_no);
@@ -246,7 +248,14 @@ sq3_insert(
         sqlite3_errmsg(sq3db->db_hdl));
   }
   if (sqlite3_bind_double(stmt, 3, time_stamp) != SQLITE_OK) {
-    o_log(O_LOG_ERROR, "Could not bind 'oml_ts' (%s).\n",
+    o_log(O_LOG_ERROR, "Could not bind 'oml_ts_client' (%s).\n",
+        sqlite3_errmsg(sq3db->db_hdl));
+  }
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
+  if (sqlite3_bind_double(stmt, 4, time_stamp_server) != SQLITE_OK) {
+    o_log(O_LOG_ERROR, "Could not bind 'oml_ts_server' (%s).\n",
         sqlite3_errmsg(sq3db->db_hdl));
   }
 
@@ -260,13 +269,13 @@ sq3_insert(
     int res;
     switch (col->type) {
       case OML_LONG_VALUE:
-        res = sqlite3_bind_int(stmt, i + 4, (int)v->value.longValue);
+        res = sqlite3_bind_int(stmt, i + 5, (int)v->value.longValue);
         break;
       case OML_DOUBLE_VALUE:
-        res = sqlite3_bind_double(stmt, i + 4, v->value.doubleValue);
+        res = sqlite3_bind_double(stmt, i + 5, v->value.doubleValue);
         break;
       case OML_STRING_VALUE:
-        res = sqlite3_bind_text (stmt, i + 4, v->value.stringValue.text,
+        res = sqlite3_bind_text (stmt, i + 5, v->value.stringValue.text,
                 -1, SQLITE_TRANSIENT);
         break;
       default:
