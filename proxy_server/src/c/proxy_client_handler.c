@@ -105,6 +105,8 @@ static void* thread_proxystart(void* handle) {
   	  //printf(" change %s\n",proxyServer->cmdSocket);
       //socket_sendto(proxy->socket_to_server,proxy->buffer->buff,proxy->buffer->currentSize);
       if((buffer->currentSize - buffer->byteAlreadySent)>0){
+
+
         if(socket_sendto(proxy->socket_to_server, buffer->buffToSend, (buffer->currentSize - buffer->byteAlreadySent))==0){
           buffer->buffToSend += (buffer->currentSize - buffer->byteAlreadySent);
           //printf(" test \n");
@@ -174,7 +176,13 @@ proxy_client_handler_new(
   self->cmdSocket = "pause";
   self->socketClosed = 0;
 
-  self->socket_to_server = socket_tcp_out_new(file_name, addressServer,portServer);
+  self->file_name =  file_name;
+
+  self->addressServer = addressServer;
+
+  self->portServer = portServer;
+
+  self->socket_to_server = proxy->socket_to_server = socket_tcp_out_new(file_name, addressServer, portServer);;
   pthread_create(&self->thread_pch, NULL, thread_proxystart, (void*)self);
   return self;
   //eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);

@@ -84,6 +84,7 @@ void Gps::Update() {
     if (IsValid()) {
 	do {
 	    line = ReadLine();
+        //cout<< "current GPS device information " << line << endl;
 	    newdata |= ParseNMEA(line);
 	} while(line.length() > 0);
 	if (!Initialized && newdata) {
@@ -325,15 +326,18 @@ int main( int argc, char **argv ) {
     while(1){
         theGPS->Update();
         OmlValueU v[7];
-        v[0].doubleValue = theGPS->GetLastLatitude();
-        v[1].doubleValue = theGPS->GetLastLongitude();
-        v[2].doubleValue = theGPS->GetLastXCoordinate();
-        v[3].doubleValue = theGPS->GetLastYCoordinate();
-        v[4].doubleValue = theGPS->GetDistanceFromBase();
-        v[5].doubleValue = theGPS->GetLastSpeed();
-        v[6].doubleValue = theGPS->GetLastTime();
-        omlc_process(oml_mp, v);
-        
+        if(theGPS->GetLastLatitude() == 0.0 && theGPS->GetLastLongitude() == 0.0)
+            ;
+        else {
+            v[0].doubleValue = theGPS->GetLastLatitude();
+            v[1].doubleValue = theGPS->GetLastLongitude();
+            v[2].doubleValue = theGPS->GetLastXCoordinate();
+            v[3].doubleValue = theGPS->GetLastYCoordinate();
+            v[4].doubleValue = theGPS->GetDistanceFromBase();
+            v[5].doubleValue = theGPS->GetLastSpeed();
+            v[6].doubleValue = theGPS->GetLastTime();
+            omlc_process(oml_mp, v);
+        }
         sleep(1);
     }
         

@@ -99,6 +99,12 @@ typedef struct _proxyClientHandler {
 
   int socketClosed;
 
+  char* file_name;
+
+  int portServer;
+
+  char* addressServer;
+
   Socket*     socket_to_server;
 
 }ProxyClientHandler;
