@@ -182,7 +182,7 @@ proxy_client_handler_new(
 
   self->portServer = portServer;
 
-  self->socket_to_server = proxy->socket_to_server = socket_tcp_out_new(file_name, addressServer, portServer);;
+  self->socket_to_server =  socket_tcp_out_new(file_name, addressServer, portServer);;
   pthread_create(&self->thread_pch, NULL, thread_proxystart, (void*)self);
   return self;
   //eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
