@@ -1,8 +1,8 @@
 
 LIBRARY = oml2
 
-INSTALL_LIB_DIR = /usr/lib
-INSTALL_INC_DIR = /usr/include
+INSTALL_LIB_DIR = $(DESTDIR)/usr/lib
+INSTALL_INC_DIR = $(DESTDIR)/usr/include
 
 #### FOR EXPERTS ONLY  ###
 SRCS = file_writer.c filter.c init.c misc.c net_writer.c \

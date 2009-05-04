@@ -1,7 +1,7 @@
 
 LIBRARY = ocomm
 
-INSTALL_DIR = /usr/lib
+INSTALL_DIR = $(DESTDIR)/usr/lib
 
 #### FOR EXPERTS ONLY  ###
 SRCS = log.c socket.c socket_group.c eventloop.c  queue.c

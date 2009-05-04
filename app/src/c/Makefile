@@ -3,7 +3,7 @@ PROGRAM = app_sigar_oml2
 PROGRAM2 = app_pcap_oml2
 PROGRAM3 = gps_oml2
 PROGRAM4 = wlanconfig_oml2
-INSTALL_DIR = /usr/bin
+INSTALL_DIR = $(DESTDIR)/usr/bin
 
 #### FOR EXPERTS ONLY  ###
 TOP = ../../..

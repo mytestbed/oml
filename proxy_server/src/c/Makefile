@@ -1,7 +1,7 @@
 
 PROGRAM = oml2-proxy-server
 
-INSTALL_DIR = /usr/bin
+INSTALL_DIR = $(DESTDIR)/usr/bin
 
 #### FOR EXPERTS ONLY  ###
 TOP = ../../..
