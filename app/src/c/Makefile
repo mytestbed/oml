@@ -14,7 +14,7 @@ SRCS3 = Gps.cpp log.c
 SRCS4 = wlanconfig_oml.c log.c
 #CFLAGS = -g -Wall
 CFLAGS = -g -I. \
-    -I$(TOP)/client/src/c -I/usr/local/include    -I$(SHARED_SRC_DIR) -I/usr/include/libxml2
+    -I$(TOP)/client/src/c -I/usr/local/include -I/usr/include/libsigar  -I$(SHARED_SRC_DIR) -I/usr/include/libxml2
 LDFLAGS = -L$(TOP)/build/client/lib
 LIBS = -lsigar -loml2 -lxml2 -lpopt -lpthread -lpcap
 
