@@ -2,11 +2,31 @@ Source: oml
 Section: unknown
 Priority: extra
 Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
-Build-Depends: debhelper (>= 5), libsigar-dev
+Build-Depends: debhelper (>= 5), libsigar-dev, libxml2-dev, libpcap-dev, libpopt-dev, libsqlite3-dev
 Standards-Version: 3.7.2
 
-Package: oml
+Package: oml-client
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsigar, libxml2, libpcap, libpopt0
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
+
+Package: oml-server
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsqlite3-0, libpopt0, liboml (= ${Source-Version})
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
+
+Package: liboml-dev
+Section: libdevel
+Architecture: any
+Depends: liboml (= ${Source-Version})
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
+
+Package: liboml
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libxml2, libpcap, libpopt0
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
