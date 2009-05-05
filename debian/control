@@ -2,31 +2,31 @@ Source: oml
 Section: unknown
 Priority: extra
 Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
-Build-Depends: debhelper (>= 5), libsigar-dev, libxml2-dev, libpcap-dev, libpopt-dev, libsqlite3-dev
+Build-Depends: debhelper (>= 5), libsigar-dev, libxml2-dev, libpcap0.8-dev, libpopt-dev, libsqlite3-dev
 Standards-Version: 3.7.2
 
 Package: oml-client
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libsigar, libxml2, libpcap, libpopt0
-Description: <insert up to 60 chars description>
- <insert long description, indented with spaces>
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsigar, libxml2, libpcap0.8, libpopt0
+Description: OML measurement client
+ The OML client component is integrated in the application to collect measurements taken or produced by that applications. Dynamically configurable filters analyze the various measurement streams before they are forwarded to the OML Server.
 
 Package: oml-server
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libsqlite3-0, libpopt0, liboml (= ${Source-Version})
-Description: <insert up to 60 chars description>
- <insert long description, indented with spaces>
+Description: OML measurement server
+ The OML server component is responsible to collect and store the measurements inside a database. Currently, the sqlite3 library is supported.
 
 Package: liboml-dev
 Section: libdevel
 Architecture: any
 Depends: liboml (= ${Source-Version})
-Description: <insert up to 60 chars description>
- <insert long description, indented with spaces>
+Description: OML measurement library headers
+ A measurement library developed in the context of the OMF Testbed Management Framework. This library allows experimenter to define customizable measurement points inside applications or passive traffic listener using the pcap library.
 
 Package: liboml
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libxml2, libpcap, libpopt0
-Description: <insert up to 60 chars description>
- <insert long description, indented with spaces>
+Depends: ${shlibs:Depends}, ${misc:Depends}, libxml2, libpcap0.8, libpopt0
+Description: OML measurement library
+ A measurement library developed in the context of the OMF Testbed Management Framework. This library allows experimenter to define customizable measurement points inside applications or passive traffic listener using the pcap library.
