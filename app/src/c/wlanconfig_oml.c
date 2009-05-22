@@ -144,7 +144,7 @@ main(
          close (mypipe[0]);
          close(1);
          dup(mypipe[1]);
-         if (execl("/usr/local/bin/wlanconfig", "wlanconfig", "ath0", "list", NULL) < 0){
+         if (execl("/sbin/wlanconfig", "wlanconfig", "ath0", "list", NULL) < 0){
             printf("execl failed\n");
             exit(1);
         
@@ -183,12 +183,12 @@ main(
                 
                  omlc_process(oml_mp, v);
                  //stop=0;
-                 for(j = 0; j < 7; j++){
+                 for(j = 0; j < 9; j++){
                    scanf ("%s",command);
                    strcpy(command2, command);
                  }
-                 while(command[0] != '0' && command[1] != '0' && command[2] != ':'){  
-                 //printf("result wlanconfig 11: %s \n ", command);
+                 while(command[0] != '0' && command[2] != ':'){  
+                 printf("result wlanconfig 11: %s \n ", command);
                    scanf ("%s",command);
                    if(strcmp(command,command2) == 0){
                      stop = 0;
@@ -201,7 +201,7 @@ main(
                  //printf("result wlanconfig 2: %s \n ", command);
                 //printf("result wlanconfig: %s \n ", command);
            }else{
-             for(i = 0; i < 14; i++){
+             for(i = 0; i < 16; i++){
                 
                 scanf ("%s",command);
              }
