@@ -171,7 +171,7 @@ omlc_init(
     } else if (strcmp(*argvPtr, "--oml-help") == 0) {
       usage();
       *argcPtr -= 1;
-      exit(1);
+      exit(0);
     } else {
       *argv++ = *argvPtr;
     }
@@ -540,11 +540,16 @@ createDefaultFilters(
   int param_count = mp->param_count;
   //ms->filters = (OmlFilter**)malloc(param_count * sizeof(OmlFilter*));
   int j;
+  OmlFilter* prev = NULL;
   for (j = 0; j < param_count; j++) {
     OmlMPDef def = mp->param_defs[j];
     OmlFilter* f = createDefaultFilter(&def, ms, j);
-    f->next = ms->firstFilter;
-    ms->firstFilter = f;
+    if (prev == NULL) {
+      ms->firstFilter = f;
+    } else {
+      prev->next = f;
+    }
+    prev = f;
   }
 }
 /**
