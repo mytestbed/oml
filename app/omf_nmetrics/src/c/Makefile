@@ -39,25 +39,26 @@ $(BIN_DIR):
 $(BUILD_DIR)/$(PROGRAM):
 	mkdir -p $@
 
-install: $(PROGRAM)
+install: build
 	install -m 755 $(BIN_DIR)/$(PROGRAM) $(INSTALL_DIR)
 
 clean:
-	rm -fr $(BUILD_DIR) *~
+	rm -fr $(BUILD_DIR) *~ $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
-run: ARGS = -i eth0 -m -c
-run: $(PROGRAM)
+run: ARGS = -i eth0 -m -c -s 1
+run: build
 	$(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-file -
 
 debug:
 	echo $(OBJS)
 
-$(OBJ_DIR)/$(PROGRAM).o: opts.h oml.h o_log.h
+$(OBJ_DIR)/$(PROGRAM).o: $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
-opts.h: $(PROGRAM).app
-	ruby oml_scaffold.rb --opts -f opts.h
+$(PROGRAM)_popt.h: $(PROGRAM).app
+	oml2_scaffold --opts $<
 
-oml.h: $(PROGRAM).app
-#	ruby oml_scaffold.rb --oml -f oml.h
+$(PROGRAM)_oml.h: $(PROGRAM).app
+	oml2_scaffold --oml $<
+
 
 

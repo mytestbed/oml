@@ -33,11 +33,12 @@
 #include <string.h>
 
 #define USE_OPTS
-#include "opts.h"
+#include "omf_nmetrics_popt.h"
 
-#include "oml.h"
+#define OML_FROM_MAIN
+#include "omf_nmetrics_oml.h"
 
-#include "o_log.h"
+#include <oml2/o_log.h>
 
 OmlMP*   cpu_mp;
 OmlMP*   memory_mp;
@@ -90,7 +91,7 @@ main(
       im->next = first;
       first = im;
 
-      //printf("IF: %s\n", if_name);
+      printf("IF: %s\n", g_opts->if_name);
       break;
     }
     }
@@ -132,7 +133,7 @@ cpu(
   v[6].longValue = (long)c.soft_irq;
   v[7].longValue = (long)c.stolen;
   v[8].longValue = (long)c.total;
-  omlc_process(mp_p, v);
+  omlc_inject(mp_p, v);
 }
 
 static void
@@ -152,7 +153,7 @@ memory(
   v[3].longValue = (long)(m.free / 1000);
   v[4].longValue = (long)(m.actual_used / 1000);
   v[5].longValue = (long)(m.actual_free / 1000);
-  omlc_process(mp_p, v);
+  omlc_inject(mp_p, v);
 }
 
 static void
@@ -183,8 +184,7 @@ network_if(
 
   static char name[34] = "foo";
 
-  v[0].stringPtrValue = net_if->if_name;
-  //  v[0].stringPtrValue = &name;
+  omlc_set_const_string(v[0], net_if->if_name);
   v[1].longValue = (long)(is.rx_packets - net_if->start_rx_packets);
   v[2].longValue = (long)(is.rx_bytes - net_if->start_rx_bytes);
   v[3].longValue = (long)(is.rx_errors - net_if->start_rx_errors);
@@ -200,7 +200,7 @@ network_if(
   v[13].longValue = (long)(is.tx_carrier); // - net_if->start_tx_carrier);
   v[14].longValue = (long)(is.speed / 1000000);
 
-  omlc_process(net_mp, v);
+  omlc_inject(net_mp, v);
 }
 
 
