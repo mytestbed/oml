@@ -94,12 +94,14 @@ sample(
   OmlValueT type = mp->param_defs[self->index].param_types;
 
   if (type != self->result.type) {
-    OmlValueT tt = self->result.type;
-    if (!((type == OML_STRING_PTR_VALUE && tt == OML_STRING_VALUE)
-          || (type == OML_STRING_VALUE && tt == OML_STRING_PTR_VALUE))) {
-      o_log(O_LOG_ERROR, "Different type from initial definition\n");
-      return 0;
-    }
+    o_log(O_LOG_ERROR, "Different type from initial definition\n");
+    return 0;
+/*     OmlValueT tt = self->result.type; */
+/*     if (!((type == OML_STRING_PTR_VALUE && tt == OML_STRING_VALUE) */
+/*           || (type == OML_STRING_VALUE && tt == OML_STRING_PTR_VALUE))) { */
+/*       o_log(O_LOG_ERROR, "Different type from initial definition\n"); */
+/*       return 0; */
+/*     } */
   }
   if (self->is_first) {
     OmlValueU* value = values + self->index;

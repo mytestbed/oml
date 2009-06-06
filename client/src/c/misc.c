@@ -91,23 +91,24 @@ oml_value_copy(
       to->value.doubleValue = value->doubleValue;
       to->type = OML_DOUBLE_VALUE;
       break;
-    case OML_STRING_PTR_VALUE:
-      to->value.stringPtrValue= value->stringPtrValue;
-      to->type = OML_STRING_PTR_VALUE;
-      break;
-    case OML_STRING_VALUE:{
-      char* str = type == OML_STRING_VALUE ? value->stringValue.text
-          : value->stringPtrValue;
-      int len = strlen(str);
-      if (to->value.stringValue.size < len) {
-        if (to->value.stringValue.size > 0) {
-          free(to->value.stringValue.text);
-        }
-        to->value.stringValue.text = malloc(len + 1);
-        to->value.stringValue.size = len;
-      }
-      strncpy(to->value.stringValue.text, str, to->value.stringValue.size);
+    case OML_STRING_VALUE: {
       to->type = OML_STRING_VALUE;
+      OmlString* str = &to->value.stringValue;
+      if (str->is_const = value->stringValue.is_const) {
+	str->ptr = value->stringValue.ptr;
+      } else {
+	char* fstr = value->stringValue.ptr;
+	int size = strlen(fstr);
+	if (str->length < size + 1) {
+	  if (str->length > 0) {
+	    free(str->ptr);
+	  }
+	  str->ptr = malloc(size + 1);
+	  str->length = size + 1;
+	}
+	strncpy(str->ptr, fstr, size);
+	str->size = size;
+      }
       break;
     }
     default:
@@ -133,12 +134,14 @@ oml_value_reset(
   case OML_DOUBLE_VALUE:
     v->value.doubleValue = 0;
     break;
-  case OML_STRING_PTR_VALUE:
-    v->value.stringPtrValue = '\0';
-    break;
   case OML_STRING_VALUE: {
-    if (v->value.stringValue.size > 0) {
-      v->value.stringValue.text[0] = '\0';
+    if (v->value.stringValue.is_const) {
+      v->value.stringValue.ptr = NULL;
+    } else {
+      v->value.stringValue.size = 0;
+      if (v->value.stringValue.length > 0) {
+	*v->value.stringValue.ptr = '\0';
+      }
     }
     break;
   }

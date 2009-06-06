@@ -27,6 +27,15 @@
 #ifndef OML_OMLC_H_
 #define OML_OMLC_H_
 
+#define omlc_set_long(var, val) \
+    (var).longValue = (val);
+
+#define omlc_set_double(var, val) \
+    (var).doubleValue = (val);
+
+#define omlc_set_const_string(var, val) \
+    (var).stringValue.ptr = (val); (var).stringValue.is_const = 1;
+
 //#include <ocomm/queue.h>
 #include <pthread.h>
 #include <oml2/oml.h>
@@ -39,14 +48,15 @@ struct _omlWriter;   // forward declaration
  * \brief
  */
 typedef struct _omlString {
-  int size;
-  char* text;
+  char* ptr;
+  int   is_const; // true if ptr references const storage
+  int   size;     // size of string
+  int   length;   // length of internally allocated storage
 } OmlString;
 
 typedef union _omlValueU {
   long longValue;
   double doubleValue;
-  char* stringPtrValue;
   OmlString stringValue;
 } OmlValueU;
 
@@ -233,6 +243,13 @@ omlc_add_mp(
 int
 omlc_start();
 
+void
+omlc_inject(
+  OmlMP*      mp,
+  OmlValueU*  values
+);
+
+// DEPRECIATED
 void
 omlc_process(
   OmlMP*      mp,

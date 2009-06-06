@@ -7,7 +7,7 @@
 PKG_NAME = client
 APT_NAME = liboml2
 
-DIRS = src/c
+DIRS = src/c src/ruby
 
 TOP_DIR = $(shell pwd)/..
 include $(TOP_DIR)/config.mk

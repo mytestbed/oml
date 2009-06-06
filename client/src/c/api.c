@@ -35,7 +35,7 @@
 
 extern OmlClient* omlc_instance;
 
- /**
+/**
  * \fn static void omlc_ms_process( OmlMStream* ms)
  * \brief Called when the particular MStream has been filled.
  * \param ms the oml stream to process
@@ -44,15 +44,29 @@ static void
 omlc_ms_process(
   OmlMStream* ms
 );
+
 /**
  * \fn void omlc_process( OmlMP* mp, OmlValueU*  values)
+ * \brief DEPRECIATED
+ */
+void
+omlc_process(
+  OmlMP*      mp,
+  OmlValueU*  values
+) {
+  o_log(O_LOG_WARN, "'omlc_process' is depreciated, use 'omlc_inject' instead\n");
+  omlc_inject(mp, values);
+}
+
+/**
+ * \fn void omlc_inject( OmlMP* mp, OmlValueU*  values)
  * \brief Called when a measure has to be treated
  * \param mp the measurement point in the application
  * \param values the new values to analyse
  * \return
  */
 void
-omlc_process(
+omlc_inject(
   OmlMP*      mp,
   OmlValueU*  values
 ) {

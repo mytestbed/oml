@@ -162,11 +162,8 @@ out(
     case OML_DOUBLE_VALUE:
       fprintf(f, "\t%f", v->value.doubleValue);
       break;
-    case OML_STRING_PTR_VALUE:
-      fprintf(f, "\t%s", v->value.stringPtrValue);
-      break;
     case OML_STRING_VALUE:
-      fprintf(f, "\t%s", v->value.stringValue.text);
+      fprintf(f, "\t%s", v->value.stringValue.ptr);
       break;
     default:
       o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", v->type);

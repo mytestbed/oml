@@ -1,0 +1,586 @@
+#!/usr/bin/ruby
+
+
+#
+# This program is taking an OMF application definition and creates
+# various files to simplify building applications which use OML.
+#
+
+PROG = 'oml_scaffold'
+
+require 'stringio'
+require 'optparse'
+
+
+def run()
+  opts = OptionParser.new
+  opts.banner = %Q|
+Execute an experiment script
+
+  Usage: #{$0} [OPTIONS] [app_file]
+
+|
+
+  output = []
+  app_name = 'unknown'
+  create_app = false
+  force = false
+
+  opts.on('-a', "--app PROG_NAME", 
+	  "Create a skeleton OMF application definition file ") do |name|
+    create_app = true
+    app_name = name
+  end
+  opts.on('-f', "--force", 
+	  "Do not check if a file would be overwritten") do 
+    force = true
+  end
+  opts.on(nil, "--oml", 
+	  "Create the oml header file defining all measurement points") do 
+    output << :oml
+  end
+  opts.on(nil, "--opts", 
+	  "Create the popt header file for all application properties") do 
+    output << :popt
+  end
+  opts.on("--make", 
+	  "Create a skeleton Makefile for this application") do 
+    output << :make
+  end
+  opts.on("--main", 
+	  "Create a skeleton main file for this application") do 
+    output << :main
+  end
+
+  opts.on_tail("-h", "--help", "Show this message") do puts opts; exit end
+  opts.on_tail("-v", "--version", "Show the version\n") do
+    puts VERSION_STRING
+    exit
+  end
+
+  begin
+    rest = opts.parse(ARGV)
+  rescue OptionParser::MissingArgument => ex
+    $stderr.puts ex
+    exit -1
+  end
+
+  if rest.size > 1
+    $stderr.puts "Too many arguments"
+    puts opts.banner
+    exit -1
+  end
+  app_file = rest[0]
+
+  if create_app
+    if app_file
+      $stderr.puts "Don't specify app_file when asking to create one" 
+      exit -1
+    end
+    uri = "#{ENV['USER']}:app:#{app_name}"
+    ad = AppDefinition.new uri, app_name
+    fname = "#{app_name}.app"
+    if File.exists?(fname) && !force
+      $stderr.puts "'#{fname}' already exists. Use --force to overwrite"
+    else
+      File.open(fname, 'w') do |f|
+	ad.write_app_def(f)
+      end
+    end
+    puts "Created '#{fname}'"
+    exit
+  end
+
+  unless app_file
+    $stderr.puts "Missing app_file" 
+    exit -1
+  end
+    
+  eval(File.read(app_file))
+  AppDefinition.each do |app|
+    output.each do |type|
+      case type
+      when :oml
+	fname = "#{app.name}_oml.h"
+	File.open(fname, 'w') do |f|
+	  app.write_oml_h(f)
+	end
+	puts "Created '#{fname}'"
+      when :popt
+	fname = "#{app.name}_popt.h"
+	File.open(fname, 'w') do |f|
+	  app.write_opts_h(f)
+	end
+	puts "Created '#{fname}'"
+      when :make
+	fname = "Makefile"
+	if File.exists?(fname) && !force
+	  $stderr.puts "'#{fname}' already exists. Use --force to overwrite"
+	else
+	  File.open(fname, 'w') do |f|
+	    app.write_makefile(f)
+	  end
+	  puts "Created '#{fname}'"
+	end
+      when :main
+	fname = "#{app.name}.c"
+	if File.exists?(fname) && !force
+	  $stderr.puts "'#{fname}' already exists. Use --force to overwrite"
+	else
+	  File.open(fname, 'w') do |f|
+	    app.write_main(f)
+	  end
+	  puts "Created '#{fname}'"
+	end
+      else
+	$stderr.puts "Unsupported output format '#{type}'"
+	exit -1
+      end
+    end
+  end
+end
+
+class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
+
+  def write_opts_t(s)
+    case opts[:type]
+    when :int, :flag
+      type = 'int'
+    when :string
+      type = 'char*'
+    else
+      raise "Unknown type '#{opts[:type]}' for property '#{long_name}'"
+    end
+    impl = (opts[:impl] ||= {})
+    var_name = (impl[:var_name] ||= long_name)
+    s.puts "  #{type} #{var_name};"
+  end
+
+  def default_value()
+    v = opts[:default]
+    return v if v
+
+    case opts[:type]
+    when :int, :flag
+      v = 0
+    when :string
+      v = '\'\0\''
+    else
+      raise "Unknown type '#{opts[:type]}' for property '#{long_name}'"
+    end
+    v
+  end
+
+  def popt_def()
+    a = []
+    a << "\"#{long_name}\""
+    a << (letter_name ? "'#{'%c' % letter_name}'" : 'NULL')
+    a << arg_info
+    a << "&g_opts_storage.#{opts[:impl][:var_name]}"
+    a << (opts[:popt_val] || 0)
+    a << "\"#{descr}\""
+    a << "\"#{opts[:unit]}\"" if opts[:unit]
+    "  { #{a.join(', ')}},"
+  end
+
+  def arg_info()
+    case opts[:type]
+    when :flag
+      v = 'POPT_ARG_NONE'
+    when :string
+      v = 'POPT_ARG_STRING'
+    when :int
+      v = 'POPT_ARG_INT'
+    when :long
+      v = 'POPT_ARG_LONG'
+    when :long_long
+      v = 'POPT_ARG_LONGLONG'
+    when :float
+      v = 'POPT_ARG_FLOAT'
+    when :double
+      v = 'POPT_ARG_DOUBLE'
+    else
+      raise "Unknown type '#{opts[:type]}' for property '#{long_name}'"
+    end
+    v
+  end
+
+  def initialize(long_name, descr, letter_name, opts)
+    super
+    type = (opts[:type] || :int).to_sym
+    type = :int if type == :integer
+    opts[:type] = type
+  end
+end
+
+
+class AppDefinition
+  @@instances = []
+
+  def self.each(&block)
+    @@instances.each &block
+  end
+
+  attr_accessor :uri, :name, :shortDescription, :description, :path
+
+  def version(major, minor = 0, revision = 0)
+    @version = [major, minor, revision]
+  end
+
+  def defProperty(long_name, descr, letter_name, opts = {})
+    @properties << Property.new(long_name, descr, letter_name, opts)
+  end
+
+  def defMeasurement(name, &block)
+    @mps << MeasurementPoint.new(name, &block)
+  end
+
+  def initialize(uri, name, &block)
+    @uri = uri
+    @name = name || @uri.split(':')[-1]
+    @properties = []
+    @mps = []
+    @@instances << self
+    block.call(self) if block
+  end
+
+  def write_oml_decl(s)
+    @mps.each do |mp|
+      s.puts ""
+      mp.write_oml_h(s)
+    end
+  end
+
+  def write_oml_mps_t(s)
+    @mps.each do |mp|
+      s.puts "  OmlMP* #{mp.name};"
+    end
+  end
+    
+  def write_oml_register(s)
+    @mps.each do |mp|
+      n = mp.name
+      s.puts "  g_oml_mps->#{n} = omlc_add_mp(\"#{n}\", oml_#{n}_def);"
+    end
+  end
+
+  def write_opts_default(s)
+    a = []
+    @properties.each do |p|
+      a << p.default_value()
+    end
+    s.write a.join(', ')
+  end
+ 
+  def write_opts_options(s)
+    @properties.each do |p|
+      s.puts p.popt_def()
+    end
+  end
+
+
+
+  def template(name)
+    s = StringIO.new
+    case name
+    when :app_name
+      return @name
+    when :app_urn
+      return "#{ENV['USER'] || 'xxx'}:app:#{@name}"
+    when :options_t
+      @properties.each do |p|
+	p.write_opts_t(s)
+      end
+    when :options_default
+      write_opts_default(s)
+    when :options_list
+      write_opts_options(s)
+    when :oml_decl
+      write_oml_decl(s)
+    when :oml_mps_t
+      write_oml_mps_t(s)
+    when :oml_register
+      write_oml_register(s)
+    else
+      raise "Undefined template '#{name}'"
+    end
+    s.string
+  end
+
+  def write_oml_h(stream = $stdout)
+    stream.puts %Q|
+/*
+ * This file is automatically generated by #{PROG}. Please do not edit.
+ */
+
+#ifndef #{template(:app_name).upcase}_OML_H
+#  define #{template(:app_name).upcase}_OML_H
+
+#include <oml2/omlc.h>
+
+typedef struct {
+#{template(:oml_mps_t)}
+} oml_mps_t;
+
+
+#ifndef OML_FROM_MAIN
+
+oml_mps_t* g_oml_mps;
+
+#else
+#{template(:oml_decl)}
+
+static oml_mps_t g_oml_mps_storage;
+oml_mps_t* g_oml_mps = &g_oml_mps_storage;
+
+static void
+oml_register_mps()
+
+{
+#{template(:oml_register)}
+}
+#endif /* OML_FROM_MAIN */
+#endif
+|
+  end
+
+  def write_opts_h(stream = $stdout)
+    stream.puts %Q|
+/*
+ * This file is automatically generated by #{PROG}. Please do not edit.
+ */
+
+#ifndef #{template(:app_name).upcase}_OPTS_H
+#  define #{template(:app_name).upcase}_OPTS_H
+
+typedef struct {
+#{template(:options_t)}
+} opts_t;
+
+#ifndef USE_OPTS
+
+opts_t* g_opts;
+
+#else
+
+static opts_t g_opts_storage = {#{template(:options_default)}};
+opts_t* g_opts = &g_opts_storage;
+
+// only the file containing the main() function should come through here
+
+#include <popt.h>
+
+struct poptOption options[] = {
+  POPT_AUTOHELP
+#{template(:options_list)}
+  { NULL, 0, 0, NULL, 0 }
+};
+
+#endif
+
+#endif
+|
+  end
+
+  def write_makefile(stream = $stdout)
+    stream.puts %Q|
+
+PROGRAM = #{template(:app_name)}
+
+INSTALL_DIR = $(DESTDIR)/usr/bin
+
+#### FOR EXPERTS ONLY  ###
+TOP = .
+
+SRCS = ${PROGRAM}.c 
+
+CFLAGS = -g -I. -I/usr/local/include
+LDFLAGS =
+LIBS = -loml2 -lxml2 -lpopt -lpthread
+ 
+
+#BUILD_TOP = $(TOP)/build
+#BUILD_DIR = $(BUILD_TOP)/$(PROGRAM)
+BUILD_DIR = build
+
+OBJ_DIR = $(BUILD_DIR)/objs
+BIN_DIR = $(BUILD_DIR)/bin
+
+OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o) 
+
+build:  $(BIN_DIR)/$(PROGRAM)
+
+$(BIN_DIR)/$(PROGRAM): $(BIN_DIR) $(OBJ_DIR) $(SRCS) $(OBJS) 
+	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
+
+$(OBJ_DIR)/%.o: %.c
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(OBJ_DIR):
+	mkdir -p $@
+
+$(BIN_DIR):
+	mkdir -p $@
+
+$(BUILD_DIR)/$(PROGRAM):
+	mkdir -p $@
+
+install: build
+	install -m 755 $(BIN_DIR)/$(PROGRAM) $(INSTALL_DIR)
+
+clean:
+	rm -fr $(BUILD_DIR) *~ $(PROGRAM)_popt.h $(PROGRAM)_oml.h 
+
+run: ARGS = --loop --delay 1
+run: build
+	$(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-file - 
+
+debug:
+	echo $(OBJS)
+
+$(OBJ_DIR)/$(PROGRAM).o: $(PROGRAM)_popt.h $(PROGRAM)_oml.h 
+
+$(PROGRAM)_popt.h: $(PROGRAM).app
+	oml2_scaffold --opts $<
+
+$(PROGRAM)_oml.h: $(PROGRAM).app
+	oml2_scaffold --oml $<
+|
+  end
+
+  def write_main(stream = $stdout)
+    stream.puts %Q|
+
+#define USE_OPTS
+#include "#{template(:app_name)}_popt.h"
+
+#define OML_FROM_MAIN
+#include "#{template(:app_name)}_oml.h"
+
+void
+run(
+  opts_t* opts,
+  oml_mps_t* oml_mps
+) {
+  long val = 1;
+
+  do {
+    OmlValueU v[3];
+
+    omlc_set_long(v[0], val);
+    omlc_set_double(v[1], 1.0 / val);
+    omlc_set_const_string(v[2], "foo");
+    omlc_inject(oml_mps->sensor, v);
+
+    val += 2;
+    if (opts->loop) sleep(opts->delay);
+  } while (opts->loop);
+}
+
+int
+main(
+  int argc,
+  const char *argv[]
+) {
+  omlc_init(argv[0], &argc, argv, NULL); 
+
+  // parsing command line arguments
+  poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
+  int c;
+  while ((c = poptGetNextOpt(optCon)) > 0) {}
+
+  // Initialize measurment points
+  oml_register_mps();  // defined in xxx_oml.h
+  omlc_start();
+
+  // Do some work
+  run(g_opts, g_oml_mps);
+
+  return(0);
+}
+|
+  end
+
+  def write_app_def(stream = $stdout)
+    stream.puts %@
+defApplication('#{template(:app_urn)}', '#{template(:app_name)}') do |a|
+
+  a.version(1, 0, 0)
+  a.shortDescription = 'A short description'
+  a.description = %{
+A longer description describing in more detail what this application 
+is doing and useful for.
+}
+
+  a.defProperty('loop', 'Create periodic result', ?l, 
+		:type => :flag, :impl => { :var_name => 'loop' })
+  a.defProperty('delay', 'Delay between consecutive measurements', ?d, 
+		:type => :int, :unit => 'seconds',
+		:impl => { :var_name => 'delay' })
+
+  a.defMeasurement("sensor") do |m|
+    m.defMetric('val', 'long')
+    m.defMetric('inverse', 'double')
+    m.defMetric('name', 'string')
+  end
+
+  a.path = "/usr/local/bin/#{template(:app_name)}"
+end
+
+# Local Variables:
+# mode:ruby
+# End:
+@
+  end
+end
+
+class Metric < Struct.new(:name, :type, :opts)
+
+  def c_type
+    case type.to_sym
+    when :string
+      "OML_STRING_VALUE"
+    when :int, :integer, :long
+      "OML_LONG_VALUE"
+    when :double
+      "OML_DOUBLE_VALUE"
+    else
+      "OML_UNKNOWN"
+    end
+  end
+
+end
+
+class MeasurementPoint
+  attr_reader :name
+
+  def defMetric(name, type, opts = {})
+    @ms << Metric.new(name, type, opts)
+  end
+
+  def initialize(name, &block)
+    @name = name
+    @ms = []
+    if block
+      block.call(self)
+    end
+  end
+
+  def write_oml_h(stream)
+    stream.puts "static OmlMPDef oml_#{@name}_def[] = {"
+    @ms.each do |m|
+      stream.puts "  {\"#{m.name}\", #{m.c_type}},"
+    end
+    stream.puts "  {NULL, (OmlValueT)0}"
+    stream.puts "};"
+  end
+
+
+end
+
+
+def defApplication(uri, name = nil, &block)
+  AppDefinition.new(uri, name, &block)
+end
+
+run
