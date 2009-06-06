@@ -30,14 +30,14 @@ struct poptOption options[] = {
 };
 
 static OmlMPDef d_lin[] = {
-    {"label", OML_STRING_PTR_VALUE},
+    {"label", OML_STRING_VALUE},
     {"seq_no", OML_LONG_VALUE},
     {NULL, 0}
 };
 static OmlMP* m_lin;
 
 static OmlMPDef d_sin[] = {
-    {"label", OML_STRING_PTR_VALUE},
+    {"label", OML_STRING_VALUE},
     {"phase", OML_DOUBLE_VALUE},
     {"value", OML_DOUBLE_VALUE},
     {NULL, 0}
@@ -61,19 +61,19 @@ run()
     {
       // "lin" measurement point
       OmlValueU v[2];
-      v[0].stringPtrValue = label;
-      v[1].longValue = count;
-      omlc_process(m_lin, v);
+      omlc_set_const_string(v[0], label);
+      omlc_set_long(v[1], count);
+      omlc_inject(m_lin, v);
     }
 
     float value = amplitude * sin(angle);
     {
       // "sin" measurement point
       OmlValueU v[3];
-      v[0].stringPtrValue = label;
-      v[1].doubleValue = angle;
-      v[2].doubleValue = value;
-      omlc_process(m_sin, v);
+      omlc_set_const_string(v[0], label);
+      omlc_set_double(v[1], angle);
+      omlc_set_double(v[2], value);
+      omlc_inject(m_sin, v);
     }
 
     printf("%s %d | %f %f\n", label, count, angle, value);
