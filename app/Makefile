@@ -7,7 +7,7 @@
 PKG_NAME = app_oml2
 APT_NAME = app_oml2
 
-DIRS = src/c
+DIRS = src/c omf_trace/src/c omf_nmetrics/src/c
 
 TOP_DIR = $(shell pwd)/..
 include $(TOP_DIR)/config.mk

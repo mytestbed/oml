@@ -275,7 +275,7 @@ sq3_insert(
         res = sqlite3_bind_double(stmt, i + 5, v->value.doubleValue);
         break;
       case OML_STRING_VALUE:
-        res = sqlite3_bind_text (stmt, i + 5, v->value.stringValue.text,
+        res = sqlite3_bind_text (stmt, i + 5, v->value.stringValue.ptr,
                 -1, SQLITE_TRANSIENT);
         break;
       default:

@@ -258,10 +258,10 @@ OmlValueU* handle_IP(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char*
 	if((off & 0x1fff) == 0 )/* aka no 1's in first 13 bits */
 	{
 
-		value[1].stringPtrValue = inet_ntoa(ip->ip_src);
-		value[1].stringPtrValue = strcpy(malloc(strlen(value[1].stringPtrValue)+1),value[1].stringPtrValue);
-		value[2].stringPtrValue = inet_ntoa(ip->ip_dst);
-		value[2].stringPtrValue = strcpy(malloc(strlen(value[2].stringPtrValue)+1),value[2].stringPtrValue);
+		omlc_set_const_string(value[1], inet_ntoa(ip->ip_src));
+		//value[1].stringPtrValue = strcpy(malloc(strlen(value[1].stringPtrValue)+1),value[1].stringPtrValue);
+		omlc_set_const_string(value[2], inet_ntoa(ip->ip_dst));
+		//value[2].stringPtrValue = strcpy(malloc(strlen(value[2].stringPtrValue)+1),value[2].stringPtrValue);
 
 		lengthOML = (long) len;
 		value[3].longValue = lengthOML;
@@ -309,7 +309,7 @@ u_int16_t handle_ethernet(u_char *args, const struct pcap_pkthdr* pkthdr, const 
 	//fprintf(stdout,"%s ",ether_ntoa((struct ether_addr*)eptr->ether_dhost));
 
 	eth_src = (char*) ether_ntoa_r((struct ether_addr*)eptr->ether_shost, eth_src);
-	value[0].stringPtrValue = eth_src;
+	omlc_set_const_string(value[0], eth_src);
 	//value[0].stringPtrValue = (char*) strcpy( malloc( strlen(eth_src) + 1),eth_src);
 
 	//eth_dst = (char*) ether_ntoa_r((struct ether_addr*)eptr->ether_dhost, eth_dst);

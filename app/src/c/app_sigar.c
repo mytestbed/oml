@@ -150,7 +150,7 @@ OmlMPDef* create_sigar_filter(char* file)
     self[1].name = "tx_bytes";
     self[1].param_types = OML_LONG_VALUE;
     self[2].name = "ram_used";
-    self[2].param_types = OML_STRING_PTR_VALUE;
+    self[2].param_types = OML_STRING_VALUE;
     self[3].name = "cpu_user";
     self[3].param_types = OML_LONG_VALUE;
     self[4].name = "cpu_total_used";
@@ -242,7 +242,7 @@ main(
 		
 		v[0].longValue = (long)interface_stat.rx_bytes;
 		v[1].longValue = (long)interface_stat.tx_bytes;
-		v[2].stringPtrValue = (char*) mem_used;
+		omlc_set_const_string(v[2], mem_used);
 		//printf("memory %s \n", mem_used);
 		v[3].longValue = (long)cpu_info.user;
 		v[4].longValue = (long)cpu_info.total;

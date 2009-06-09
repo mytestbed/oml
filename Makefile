@@ -18,7 +18,7 @@ VERSION = 2.0.1
 #	@cd server/src/c; make $@
 #	@cd client/src/c; make $@
 
-DIRS = client app
+DIRS = client shared app server
 
 
 TOP_DIR = $(shell pwd)

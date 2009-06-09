@@ -166,7 +166,7 @@ main(
            
            if(strcmp(command,"ADDR") != 0){
 
-                v[0].stringPtrValue =  command2; 
+                omlc_set_const_string(v[0], command2); 
                 scanf ("%s",command);
 
                 scanf ("%s",command);
@@ -179,7 +179,7 @@ main(
                 scanf ("%s",command);
 
                 v[2].longValue = atol(command);
-                v[3].stringPtrValue =  macAddress; 
+                omlc_set_const_string(v[3], macAddress); 
                 
                  omlc_process(oml_mp, v);
                  //stop=0;
