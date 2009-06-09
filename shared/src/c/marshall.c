@@ -202,14 +202,8 @@ marshall_value(
       *(p++) = nexp;
       break;
     }
-    case OML_STRING_PTR_VALUE:
     case OML_STRING_VALUE: {
-      char* str;
-      if (val_type == OML_STRING_PTR_VALUE) {
-        str = val->stringPtrValue;
-      } else {
-        str = val->stringValue.text;
-      }
+      char* str = val->stringValue.ptr;
       int len = strlen(str);
       if (len > 254) {
         o_log(O_LOG_ERROR, "Truncated string '%s'\n", str);
@@ -498,14 +492,15 @@ unmarshall_value(
       }
       if (len >= value->value.stringValue.size) {
         if (value->value.stringValue.size > 0) {
-          free(value->value.stringValue.text);
+          free(value->value.stringValue.ptr);
         }
         int mlen = (len < MIN_LENGTH) ? MIN_LENGTH : len + 1;
-        value->value.stringValue.text = (char*)malloc(mlen);
-        value->value.stringValue.size = mlen;
+        value->value.stringValue.ptr = (char*)malloc(mlen);
+        value->value.stringValue.size = mlen - 1;
+        value->value.stringValue.length = mlen;
       }
-      strncpy(value->value.stringValue.text, (char*)p, len);
-      *(value->value.stringValue.text + len) = '\0';
+      strncpy(value->value.stringValue.ptr, (char*)p, len);
+      *(value->value.stringValue.ptr + len) = '\0';
       p += len;
       break;
     }
@@ -540,8 +535,9 @@ oml_marshall_test()
   v2->value.doubleValue = -12.34567890e23;
 
   OmlValue* v3 = &in_values[2];
-  v3->type = OML_STRING_PTR_VALUE;
-  v3->value.stringPtrValue = "hello world";
+  v3->type = OML_STRING_VALUE;
+  v3->value.stringValue.ptr = "hello world";
+  v3->value.stringValue.is_const = 1;
 
   OmlMBuffer buf;
   OmlValue in;
@@ -650,7 +646,7 @@ oml_marshall_test()
  * \return
  */
 #ifdef MARSHALL_TEST
-void
+int
 main(
   char** argv,
   int argc
