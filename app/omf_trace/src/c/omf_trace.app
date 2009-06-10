@@ -25,7 +25,7 @@ is doing and useful for.
     m.defMetric('ip_id', 'long', ' Identification')
     m.defMetric('ip_off', 'long', ' IP Fragment offset (and flags)')
     m.defMetric('ip_ttl', 'long', ' Time to Live')
-    m.defMetric('ip_p', 'long', 'Protocol')
+    m.defMetric('ip_proto', 'long', 'Protocol')
     m.defMetric('ip_sum', 'long', 'Checksum')
     m.defMetric('ip_src', 'string', ' Source Address')
     m.defMetric('ip_dst', 'string', ' Destination Address')

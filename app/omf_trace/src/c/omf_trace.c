@@ -38,6 +38,13 @@ omlc_inject_ip(
     omlc_inject(g_oml_mps->ip, v);
 }
 
+static void
+omlc_inject_tcp(
+  libtrace_tcp_t* tcp,
+  void* payload
+) {
+}
+
 static void 
 per_packet(
   libtrace_packet_t* packet
@@ -62,8 +69,8 @@ per_packet(
   switch (ethertype) {
   case 0x0800: {
     libtrace_ip_t* ip = (libtrace_ip_t*)l3;
-    omlc_inject_ip(ip, packet);
     transport = trace_get_payload_from_ip(ip, &proto, &remaining);
+    omlc_inject_ip(ip, packet);
     if (!transport) return;
     break;
   }
@@ -85,12 +92,13 @@ per_packet(
     // icmp;
     return;
 
-  case 6:
-    payload = trace_get_payload_from_tcp((libtrace_tcp_t*)transport,
-					 &remaining);
-    if (!payload)
-      return;
+  case 6: {
+    libtrace_tcp_t* tcp = (libtrace_tcp_t*)transport;
+    payload = trace_get_payload_from_tcp(tcp, &remaining);
+    omlc_inject_tcp(tcp, payload);
+    if (!payload) return;
     break;
+  }
   
   case 17:
     payload = trace_get_payload_from_udp((libtrace_udp_t*)transport,
