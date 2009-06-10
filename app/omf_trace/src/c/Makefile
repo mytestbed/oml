@@ -11,7 +11,7 @@ SRCS = ${PROGRAM}.c
 
 CFLAGS = -g -I. -I/usr/local/include
 LDFLAGS =
-LIBS = -loml2 -lxml2 -lpopt -lpthread
+LIBS = -ltrace -loml2 -lxml2 -lpopt -lpthread
 
 
 #BUILD_TOP = $(TOP)/build
@@ -46,7 +46,7 @@ install: build
 clean:
 	rm -fr $(BUILD_DIR) *~ $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
-run: ARGS = --loop --delay 1
+run: ARGS = -i pcapint:eth0
 run: build
 	$(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-file -
 

@@ -8,11 +8,17 @@ A longer description describing in more detail what this application
 is doing and useful for.
 }
 
-  a.defProperty('loop', 'Create periodic result', ?l, 
-		:type => :flag, :impl => { :var_name => 'loop' })
-  a.defProperty('delay', 'Delay between consecutive measurements', ?d, 
-		:type => :int, :unit => 'seconds',
-		:impl => { :var_name => 'delay' })
+  a.defProperty('filter', 'Filter expression BPFEXP', ?f, 
+		:type => :string)
+  a.defProperty('snaplen', '???', ?s, 
+		:type => :int, :unit => 'bytes')
+  a.defProperty('promisc', '???', ?p, 
+		:type => :flag)
+  a.defProperty('interface', 'Interface to trace', ?i, 
+		:type => :string)
+
+
+
 
   a.defMeasurement("sensor") do |m|
     m.defMetric('val', 'long')
