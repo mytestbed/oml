@@ -1,5 +1,9 @@
 
 #include <libtrace.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #define USE_OPTS
 #include "omf_trace_popt.h"
@@ -13,10 +17,14 @@ omlc_inject_ip(
   libtrace_packet_t *packet
 ) {
     OmlValueU v[9];
-    char* addr = inet_ntoa(ip->ip_src);
-    addr = strcpy(malloc(strlen(addr)+1),addr);
-    char* addr_dst = inet_ntoa(ip->ip_dst);
-    addr_dst = strcpy(malloc(strlen(addr_dst)+1),addr_dst);
+    char* cp;
+    char addr_src[64];
+    char addr_dst[64];
+
+    cp = inet_ntoa(ip->ip_src);
+    strcpy(addr_src, cp);
+    cp = inet_ntoa(ip->ip_dst);
+    strcpy(addr_dst, cp);
     
     omlc_set_long(v[0], ip->ip_tos);
     omlc_set_long(v[1], ip->ip_len);
@@ -25,8 +33,8 @@ omlc_inject_ip(
     omlc_set_long(v[4], ip->ip_ttl);
     omlc_set_long(v[5], ip->ip_p);
     omlc_set_long(v[6], ip->ip_sum);
-    omlc_set_const_string(v[7], addr);
-    omlc_set_const_string(v[8], addr_dst);
+    omlc_set_string(v[7], addr_src);
+    omlc_set_string(v[8], addr_dst);
     omlc_inject(g_oml_mps->ip, v);
 }
 

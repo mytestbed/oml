@@ -47,7 +47,8 @@ install: build
 clean:
 	rm -fr $(BUILD_DIR) *~ $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
-run: ARGS = -i pcapint:eth1
+RUN_IF = eth1
+run: ARGS = -i pcapint:$(RUN_IF)
 run: build
 	$(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-file -
 
