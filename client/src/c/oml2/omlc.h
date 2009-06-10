@@ -34,10 +34,12 @@
     (var).doubleValue = (val);
 
 #define omlc_set_string(var, val) \
-    (var).stringValue.ptr = (val); (var).stringValue.is_const = 0;
+    (var).stringValue.ptr = (val); (var).stringValue.is_const = 0; \
+    (var).stringValue.size = (var).stringValue.length = 0;
 
 #define omlc_set_const_string(var, val) \
-    (var).stringValue.ptr = (val); (var).stringValue.is_const = 1;
+    (var).stringValue.ptr = (val); (var).stringValue.is_const = 1; \
+    (var).stringValue.size = (var).stringValue.length = 0;
 
 //#include <ocomm/queue.h>
 #include <pthread.h>
