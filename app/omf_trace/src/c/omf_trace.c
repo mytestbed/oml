@@ -3,20 +3,31 @@
 
 #define USE_OPTS
 #include "omf_trace_popt.h"
-
+#include <netinet/in.h>
 #define OML_FROM_MAIN
 #include "omf_trace_oml.h"
 
 static void
 omlc_inject_ip(
-  libtrace_ip_t* ip
+  libtrace_ip_t* ip,
+  libtrace_packet_t *packet
 ) {
-    OmlValueU v[3];
-
-    omlc_set_long(v[0], val);
-    omlc_set_double(v[1], 1.0 / val);
-    omlc_set_const_string(v[2], "foo");
-    omlc_inject(oml_mps->sensor, v);
+    OmlValueU v[9];
+    char* addr = inet_ntoa(ip->ip_src);
+    addr = strcpy(malloc(strlen(addr)+1),addr);
+    char* addr_dst = inet_ntoa(ip->ip_dst);
+    addr_dst = strcpy(malloc(strlen(addr_dst)+1),addr_dst);
+    
+    omlc_set_long(v[0], ip->ip_tos);
+    omlc_set_long(v[1], ip->ip_len);
+    omlc_set_long(v[2], ip->ip_id);
+    omlc_set_long(v[3], ip->ip_off);
+    omlc_set_long(v[4], ip->ip_ttl);
+    omlc_set_long(v[5], ip->ip_p);
+    omlc_set_long(v[6], ip->ip_sum);
+    omlc_set_const_string(v[7], addr);
+    omlc_set_const_string(v[8], addr_dst);
+    omlc_inject(g_oml_mps->ip, v);
 }
 
 static void 
@@ -43,7 +54,7 @@ per_packet(
   switch (ethertype) {
   case 0x0800: {
     libtrace_ip_t* ip = (libtrace_ip_t*)l3;
-    omlc_inject_ip(ip);
+    omlc_inject_ip(ip, packet);
     transport = trace_get_payload_from_ip(ip, &proto, &remaining);
     if (!transport) return;
     break;
@@ -54,6 +65,7 @@ per_packet(
 					   &remaining);
     if (!transport)
       return;
+    
     break;
   default:
     return;

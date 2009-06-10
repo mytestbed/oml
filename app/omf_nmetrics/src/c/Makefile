@@ -55,10 +55,10 @@ debug:
 $(OBJ_DIR)/$(PROGRAM).o: $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
 $(PROGRAM)_popt.h: $(PROGRAM).app
-	oml2_scaffold --opts $<
+	/home/gjourjon/oml2/MaxChanges/client/src/ruby/oml2_scaffold --opts $<
 
 $(PROGRAM)_oml.h: $(PROGRAM).app
-	oml2_scaffold --oml $<
+	/home/gjourjon/oml2/MaxChanges/client/src/ruby/oml2_scaffold --oml $<
 
 
 

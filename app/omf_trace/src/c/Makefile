@@ -14,6 +14,7 @@ LDFLAGS =
 LIBS = -ltrace -loml2 -lxml2 -lpopt -lpthread
 
 
+
 #BUILD_TOP = $(TOP)/build
 #BUILD_DIR = $(BUILD_TOP)/$(PROGRAM)
 BUILD_DIR = build
@@ -46,7 +47,7 @@ install: build
 clean:
 	rm -fr $(BUILD_DIR) *~ $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
-run: ARGS = -i pcapint:eth0
+run: ARGS = -i pcapint:eth1
 run: build
 	$(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-file -
 
@@ -56,7 +57,7 @@ debug:
 $(OBJ_DIR)/$(PROGRAM).o: $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
 $(PROGRAM)_popt.h: $(PROGRAM).app
-	oml2_scaffold --opts $<
+	/home/gjourjon/oml2/MaxChanges/client/src/ruby/oml2_scaffold --opts $<
 
 $(PROGRAM)_oml.h: $(PROGRAM).app
-	oml2_scaffold --oml $<
+	/home/gjourjon/oml2/MaxChanges/client/src/ruby/oml2_scaffold --oml $<
