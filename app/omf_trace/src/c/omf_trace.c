@@ -7,6 +7,18 @@
 #define OML_FROM_MAIN
 #include "omf_trace_oml.h"
 
+static void
+omlc_inject_ip(
+  libtrace_ip_t* ip
+) {
+    OmlValueU v[3];
+
+    omlc_set_long(v[0], val);
+    omlc_set_double(v[1], 1.0 / val);
+    omlc_set_const_string(v[2], "foo");
+    omlc_inject(oml_mps->sensor, v);
+}
+
 static void 
 per_packet(
   libtrace_packet_t* packet
@@ -29,13 +41,13 @@ per_packet(
 
   /* Get the UDP/TCP/ICMP header from the IPv4/IPv6 packet */
   switch (ethertype) {
-  case 0x0800:
-    transport = trace_get_payload_from_ip((libtrace_ip_t*)l3,
-					  &proto,
-					  &remaining);
-    if (!transport)
-      return;
+  case 0x0800: {
+    libtrace_ip_t* ip = (libtrace_ip_t*)l3;
+    omlc_inject_ip(ip);
+    transport = trace_get_payload_from_ip(ip, &proto, &remaining);
+    if (!transport) return;
     break;
+  }
   case 0x86DD:
     transport = trace_get_payload_from_ip6((libtrace_ip6_t*)l3,
 					   &proto,

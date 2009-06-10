@@ -19,6 +19,17 @@ is doing and useful for.
 
 
 
+  a.defMeasurement("ip") do |m|
+    m.defMetric('ip_tos', 'long', ' Type of Service')
+    m.defMetric('ip_len', 'long', ' Total Length')
+    m.defMetric('ip_id', 'long', ' Identification')
+    m.defMetric('ip_off', 'long', ' IP Fragment offset (and flags)')
+    m.defMetric('ip_ttl', 'long', ' Time to Live')
+    m.defMetric('ip_p', 'long', 'Protocol')
+    m.defMetric('ip_sum', 'long', 'Checksum')
+    m.defMetric('ip_src', 'string', ' Source Address')
+    m.defMetric('ip_dst', 'string', ' Destination Address')
+  end
 
   a.defMeasurement("sensor") do |m|
     m.defMetric('val', 'long')
