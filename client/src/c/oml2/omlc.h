@@ -33,6 +33,9 @@
 #define omlc_set_double(var, val) \
     (var).doubleValue = (val);
 
+#define omlc_set_string(var, val) \
+    (var).stringValue.ptr = (val); (var).stringValue.is_const = 0;
+
 #define omlc_set_const_string(var, val) \
     (var).stringValue.ptr = (val); (var).stringValue.is_const = 1;
 
