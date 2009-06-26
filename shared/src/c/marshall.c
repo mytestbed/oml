@@ -171,10 +171,12 @@ marshall_value(
         p = marshall_resize(mbuf, 2 * mbuf->buffer_length);
       }
       *(p++) = LONG_T;
-      *(p++) = (char)((nv >> 24) & 0xff);
-      *(p++) = (char)((nv >> 16) & 0xff);
-      *(p++) = (char)((nv >> 8) & 0xff);
-      *(p++) = (char)(nv & 0xff);
+      memcpy(p, &nv, 4);
+      p += 4;
+/*       *(p++) = (char)((nv >> 24) & 0xff); */
+/*       *(p++) = (char)((nv >> 16) & 0xff); */
+/*       *(p++) = (char)((nv >> 8) & 0xff); */
+/*       *(p++) = (char)(nv & 0xff); */
       break;
     }
     case OML_DOUBLE_VALUE: {
@@ -195,15 +197,19 @@ marshall_value(
         p = marshall_resize(mbuf, 2 * mbuf->buffer_length);
       }
       *(p++) = type;
-      *(p++) = (char)((nmant >> 24) & 0xff);
-      *(p++) = (char)((nmant >> 16) & 0xff);
-      *(p++) = (char)((nmant >> 8) & 0xff);
-      *(p++) = (char)(nmant & 0xff);
+      memcpy(p, &nmant, 4);
+      p += 4;
+/*       *(p++) = (char)((nmant >> 24) & 0xff); */
+/*       *(p++) = (char)((nmant >> 16) & 0xff); */
+/*       *(p++) = (char)((nmant >> 8) & 0xff); */
+/*       *(p++) = (char)(nmant & 0xff); */
       *(p++) = nexp;
       break;
     }
     case OML_STRING_VALUE: {
+
       char* str = val->stringValue.ptr;
+
       int len = strlen(str);
       if (len > 254) {
         o_log(O_LOG_ERROR, "Truncated string '%s'\n", str);
@@ -240,8 +246,10 @@ marshall_finalize(
   //o_log(O_LOG_DEBUG2, "Message content  size '%d'\n", len);
 
   uint16_t nlen = htons(len);  // pure data length
-  *(p++) = (unsigned char)((nlen >> 8) & 0xff);
-  *(p++) = (unsigned char)(nlen & 0xff);
+  memcpy(p,&nlen,2);
+  p += 2;
+/*   *(p++) = (unsigned char)((nlen >> 8) & 0xff);  */
+/*   *(p++) = (unsigned char)(nlen & 0xff); */
   return 1;
 }
 
@@ -304,8 +312,11 @@ unmarshall_init(
     return 0;
   }
   *type_p = (OmlMsgType)*(p++);
-  uint16_t nv = *p++ << 8;
-  nv += *p++;
+  uint16_t nv = 0;
+  memcpy(&nv,p,2);
+  p += 2;
+/*   uint16_t nv = *p++ << 8;  */
+/*   nv += *p++; */
   uint16_t hv = ntohs(nv);
   int len = (int)(hv);
 
@@ -446,10 +457,13 @@ unmarshall_value(
         o_log(O_LOG_ERROR, "Buffer is too short for LONG.\n");
         return 0;
       }
-      uint32_t nv = *p++ << 24;
-      nv += *p++ << 16;
-      nv += *p++ << 8;
-      nv += *p++;
+      uint32_t nv = 0;
+      memcpy(&nv,p,4);
+      p += 4;
+/*       uint32_t nv = *p++ << 24;  */
+/*       nv += *p++ << 16; */
+/*       nv += *p++ << 8; */
+/*       nv += *p++; */
       uint32_t hv = ntohl(nv);
       //long v = (long)(hv - BIG_L);
       long v = (long)(hv);
@@ -463,10 +477,13 @@ unmarshall_value(
         o_log(O_LOG_ERROR, "Buffer is too short for DOUBLE.\n");
         return -102;
       }
-      uint32_t nmant = *p++ << 24;
-      nmant += *p++ << 16;
-      nmant += *p++ << 8;
-      nmant += *p++;
+      uint32_t nmant = 0;
+      memcpy(&nmant,p,4);
+      p += 4;
+/*       uint32_t nmant = *p++ << 24;  */
+/*       nmant += *p++ << 16; */
+/*       nmant += *p++ << 8; */
+/*       nmant += *p++; */
       int hmant = (int)ntohl(nmant);
       double mant = hmant * 1.0 / (1 << BIG_L);
       int exp = (char)*p++;
@@ -495,9 +512,11 @@ unmarshall_value(
           free(value->value.stringValue.ptr);
         }
         int mlen = (len < MIN_LENGTH) ? MIN_LENGTH : len + 1;
+
         value->value.stringValue.ptr = (char*)malloc(mlen);
         value->value.stringValue.size = mlen - 1;
         value->value.stringValue.length = mlen;
+
       }
       strncpy(value->value.stringValue.ptr, (char*)p, len);
       *(value->value.stringValue.ptr + len) = '\0';
@@ -515,145 +534,148 @@ unmarshall_value(
 
 
 
-/**
- * \fn int oml_marshall_test()
- * \brief Test function of the marshalling library
- * \return 1 when finished
- */
-int
-oml_marshall_test()
+///**
+// * \fn int oml_marshall_test()
+// * \brief Test function of the marshalling library
+// * \return 1 when finished
+// */
+//int
+//oml_marshall_test()
 
-{
-  OmlValue in_values[5];
-
-  OmlValue* v1 = &in_values[0];
-  v1->type = OML_LONG_VALUE;
-  v1->value.longValue = -123456789;
-
-  OmlValue* v2 = &in_values[1];
-  v2->type = OML_DOUBLE_VALUE;
-  v2->value.doubleValue = -12.34567890e23;
-
-  OmlValue* v3 = &in_values[2];
-  v3->type = OML_STRING_VALUE;
-  v3->value.stringValue.ptr = "hello world";
-  v3->value.stringValue.is_const = 1;
-
-  OmlMBuffer buf;
-  OmlValue in;
-  OmlValue out;
-
-  in.type = OML_LONG_VALUE;
-  in.value.longValue = -123456789;
-  memset((void*)&buf, 0, sizeof(OmlMBuffer));
-  buf.curr_p = buf.buffer;
-  marshall_value(&buf, in.type, &in.value);
-  memset((void*)&out, 0, sizeof(OmlValue));
-  buf.curr_p = buf.buffer;
-  int res = unmarshall_value(&buf, &out);
-  if (out.type != in.type || in.value.longValue != out.value.longValue) {
-    printf("Failed marshall long value %d\n", in.value.longValue);
-  }
-  in.value.longValue = 123456789;
-  memset((void*)&buf, 0, sizeof(OmlMBuffer));
-  buf.curr_p = buf.buffer;
-  marshall_value(&buf, in.type, &in.value);
-  memset((void*)&out, 0, sizeof(OmlValue));
-  buf.curr_p = buf.buffer;
-  res = unmarshall_value(&buf, &out);
-  if (out.type != in.type || in.value.longValue != out.value.longValue) {
-    printf("Failed marshall long value %d\n", in.value.longValue);
-  }
-
-  // DOUBLE
-  in.type = OML_DOUBLE_VALUE;
-  in.value.doubleValue = -0.12345e12;
-  memset((void*)&buf, 0, sizeof(OmlMBuffer));
-  buf.curr_p = buf.buffer;
-  marshall_value(&buf, in.type, &in.value);
-  memset((void*)&out, 0, sizeof(OmlValue));
-  buf.curr_p = buf.buffer;
-  res = unmarshall_value(&buf, &out);
-  double err = (in.value.doubleValue - out.value.doubleValue) /  out.value.doubleValue;
-  if (out.type != in.type || !(err < 0.0001 && err > -0.0001)) {
-    printf("Failed marshall double value %f\n", in.value.doubleValue);
-  }
-
-  in.value.doubleValue = 1.0e-34;
-  memset((void*)&buf, 0, sizeof(OmlMBuffer));
-  buf.curr_p = buf.buffer;
-  marshall_value(&buf, in.type, &in.value);
-  memset((void*)&out, 0, sizeof(OmlValue));
-  buf.curr_p = buf.buffer;
-  res = unmarshall_value(&buf, &out);
-  err = (in.value.doubleValue - out.value.doubleValue) /  out.value.doubleValue;
-  if (out.type != in.type || !(err < 0.0001 && err > -0.0001)) {
-    printf("Failed marshall double value %f\n", in.value.doubleValue);
-  }
-
-  in.value.doubleValue = 1.2345;
-  memset((void*)&buf, 0, sizeof(OmlMBuffer));
-  buf.curr_p = buf.buffer;
-  marshall_value(&buf, in.type, &in.value);
-  memset((void*)&out, 0, sizeof(OmlValue));
-  buf.curr_p = buf.buffer;
-  res = unmarshall_value(&buf, &out);
-  err = (in.value.doubleValue - out.value.doubleValue) /  out.value.doubleValue;
-  if (out.type != in.type || !(err < 0.0001 && err > -0.0001)) {
-    printf("Failed marshall double value %f\n", in.value.doubleValue);
-  }
-
-  //  int res1 = marshall_values(&buf, in_values, 3);
-//  o_log(O_LOG_INFO, "Result: %d\n", res1);
+//{
+//  OmlValue in_values[5];
 //
+//  OmlValue* v1 = &in_values[0];
+//  v1->type = OML_LONG_VALUE;
+//  v1->value.longValue = -123456789;
+//
+//  OmlValue* v2 = &in_values[1];
+//  v2->type = OML_DOUBLE_VALUE;
+//  v2->value.doubleValue = -12.34567890e23;
+//
+//  OmlValue* v3 = &in_values[2];
+//  v3->type = OML_STRING_PTR_VALUE;
+//  v3->value.stringPtrValue = "hello world";
+//
+//  OmlMBuffer buf;
+//  OmlValue in;
+//  OmlValue out;
+//
+//  in.type = OML_LONG_VALUE;
+//  in.value.longValue = -123456789;
+//  memset((void*)&buf, 0, sizeof(OmlMBuffer));
+//  buf.curr_p = buf.buffer;
+//  marshall_value(&buf, in.type, &in.value);
+//  memset((void*)&out, 0, sizeof(OmlValue));
+//  buf.curr_p = buf.buffer;
+//  int res = unmarshall_value(&buf, &out);
+//  if (out.type != in.type || in.value.longValue != out.value.longValue) {
+//    printf("Failed marshall long value %d\n", in.value.longValue);
+//  }
+//  in.value.longValue = 123456789;
+//  memset((void*)&buf, 0, sizeof(OmlMBuffer));
+//  buf.curr_p = buf.buffer;
+//  marshall_value(&buf, in.type, &in.value);
+//  memset((void*)&out, 0, sizeof(OmlValue));
+//  buf.curr_p = buf.buffer;
+//  res = unmarshall_value(&buf, &out);
+//  if (out.type != in.type || in.value.longValue != out.value.longValue) {
+//    printf("Failed marshall long value %d\n", in.value.longValue);
+//  }
+//
+//  // DOUBLE
+//  in.type = OML_DOUBLE_VALUE;
+//  in.value.doubleValue = -0.12345e12;
+//  memset((void*)&buf, 0, sizeof(OmlMBuffer));
+//  buf.curr_p = buf.buffer;
+//  marshall_value(&buf, in.type, &in.value);
+//  memset((void*)&out, 0, sizeof(OmlValue));
+//  buf.curr_p = buf.buffer;
+//  res = unmarshall_value(&buf, &out);
+//  double err = (in.value.doubleValue - out.value.doubleValue) /  out.value.doubleValue;
+//  if (out.type != in.type || !(err < 0.0001 && err > -0.0001)) {
+//    printf("Failed marshall double value %f\n", in.value.doubleValue);
+//  }
+//
+//  in.value.doubleValue = 1.0e-34;
+//  memset((void*)&buf, 0, sizeof(OmlMBuffer));
+//  buf.curr_p = buf.buffer;
+//  marshall_value(&buf, in.type, &in.value);
+//  memset((void*)&out, 0, sizeof(OmlValue));
+//  buf.curr_p = buf.buffer;
+//  res = unmarshall_value(&buf, &out);
+//  err = (in.value.doubleValue - out.value.doubleValue) /  out.value.doubleValue;
+//  if (out.type != in.type || !(err < 0.0001 && err > -0.0001)) {
+//    printf("Failed marshall double value %f\n", in.value.doubleValue);
+//  }
+//
+//  in.value.doubleValue = 1.2345;
+//  memset((void*)&buf, 0, sizeof(OmlMBuffer));
+//  buf.curr_p = buf.buffer;
+//  marshall_value(&buf, in.type, &in.value);
+//  memset((void*)&out, 0, sizeof(OmlValue));
+//  buf.curr_p = buf.buffer;
+//  res = unmarshall_value(&buf, &out);
+//  err = (in.value.doubleValue - out.value.doubleValue) /  out.value.doubleValue;
+//  if (out.type != in.type || !(err < 0.0001 && err > -0.0001)) {
+//    printf("Failed marshall double value %f\n", in.value.doubleValue);
+//  }
+//
+//  //  int res1 = marshall_values(&buf, in_values, 3);
+////  o_log(O_LOG_INFO, "Result: %d\n", res1);
+////
+////  OmlValue out_values[5];
+////  buf.curr_p = buf.message_start = buf.buffer; buf.buffer_remaining = buf.buffer_length;
+////  int res2 = unmarshall_values(&buf, out_values, 5);
+////  o_log(O_LOG_INFO, "Result: %d\n", res2);
+//
+//  buf.curr_p = buf.buffer; buf.buffer_remaining = buf.buffer_length;
+//  OmlMStream ms;
+//  OmlMP mp;
+//  ms.mp = &mp;
+//  ms.index = 1; ms.seq_no = 99; mp.param_count = 3;
+//  marshall_measurements(&buf, &ms, 2.3);
+//  int res3 = marshall_values(&buf, in_values, 3);
+//  marshall_finalize(&buf);
+//  o_log(O_LOG_INFO, "Result: %d\n", res3);
+//
+//  buf.buffer_fill = (buf.curr_p - buf.buffer);
+//  buf.curr_p = buf.buffer; buf.buffer_remaining = buf.buffer_length;
+//
+//  OmlMsgType type;
+//  unmarshall_init(&buf, &type);
+//
+//  OmlValue out_values2[5];
+//  int      index;
+//  int      seq_no;
+//  double   ts;
+//  int res4 = unmarshall_measurements(&buf, &index, &seq_no, &ts, out_values2, 5);
+//  o_log(O_LOG_INFO, "Result: %d\n", res4);
+//
+//
+//
+//  return 1;
+//}
+//
+///**
+// * \fn
+// * \brief
+// * \param
+// * \return
+// */
+//#ifdef MARSHALL_TEST
+//void
+//main(
+//  char** argv,
+//  int argc
+//) {
+//  oml_marshall_test();
+//}
+//#endif
 //  OmlValue out_values[5];
 //  buf.curr_p = buf.message_start = buf.buffer; buf.buffer_remaining = buf.buffer_length;
 //  int res2 = unmarshall_values(&buf, out_values, 5);
 //  o_log(O_LOG_INFO, "Result: %d\n", res2);
-
-  buf.curr_p = buf.buffer; buf.buffer_remaining = buf.buffer_length;
-  OmlMStream ms;
-  OmlMP mp;
-  ms.mp = &mp;
-  ms.index = 1; ms.seq_no = 99; mp.param_count = 3;
-  marshall_measurements(&buf, &ms, 2.3);
-  int res3 = marshall_values(&buf, in_values, 3);
-  marshall_finalize(&buf);
-  o_log(O_LOG_INFO, "Result: %d\n", res3);
-
-  buf.buffer_fill = (buf.curr_p - buf.buffer);
-  buf.curr_p = buf.buffer; buf.buffer_remaining = buf.buffer_length;
-
-  OmlMsgType type;
-  unmarshall_init(&buf, &type);
-
-  OmlValue out_values2[5];
-  int      index;
-  int      seq_no;
-  double   ts;
-  int res4 = unmarshall_measurements(&buf, &index, &seq_no, &ts, out_values2, 5);
-  o_log(O_LOG_INFO, "Result: %d\n", res4);
-
-
-
-  return 1;
-}
-
-/**
- * \fn
- * \brief
- * \param
- * \return
- */
-#ifdef MARSHALL_TEST
-int
-main(
-  char** argv,
-  int argc
-) {
-  oml_marshall_test();
-}
-#endif
 
 /*
  Local Variables:
