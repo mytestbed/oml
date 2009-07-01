@@ -596,7 +596,7 @@ write_meta()
     writer->meta(writer, s);
     sprintf(s, "experiment-id: %s", omlc_instance->experiment_id);
     writer->meta(writer, s);
-    sprintf(s, "start_time: %d", omlc_instance->start_time);
+    sprintf(s, "start_time: %d", (int)omlc_instance->start_time);
     writer->meta(writer, s);
     sprintf(s, "sender-id: %s", omlc_instance->node_name);
     writer->meta(writer, s);

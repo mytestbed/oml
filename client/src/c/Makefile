@@ -7,7 +7,7 @@ INSTALL_INC_DIR = $(DESTDIR)/usr/include
 #### FOR EXPERTS ONLY  ###
 SRCS = file_writer.c filter.c init.c misc.c net_writer.c \
     parse_config.c api.c
-FILTER_SRCS = factory.c average_filter.c first_filter.c
+FILTER_SRCS = factory.c average_filter.c first_filter.c histogram_filter.c
 SHARED_SRCS = marshall.c
 
 SAMPLES = generator
@@ -34,9 +34,9 @@ OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o) $(FILTER_SRCS:%.c=$(OBJ_DIR)/filter/%.o) \
 LIB_FILES = $(LIB_FILE_A) $(LIB_FILE_SO)
 
 
-#SAMPLE_SRCS = $(SAMPLES:%=sample/%.c) $(SAMPLES:%=sample/%_wrapper.c)
-#SAMPLE_OBJS = $(SAMPLE_SRCS:%.c=$(BUILD_DIR)/%.o)
-#SAMPLE_BINS = $(SAMPLES:%=$(BUILD_DIR)/sample/%)
+SAMPLE_SRCS = $(SAMPLES:%=sample/%.c)
+SAMPLE_OBJS = $(SAMPLE_SRCS:%.c=$(BUILD_DIR)/%.o)
+SAMPLE_BINS = $(SAMPLES:%=$(BUILD_DIR)/sample/%)
 
 build: $(LIBRARY)
 #	echo $(LIB_FILES)
@@ -49,21 +49,25 @@ $(LIB_DIR)/lib$(LIBRARY).a:  $(SRCS) $(LIB_DIR) $(OBJS)
 $(LIB_DIR)/lib%.so: $(SRCS) $(LIB_DIR) $(OBJS) $(MT_SRCS) $(MT_OBJS)
 	$(CC) -fPIC -shared -o $@ $(OBJS) $(shell ls $(OBJ_DIR)/ocomm/*.o) $(LDFLAGS) $(LIBS)
 
-
 ocommLib:
 	@echo '>>> Building $@'
 	cd ../../../external/ocommLib; make BUILD_DIR=../../build/client/objs/ocomm objs
 
 
 
-#samples: $(LIBRARY) $(BUILD_DIR)/sample  $(SAMPLE_BINS)
+samples: $(LIBRARY) $(BUILD_DIR)/sample  $(SAMPLE_BINS)
 
 TEST_ID = foo
 TEST_ARGS = --oml-id $(TEST_ID) --oml-exp-id test1
-#TEST_ARGS = --oml-file -
+TEST_ARGS += --oml-file -
+TEST_ARGS += --oml-config sample/config.xml
+
+test: samples
+	$(BUILD_DIR)/sample/generator $(TEST_ARGS)
 
 
-#$(BUILD_DIR)/sample/%: $(BUILD_DIR)/sample/%.o $(BUILD_DIR)/sample/%_wrapper.o $(LIB_DIR)/$(LIB_FILE_A)
+$(BUILD_DIR)/sample/%: $(BUILD_DIR)/sample/%.o
+	$(CC) -o $@ $< $(LIB_DIR)/$(LIB_FILE_A) $(SAMPLE_LIBS)
 #	$(CC) -o $@ $< $(<:%.o=%_wrapper.o) $(LIB_DIR)/$(LIB_FILE_A) $(SAMPLE_LIBS)
 
 $(OBJ_DIR)/%.o: %.c

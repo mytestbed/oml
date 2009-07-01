@@ -110,7 +110,7 @@ filter_process(
   writer->row_start(writer, ms, now);
   OmlFilter* f = ms->firstFilter;
   for (; f != NULL; f = f->next) {
-    f->process(f, writer);
+    f->output(f, writer);
   }
   writer->row_end(writer, ms);
   ms->sample_size = 0;

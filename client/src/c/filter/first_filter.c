@@ -39,10 +39,12 @@ typedef struct _omlFirstFilter {
   //! Number of output value created
   int output_cnt;
 
+  //! Set filter parameters
+  oml_filter_set set;
   //! Process a new sample.
-  oml_filter_sample sample;
+  oml_filter_input input;
   //! Calculate output, send it, and get ready for new sample period.
-  oml_filter_process process;
+  oml_filter_output output;
   oml_filter_meta meta;
 
   OmlFilter* next;
@@ -73,8 +75,8 @@ omlf_first_new(
   memset(self, 0, sizeof(OmlFirstFilter));
 
   strcpy(self->name, name);
-  self->sample = sample;
-  self->process = process;
+  self->input = sample;
+  self->output = process;
   self->meta = meta;
 
   self->index = index;

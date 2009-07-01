@@ -82,7 +82,7 @@ omlc_inject(
     //for (i = 0; i < mp->param_count; i++, value++) {
     OmlFilter* f = ms->firstFilter;
     for (; f != NULL; f = f->next) {
-      f->sample(f, value, mp);
+      f->input(f, value, mp);
     }
     omlc_ms_process(ms);
     ms = ms->next;

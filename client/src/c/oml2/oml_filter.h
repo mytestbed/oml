@@ -29,9 +29,20 @@
 struct _omlFilter;
 
 typedef struct _omlFilter* (*oml_filter_create)(
-    const char* paramName,
-    OmlValueT   type,
-    int         index
+  const char* paramName,
+  OmlValueT   type,
+  int         index
+);
+
+
+/*! Function to set filter parameters.
+ *
+ * Return 0 on success, -1 otherwise
+ */
+typedef int (*oml_filter_set)(
+  struct _omlFilter* filter, //! pointer to filter instance
+  const char* name,  //! Name of parameter
+  OmlValue* value    //! Value of paramter
 );
 
 
@@ -39,19 +50,19 @@ typedef struct _omlFilter* (*oml_filter_create)(
  *
  * Return 0 on success, -1 otherwise
  */
-typedef int (*oml_filter_sample)(
+typedef int (*oml_filter_input)(
   struct _omlFilter* filter, //! pointer to filter instance
   OmlValueU*         values,  //! values of sample
   OmlMP*             mp      //! MP context
 );
 
 
-/*! Called to calculate the final measurements, send the results to
- * a stream and reset the internal state for a new sampling period.
+/*! Called to request the current filter output. This is most likely
+ * some function over the samples received since the last call.
  *
  * Return 0 on success, -1 otherwise
  */
-typedef int (*oml_filter_process)(
+typedef int (*oml_filter_output)(
   struct _omlFilter* filter,
   struct _omlWriter* writer //! Write results of filter to this function
 );
@@ -61,7 +72,7 @@ typedef int (*oml_filter_process)(
  */
 typedef int (*oml_filter_meta)(
   struct _omlFilter* filter,
-  int param_index,
+  int index_offset,  //! Index to use for first parameter
   char** namePtr,
   OmlValueT* type
 );
@@ -77,11 +88,14 @@ typedef struct _omlFilter {
   //! Number of output value created
   int output_cnt;
 
+  //! Set filter parameters
+  oml_filter_set set;
+
   //! Process a new sample.
-  oml_filter_sample sample;
+  oml_filter_input input;
 
   //! Calculate output, send it, and get ready for new sample period.
-  oml_filter_process process;
+  oml_filter_output output;
 
   oml_filter_meta meta;
 

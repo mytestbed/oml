@@ -42,6 +42,13 @@ omlf_average_new(
   int         index
 );
 
+extern OmlFilter*
+omlf_histogram_new(
+  const char* name,
+  OmlValueT   type,
+  int         index
+);
+
 typedef struct _filterReg {
   const char*         filterName;
   oml_filter_create   create_func;
@@ -50,8 +57,9 @@ typedef struct _filterReg {
 
 FilterReg f1 = {"first", omlf_first_new, NULL};
 FilterReg f2 = {"avg", omlf_average_new, &f1};
+FilterReg f3 = {"histogram", omlf_histogram_new, &f2};
 
-FilterReg* firstFilter = &f2;
+FilterReg* firstFilter = &f3;
 
 #endif /* OML_FILTER_FACTORY_H_ */
 

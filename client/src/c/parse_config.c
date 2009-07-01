@@ -53,6 +53,14 @@ parse_filter(
     OmlMP*      mp
 );
 
+static OmlFilter*
+parse_filter_properties(
+    xmlNodePtr  el,
+    OmlFilter*  f,
+    OmlMStream* ms,
+    OmlMP*      mp
+);
+
 /**************************************************/
 
 /**
@@ -225,27 +233,129 @@ parse_filter(
     OmlMP*      mp
 ) {
   OmlFilter* f = NULL;
-  xmlChar* indexS = xmlGetProp(el, (const xmlChar*)"i");
-  if (indexS == NULL) {
-    o_log(O_LOG_ERROR, "Missing 'i' attribute for '%s'.\n", el->name);
-    return NULL;
-  }
-  int index = atoi(indexS);
-  if (index >= mp->param_count || index < 0) {
-    o_log(O_LOG_ERROR, "Index '%i' out of bounds.\n", index);
-    return NULL;
+  int index = -1;
+
+  xmlChar* pname = xmlGetProp(el, (const xmlChar*)FILTER_PARAM_NAME_ATTR);
+  if (pname == NULL) {
+    // pname is optional, but issue warning if not declared 'multi_pnames'
+    xmlChar* multi = xmlGetProp(el, (const xmlChar*)FILTER_MULTI_PARAM_ATTR);
+    if (multi == NULL) {
+      o_log(O_LOG_WARN, "No '%s' or '%s' found.\n",
+	    FILTER_PARAM_NAME_ATTR, FILTER_MULTI_PARAM_ATTR);
+      return NULL;
+    }
+  } else {
+    // find index
+    OmlMPDef* dp = mp->param_defs;
+    int i = 0;
+    for (; dp->name != NULL; i++, dp++) {
+      if (strcmp(pname, dp->name) == 0) {
+	if (i >= mp->param_count) {
+	  o_log(O_LOG_ERROR, "Index '%i' out of bounds.\n", i);
+	  return NULL;
+	}
+	index = i;
+	break;
+      }
+    }
   }
 
-  xmlChar* name = xmlGetProp(el, (const xmlChar*)"name");
-  OmlMPDef def = mp->param_defs[index];
-  if (name == NULL) {
+  xmlChar* fname = xmlGetProp(el, (const xmlChar*)FILTER_NAME_ATTR);
+  xmlChar* sname = xmlGetProp(el, (const xmlChar*)FILTER_STREAM_NAME_ATTR);
+  OmlMPDef* def = (index < 0) ? NULL : &mp->param_defs[index];
+  if (fname == NULL) {
     // pick default one
-    f = createDefaultFilter(&def, ms, index);
+    if (def == NULL) {
+      o_log(O_LOG_ERROR, "Can't create default filter without '%s' declaration.\n",
+	    FILTER_PARAM_NAME_ATTR);
+      return NULL;
+    }
+    f = createDefaultFilter(def, ms, index);
   } else {
-    f = create_filter(name, def.name, def.param_types, index);
+    if (def) {
+      const char* name = (sname != NULL) ? (char*)sname : def->name;
+      f = create_filter(fname, name, def->param_types, index);
+    } else {
+      if (sname == NULL) {
+	o_log(O_LOG_ERROR, "Require '%s' attribute for multi_pname filter '%s'.\n",
+	      FILTER_STREAM_NAME_ATTR, fname);
+	return NULL;
+      }
+      f = create_filter(fname, sname, 0, -1);
+    }
+  }
+  if (f != NULL) {
+    f = parse_filter_properties(el, f, ms, mp);
+    int i = 1;
   }
   return f;
 }
+
+/**
+ * \fn static OmlFilter* parse_filter_properties(xmlNodePtr  el, OmlFiler* f, OmlMStream* ms, OmlMP* mp)
+ * \brief Parse optional filter properties and call the filter's 'set' funtion with the properly cast values.
+ * \param el the filer xml node
+ * \param f filter
+ * \param ms the stream to associate with the filter
+ * \param mp the measurement point structure
+ * \return an OmlFilter if successful NULL otherwise
+ */
+static OmlFilter*
+parse_filter_properties(
+    xmlNodePtr  el,
+    OmlFilter*  f,
+    OmlMStream* ms,
+    OmlMP*      mp
+) {
+  xmlNodePtr el2 = el->children;
+  for (; el2 != NULL; el2 = el2->next) {
+    if (!xmlStrcmp(el2->name, (const xmlChar *)FILTER_PROPERTY_EL)) {
+      xmlChar* pname = xmlGetProp(el2, (const xmlChar*)FILTER_PROPERTY_NAME_ATTR);
+      if (pname == NULL) {
+	o_log(O_LOG_ERROR, "Can't find property name in filter ('%s') property declaration.\n",
+	      f->name);
+	return NULL;
+      }
+      xmlChar* ptype = xmlGetProp(el2, (const xmlChar*)FILTER_PROPERTY_TYPE_ATTR);
+      if (ptype == NULL) ptype = "string";
+
+      xmlNodePtr vel = el2->children;
+      xmlChar* value = NULL;
+      for (; vel != NULL; vel = vel->next) {
+	if (vel->type == XML_TEXT_NODE) {
+	  value = vel->content;
+	  break;
+	}
+      }
+      if (value == NULL) {
+	o_log(O_LOG_ERROR, "Missing property ('%s') value in filter '%s'.\n",
+	      pname, f->name);
+	return NULL;
+      }
+      o_log(O_LOG_DEBUG, "Found filter property: %s:%s = '%s'.\n",
+	    pname, ptype, value);
+
+    }
+  }
+  return f;
+}
+
+/**
+ * \fn static int set_filter_property(f, pname, ptype, pvalue)
+ * \brief Set property 'pname' on filter to 'pvalue' of type 'ptype'.
+ * \param f filter
+
+ * \return 1 on success, 0 or less for failure
+ */
+static int
+set_filter_property(
+    OmlFilter*  f,
+    const char* pname,
+    const char* ptype,
+    const char* pvalue
+) {
+}
+
 
 /**
  * \fn static char* getAttr(xmlNodePtr el, const char* attrName)
