@@ -1,3 +1,9 @@
+oml (2.0.1-2) hardy; urgency=low
+
+  * New applications, change in the marshalling process and simplification of the String value (only one now)
+
+ -- Guillaume Jourjon <guillaume.jourjon@nicta.com.au>  Fri, 26 Jun 2009 13:42:47 +1000
+
 oml (2.0.1-1) hardy; urgency=low
 
   * Initial release
