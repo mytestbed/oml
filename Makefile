@@ -18,7 +18,7 @@ VERSION = 2.0.1
 #	@cd server/src/c; make $@
 #	@cd client/src/c; make $@
 
-DIRS = client shared app server
+DIRS = client shared app proxy_server server
 
 
 TOP_DIR = $(shell pwd)

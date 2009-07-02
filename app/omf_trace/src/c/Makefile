@@ -5,7 +5,7 @@ PROGRAM = omf_trace
 INSTALL_DIR = $(DESTDIR)/usr/bin
 
 #### FOR EXPERTS ONLY  ###
-TOP = .
+TOP = ../../../..
 
 SRCS = ${PROGRAM}.c
 
@@ -15,9 +15,9 @@ LIBS = -ltrace -loml2 -lxml2 -lpopt -lpthread
 
 
 
-#BUILD_TOP = $(TOP)/build
-#BUILD_DIR = $(BUILD_TOP)/$(PROGRAM)
-BUILD_DIR = build
+BUILD_TOP = $(TOP)/build
+BUILD_DIR = $(BUILD_TOP)/$(PROGRAM)
+#BUILD_DIR = build
 
 OBJ_DIR = $(BUILD_DIR)/objs
 BIN_DIR = $(BUILD_DIR)/bin

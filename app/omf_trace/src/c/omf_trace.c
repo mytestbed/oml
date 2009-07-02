@@ -33,8 +33,8 @@ omlc_inject_ip(
     omlc_set_long(v[4], ip->ip_ttl);
     omlc_set_long(v[5], ip->ip_p);
     omlc_set_long(v[6], ip->ip_sum);
-    omlc_set_string(v[7], addr_src);
-    omlc_set_string(v[8], addr_dst);
+    omlc_set_const_string(v[7], addr_src);
+    omlc_set_const_string(v[8], addr_dst);
     omlc_inject(g_oml_mps->ip, v);
 }
 
