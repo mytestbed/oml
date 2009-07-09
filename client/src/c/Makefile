@@ -7,7 +7,7 @@ INSTALL_INC_DIR = $(DESTDIR)/usr/include
 #### FOR EXPERTS ONLY  ### histogram_filter.c To ADD when written
 SRCS = file_writer.c filter.c init.c misc.c net_writer.c \
     parse_config.c api.c
-FILTER_SRCS = factory.c average_filter.c first_filter.c
+FILTER_SRCS = factory.c average_filter.c first_filter.c histogram_filter.c
 SHARED_SRCS = marshall.c
 
 SAMPLES = generator

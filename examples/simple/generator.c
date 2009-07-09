@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <popt.h>
 #include <oml2/omlc.h>
-
+#include <oml2/o_log.h>
 
 static float amplitude = 1.0;
 static float frequency = 0.1;
