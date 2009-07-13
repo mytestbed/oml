@@ -26,6 +26,7 @@
 
 #include <malloc.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
@@ -155,6 +156,35 @@ process_meta(
     o_log(O_LOG_WARN, "Unknown meta info '%s' (%s)\n", key, value);
   }
 }
+
+/**
+ * \fn static int process_header(ClientHandler* self, OmlMBuffer* mbuf)
+ * \brief analyse the header
+ * \param self the client handler
+ * \param mbuf the buffer that contain the header and the data
+ * \return 1 if successful, 0 otherwise
+ */
+static int
+read_line(
+  char** line_p,
+  int*   length_p,
+  ClientHandler* self,
+  OmlMBuffer* mbuf
+) {
+  char* line = mbuf->curr_p;
+  int remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
+  while (remaining-- >= 0 && *(mbuf->curr_p++) != '\n');
+  if (*(mbuf->curr_p - 1) != '\n') {
+    // not enough data for entire line
+    mbuf->curr_p = line;
+    return 0;
+  }
+  *line_p = line;
+  *length_p = mbuf->curr_p - (unsigned char*)line;
+  *(mbuf->curr_p - 1) = '\0';
+  return 1;
+}
+
 /**
  * \fn static int process_header(ClientHandler* self, OmlMBuffer* mbuf)
  * \brief analyse the header
@@ -167,6 +197,14 @@ process_header(
   ClientHandler* self,
   OmlMBuffer* mbuf
 ) {
+  char* line;
+  int len;
+
+  if (read_line(&line, &len, self, mbuf) == 0) {
+    return 0;
+  }
+
+  /**
   char* line = mbuf->curr_p;
   int remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
   while (remaining-- >= 0 && *(mbuf->curr_p++) != '\n');
@@ -176,13 +214,17 @@ process_header(
     return 0;
   }
   int len = mbuf->curr_p - (unsigned char*)line;
+  **/
+
   if (len == 1) {
     // empty line denotes separator between header and body
     while (*mbuf->curr_p == '\n') mbuf->curr_p++;  // skip additional empty lines
     self->state = self->content;
     return 0;
   }
-  *(mbuf->curr_p - 1) = '\0';
+
+  //*(mbuf->curr_p - 1) = '\0';
+
   // separate key from value (check for ':')
   char* value = line;
   while (*(value++) != ':' && (void*)value < (void*)mbuf->curr_p);
@@ -196,12 +238,12 @@ process_header(
   return 1; // still in header
 }
 /**
- * \fn static void process_data_message(ClientHandler* self)
+ * \fn static void process_bin_data_message(ClientHandler* self)
  * \brief process a subset of the data
  * \param selfthe client handler
  */
 static void
-process_data_message(
+process_bin_data_message(
   ClientHandler* self
 ) {
   OmlMBuffer* mbuf = &self->mbuf;
@@ -220,20 +262,21 @@ process_data_message(
     o_log(O_LOG_ERROR, "Undefined table '%d'\n", table_index);
     return;
   }
-  o_log(O_LOG_DEBUG, "TDEBUG - CALLING insert for seq no: %d \n", seq_no);
+  o_log(O_LOG_DEBUG, "bin_data - CALLING insert for seq no: %d \n", seq_no);
   self->database->insert(self->database, table, self->sender_id, seq_no, ts, self->values, cnt);
   //o_log(O_LOG_DEBUG, "Received %d values\n", cnt);
 
 }
+
 /**
- * \fn static int process_message( ClientHandler* self, OmlMBuffer*    mbuf)
+ * \fn static int process_bin_message( ClientHandler* self, OmlMBuffer*    mbuf)
  * \brief analyse the data from the buffer
  * \param self the client handler
  * \param mbuf the buffer that contain the data
  * \return 1 when successfull, 0 otherwise
  */
 static int
-process_message(
+process_bin_message(
   ClientHandler* self,
   OmlMBuffer*    mbuf
 ) {
@@ -250,7 +293,7 @@ process_message(
   }
   switch (type) {
     case OMB_DATA_P:
-      process_data_message(self);
+      process_bin_data_message(self);
       break;
     default:
       o_log(O_LOG_ERROR, "Unsupported message type '%d'\n", type);
@@ -270,6 +313,130 @@ process_message(
 //  return remaining;
   return 1;
 }
+
+/**
+ * \fn static void process_text_data_message(ClientHandler* self)
+ * \brief process a single measurement
+ * \param self the client handler
+ * \param msg a single message encoded in a string
+ * \param length length of msg
+ */
+static void
+process_text_data_message(
+  ClientHandler* self,
+  char** msg,
+  int    size
+) {
+  if (size < 3) {
+    o_log(O_LOG_ERROR, "Not enough parameters in text data message\n");
+    return;
+  }
+
+  double ts = atof(msg[0]);
+  long table_index = atol(msg[1]);
+  long seq_no = atol(msg[2]);
+
+  ts += self->time_offset;
+  if (table_index >= self->table_size || table_index < 0) {
+    o_log(O_LOG_ERROR, "Table index '%d' out of bounds\n", table_index);
+    return;
+  }
+  DbTable* table = self->tables[table_index];
+  if (table == NULL) {
+    o_log(O_LOG_ERROR, "Undefined table '%d'\n", table_index);
+    return;
+  }
+
+  if (table->col_size != size - 3) {
+    o_log(O_LOG_ERROR, "Data item mismatch for table '%s'\n", table->name);
+    return;
+  }
+
+  int i;
+  DbColumn** cols = table->columns;
+  OmlValue* v = self->values;
+  char** val_ap = msg + 3;
+  for (i= 0; i < table->col_size; i++, cols++, v++, val_ap++) {
+    DbColumn* col = (*cols);
+    char* val = *val_ap;
+
+    //o_log(O_LOG_DEBUG, "TABLE_COL %s %s\n", col->name, val);
+
+    switch(col->type) {
+    case OML_LONG_VALUE: v->value.longValue = atol(val); break;
+    case OML_DOUBLE_VALUE: v->value.doubleValue = (double)atof(val); break;
+    case OML_STRING_VALUE: v->value.stringValue.ptr = val; break;
+    default:			/*  */
+      o_log(O_LOG_ERROR, "Bug: Unknown type %d in col '%s'\n",
+	    col->type, col->name);
+    }
+    v->type = col->type;
+  }
+
+  /***
+  v = self->values;
+  for (i = 0; i < size - 3; i++, v++) {
+    switch(v->type) {
+    case OML_LONG_VALUE: printf("L: %ld\n", v->value.longValue); break;
+    case OML_DOUBLE_VALUE: printf("D: %f\n", v->value.doubleValue); break;
+    case OML_STRING_VALUE: printf("S: %s\n", v->value.stringValue.ptr); break;
+    default:
+      o_log(O_LOG_ERROR, "Bug: Unknown type %d\n", v->type);
+    }
+  }
+  ***/
+
+  //o_log(O_LOG_DEBUG, "text-data - CALLING insert for seq no: %d \n", seq_no);
+  self->database->insert(self->database, table, self->sender_id, seq_no,
+			 ts, self->values, size - 3);
+}
+
+/**
+ * \fn static int process_text_message(ClientHandler* self, OmlMBuffer* mbuf)
+ * \brief analyse the data from the buffer as text protocol
+ * \param self the client handler
+ * \param mbuf the buffer that contain the data
+ * \return 1 when successfull, 0 otherwise
+ */
+static int
+process_text_message(
+  ClientHandler* self,
+  OmlMBuffer*    mbuf
+) {
+  char* line;
+  int len;
+
+  while (1) {
+    if (read_line(&line, &len, self, mbuf) == 0) {
+      return 0;
+    }
+
+    // split line into array
+    char* a[DEF_NUM_VALUES];
+    int    a_size = 0;
+    char* p = line;
+    int i = 0;
+    int rem = len;
+
+    while (rem > 0) {
+      char* param = p;
+      for (; rem > 0; rem--, p++) {
+	if (*p == '\t') {
+	  *(p++) = '\0';
+	  rem--;
+	  break;
+	}
+      }
+      a[a_size++] = param;
+      if (a_size >= DEF_NUM_VALUES) {
+	o_log(O_LOG_ERROR, "Too many parameters in data message <%s>\n", line);
+	return 0;
+      }
+    }
+    process_text_data_message(self, a, a_size);
+  }
+}
+
 /**
  * \fn void client_callback(SockEvtSource* source, void* handle, void* buf,int buf_size)
  * \brief function called when the socket receive some data
@@ -303,9 +470,15 @@ client_callback(
         goto process;
       }
       break;
+
     case C_BINARY_DATA:
-      while (process_message(self, mbuf));
+      while (process_bin_message(self, mbuf));
       break;
+
+    case C_TEXT_DATA:
+      while (process_text_message(self, mbuf));
+      break;
+
     default:
       o_log(O_LOG_ERROR, "Unknown client state '%d'\n", self->state);
       mbuf->curr_p = mbuf->buffer;

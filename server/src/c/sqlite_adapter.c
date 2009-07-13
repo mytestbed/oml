@@ -193,8 +193,8 @@ sq3_create_table(
   }
   sprintf(cs, ");");
   sprintf(is, ");");
-  o_log(O_LOG_INFO, "schema: %s\n", create);
-  o_log(O_LOG_INFO, "insert: %s\n", insert);
+  o_log(O_LOG_DEBUG, "schema: %s\n", create);
+  o_log(O_LOG_DEBUG, "insert: %s\n", insert);
 
   Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
 
@@ -237,7 +237,8 @@ sq3_insert(
   double time_stamp_server;
   sqlite3_stmt* stmt = sq3table->insert_stmt;
   //o_log(O_LOG_DEBUG, "insert");
-  o_log(O_LOG_DEBUG, "TDEBUG - into sq3_insert - %d \n", seq_no);
+  o_log(O_LOG_DEBUG2, "sq3_insert(%s): insert row %d \n",
+	table->name, seq_no);
 
   if (sqlite3_bind_int(stmt, 1, sender_id) != SQLITE_OK) {
     o_log(O_LOG_ERROR, "Could not bind 'oml_sender_id' (%s).\n",
@@ -287,7 +288,6 @@ sq3_insert(
           col->name, sqlite3_errmsg(sq3db->db_hdl));
     }
   }
-  o_log(O_LOG_DEBUG, "TDEBUG - into sq3_insert - %d \n", seq_no);
   if (sqlite3_step(stmt) != SQLITE_DONE) {
     o_log(O_LOG_ERROR, "Could not step (execute) stmt.\n");
     return -1;

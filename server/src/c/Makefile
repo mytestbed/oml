@@ -68,7 +68,7 @@ clean:
 	rm -fr $(BUILD_DIR) *~
 
 run:
-	$(BIN_DIR)/$(PROGRAM) --logfile - -d 5
+	$(BIN_DIR)/$(PROGRAM) --logfile - -d 5 -l 3001
 
 
 debug:

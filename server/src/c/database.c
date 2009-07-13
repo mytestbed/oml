@@ -166,7 +166,7 @@ database_get_table(
     while (*p != ' ' && *p != '\0') p++;
     if (*p != '\0') *(p++) = '\0';
     parse_col_decl(table, col, index, check_only);
-    o_log(O_LOG_INFO, "Column name '%s'\n", col);
+    o_log(O_LOG_DEBUG, "Column name '%s'\n", col);
     index++;
   }
   if (!check_only) {
