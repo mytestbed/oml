@@ -8,15 +8,15 @@ INSTALL_DIR = $(DESTDIR)/usr/bin
 #### FOR EXPERTS ONLY  ###
 TOP = ../../..
 
-SRCS = app_sigar.c log.c
-SRCS2 = app_pcap.c log.c
-SRCS3 = Gps.cpp log.c
-SRCS4 = wlanconfig_oml.c log.c
+SRCS = app_sigar.c
+SRCS2 = app_pcap.c
+SRCS3 = Gps.cpp
+SRCS4 = wlanconfig_oml.c
 #CFLAGS = -g -Wall
 CFLAGS = -g -I. \
-    -I$(TOP)/client/src/c -I/usr/local/include -I/usr/include/libsigar  -I$(SHARED_SRC_DIR) -I/usr/include/libxml2
+    -I$(TOP)/client/src/c -I$(TOP)/external/ocommLib -I/usr/local/include -I/usr/include/libsigar  -I$(SHARED_SRC_DIR) -I/usr/include/libxml2
 LDFLAGS = -L$(TOP)/build/client/lib
-LIBS = -lsigar -loml2 -lxml2 -lpopt -lpthread -lpcap
+LIBS = -lsigar -loml2 -locomm -lxml2 -lpopt -lpthread -lpcap
 
 
 BUILD_TOP = $(TOP)/build
@@ -137,8 +137,6 @@ run:
 debug:
 	echo $(BUILD_DIR)
 
-app_sigar.c:app_sigar.h log.h
-app_pcap.c:app_pcap.h log.h
-Gps.cpp:Gps.hpp log.h
-wlanconfig_oml.c:log.h
-log.c:log.h
+app_sigar.c:app_sigar.h
+app_pcap.c:app_pcap.h
+Gps.cpp:Gps.hpp

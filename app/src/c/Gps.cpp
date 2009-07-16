@@ -19,7 +19,7 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
-#include "log.h"
+#include "ocomm/o_log.h"
 #include <iostream>
 using namespace std;
 #include "Gps.hpp"

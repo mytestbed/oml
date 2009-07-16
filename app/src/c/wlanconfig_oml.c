@@ -43,7 +43,7 @@
 #include <pcap.h>
 #include <malloc.h>
 #include <errno.h>
-#include "log.h"
+#include "ocomm/o_log.h"
 
 
 static OmlMPDef oml_def[] = {  
