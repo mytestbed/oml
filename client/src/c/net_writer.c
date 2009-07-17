@@ -74,7 +74,9 @@ typedef struct _omlNetWriter {
 static int write_meta(OmlWriter* writer, char* str);
 static int header_done(OmlWriter* writer);
 
-static int write_schema(OmlWriter* writer, OmlMStream* ms);
+// FIXME:  write_schema() not required for net_writer??
+//static int write_schema(OmlWriter* writer, OmlMStream* ms);
+
 static int row_start(OmlWriter* writer, OmlMStream* ms, double now);
 static int out(OmlWriter* writer, OmlValue* values, int value_count);
 static int row_end(OmlWriter* writer, OmlMStream* ms);
@@ -111,7 +113,7 @@ net_writer_new(
   if (*p != '\0') *(p++) = '\0';
   int port = (*portS == '\0') ? DEF_PORT : atoi(portS);
 
-  char* localBind = p;  // This would be for multicast, ignore right now
+  //  char* localBind = p;  // This would be for multicast, ignore right now
 
   o_log(O_LOG_INFO, "Net proto: <%s> host: <%s> port: <%d>\n", protocol, host, port);
 
@@ -167,6 +169,8 @@ header_done(
 ) {
   write_meta(writer, "content: binary");
   write_meta(writer, "");
+
+  return 0;
 }
 
 /**
@@ -230,6 +234,7 @@ row_end(
   OmlWriter* writer,
   OmlMStream* ms
 ) {
+  (void)ms; // FIXME:  Is this needed?  not used in file_writer either
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
 

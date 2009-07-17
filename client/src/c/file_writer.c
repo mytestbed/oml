@@ -130,6 +130,8 @@ header_done(
 ) {
   meta(writer, "content: text");
   meta(writer, "");
+
+  return 0;
 }
 
 
@@ -213,6 +215,7 @@ row_end(
   OmlWriter* writer,
   OmlMStream* ms
 ) {
+  (void)ms;
   OmlFileWriter* self = (OmlFileWriter*)writer;
   FILE* f = self->f;
   if (f == NULL) return 1;
