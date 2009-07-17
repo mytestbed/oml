@@ -92,6 +92,11 @@ void
 database_release(
   Database* self
 ) {
+  // FIXME:  This is currently being tripped by an upstream bug that needs to be investigated.
+  if (self == NULL) {
+    o_log (O_LOG_ERROR, "Tried to do database_release() on a NULL database.\n");
+    return;
+  }
   if (--self->ref_count > 0) return; // still in use
 
   // unlink DB
