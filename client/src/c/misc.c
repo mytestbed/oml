@@ -94,7 +94,8 @@ oml_value_copy(
     case OML_STRING_VALUE: {
       to->type = OML_STRING_VALUE;
       OmlString* str = &to->value.stringValue;
-      if (str->is_const = value->stringValue.is_const) {
+      str->is_const = value->stringValue.is_const;
+      if (str->is_const) {
 	str->ptr = value->stringValue.ptr;
       } else {
 	char* fstr = value->stringValue.ptr;
@@ -169,8 +170,9 @@ oml_type_to_s(
   case OML_STRING_PTR_VALUE:
   case OML_STRING_VALUE:
     return "string";
+  default:
+    return "UNKNOWN";
   }
-  return "UNKNOWN";
 }
 
 /*

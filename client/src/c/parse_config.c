@@ -29,6 +29,7 @@
 #include <string.h>
 #include <libxml/tree.h>
 //#include <libxml/parser.h>
+#include "filter/factory.h"
 #include "client.h"
 
 static char*
@@ -133,7 +134,7 @@ parse_collector(
     return -1;
   }
   OmlWriter* writer;
-  if ((writer = create_writer(url)) == NULL) return -2;
+  if ((writer = create_writer((char*)url)) == NULL) return -2;
 
   xmlNodePtr cur = el->xmlChildrenNode;
   while (cur != NULL) {
@@ -178,7 +179,7 @@ parse_mp(
   }
   OmlMP* mp = omlc_instance->mpoints;
   for (; mp != NULL; mp = mp->next) {
-    if (strcmp(name, mp->name) == 0) {
+    if (strcmp((char*)name, mp->name) == 0) {
       break;
     }
   }
@@ -188,12 +189,11 @@ parse_mp(
   }
 
   //OmlMStream* ms = (OmlMStream*)malloc(sizeof(OmlMStream));
-  int samples = samplesS != NULL ? atoi(samplesS) : -1;
+  int samples = samplesS != NULL ? atoi((char*)samplesS) : -1;
   if (samples == 0) samples = 1;
-  double interval = intervalS != NULL ? atof(intervalS) : -1;
+  double interval = intervalS != NULL ? atof((char*)intervalS) : -1;
   OmlMStream* ms = create_mstream(interval, samples, mp, writer);
 
-  int i = 0;
   xmlNodePtr el2 = el->children;
   for (; el2 != NULL; el2 = el2->next) {
     if (!xmlStrcmp(el2->name, (const xmlChar *)FILTER_EL)) {
@@ -249,7 +249,7 @@ parse_filter(
     OmlMPDef* dp = mp->param_defs;
     int i = 0;
     for (; dp->name != NULL; i++, dp++) {
-      if (strcmp(pname, dp->name) == 0) {
+      if (strcmp((char*)pname, dp->name) == 0) {
 	if (i >= mp->param_count) {
 	  o_log(O_LOG_ERROR, "Index '%i' out of bounds.\n", i);
 	  return NULL;
@@ -274,19 +274,18 @@ parse_filter(
   } else {
     if (def) {
       const char* name = (sname != NULL) ? (char*)sname : def->name;
-      f = create_filter(fname, name, def->param_types, index);
+      f = create_filter((const char*)fname, name, def->param_types, index);
     } else {
       if (sname == NULL) {
 	o_log(O_LOG_ERROR, "Require '%s' attribute for multi_pname filter '%s'.\n",
 	      FILTER_STREAM_NAME_ATTR, fname);
 	return NULL;
       }
-      f = create_filter(fname, sname, 0, -1);
+      f = create_filter((const char*)fname, (const char*)sname, 0, -1);
     }
   }
   if (f != NULL) {
     f = parse_filter_properties(el, f, ms, mp);
-    int i = 1;
   }
   return f;
 }
@@ -307,6 +306,8 @@ parse_filter_properties(
     OmlMStream* ms,
     OmlMP*      mp
 ) {
+  (void)ms; // FIXME:  Are these parameters really not needed?
+  (void)mp;
   xmlNodePtr el2 = el->children;
   for (; el2 != NULL; el2 = el2->next) {
     if (!xmlStrcmp(el2->name, (const xmlChar *)FILTER_PROPERTY_EL)) {
@@ -317,7 +318,7 @@ parse_filter_properties(
 	return NULL;
       }
       xmlChar* ptype = xmlGetProp(el2, (const xmlChar*)FILTER_PROPERTY_TYPE_ATTR);
-      if (ptype == NULL) ptype = "string";
+      if (ptype == NULL) ptype = (xmlChar*)"string";
 
       xmlNodePtr vel = el2->children;
       xmlChar* value = NULL;
@@ -347,6 +348,7 @@ parse_filter_properties(
 
  * \return 1 on success, 0 or less for failure
  */
+#if 0 // Currently not implemented and not used
 static int
 set_filter_property(
     OmlFilter*  f,
@@ -354,7 +356,10 @@ set_filter_property(
     const char* ptype,
     const char* pvalue
 ) {
+  (void)f, (void)pname, (void)ptype, (void)pvalue;
+  return 0;
 }
+#endif
 
 
 /**
@@ -374,7 +379,7 @@ getAttr(
   attrVal = xmlGetProp(el, (const xmlChar*)attrName);
   if (attrVal != NULL) {
     val = (char*)malloc(sizeof(attrVal) + 1);
-    strcpy(val, attrVal);
+    strcpy(val, (char*)attrVal);
   }
   xmlFree(attrVal);
   return val;
