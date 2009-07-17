@@ -23,6 +23,8 @@
 #ifndef SQLITE_ADAPTER_H_
 #define SQLITE_ADAPTER_H_
 
+#include "database.h"
+
 int
 sq3_create_database(
   Database* db

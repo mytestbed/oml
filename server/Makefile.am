@@ -8,11 +8,11 @@ AM_CPPFLAGS = \
 bin_PROGRAMS = oml2-server
 
 oml2_server_SOURCES = \
+	src/c/main.c \
 	src/c/client_handler.c \
 	src/c/client_handler.h \
 	src/c/database.c \
 	src/c/database.h \
-	src/c/main.c \
 	src/c/server.h \
 	src/c/sqlite_adapter.c \
 	src/c/sqlite_adapter.h \

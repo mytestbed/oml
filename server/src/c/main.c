@@ -40,6 +40,7 @@
 
 #include "version.h"
 #include "marshall.h"
+#include "server.h"
 
 #define DEF_PORT 3003
 #define DEF_PORT_STR "3003"
@@ -52,15 +53,11 @@ static char* logfile_name = DEFAULT_LOG_FILE;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
-  { "listen", 'l', POPT_ARG_INT, &listen_port, 0,
-        "Port to listen for TCP based clients", DEF_PORT_STR},
-
-  { "debug-level", 'd', POPT_ARG_INT, &log_level, 0,
-        "Debug level - error:1 .. debug:4"  },
-  { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0,
-        "File to log to", DEFAULT_LOG_FILE },
-  { "version", 'v', 0, 0, 'v', "Print version information and exit" },
-  { NULL, 0, 0, NULL, 0 }
+  { "listen",      'l',  POPT_ARG_INT,    &listen_port,     0,   "Port to listen for TCP based clients", DEF_PORT_STR},
+  { "debug-level", 'd',  POPT_ARG_INT,    &log_level,       0,   "Debug level - error:1 .. debug:4",     "error:1 .. debug:4"},
+  { "logfile",     '\0', POPT_ARG_STRING, &logfile_name,    0,   "File to log to",                       DEFAULT_LOG_FILE },
+  { "version",      'v', POPT_ARG_NONE,   NULL,             'v', "Print version information and exit",   NULL},
+  { NULL,           0,   0,               NULL,             0,    NULL,                                  NULL}
 };
 /**
  * \fn on_connect(Socket* newSock, void* handle)
@@ -72,6 +69,7 @@ on_connect(
   Socket* newSock,
   void* handle
 ) {
+  (void)handle; // FIXME:  why is this not used?
 //  Socket* outSock = (Socket*)handle;
 
   o_log(O_LOG_DEBUG, "New client connected\n");
@@ -90,6 +88,8 @@ main(
   int argc,
   const char *argv[]
 ) {
+
+
   char c;
 
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);

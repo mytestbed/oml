@@ -50,7 +50,8 @@ sq3_insert(
 static int
 sq3_add_sender_id(Database* db, char* sender_id);
 
-static sqlite3* db;
+// FIXME:  why is this defined but not used?
+//static sqlite3* db;
 static int first_row;
 /**
  * \fn int sq3_create_database(Database* db)
@@ -120,7 +121,8 @@ sq3_add_sender_id(
   Sq3DB* self = (Sq3DB*)db->adapter_hdl;
   int index = ++self->sender_cnt;
 
-  char s[512];  // don't check for length
+  // FIXME:  Why is this code commented out?  Function doesn't seem to do much of interest otherwise.
+  //char s[512];  // don't check for length
   // TDEBUG
   //sprintf(s, "INSERT INTO _senders VALUES (%d, '%s');\0", index, sender_id);
   //if (sql_stmt(self, s)) return -1;

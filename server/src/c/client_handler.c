@@ -46,12 +46,13 @@ client_callback(SockEvtSource* source,
 );
 
 static void
-status_callback(
-  SockEvtSource* source,
+status_callback(SockEvtSource* source,
   SocketStatus status,
   int errno,
   void* handle
 );
+
+
 /**
  * \fn void* client_handler_new(Socket* newSock)
  * \brief Create a client handler and associates it with the socket
@@ -68,6 +69,7 @@ client_handler_new(
   self->content = C_TEXT_DATA;
   self->socket = newSock;
   eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
+  return self;
 }
 /**
  * \fn process_schema(ClientHandler* self,char* value)
@@ -75,6 +77,7 @@ client_handler_new(
  * \param self the clienat handler
  * \param value the value to put in the database
  */
+void
 process_schema(
   ClientHandler* self,
   char* value
@@ -171,7 +174,7 @@ read_line(
   ClientHandler* self,
   OmlMBuffer* mbuf
 ) {
-  char* line = mbuf->curr_p;
+  unsigned char* line = mbuf->curr_p;
   int remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
   while (remaining-- >= 0 && *(mbuf->curr_p++) != '\n');
   if (*(mbuf->curr_p - 1) != '\n') {
@@ -179,8 +182,8 @@ read_line(
     mbuf->curr_p = line;
     return 0;
   }
-  *line_p = line;
-  *length_p = mbuf->curr_p - (unsigned char*)line;
+  *line_p = (char*)line;
+  *length_p = mbuf->curr_p - line;
   *(mbuf->curr_p - 1) = '\0';
   return 1;
 }
@@ -286,7 +289,7 @@ process_bin_message(
   if (res == 0) {
     o_log(O_LOG_ERROR, "OUT OF SYNC\n");
     mbuf->buffer_fill = 0;
-    return;
+    return 0;
   } else if (res < 0) {
     // not enough data
     return 0;
@@ -415,7 +418,6 @@ process_text_message(
     char* a[DEF_NUM_VALUES];
     int    a_size = 0;
     char* p = line;
-    int i = 0;
     int rem = len;
 
     while (rem > 0) {
@@ -521,6 +523,8 @@ status_callback(
       free(self);
 
       o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
+      break;
+    default:
       break;
     }
   }

@@ -28,7 +28,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <ocomm/o_log.h>
-
+#include "sqlite_adapter.h"
 #include "database.h"
 
 
