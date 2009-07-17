@@ -22,6 +22,9 @@
  */
 
 #include <popt.h>
+#include <string.h>
+
+// FIXME:  Why are these header files commented out??
 /*
 #include <stdio.h>
 #include <strings.h>
@@ -61,22 +64,15 @@ ProxyServer* proxyServer = NULL;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
-  { "listen", 'l', POPT_ARG_INT, &listen_port, 0,
-        "Port to listen for TCP based clients", DEF_PORT_STR},
-  { "debug-level", 'd', POPT_ARG_INT, &log_level, 0,
-        "Debug level - error:1 .. debug:4"  },
-  { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0,
-        "File to log to", DEFAULT_LOG_FILE },
-  { "version", 'v', 0, 0, 'v', "Print version information and exit" },
-  { "resultfile", 'r', POPT_ARG_STRING, &resultfile_name, 0,
-        "File to put the result", DEFAULT_RESULT_FILE},
-  { "size", 's', POPT_ARG_INT, &page_size, 0,
-        "Size of the bufferised data",  POPT_ARG_INT},
-  { "dstport", 'p', POPT_ARG_INT, &dstport, 0,
-        "Destination port of the server",  POPT_ARG_INT},
-  { "dstaddress", 'a', POPT_ARG_STRING, &address_server, 0,
-        "Address of the OML Server", DEFAULT_LOG_FILE },
-  { NULL, 0, 0, NULL, 0 }
+  { "listen",      'l',  POPT_ARG_INT,    &listen_port,     0,   "Port to listen for TCP based clients", DEF_PORT_STR},
+  { "debug-level", 'd',  POPT_ARG_INT,    &log_level,       0,   "Debug level - error:1 .. debug:4",     NULL},
+  { "logfile",     '\0', POPT_ARG_STRING, &logfile_name,    0,   "File to log to",                       DEFAULT_LOG_FILE },
+  { "version",     'v',  POPT_ARG_NONE,   NULL,             'v', "Print version information and exit",   NULL},
+  { "resultfile",  'r',  POPT_ARG_STRING, &resultfile_name, 0,   "File to put the result",               DEFAULT_RESULT_FILE},
+  { "size",        's',  POPT_ARG_INT,    &page_size,       0,   "Size of the bufferised data",          NULL},
+  { "dstport",     'p',  POPT_ARG_INT,    &dstport,         0,   "Destination port of the server",       NULL},
+  { "dstaddress",  'a',  POPT_ARG_STRING, &address_server,  0,   "Address of the OML Server",            DEFAULT_LOG_FILE },
+  { NULL,          0,    0,               NULL,             0,   NULL,                                   NULL }
 };
 
 /**
@@ -90,6 +86,7 @@ on_connect(
   Socket* newSock,
   void* handle
 ) {
+  (void)handle;  // FIXME:  Why is this parameter unused?
 //  Socket* outSock = (Socket*)handle;
   char integer_string[32];
   sprintf(integer_string, "%d", numberSocket);
@@ -113,12 +110,12 @@ static void* thread_stdinstart(void* handle) {
 
   ProxyServer* proxy = ( ProxyServer* ) handle;
   char command[80];
-  char* cmd;
+//  char* cmd;
 
   while(1){
     scanf ("%s",command);
     //strcpy(cmd,command);
-    ProxyClientHandler* tmp = proxy->current;
+//    ProxyClientHandler* tmp = proxy->current;
     if (strcmp(command, "OMLPROXY-RESUME") == 0){
 //      while(tmp =! NULL){
 //      	setCommand( tmp,  command );

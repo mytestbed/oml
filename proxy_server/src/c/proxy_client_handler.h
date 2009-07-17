@@ -137,7 +137,7 @@ proxy_client_handler_new(
     char* addressServer
 );
 
-void*
+void
 startLoopChannel(Socket* newSock, ProxyClientHandler* proxy);
 
 int pauseConnection();

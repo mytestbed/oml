@@ -21,8 +21,33 @@
  *
  */
 
+/*!\file proxy_client_handler.c
+  \brief Deals with a single connected client.
+ * Copyright (c) 2007-2008 National ICT Australia (NICTA)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
 #include <malloc.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
@@ -48,7 +73,7 @@ ProxyClientBuffer* initPCB( int size, int number){
     self->pageNumber = number;
     self->currentSize = 0;
     self->byteAlreadySent = 0;
-    self->buff = (char*) malloc(size*sizeof(char));
+    self->buff = (unsigned char*) malloc(size*sizeof(char));
 
     memset(self->buff, 0, size*sizeof(char));
     self->buffToSend = self->buff;
@@ -67,10 +92,9 @@ client_callback(SockEvtSource* source,
 );
 
 static void
-status_callback(
-  SockEvtSource* source,
+status_callback(SockEvtSource* source,
   SocketStatus status,
-  int errno,
+  int err_no,  /* errno is not a good name as it expands to a fn ptr when unistd.h is included */
   void* handle
 );
 
@@ -107,7 +131,7 @@ static void* thread_proxystart(void* handle) {
       if((buffer->currentSize - buffer->byteAlreadySent)>0){
 
 
-        if(socket_sendto(proxy->socket_to_server, buffer->buffToSend, (buffer->currentSize - buffer->byteAlreadySent))==0){
+        if(socket_sendto(proxy->socket_to_server, (char*)buffer->buffToSend, (buffer->currentSize - buffer->byteAlreadySent))==0){
           buffer->buffToSend += (buffer->currentSize - buffer->byteAlreadySent);
           //printf(" test \n");
           buffer->byteAlreadySent = buffer->currentSize;
@@ -188,7 +212,7 @@ proxy_client_handler_new(
   //eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
 }
 
-void*
+void
 startLoopChannel(Socket* newSock, ProxyClientHandler* proxy){
   eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)proxy);
 }
@@ -209,9 +233,8 @@ client_callback(
   int buf_size
 ) {
   ProxyClientHandler* self = (ProxyClientHandler*)handle;
-  OmlMBuffer* mbuf = &self->mbuf;
   int available = self->buffer->max_length - self->buffer->currentSize ;
-  char * c = "\n";
+
   if(self->file == NULL)
 	  ;
   else{
@@ -254,7 +277,7 @@ void
 status_callback(
  SockEvtSource* source,
  SocketStatus status,
- int errno,
+ int err_no,
  void* handle
 ) {
   switch (status) {
@@ -267,6 +290,8 @@ status_callback(
       while(strcmp(self->cmdSocket, "OMLPROXY-STOP") != 0)
         sleep(1);
       o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
+      break;
+    default:
       break;
     }
   }
