@@ -78,7 +78,7 @@ thread_start(
     if (!mp_lock(mp)) {
       if (!mp->active) {
         mp_unlock(mp);
-        return;  // we are done
+        return NULL;  // we are done
       }
 
       //o_log(O_LOG_INFO, "Sample3 %d\n", usec);
@@ -99,7 +99,6 @@ int
 filter_process(
   OmlMStream* ms
 ) {
-  int i;
   OmlWriter* writer = ms->writer;
 
   struct timeval tv;
