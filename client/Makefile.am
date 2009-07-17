@@ -19,7 +19,6 @@ lib_LTLIBRARIES = liboml2.la
 
 liboml2_la_SOURCES = src/c/api.c \
 	src/c/client.h \
-	src/c/file_reader.c \
 	src/c/file_writer.c \
 	src/c/filter.c \
 	src/c/init.c \
