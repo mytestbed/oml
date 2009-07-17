@@ -29,9 +29,12 @@
 #include "ocomm/o_log.h"
 
 #include <string.h>
+#include <stdlib.h>
 
+#if 0 // FIXME:  Not used?
 static o_socket_sendto sendto;
 static o_get_sockfd get_sockfd;
+#endif
 
 typedef struct _sockHolder {
 

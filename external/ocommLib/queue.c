@@ -167,7 +167,6 @@ oqueue_add_int(
   OQueue* queue,
   int     value
 ) {
-  int* p = &value;
   return add_dats(queue, &value, sizeof(int), OQUEUE_INT_T);
 }
 

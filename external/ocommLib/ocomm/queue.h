@@ -172,6 +172,12 @@ oqueue_remove_string(
   char**  string
 );
 
+int
+oqueue_remove_ptr(
+  OQueue* queue,
+  void*     value
+);
+
 /*! Remove an integer
  *
  * Return oldest value stored on queue in 'value'.

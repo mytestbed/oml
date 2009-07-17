@@ -127,6 +127,9 @@ eventloop_on_monitor_in_channel(
 );
 
 /*! Register callback if 'socket' can be written to
+ *
+ */
+// FIXME: This function was (badly) commented out before; doesn't seem to be used?
 SockEvtSource*
 eventloop_on_out_channel(
   Socket* socket,

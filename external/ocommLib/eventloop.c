@@ -31,7 +31,10 @@
 #include <string.h>
 #include <poll.h>
 #include <assert.h>
+#include <unistd.h>
 #include <sys/errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "ocomm/o_socket.h"
 #include "ocomm/o_log.h"
@@ -364,7 +367,7 @@ eventloop_on_read_in_channel(
 ) {
   if (socket == NULL) {
     o_log(O_LOG_ERROR, "EventLoop: Missing socket\n");
-    return;
+    return NULL;
   }
   Channel* ch;
   ch = eventloop_on_in_fd(socket->name, socket->get_sockfd(socket),
@@ -382,7 +385,7 @@ eventloop_on_monitor_in_channel(
 ) {
   if (socket == NULL) {
     o_log(O_LOG_ERROR, "EventLoop: Missing socket\n");
-    return;
+    return NULL;
   }
   Channel* ch;
   ch = eventloop_on_in_fd(socket->name, socket->get_sockfd(socket),
@@ -424,7 +427,7 @@ eventloop_on_out_channel(
 ) {
   if (socket == NULL) {
     o_log(O_LOG_ERROR, "EventLoop: Missing socket\n");
-    return;
+    return NULL;
   }
   Channel* ch;
   ch = eventloop_on_out_fd(socket->name, socket->get_sockfd(socket),

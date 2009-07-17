@@ -217,6 +217,7 @@ on_self_connected(
   SocketStatus status,
   void* handle
 ) {
+  (void)handle;  // FIXME: Check why this parameter is unused.
   SocketInt* self = (SocketInt*)source;
 
   switch (status) {
@@ -315,7 +316,8 @@ on_client_connect(
   //  SocketStatus status,
   void* handle
 ) {
-  int cli_len;
+  (void)source; // FIXME: Check why source parameter is unused
+  socklen_t cli_len;
 
   SocketInt* self = (SocketInt*)handle;
 

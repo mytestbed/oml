@@ -99,7 +99,6 @@ mt_queue_add(
   void*  obj
 ) {
   MTQueueInt* self = (MTQueueInt*)queue;
-  int res;
 
   if (!lock(self)) return 0;
   int rc = 0;
