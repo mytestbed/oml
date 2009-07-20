@@ -28,38 +28,20 @@
 
 #include <oml2/oml_filter.h>
 
-extern OmlFilter*
-omlf_first_new(
-  const char* name,
-  OmlValueT  type,
-  int        index
+/* Builtin filter registration functions */
+void omlf_register_filter_average (void);
+
+void register_builtin_filters (void);
+
+/*! Create an instance of a filter of type 'fname'.
+ */
+OmlFilter*
+create_filter(
+    const char* filter_type,
+    const char* instance_name,
+    OmlValueT   type,
+    int         index
 );
-
-extern OmlFilter*
-omlf_average_new(
-  const char* name,
-  OmlValueT   type,
-  int         index
-);
-
-extern OmlFilter*
-omlf_histogram_new(
-  const char* name,
-  OmlValueT   type,
-  int         index
-);
-
-typedef struct _filterReg {
-  const char*         filterName;
-  oml_filter_create   create_func;
-  struct _filterReg*  next;
-} FilterReg;
-
-FilterReg f1 = {"first", omlf_first_new, NULL};
-FilterReg f2 = {"avg", omlf_average_new, &f1};
-FilterReg f3 = {"histogram", omlf_histogram_new, &f2};
-
-FilterReg* firstFilter = &f3;
 
 #endif /* OML_FILTER_FACTORY_H_ */
 

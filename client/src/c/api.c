@@ -76,13 +76,15 @@ omlc_inject(
 
   OmlMStream* ms = mp->firstStream;
   while (ms) {
-    int i;
-
-    OmlValueU* value = values;
-    //for (i = 0; i < mp->param_count; i++, value++) {
     OmlFilter* f = ms->firstFilter;
     for (; f != NULL; f = f->next) {
-      f->input(f, value, mp);
+      OmlValue v;
+
+      /* FIXME:  Should validate this indexing */
+      v.value = *(values + f->index);
+      v.type = mp->param_defs[f->index].param_types;
+
+      f->input(f, &v);
     }
     omlc_ms_process(ms);
     ms = ms->next;

@@ -28,10 +28,9 @@
 
 struct _omlFilter;
 
-typedef struct _omlFilter* (*oml_filter_create)(
-  const char* paramName,
+typedef void* (*oml_filter_create)(
   OmlValueT   type,
-  int         index
+  OmlValue*   result
 );
 
 
@@ -52,8 +51,7 @@ typedef int (*oml_filter_set)(
  */
 typedef int (*oml_filter_input)(
   struct _omlFilter* filter, //! pointer to filter instance
-  OmlValueU*         values,  //! values of sample
-  OmlMP*             mp      //! MP context
+  OmlValue*          value   //! value of sample
 );
 
 
@@ -69,6 +67,8 @@ typedef int (*oml_filter_output)(
 
 /*! Called once to write out the filters meta data
  * on its result arguments.
+ *
+ * Return 0 on success, -1 otherwise.
  */
 typedef int (*oml_filter_meta)(
   struct _omlFilter* filter,
@@ -76,6 +76,13 @@ typedef int (*oml_filter_meta)(
   char** namePtr,
   OmlValueT* type
 );
+
+typedef struct _omlFilterDef {
+  //! Name of the filter output element
+  const char* name;
+  //! Type of this filter output element
+  OmlValueT   type;
+} OmlFilterDef;
 
 /**
  * \struct
@@ -86,7 +93,7 @@ typedef struct _omlFilter {
   char name[64];
 
   //! Number of output value created
-  int output_cnt;
+  int output_count;
 
   //! Set filter parameters
   oml_filter_set set;
@@ -99,26 +106,51 @@ typedef struct _omlFilter {
 
   oml_filter_meta meta;
 
+  void* instance_data;
+  OmlFilterDef* definition;
+  int index;
+  OmlValueT input_type;
+
+  OmlValue *result;
+
   struct _omlFilter* next;
 } OmlFilter;
 
-/*! Create an instance of a filter of type 'fname'.
+/*! Register a new type filter.
+ *
+ *  The filter type is created with the supplied create(), set(),
+ *  input(), output() and meta() functions.  Its output conforms to
+ *  the filter_def, if supplied.
+ *
+ *  If meta is NULL, the default meta function is used for instances
+ *  of this filter, which inspects the filter_def to provide the
+ *  filter meta information.
+ *
+ *  If filter_def is NULL, then meta must not be NULL; the meta
+ *  function must be supplied to provide the filter meta information
+ *  (for schema output).
+ *
+ *  If the set parameter is NULL, then a default no-op set function is
+ *  supplied for instances of this filter type.
+ *
+ *  \param filter_name A string describing this type of filter, for use in create_filter().
+ *  \param create The create function for this filter, which should initialize instance data.
+ *  \param set The set function for this filter, which allows parameter setting.
+ *  \param input The input function for this filter which adds new input samples to be filtered.
+ *  \param output The output function for this filter, which puts a filtered result in the result vector.
+ *  \param meta The meta output function for this filter, which is used to define the database schema for this filter.
+ *  \param filter_def The output spec for this filter (name and type of each element of the output n-tuple).
  */
-void
-register_filter(
-    const char*       filterName,
-    oml_filter_create create_func
-);
+int
+omlf_register_filter(const char* filter_name,
+		     oml_filter_create create,  // FIXME:  remove 2
+		     oml_filter_set set,
+		     oml_filter_input input,
+		     oml_filter_output output,
+		     oml_filter_meta meta,
+		     OmlFilterDef* filter_def);
 
-/*! Create an instance of a filter of type 'fname'.
- */
-OmlFilter*
-create_filter(
-    const char* filterName,
-    const char* paramName,
-    OmlValueT   type,
-    int         index
-);
+
 #endif /*OML_FILTER_H_*/
 
 /*

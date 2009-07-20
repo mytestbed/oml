@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define USE_OPTS
 #include "omf_nmetrics_popt.h"

@@ -32,96 +32,86 @@
 #include <oml2/oml_filter.h>
 //#include "filter/factory.h"
 
-typedef struct _omlHistFilter {
-  //! Name used for debugging
-  char name[64];
-
-  //! Number of output value created
-  int output_cnt;
-
-  //! Set filter parameters
-  oml_filter_set set;
-  //! Process a new sample.
-  oml_filter_input input;
-  //! Calculate output, send it, and get ready for new sample period.
-  oml_filter_output output;
-  oml_filter_meta meta;
-
-  OmlFilter* next;
-
-  /* ------------------ */
-
-  int index;
-
-  OmlValue result[3];
-
+typedef struct _omlHistFilterInstanceData {
   // Keep the sum and sample count to calculate average
   double  sample_sum;
   int     sample_count;
 
   double  sample_min;
   double  sample_max;
-} OmlHistFilter;
+
+  OmlValue* result;
+} InstanceData;
 
 static int
 process(OmlFilter* filter, OmlWriter* writer);
 
 static int
-sample(OmlFilter* f, OmlValueU* values, OmlMP* mp);
+sample(OmlFilter* f, OmlValue* value);
 
+/*
 static int
 meta(OmlFilter* f, int param_index, char** namePtr, OmlValueT* type);
+*/
 
-OmlFilter*
+void*
 omlf_histogram_new(
-  const char* name,
   OmlValueT type,
-  int index
+  OmlValue* result
 ) {
   if (! (type == OML_LONG_VALUE || type == OML_DOUBLE_VALUE)) {
     o_log(O_LOG_ERROR, "Can only handle number parameters\n");
     return NULL;
   }
 
-  OmlHistFilter* self = (OmlHistFilter *)malloc(sizeof(OmlHistFilter));
-  memset(self, 0, sizeof(OmlHistFilter));
-
-  strcpy(self->name, name);
-  self->input = sample;
-  self->output = process;
-  self->meta = meta;
-
-  self->index = index;
-  self->output_cnt = 3;
-  self->result[0].type = OML_DOUBLE_VALUE;
-  self->result[1].type = OML_DOUBLE_VALUE;
-  self->result[2].type = OML_DOUBLE_VALUE;
+  InstanceData* self = (InstanceData *)malloc(sizeof(InstanceData));
+  memset(self, 0, sizeof(InstanceData));
 
   self->sample_sum = 0;
   self->sample_count = 0;
   self->sample_min = HUGE;
   self->sample_max = -1 * HUGE;
+  self->result = result;
 
-  return (OmlFilter*)self;
+  return self;
+}
+
+void
+omlf_register_filter_histogram (void)
+{
+  OmlFilterDef def [] =
+    {
+      { "avg", OML_DOUBLE_VALUE },
+      { "min", OML_DOUBLE_VALUE },
+      { "max", OML_DOUBLE_VALUE },
+      { NULL, 0 }
+    };
+
+  omlf_register_filter ("histogram",
+			omlf_histogram_new,
+			NULL,
+			sample,
+			process,
+			NULL,
+			def);
 }
 
 static int
 sample(
     OmlFilter* f,
-    OmlValueU* values,  //! values of sample
-    OmlMP*     mp      //! MP context
+    OmlValue*  value  //! values of sample
 ) {
-  OmlHistFilter* self = (OmlHistFilter*)f;
-  OmlValueU* value = values + self->index;
-  OmlValueT type = mp->param_defs[self->index].param_types;
+  InstanceData* self = (InstanceData*)f->instance_data;
+  OmlValueU* v = &value->value;
+  OmlValueT type = value->type;
   double val;
 
   switch (type) {
   case OML_LONG_VALUE:
-    val = value->longValue;
+    val = v->longValue;
     break;
   case OML_DOUBLE_VALUE:
-    val = value->doubleValue;
+    val = v->doubleValue;
     break;
   default:
     // raise error;
@@ -139,7 +129,7 @@ process(
   OmlFilter* f,
   OmlWriter*  writer //! Write results of filter to this function
 ) {
-  OmlHistFilter* self = (OmlHistFilter*)f;
+  InstanceData* self = (InstanceData*)f->instance_data;
 
   if (self->sample_count > 0) {
     self->result[0].value.doubleValue = 1.0 * self->sample_sum / self->sample_count;
@@ -157,6 +147,7 @@ process(
   return 0;
 }
 
+/*
 static int
 meta(
   OmlFilter* f,
@@ -165,7 +156,7 @@ meta(
   OmlValueT* type
 ) {
 
-  if (param_index > 2) return 0;
+  if (param_index > 2) return -1;
 
   switch (param_index) {
   case 0:
@@ -179,8 +170,9 @@ meta(
     break;
   }
   *type = OML_DOUBLE_VALUE;
-  return 1;
+  return 0;
 }
+*/
 
 /*
  Local Variables:

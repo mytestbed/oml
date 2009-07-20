@@ -182,6 +182,8 @@ run(
     if (opts->loop) sleep(opts->delay);
   } while (opts->loop);
   */
+
+  return 0;
 }
 
 int

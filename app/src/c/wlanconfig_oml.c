@@ -28,22 +28,20 @@
  * THE SOFTWARE.
 */
 
-#include <errno.h>
-#include <string.h>
-#include "oml2/omlc.h"
-#include "app_sigar.h"
-#include "oml2/oml_filter.h"
-#include "client.h"
-#include "version.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <time.h>
+#include <unistd.h>
 #include <pcap.h>
-#include <malloc.h>
 #include <errno.h>
 #include "ocomm/o_log.h"
+#include "oml2/omlc.h"
+#include "oml2/oml_filter.h"
+#include "app_sigar.h"
+#include "client.h"
+#include "version.h"
 
 
 static OmlMPDef oml_def[] = {  
@@ -62,7 +60,6 @@ main(
         int argc,
         const char *argv[]
 ) {
-    
    int i = 0;
    int j = 0;
    int stop = 1;
@@ -71,13 +68,12 @@ main(
    int mypipe[2];
    char command[256]; 
    char command2[256] = "256";
-   char addressToCheck[256] = "000";
    char macAddress[256] = "e";
    //memset(command2, 0, 256*sizeof(char));
    int* argc_;
    const char** argv_;
    char* ifwifi;
-   char mem_used[64];
+//   char mem_used[64];
    omlc_init(argv[ 0 ], &argc, argv, o_log);
    argc_ = &argc;
    argv_ = argv;

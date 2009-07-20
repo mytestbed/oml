@@ -66,7 +66,11 @@ typedef union _omlValueU {
 } OmlValueU;
 
 typedef enum _omlValueE {
-  OML_DOUBLE_VALUE,
+  /* Meta value types */
+  OML_INPUT_VALUE = -2,
+  OML_UNKNOWN_VALUE = -1,
+  /* Concrete value types */
+  OML_DOUBLE_VALUE = 0,
   OML_LONG_VALUE,
   OML_STRING_PTR_VALUE,
   OML_STRING_VALUE

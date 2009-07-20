@@ -30,12 +30,12 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/time.h>
 
 #include "oml2/oml.h"
 #include "oml2/oml_filter.h"
+#include "filter/factory.h"
 #include "client.h"
-
-//#include "filter/builtin.h"
 #include "version.h"
 
 OmlClient* omlc_instance = NULL;
@@ -73,8 +73,6 @@ omlc_init(
   int* argcPtr,
   const char** argv,
   oml_log_fn custom_oml_log
-//  int mp_count,
-//  OmlMPDef** mp_definitions
 ) {
 
   o_set_log((o_log_fn)custom_oml_log);
@@ -100,7 +98,7 @@ omlc_init(
   double sample_interval = 0.0;
   const char** argvPtr = argv;
   int i;
-  for (i = *argcPtr; i > 0; i--, *argvPtr++) {
+  for (i = *argcPtr; i > 0; i--, argvPtr++) {
     if (strcmp(*argvPtr, "--oml-id") == 0) {
       if (--i <= 0) {
         o_log(O_LOG_ERROR, "Missing argument for '--oml-id'\n");
@@ -209,13 +207,15 @@ omlc_init(
 
   if (localDataFile != NULL) {
     // dump every sample into localDataFile
-    if (localDataFile[0] == '-') localDataFile = "stdout";
+    if (localDataFile[0] == '-')
+      localDataFile = "stdout";
     snprintf(omlc_instance->serverUri, SERVER_URI_MAX_LENGTH, "file:%s", localDataFile);
   } else if (serverUri != NULL) {
     strncpy(omlc_instance->serverUri, serverUri, SERVER_URI_MAX_LENGTH);
   }
   omlc_instance->configFile = configFile;
 
+  register_builtin_filters ();
 
   return 0;
 }
@@ -250,6 +250,8 @@ omlc_add_mp(
                     // attached MStream
   mp->next = omlc_instance->mpoints;
   omlc_instance->mpoints = mp;
+
+  return mp;
 }
 
 /**
@@ -362,6 +364,7 @@ omlc_close()
   for (; w != NULL; w = w->next) {
     if (w->close != NULL) w->close(w);
   }
+  return 0;
 }
 
 /**
@@ -486,7 +489,10 @@ create_mstream(
 }
 /**
  * \fn static int default_configuration()
- * \brief Loop through registered measurment points and define sample based filters with sampling rate '1' and 'FIRST' filters
+ *
+ * \brief Loop through registered measurment points and define sample
+ * based filters with sampling rate '1' and 'FIRST' filters
+ *
  * \return 0 if successful -1 otherwise
  */
 static int
@@ -544,12 +550,16 @@ createDefaultFilters(
   for (j = 0; j < param_count; j++) {
     OmlMPDef def = mp->param_defs[j];
     OmlFilter* f = createDefaultFilter(&def, ms, j);
-    if (prev == NULL) {
-      ms->firstFilter = f;
+    if (f) {
+      if (prev == NULL) {
+	ms->firstFilter = f;
+      } else {
+	prev->next = f;
+      }
+      prev = f;
     } else {
-      prev->next = f;
+      o_log(O_LOG_ERROR, "Unable to create default filter for MP %s.\n", mp->name);
     }
-    prev = f;
   }
 }
 /**
@@ -637,28 +647,28 @@ write_schema(
   char s[512];
   OmlWriter* writer = ms->writer;
 
-//  ms->index = self->stream_count++;
   ms->index = index;
   sprintf(s, "schema: %d %s ", ms->index, ms->table_name);
 
   // Loop over all the filters
-  //OmlMPDef2* def = ms->mp->param_defs;
-  OmlMP* mp = ms->mp;
   OmlFilter* filter = ms->firstFilter;
   for (; filter != NULL; filter = filter->next) {
-    //const char* prefix = mp->param_defs[filter->index].name;
     const char* prefix = filter->name;
     int j;
-    for (j = 0; j < filter->output_cnt; j++) {
+    for (j = 0; j < filter->output_count; j++) {
       char* name;
       OmlValueT type;
-      if (filter->meta(filter, j, &name, &type)) {
+      if (filter->meta(filter, j, &name, &type) != -1) {
         char* type_s = oml_type_to_s(type);
         if (name == NULL) {
           sprintf(s, "%s %s:%s", s, prefix, type_s);
         } else {
           sprintf(s, "%s %s_%s:%s", s, prefix, name, type_s);
         }
+      } else {
+	o_log(O_LOG_WARN, "Filter %s failed to provide meta information for index %d.\n",
+	      filter->name,
+	      j);
       }
     }
   }

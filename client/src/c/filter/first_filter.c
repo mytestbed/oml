@@ -32,85 +32,72 @@
 //#include "filter/factory.h"
 
 
-typedef struct _omlFirstFilter {
-  //! Name used for debugging
-  char name[64];
-
-  //! Number of output value created
-  int output_cnt;
-
-  //! Set filter parameters
-  oml_filter_set set;
-  //! Process a new sample.
-  oml_filter_input input;
-  //! Calculate output, send it, and get ready for new sample period.
-  oml_filter_output output;
-  oml_filter_meta meta;
-
-  OmlFilter* next;
-
-  /* ------------------ */
-  int index;
-
-  OmlValue result;
+typedef struct _omlFirstFilterInstanceData {
   int is_first;			/* set to true if no value has been stored */
-} OmlFirstFilter;
+
+  OmlValue* result;
+} InstanceData;
 
 static int
 process(OmlFilter* filter, OmlWriter* writer);
 
 static int
-sample(OmlFilter* f, OmlValueU* values, OmlMP* mp);
+sample(OmlFilter* f, OmlValue* values);
 
 static int
 meta(OmlFilter* f, int param_index, char** namePtr, OmlValueT* type);
 
-OmlFilter*
+void*
 omlf_first_new(
-  const char* name,
   OmlValueT type,
-  int index
+  OmlValue* result
 ) {
-  OmlFirstFilter* self = (OmlFirstFilter *)malloc(sizeof(OmlFirstFilter));
-  memset(self, 0, sizeof(OmlFirstFilter));
+  InstanceData* self = (InstanceData *)malloc(sizeof(InstanceData));
+  memset(self, 0, sizeof(InstanceData));
 
-  strcpy(self->name, name);
-  self->input = sample;
-  self->output = process;
-  self->meta = meta;
-
-  self->index = index;
-  self->output_cnt = 1;
-  self->result.type = type;
   self->is_first = 1;
-  return (OmlFilter*)self;
+  self->result = result;
+  self->result[0].type = type;  // FIXME:  Is this needed?
+
+  return self;
+}
+
+void
+omlf_register_filter_first (void)
+{
+  OmlFilterDef def [] =
+    {
+      { "first", OML_INPUT_VALUE },
+      { NULL, 0 }
+    };
+
+  omlf_register_filter ("first",
+			omlf_first_new,
+			NULL,
+			sample,
+			process,
+			meta,
+			def);
 }
 
 static int
 sample(
     OmlFilter* f,
-    OmlValueU* values,  //! values of sample
-    OmlMP*     mp      //! MP context
+    OmlValue * value  //! values of sample
 ) {
-  OmlFirstFilter* self = (OmlFirstFilter*)f;
-  OmlValueT type = mp->param_defs[self->index].param_types;
+  InstanceData* self = (InstanceData*)f->instance_data;
+  OmlValueU* v = &value->value;
+  OmlValueT type = value->type;
 
-  if (type != self->result.type) {
+  if (type != self->result[0].type) {
     o_log(O_LOG_ERROR, "Different type from initial definition\n");
     return 0;
-/*     OmlValueT tt = self->result.type; */
-/*     if (!((type == OML_STRING_PTR_VALUE && tt == OML_STRING_VALUE) */
-/*           || (type == OML_STRING_VALUE && tt == OML_STRING_PTR_VALUE))) { */
-/*       o_log(O_LOG_ERROR, "Different type from initial definition\n"); */
-/*       return 0; */
-/*     } */
   }
   if (self->is_first) {
-    OmlValueU* value = values + self->index;
     self->is_first = 0;
-    return oml_value_copy(value, type, &self->result);
+    return oml_value_copy(v, type, &self->result[0]);
   }
-  return 1;
+  return 0;
 }
 
 static int
@@ -118,12 +105,12 @@ process(
   OmlFilter* f,
   OmlWriter*  writer //! Write results of filter to this function
 ) {
-  OmlFirstFilter* self = (OmlFirstFilter*)f;
+  InstanceData* self = (InstanceData*)f->instance_data;
 
   self->is_first = 1;
-  writer->out(writer, &self->result, 1);
-  oml_value_reset(&self->result);
-  return 1;
+  writer->out(writer, self->result, 1);
+  oml_value_reset(&self->result[0]);
+  return 0;
 }
 
 static int
@@ -133,15 +120,14 @@ meta(
   char** namePtr,
   OmlValueT* type
 ) {
-  OmlFirstFilter* self = (OmlFirstFilter*)f;
+  InstanceData* self = (InstanceData*)f->instance_data;
 
   if (param_index > 0) return 0;
 
   *namePtr = NULL;
-  *type = self->result.type;
-  return 1;
+  *type = self->result[0].type;
+  return 0;
 }
-
 
 /*
  Local Variables:
