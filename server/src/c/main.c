@@ -122,7 +122,13 @@ main(
   Socket* serverSock;
   serverSock = socket_server_new("server", listen_port, on_connect, NULL);
 
-  eventloop_run();
+  if (serverSock)
+	eventloop_run();
+  else {
+	o_log (O_LOG_ERROR, "SERVER QUIT:  failed to create socket for client connections.\n");
+	return -2;
+  }
+
   return(0);
 }
 
