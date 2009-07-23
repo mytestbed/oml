@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
-AC_INIT([oml2], [2.0.0], [jolyon.white@nicta.com.au])
+AC_INIT([oml2], [2.0.0], [http://www.mytestbed.net/projects/oml/issues/new])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 LT_INIT
 AC_CONFIG_MACRO_DIR([m4])
