@@ -250,7 +250,9 @@ omlc_add_mp(
 //! Finalizes inital configurations and get
 // ready for consecutive 'omlc_process' calls
 int
-omlc_start();
+omlc_start(
+  void
+);
 
 void
 omlc_inject(
@@ -273,7 +275,9 @@ omlc_process(
 // which will take some time to finish.
 //
 int
-omlc_close();
+omlc_close(
+  void
+);
 
 ////! Called at the start of every MP wrapper function.
 //OmlMStream*
