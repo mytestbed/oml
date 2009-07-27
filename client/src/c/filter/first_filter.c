@@ -29,14 +29,9 @@
 #include <ocomm/o_log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
-//#include "filter/factory.h"
+#include "filter/first_filter.h"
 
-
-typedef struct _omlFirstFilterInstanceData {
-  int is_first;			/* set to true if no value has been stored */
-
-  OmlValue* result;
-} InstanceData;
+typedef struct _omlFirstFilterInstanceData InstanceData;
 
 static int
 process(OmlFilter* filter, OmlWriter* writer);

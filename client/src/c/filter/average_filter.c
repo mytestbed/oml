@@ -31,29 +31,15 @@
 #include <ocomm/o_log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
-//#include "filter/factory.h"
+#include "average_filter.h"
 
-typedef struct _omlAvgFilterInstanceData {
-  // Keep the sum and sample count to calculate average
-  double  sample_sum;
-  int     sample_count;
-
-  double  sample_min;
-  double  sample_max;
-
-  OmlValue* result;
-} InstanceData;
+typedef struct _omlAvgFilterInstanceData InstanceData;
 
 static int
 process(OmlFilter* filter, OmlWriter* writer);
 
 static int
 sample(OmlFilter* f, OmlValue* value);
-
-/*
-static int
-meta(OmlFilter* f, int param_index, char** namePtr, OmlValueT* type);
-*/
 
 void*
 omlf_average_new(
@@ -66,15 +52,21 @@ omlf_average_new(
   }
 
   InstanceData* self = (InstanceData *)malloc(sizeof(InstanceData));
-  memset(self, 0, sizeof(InstanceData));
 
-  self->sample_sum = 0;
-  self->sample_count = 0;
-  self->sample_min = HUGE;
-  self->sample_max = -1 * HUGE;
-  self->result = result;
+  if (self) {
+	memset(self, 0, sizeof(InstanceData));
 
-  return self;
+	self->sample_sum = 0;
+	self->sample_count = 0;
+	self->sample_min = HUGE;
+	self->sample_max = -1 * HUGE;
+	self->result = result;
+	return self;
+  } else {
+	o_log(O_LOG_ERROR, "Could not allocate %d bytes for avg filter instance data\n",
+		  sizeof(InstanceData));
+	return NULL;
+  }
 }
 
 void
@@ -89,12 +81,12 @@ omlf_register_filter_average (void)
     };
 
   omlf_register_filter ("avg",
-			omlf_average_new,
-			NULL,
-			sample,
-			process,
-			NULL,
-			def);
+						omlf_average_new,
+						NULL,
+						sample,
+						process,
+						NULL,
+						def);
 }
 
 static int
@@ -142,37 +134,11 @@ process(
     self->result[2].value.doubleValue = 0;
   }
 
-  writer->out(writer, self->result, 3);
+  writer->out(writer, self->result, f->output_count);
 
   return 0;
 }
 
-/*
-static int
-meta(
-  OmlFilter* f,
-  int param_index,
-  char** namePtr,
-  OmlValueT* type
-) {
-
-  if (param_index > 2) return -1;
-
-  switch (param_index) {
-  case 0:
-    *namePtr = "avg";
-    break;
-  case 1:
-    *namePtr = "min";
-    break;
-  case 2:
-    *namePtr = "max";
-    break;
-  }
-  *type = OML_DOUBLE_VALUE;
-  return 0;
-}
-*/
 
 /*
  Local Variables:

@@ -30,18 +30,9 @@
 #include <ocomm/o_log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
-//#include "filter/factory.h"
+#include "filter/histogram_filter.h"
 
-typedef struct _omlHistFilterInstanceData {
-  // Keep the sum and sample count to calculate average
-  double  sample_sum;
-  int     sample_count;
-
-  double  sample_min;
-  double  sample_max;
-
-  OmlValue* result;
-} InstanceData;
+typedef struct _omlHistFilterInstanceData InstanceData;
 
 static int
 process(OmlFilter* filter, OmlWriter* writer);

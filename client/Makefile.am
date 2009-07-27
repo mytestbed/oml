@@ -1,5 +1,7 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
+SUBDIRS = . tests
+
 oml2incdir = $(includedir)/oml2
 
 oml2inc_HEADERS = \
@@ -32,6 +34,9 @@ liboml2_la_SOURCES = src/c/api.c \
 	src/c/filter/first_filter.c \
 	src/c/filter/average_filter.c \
 	src/c/filter/histogram_filter.c \
+	src/c/filter/first_filter.h \
+	src/c/filter/average_filter.h \
+	src/c/filter/histogram_filter.h \
 	src/c/oml2/o_log.h \
 	src/c/oml2/omlc.h \
 	src/c/oml2/oml_filter.h \

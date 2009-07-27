@@ -31,6 +31,11 @@ if test "x$HAVE_XML2CFG" != "x"; then
    AC_MSG_CHECKING([how to link with libxml2])
    AC_MSG_RESULT([$LIBXML2_LIBS])
 fi
+
+
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
+#AM_PATH_CHECK()
+
 AC_CHECK_LIB(sqlite3, sqlite3_initialize, [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])])
 AC_CHECK_LIB([pcap], [pcap_open_live], [AC_DEFINE([HAVE_LIBPCAP], [1], [Define if libpcap is installed.])])
 AC_CHECK_LIB([popt], [poptGetContext], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])])
@@ -63,7 +68,8 @@ AC_CONFIG_FILES([Makefile
 		 shared/Makefile
 		 external/Makefile
 		 external/ocommLib/Makefile
-                 client/Makefile
+		 client/Makefile
+		 client/tests/Makefile
 		 server/Makefile
 		 proxy_server/Makefile
 		 examples/Makefile

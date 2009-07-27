@@ -143,7 +143,7 @@ typedef struct _omlFilter {
  */
 int
 omlf_register_filter(const char* filter_name,
-		     oml_filter_create create,  // FIXME:  remove 2
+		     oml_filter_create create,
 		     oml_filter_set set,
 		     oml_filter_input input,
 		     oml_filter_output output,
