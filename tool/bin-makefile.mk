@@ -7,7 +7,7 @@
 #
 
 
-build: $(PROGRAM)
+build: $(PROGRAM) 
 	@echo "BUILT: $(PROGRAM)"
 
 include $(TOP_DIR)/tool/common-targets.mk

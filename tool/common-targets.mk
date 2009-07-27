@@ -44,7 +44,7 @@ $(BUILD_BIN_DIR)/$(PROGRAM): $(C_SRCS) $(AUTO) $(BUILD_OBJ_DIR) $(BUILD_BIN_DIR)
 	done
 	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 endif
-
+     
 ifdef LIBRARY
 INSTALL_LIBS = $(INSTALL_LIB_DIR)/$(LIB_FILE)
 
@@ -56,9 +56,9 @@ endif
 
 install: build $(INSTALL_INC_DIR) $(INSTALL_INCS) $(INSTALL_BIN_DIR) $(INSTALL_PROG) $(INSTALL_LIB_DIR) $(INSTALL_LIBS)
 
-
+	 
 clean:
-	rm -rf $(BUILD_DIR)/$(PKG_NAME) *~
+	rm -rf $(BUILD_DIR)/$(PKG_NAME) *~ 
 
 debug:
 	echo $(INSTALL_LIBS)
@@ -73,7 +73,7 @@ $(BUILD_INC_DIR)/%.h:  %.h
 	install -d `dirname $@`
 	cp $< $@
 
-$(INSTALL_INC_DIR):
+$(INSTALL_INC_DIR): 
 	install -d $@
 
 $(INSTALL_INC_DIR)/%.h:  %.h
@@ -81,7 +81,7 @@ $(INSTALL_INC_DIR)/%.h:  %.h
 	install -m 644 $< $@
 
 
-$(INSTALL_LIB_DIR):
+$(INSTALL_LIB_DIR): 
 	install -d $@
 
 $(INSTALL_LIB_DIR)/%.a:  $(BUILD_LIB_DIR)/%.a
@@ -90,7 +90,7 @@ $(INSTALL_LIB_DIR)/%.a:  $(BUILD_LIB_DIR)/%.a
 $(INSTALL_LIB_DIR)/%:  $(BUILD_LIB_DIR)/%
 	install -m 755 $< $@
 
-$(INSTALL_BIN_DIR):
+$(INSTALL_BIN_DIR): 
 	install -d $@
 
 $(INSTALL_BIN_DIR)/%:  $(BUILD_BIN_DIR)/%

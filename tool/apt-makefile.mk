@@ -6,9 +6,9 @@ apt: build
 	rm -rf $(BUILD_APT_DIR)
 	install -d $(BUILD_APT_DIR)
 	cp -rp $(TOP_DIR)/tool/debian $(BUILD_APT_DIR)
-	rm -rf $(BUILD_APT_DIR)/debian/.svn
+	rm -rf $(BUILD_APT_DIR)/debian/.svn	
 	cp -rp src/debian $(BUILD_APT_DIR)
-	rm -rf $(BUILD_APT_DIR)/debian/.svn
+	rm -rf $(BUILD_APT_DIR)/debian/.svn	
 	mv $(BUILD_APT_DIR)/debian/Makefile $(BUILD_APT_DIR)
 	cp changelog $(BUILD_APT_DIR)/debian
 	sed -e s/@APT_NAME@/$(APT_NAME)/ $(BUILD_APT_DIR)/debian/rules.in > $(BUILD_APT_DIR)/debian/rules

@@ -1,5 +1,5 @@
 #
-# This file is sourced by all makefiles. Make any system dependent
+# This file is sourced by all makefiles. Make any system dependent 
 # changes only here
 #
 

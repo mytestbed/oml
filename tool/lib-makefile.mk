@@ -1,15 +1,15 @@
 
 # PROGRAM=unknown
 
-build: $(LIBRARY)
+build: $(LIBRARY) 
 	@echo "BUILT: $(LIBRARY)"
 
 ifdef TEST_PROGRAM
-test: $(TEST_PROGRAM)
+test: $(TEST_PROGRAM) 
 	export LD_LIBRARY_PATH=$(TEST_LD_LIBRARY_PATH); \
 	$(BUILD_OBJ_DIR)/$(TEST_PROGRAM) $(TEST_ARGS)
 
-test-gdb: $(TEST_PROGRAM)
+test-gdb: $(TEST_PROGRAM) 
 	export LD_LIBRARY_PATH=$(TEST_LD_LIBRARY_PATH); \
 	gdb $(BUILD_OBJ_DIR)/$(TEST_PROGRAM) $(TEST_ARGS)
 else
