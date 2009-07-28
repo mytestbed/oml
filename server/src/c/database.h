@@ -31,6 +31,7 @@
 
 struct _database;
 struct _dbTable;
+extern char* g_database_data_dir;
 
     /*! Called to calculate the final measurements, send the results to
  * a stream and reset the internal state for a new sampling period.

@@ -26,7 +26,7 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define VERSION "2.0"
+#define VERSION "2.2"
 
 #define PROTOCOL_MAJOR 1
 #define PROTOCOL_MINOR 0

@@ -67,7 +67,7 @@ sq3_create_database(
   char fname[128];
   sqlite3* db_hdl;
   int rc;
-  snprintf(fname, 127, "%s.sq3", db->name);
+  snprintf(fname, 127, "%s/%s.sq3", g_database_data_dir, db->name);
   rc = sqlite3_open(fname, &db_hdl);
   if (rc) {
     o_log(O_LOG_ERROR, "Can't open database: %s\n", sqlite3_errmsg(db_hdl));
