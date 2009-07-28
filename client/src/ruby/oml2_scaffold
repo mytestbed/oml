@@ -481,7 +481,7 @@ $(PROGRAM)_oml.h: $(PROGRAM).app
 #define OML_FROM_MAIN
 #include "#{template(:app_name)}_oml.h"
 
-#include "version"
+#include "version.h"
 
 void
 run(

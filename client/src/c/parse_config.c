@@ -24,9 +24,11 @@
   \brief Implements the parsing of the configuration file.
 */
 
+
 #include <ocomm/o_log.h>
 #include <malloc.h>
 #include <string.h>
+#include <stdlib.h>
 #include <libxml/tree.h>
 //#include <libxml/parser.h>
 #include "filter/factory.h"
@@ -60,6 +62,14 @@ parse_filter_properties(
     OmlFilter*  f,
     OmlMStream* ms,
     OmlMP*      mp
+);
+
+static int
+set_filter_property(
+    OmlFilter*  f,
+    const char* pname,
+    const char* ptype,
+    const char* pvalue
 );
 
 /**************************************************/
@@ -311,6 +321,13 @@ parse_filter_properties(
   xmlNodePtr el2 = el->children;
   for (; el2 != NULL; el2 = el2->next) {
     if (!xmlStrcmp(el2->name, (const xmlChar *)FILTER_PROPERTY_EL)) {
+      if (f->set == NULL) {
+	xmlChar* fname = xmlGetProp(el, (const xmlChar*)FILTER_NAME_ATTR);
+	o_log(O_LOG_ERROR, "Filter '%s' doesn't support setting properties.\n",
+	      fname);
+	return NULL;
+      }
+
       xmlChar* pname = xmlGetProp(el2, (const xmlChar*)FILTER_PROPERTY_NAME_ATTR);
       if (pname == NULL) {
 	o_log(O_LOG_ERROR, "Can't find property name in filter ('%s') property declaration.\n",
@@ -335,17 +352,21 @@ parse_filter_properties(
       }
       o_log(O_LOG_DEBUG, "Found filter property: %s:%s = '%s'.\n",
 	    pname, ptype, value);
-
+      set_filter_property(f, pname, ptype, value);
     }
   }
   return f;
 }
 
 /**
- * \fn static int set_filter_property(f, pname, ptype, pvalue)
+ * \fn static int set_filter_property(OmlFilter* f, const char* pname, const char* ptype, const char* pvalue)
+
  * \brief Set property 'pname' on filter to 'pvalue' of type 'ptype'.
  * \param f filter
-
+ * \param pname Name of property
+ * \param ptype Type of property value
+ * \param pvalue Value to set property to
+ *
  * \return 1 on success, 0 or less for failure
  */
 #if 0 // Currently not implemented and not used
@@ -356,8 +377,24 @@ set_filter_property(
     const char* ptype,
     const char* pvalue
 ) {
-  (void)f, (void)pname, (void)ptype, (void)pvalue;
-  return 0;
+  OmlValue v;
+
+  if (strcmp(ptype, "string") == 0) {
+    v.type = OML_STRING_VALUE;
+    omlc_set_string(v.value, (char*)pvalue);
+  } else if (strcmp(ptype, "long") == 0) {
+    v.type = OML_LONG_VALUE;
+    v.value.longValue = atol(pvalue);
+  } else if (strcmp(ptype, "double") == 0) {
+    v.type = OML_DOUBLE_VALUE;
+    v.value.doubleValue = atof(pvalue);
+  } else {
+    o_log(O_LOG_ERROR, "Unknown type '%s' for filter property '%s'.\n",
+	  ptype, pname);
+    return 0;
+  }
+
+  return f->set(f, pname, &v);
 }
 #endif
 

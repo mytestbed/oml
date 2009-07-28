@@ -426,7 +426,7 @@ create_writer(
   } else {
     // Net writer needs NAME and EXPERIMENT_ID
     if (omlc_instance->node_name == NULL) {
-      //o_log(O_LOG_ERROR, "Missing '--oml-id' flag \n");
+      o_log(O_LOG_ERROR, "Missing '--oml-id' flag \n");
       return NULL;
     }
     if (omlc_instance->experiment_id == NULL) {
