@@ -1,7 +1,8 @@
 
 defApplication('omf:app:nmetrics', 'omf_nmetrics') do |a|
 
-  a.version(1, 0, 0)
+  a.version(1, 0)
+  a.revision = 1
   a.shortDescription = 'Monitoring node statistcs'
   a.description = %{
 'nmetrics' is monitoring various node specific statistics,

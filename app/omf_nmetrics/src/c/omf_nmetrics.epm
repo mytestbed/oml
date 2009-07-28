@@ -1,0 +1,16 @@
+$build_dir=build
+$build_bin_dir=${build_dir}/bin
+$version=1.0
+$revision=1
+#
+%product omf_nmetric
+%copyright 2009 NICTA, All Rights Reserved.
+%vendor NICTA
+%license LEGAL
+%readme README
+%version ${version}
+%revision 20
+%description OMF's packet tracing application based on libtrace
+#%requires oml2-client 1.1
+
+f 755 root root /usr/bin/omf_nmetrics ${build_bin_dir}/omf_nmetrics
