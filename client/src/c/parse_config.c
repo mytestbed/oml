@@ -369,7 +369,6 @@ parse_filter_properties(
  *
  * \return 1 on success, 0 or less for failure
  */
-#if 0 // Currently not implemented and not used
 static int
 set_filter_property(
     OmlFilter*  f,
@@ -396,7 +395,6 @@ set_filter_property(
 
   return f->set(f, pname, &v);
 }
-#endif
 
 
 /**

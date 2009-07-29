@@ -144,7 +144,7 @@ eventloop_init()
 
 //! Build the fds array from active socket sources
 static void
-update_fds()
+update_fds(void)
 
 {
   Channel* ch = self.channels;
@@ -508,7 +508,7 @@ eventloop_every(
 
 /*! Return the current time */
 time_t
-eventloop_now()
+eventloop_now(void)
 
 {
   return now - start;

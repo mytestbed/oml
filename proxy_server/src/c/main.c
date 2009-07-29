@@ -182,7 +182,7 @@ main(
   o_log(O_LOG_INFO, V_STRING, VERSION);
   o_log(O_LOG_INFO, COPYRIGHT);
 
-  eventloop_init(100);
+  eventloop_init();
    proxyServer = (ProxyServer*) malloc(sizeof(ProxyServer));
   memset(proxyServer, 0, sizeof(ProxyServer));
 

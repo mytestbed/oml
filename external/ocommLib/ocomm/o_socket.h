@@ -80,7 +80,7 @@ socket_set_non_blocking_mode(
  * in the system default mode.
  */
 int
-socket_get_non_blocking_mode();
+socket_get_non_blocking_mode(void);
 
 
 /*! Create an unbound socket object.
@@ -160,7 +160,7 @@ socket_close(
  * Return 0 on success, -1 otherwise
  */
 int
-socket_close_all();
+socket_close_all(void);
 
 
 /*! Send a message through the socket

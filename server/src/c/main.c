@@ -124,7 +124,7 @@ main(
   o_log(O_LOG_INFO, V_STRING, VERSION);
   o_log(O_LOG_INFO, COPYRIGHT);
 
-  eventloop_init(100);
+  eventloop_init();
 
   Socket* serverSock;
   serverSock = socket_server_new("server", listen_port, on_connect, NULL);
