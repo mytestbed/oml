@@ -27,6 +27,9 @@
 #ifndef OML_OMLC_H_
 #define OML_OMLC_H_
 
+#define omlc_is_numeric_type(t)					\
+	(((t) == OML_LONG_VALUE) || ((t) == OML_DOUBLE_VALUE))
+
 #define omlc_set_long(var, val) \
     (var).longValue = (val);
 

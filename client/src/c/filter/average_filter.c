@@ -46,8 +46,8 @@ omlf_average_new(
   OmlValueT type,
   OmlValue* result
 ) {
-  if (! (type == OML_LONG_VALUE || type == OML_DOUBLE_VALUE)) {
-    o_log(O_LOG_ERROR, "Can only handle number parameters\n");
+  if (! omlc_is_numeric_type (type)) {
+    o_log(O_LOG_ERROR, "Can only handle numeric parameters\n");
     return NULL;
   }
 

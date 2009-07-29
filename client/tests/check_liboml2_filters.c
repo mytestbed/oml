@@ -20,6 +20,7 @@
  * THE SOFTWARE.
  *
  */
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <check.h>
@@ -28,21 +29,45 @@
 #include "filter/average_filter.h"
 #include "filter/first_filter.h"
 #include "filter/histogram_filter.h"
+#include "filter/stddev_filter.h"
+#include "oml2/oml_writer.h"
+#include "util.h"
 
 typedef struct _omlAvgFilterInstanceData AvgInstanceData;
 typedef struct _omlFirstFilterInstanceData FirstInstanceData;
 typedef struct _omlHistFilterInstanceData HistInstanceData;
+typedef struct _omlStddevFilterInstanceData StddevInstanceData;
 
+
+/* Fixtures */
+
+void
+filter_setup (void)
+{
+  register_builtin_filters ();
+}
+
+void
+filter_teardown (void)
+{
+  /*
+   * Each test case runs in a different process, so no need to tear
+   * down the filter factory, but probably should include it at some point.
+   */
+}
+
+/********************************************************************************/
+/*                         GENERAL FILTER TESTS                                 */
+/********************************************************************************/
 
 START_TEST (test_filter_create)
 {
   /*
-   * Create an averaging filter and check that it was correctly initialized.
+   * Create an averaging filter and check that its core (generic) data
+   * structure was correctly initialized.
    */
   OmlFilter* f = NULL;
   OmlFilterDef* def = NULL;
-
-  register_builtin_filters ();
 
   // TBD:  turn this into a loop with a check for every different type of filter.
   f = create_filter ("avg", "inst", OML_LONG_VALUE, 2);
@@ -76,6 +101,9 @@ START_TEST (test_filter_create)
 }
 END_TEST
 
+/********************************************************************************/
+/*                         AVERAGING FILTER TESTS                               */
+/********************************************************************************/
 
 START_TEST (test_filter_avg_create)
 {
@@ -84,8 +112,6 @@ START_TEST (test_filter_avg_create)
    */
   OmlFilter* f = NULL;
   AvgInstanceData* data = NULL;
-
-  register_builtin_filters ();
 
   f = create_filter ("avg", "inst", OML_LONG_VALUE, 2);
 
@@ -108,6 +134,10 @@ START_TEST (test_filter_avg_create)
 }
 END_TEST
 
+/********************************************************************************/
+/*                         'FIRST' FILTER TESTS                                 */
+/********************************************************************************/
+
 START_TEST (test_filter_first_create)
 {
   /*
@@ -115,8 +145,6 @@ START_TEST (test_filter_first_create)
    */
   OmlFilter* f = NULL;
   FirstInstanceData* data = NULL;
-
-  register_builtin_filters ();
 
   f = create_filter ("first", "inst", OML_LONG_VALUE, 2);
   fail_if (f == NULL, "Filter creation failed for `histogram' filter");
@@ -135,15 +163,18 @@ START_TEST (test_filter_first_create)
 }
 END_TEST
 
+/********************************************************************************/
+/*                        HISTOGRAM FILTER TESTS                                */
+/********************************************************************************/
+
+
 START_TEST (test_filter_hist_create)
 {
   /*
-   * Create an averaging filter and check that it was correctly initialized.
+   * Create an histogram filter and check that it was correctly initialized.
    */
   OmlFilter* f = NULL;
   HistInstanceData* data = NULL;
-
-  register_builtin_filters ();
 
   f = create_filter ("histogram", "inst", OML_LONG_VALUE, 2);
 
@@ -155,39 +186,128 @@ START_TEST (test_filter_hist_create)
 
   data = (HistInstanceData*)f->instance_data;
 
-  // Sample count and accumulator should be 0; min and max should be v. -ve and v. +ve respectively.
+  /* Sample count and accumulator should be 0; min and max should be v. +ve and v. -ve respectively. */
   fail_unless (data->sample_sum == 0);
   fail_unless (data->sample_count == 0);
   fail_unless (data->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, data->sample_min);
   fail_unless (data->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, data->sample_max);
 
+  /* TBD:  Check result vector */
+  /* TBD:  destroy the filter */
+}
+END_TEST
+
+/********************************************************************************/
+/*                          STDDEV FILTER TESTS                                 */
+/********************************************************************************/
+
+START_TEST(test_filter_stddev_create)
+{
+  /*
+   * Create an histogram filter and check that it was correctly initialized.
+   */
+  OmlFilter* f = NULL;
+  StddevInstanceData* data = NULL;
+
+  f = create_filter ("stddev", "inst", OML_LONG_VALUE, 2);
+
+  fail_if (f == NULL, "Filter creation failed for `histogram' filter");
+  fail_if (f->instance_data == NULL, "Filter instance data is NULL");
+
+  fail_unless (f->index == 2);
+  fail_unless (f->input_type == OML_LONG_VALUE);
+
+  data = (StddevInstanceData*)f->instance_data;
+
+  fail_unless (data->m == 0);
+  fail_unless (data->s == 0);
+  fail_unless (data->sample_count == 0);
+
   // TBD:  Check result vector
-  // TBD:  destroy the filter
+  // TBD:  Destroy filter
 }
 END_TEST
 
 
+TestData*
+stddev_0_data (void)
+{
+#include "stddev_0.c"
+}
+
+TestData*
+stddev_1_data (void)
+{
+#include "stddev_1.c"
+}
+
+START_TEST (test_filter_stddev_0)
+{
+  TestData* test_data = stddev_0_data ();
+  OmlFilter* f = create_filter ("stddev", "inst", OML_LONG_VALUE, 2);
+  fail_if (f == NULL);
+  StddevInstanceData* instance_data = (StddevInstanceData*)f->instance_data;
+  fail_if (instance_data == NULL);
+
+
+  run_filter_test (test_data, f);
+}
+END_TEST
+
+START_TEST (test_filter_stddev_1)
+{
+  TestData* test_data = stddev_1_data ();
+  OmlFilter* f = create_filter ("stddev", "inst", OML_LONG_VALUE, 2);
+  fail_if (f == NULL);
+  StddevInstanceData* instance_data = (StddevInstanceData*)f->instance_data;
+  fail_if (instance_data == NULL);
+
+  run_filter_test (test_data, f);
+}
+END_TEST
 
 Suite*
 filters_suite (void)
 {
   Suite* s = suite_create ("Filters");
 
-  /* Average filter test case */
+  /* Filter test cases */
   TCase* tc_filter = tcase_create ("FilterCore");
   TCase* tc_filter_avg = tcase_create ("FilterAverage");
   TCase* tc_filter_first = tcase_create ("FilterFirst");
   TCase* tc_filter_hist = tcase_create ("FilterHistogram");
+  TCase* tc_filter_stddev = tcase_create ("FilterStddev");
 
+  /* Setup fixtures */
+  tcase_add_checked_fixture (tc_filter,       filter_setup, filter_teardown);
+  tcase_add_checked_fixture (tc_filter_avg,   filter_setup, filter_teardown);
+  tcase_add_checked_fixture (tc_filter_first, filter_setup, filter_teardown);
+  tcase_add_checked_fixture (tc_filter_hist,  filter_setup, filter_teardown);
+  tcase_add_checked_fixture (tc_filter_stddev,filter_setup, filter_teardown);
+
+  /* Add tests to test case "FilterCore" */
   tcase_add_test (tc_filter, test_filter_create);
+
+  /* Add tests to test case "FilterAverage" */
   tcase_add_test (tc_filter_avg, test_filter_avg_create);
+
+  /* Add tests to test case "FilterFirst" */
   tcase_add_test (tc_filter_first, test_filter_first_create);
+
+  /* Add tests to test case "FilterHistogram" */
   tcase_add_test (tc_filter_hist, test_filter_hist_create);
 
+  /* Add tests to test case "FilterStddev" */
+  tcase_add_test (tc_filter_stddev, test_filter_stddev_create);
+  tcase_add_test (tc_filter_stddev, test_filter_stddev_0);
+  tcase_add_test (tc_filter_stddev, test_filter_stddev_1);
+
+  /* Add the test cases to this test suite */
   suite_add_tcase (s, tc_filter);
   suite_add_tcase (s, tc_filter_avg);
   suite_add_tcase (s, tc_filter_first);
   suite_add_tcase (s, tc_filter_hist);
+  suite_add_tcase (s, tc_filter_stddev);
 
   return s;
 }
