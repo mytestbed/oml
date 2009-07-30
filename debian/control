@@ -2,12 +2,12 @@ Source: oml
 Section: unknown
 Priority: extra
 Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
-Build-Depends: debhelper (>= 5), libsigar-dev, libxml2-dev, libpcap0.8-dev, libpopt-dev, libsqlite3-dev
+Build-Depends: debhelper (>= 5), libsigar-dev, libxml2-dev, libpcap0.8-dev, libpopt-dev, libsqlite3-dev, autoconf, check, libtrace3-dev
 Standards-Version: 3.7.2
 
 Package: oml-client
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libsigar, libxml2, libpcap0.8, libpopt0
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsigar, libxml2, libpcap0.8, libpopt0, liboml (= ${Source-Version}), libtrace3
 Description: OML measurement client
  The OML client component is integrated in the application to collect measurements taken or produced by that applications. Dynamically configurable filters analyze the various measurement streams before they are forwarded to the OML Server.
 
