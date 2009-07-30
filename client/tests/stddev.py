@@ -50,7 +50,7 @@ def stddev(v):
     '''
     Compute standard deviation for list v.
     '''
-    mean = math.fsum(v) / len(v)
+    mean = float(sum(v)) / len(v)
 
     y = sum([ (x - mean) * (x - mean) for x in v ]) / (len(v) - 1)
 

@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
 sharebindir = $(prefix)/share/bin
 
-SUBDIRS = omf_nmetrics omf_trace
+SUBDIRS = omf_nmetrics omf_trace iperf
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \

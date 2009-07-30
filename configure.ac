@@ -76,7 +76,8 @@ AC_CONFIG_FILES([Makefile
 		 examples/simple/Makefile
 		 app/Makefile
 		 app/omf_nmetrics/Makefile
-		 app/omf_trace/Makefile])
+		 app/omf_trace/Makefile
+		 app/iperf/Makefile])
 
 #AC_CONFIG_SUBDIRS([libsigar])
 AC_OUTPUT
