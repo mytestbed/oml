@@ -18,8 +18,8 @@ NAME=oml2-server
 
 test -x /usr/bin/$NAME || exit 0
 
-if [ -f /etc/default/$NAME ]; then
-    . /etc/default/$NAME
+if [ -f /etc/default/oml-server ]; then
+    . /etc/default/oml-server
 fi
 
 start(){
