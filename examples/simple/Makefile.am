@@ -1,10 +1,8 @@
 ACLOCAL_AMFLAGS = -I ../../m4
 
-sharebindir = $(prefix)/share/bin
-
 AM_CPPFLAGS = -I $(top_srcdir)/client/src/c
 
-sharebin_PROGRAMS = oml_ex_simple
+bin_PROGRAMS = oml_ex_simple
 
 oml_ex_simple_SOURCES = generator.c
 

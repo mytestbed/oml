@@ -1,13 +1,11 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
-sharebindir = $(prefix)/share/bin
-
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c
 
 progname = omf_nmetrics
 
-sharebin_PROGRAMS = $(progname)
+bin_PROGRAMS = $(progname)
 
 omf_nmetrics_SOURCES = \
 	src/c/omf_nmetrics.c

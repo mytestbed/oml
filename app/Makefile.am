@@ -1,14 +1,12 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
-sharebindir = $(prefix)/share/bin
-
 SUBDIRS = omf_nmetrics omf_trace iperf
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
 	-I $(top_srcdir)/external/ocommLib
 
-sharebin_PROGRAMS = gps_oml2 wlanconfig_oml2
+bin_PROGRAMS = gps_oml2 wlanconfig_oml2
 
 gps_oml2_SOURCES = \
 	src/c/Gps.cpp \

@@ -1,13 +1,11 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
-sharebindir = $(prefix)/share/bin
-
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c
 
 progname = omf_trace
 
-sharebin_PROGRAMS = $(progname)
+bin_PROGRAMS = $(progname)
 
 omf_trace_SOURCES = \
 	src/c/omf_trace.c

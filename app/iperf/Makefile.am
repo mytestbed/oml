@@ -1,13 +1,14 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
-sharebindir = $(prefix)/share/bin
-
 AM_CPPFLAGS = \
-	-I $(top_srcdir)/client/src/c -I ./lib -I ./cfg
+	-I $(top_srcdir)/client/src/c \
+	-I $(top_srcdir)/app/iperf/lib \
+	-I $(top_srcdir)/app/iperf/cfg \
+	-I $(top_srcdir)/external/ocommLib
 
 progname = iperf_oml
 
-sharebin_PROGRAMS = $(progname)
+bin_PROGRAMS = $(progname)
 
 iperf_oml_SOURCES = lib/config.h \
     lib/Condition.hpp         \
