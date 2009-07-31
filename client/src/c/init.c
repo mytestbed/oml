@@ -44,7 +44,8 @@ OmlClient* omlc_instance = NULL;
 
 static OmlClient instance_storage;
 
-static void usage();
+static void usage(void);
+static void print_filters(void);
 //static int configure(char* configFile);
 static int default_configuration();
 static int write_meta();
@@ -168,6 +169,10 @@ omlc_init(
       return 1;
     } else if (strcmp(*argvPtr, "--oml-help") == 0) {
       usage();
+      *argcPtr -= 1;
+      exit(0);
+    } else if (strcmp(*argvPtr, "--oml-list-filters") == 0) {
+      print_filters();
       *argcPtr -= 1;
       exit(0);
     } else {
@@ -382,18 +387,40 @@ usage()
   printf("  --oml-file file        .. Writes measurements to 'file'\n");
   printf("  --oml-id id            .. Name to identify this app instance\n");
   printf("  --oml-exp-id expId     .. Name to experiment DB\n");
-  printf("  --oml-server uri       .. uri to send measurements\n");
+  printf("  --oml-server uri       .. URI of server to send measurements to\n");
   printf("  --oml-config file      .. Reads configuration from 'file'\n");
   printf("  --oml-samples count    .. Default number of samples to collect\n");
   printf("  --oml-interval seconds .. Default interval between measurements\n");
   printf("  --oml-log-file file    .. Writes log messages to 'file'\n");
   printf("  --oml-log-level level  .. Log level used (error: 1 .. debug:4)\n");
   printf("  --oml-noop             .. Do not collect measurements\n");
-  printf("  --oml-help             .. print this message\n");
+  printf("  --oml-list-filters     .. List the available types of filters\n");
+  printf("  --oml-help             .. Print this message\n");
   printf("\n");
   printf("Valid URI: tcp|udp:host:port:[bindAddr] or file:localPath\n");
   printf("    The optional 'bindAddr' is used for multicast conections\n");
   printf("\n");
+}
+
+static void
+print_filters(void)
+{
+  register_builtin_filters();
+
+  printf("OML Client V%d.%d.%d\n", OMLC_MAJOR_VERSION, OMLC_MINOR_VERSION, OMLC_REVISION);
+  printf("%s\n", OMLC_COPYRIGHT);
+  printf("\n");
+  printf("OML filters available:\n\n");
+
+  const char* filter = NULL;
+  do
+	{
+	  filter = next_filter_name();
+	  if (filter)
+		printf ("\t%s\n", filter);
+	}
+  while (filter != NULL);
+  printf ("\n");
 }
 
 /**

@@ -45,6 +45,31 @@ typedef struct _filterType {
 
 static FilterType* filter_types = NULL;
 
+const char*
+next_filter_name(void)
+{
+  static FilterType* ft = NULL;
+  static int done = 1;
+  const char* name;
+
+  if (ft == NULL && done)
+	{
+	  done = 0;
+	  ft = filter_types;
+	}
+  else if (ft == NULL)
+	{
+	  done = 1;
+	  return NULL;
+	}
+
+  name = ft->name;
+
+  ft = ft->next;
+
+  return name;
+}
+
 static OmlValue*
 create_filter_result_vector (OmlFilterDef* def, OmlValueT type, int count)
 {

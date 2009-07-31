@@ -31,6 +31,7 @@
 /* Builtin filter registration functions */
 void omlf_register_filter_average (void);
 
+const char* next_filter_name(void);
 void register_builtin_filters (void);
 
 /*! Create an instance of a filter of type 'fname'.
