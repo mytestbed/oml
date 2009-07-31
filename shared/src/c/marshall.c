@@ -173,10 +173,6 @@ marshall_value(
       *(p++) = LONG_T;
       memcpy(p, &nv, 4);
       p += 4;
-/*       *(p++) = (char)((nv >> 24) & 0xff); */
-/*       *(p++) = (char)((nv >> 16) & 0xff); */
-/*       *(p++) = (char)((nv >> 8) & 0xff); */
-/*       *(p++) = (char)(nv & 0xff); */
       break;
     }
     case OML_DOUBLE_VALUE: {
@@ -199,10 +195,6 @@ marshall_value(
       *(p++) = type;
       memcpy(p, &nmant, 4);
       p += 4;
-/*       *(p++) = (char)((nmant >> 24) & 0xff); */
-/*       *(p++) = (char)((nmant >> 16) & 0xff); */
-/*       *(p++) = (char)((nmant >> 8) & 0xff); */
-/*       *(p++) = (char)(nmant & 0xff); */
       *(p++) = nexp;
       break;
     }
@@ -248,8 +240,6 @@ marshall_finalize(
   uint16_t nlen = htons(len);  // pure data length
   memcpy(p,&nlen,2);
   p += 2;
-/*   *(p++) = (unsigned char)((nlen >> 8) & 0xff);  */
-/*   *(p++) = (unsigned char)(nlen & 0xff); */
   return 1;
 }
 
@@ -315,8 +305,6 @@ unmarshall_init(
   uint16_t nv = 0;
   memcpy(&nv,p,2);
   p += 2;
-/*   uint16_t nv = *p++ << 8;  */
-/*   nv += *p++; */
   uint16_t hv = ntohs(nv);
   int len = (int)(hv);
 
@@ -460,10 +448,6 @@ unmarshall_value(
       uint32_t nv = 0;
       memcpy(&nv,p,4);
       p += 4;
-/*       uint32_t nv = *p++ << 24;  */
-/*       nv += *p++ << 16; */
-/*       nv += *p++ << 8; */
-/*       nv += *p++; */
       uint32_t hv = ntohl(nv);
       //long v = (long)(hv - BIG_L);
       long v = (long)(hv);
@@ -480,10 +464,6 @@ unmarshall_value(
       uint32_t nmant = 0;
       memcpy(&nmant,p,4);
       p += 4;
-/*       uint32_t nmant = *p++ << 24;  */
-/*       nmant += *p++ << 16; */
-/*       nmant += *p++ << 8; */
-/*       nmant += *p++; */
       int hmant = (int)ntohl(nmant);
       double mant = hmant * 1.0 / (1 << BIG_L);
       int exp = (signed char)*p++;
