@@ -4,7 +4,6 @@
 AC_PREREQ([2.6])
 AC_INIT([oml2], [2.0.0], [http://www.mytestbed.net/projects/oml/issues/new])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
-LT_INIT
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_LIBTOOL([1.4])
@@ -34,7 +33,6 @@ fi
 
 
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
-#AM_PATH_CHECK()
 
 AC_CHECK_LIB(sqlite3, sqlite3_initialize, [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])])
 AC_CHECK_LIB([pcap], [pcap_open_live], [AC_DEFINE([HAVE_LIBPCAP], [1], [Define if libpcap is installed.])])
