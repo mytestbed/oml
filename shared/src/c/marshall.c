@@ -184,7 +184,7 @@ marshall_value(
       double v = val->doubleValue;
       int exp;
       double mant = frexp(v, &exp);
-      char nexp = (char)exp;
+      signed char nexp = (signed char)exp;
       if (nexp != exp) {
         o_log(O_LOG_ERROR, "Double number '%lf' is out of bounds\n", v);
         type = DOUBLE_NAN;
@@ -486,7 +486,7 @@ unmarshall_value(
 /*       nmant += *p++; */
       int hmant = (int)ntohl(nmant);
       double mant = hmant * 1.0 / (1 << BIG_L);
-      int exp = (char)*p++;
+      int exp = (signed char)*p++;
       double v = ldexp(mant, exp);
       value->value.doubleValue = v;
       value->type = OML_DOUBLE_VALUE;
