@@ -5,9 +5,9 @@ AM_CPPFLAGS = \
 
 progname = omf_trace
 
-bin_PROGRAMS = $(progname)
+bin_PROGRAMS = trace_oml2
 
-omf_trace_SOURCES = \
+trace_oml2_SOURCES = \
 	src/c/omf_trace.c
 
 BUILT_SOURCES = \
@@ -18,7 +18,7 @@ CLEANFILES = \
 	$(progname)_popt.h \
 	$(progname)_oml.h
 
-omf_trace_LDADD = \
+trace_oml2_LDADD = \
 	$(top_builddir)/client/liboml2.la \
 	-ltrace -lpopt
 

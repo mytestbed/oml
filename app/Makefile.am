@@ -6,7 +6,7 @@ AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
 	-I $(top_srcdir)/external/ocommLib \
 	-I $(top_srcdir)/libsigar/include 
-	
+
 bin_PROGRAMS = gps_oml2 wlanconfig_oml2
 
 gps_oml2_SOURCES = \

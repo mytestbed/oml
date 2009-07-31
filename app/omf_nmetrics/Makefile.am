@@ -3,12 +3,12 @@ ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
 	-I $(top_srcdir)/libsigar/include
-	
+
 progname = omf_nmetrics
 
-bin_PROGRAMS = $(progname)
+bin_PROGRAMS = nmetrics_oml2
 
-omf_nmetrics_SOURCES = \
+nmetrics_oml2_SOURCES = \
 	src/c/omf_nmetrics.c
 
 BUILT_SOURCES = \
@@ -19,7 +19,7 @@ CLEANFILES = \
 	$(progname)_popt.h \
 	$(progname)_oml.h
 
-omf_nmetrics_LDADD = \
+nmetrics_oml2_LDADD = \
 	$(top_builddir)/client/liboml2.la \
 	-lsigar -lpopt
 

@@ -6,11 +6,11 @@ AM_CPPFLAGS = \
 	-I $(top_srcdir)/app/iperf/cfg \
 	-I $(top_srcdir)/external/ocommLib
 
-progname = iperf_oml
+progname = iperf_oml2
 
 bin_PROGRAMS = $(progname)
 
-iperf_oml_SOURCES = lib/config.h \
+iperf_oml2_SOURCES = lib/config.h \
     lib/Condition.hpp         \
 	lib/Mutex.hpp             \
 	lib/Socket.cpp            \
@@ -68,7 +68,7 @@ iperf_oml_SOURCES = lib/config.h \
 	src/main.cpp              \
 	src/version.h
 
-iperf_oml_LDADD = \
+iperf_oml2_LDADD = \
 	$(top_builddir)/client/liboml2.la \
 	-ltrace -lpopt 
 
