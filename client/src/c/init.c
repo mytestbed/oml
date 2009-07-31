@@ -47,15 +47,15 @@ static OmlClient instance_storage;
 static void usage(void);
 static void print_filters(void);
 //static int configure(char* configFile);
-static int default_configuration();
-static int write_meta();
+static int default_configuration(void);
+static int write_meta(void);
 static int write_schema(
   OmlMStream* ms,
   int index
 );
 
 static void termination_handler(int signum);
-static void install_close_handler();
+static void install_close_handler(void);
 
 extern int parse_config(char* configFile);
 
@@ -321,7 +321,7 @@ termination_handler(
  * \brief start the signal handler
  */
 static void
-install_close_handler()
+install_close_handler(void)
 
 {
   struct sigaction new_action, old_action;
@@ -377,7 +377,7 @@ omlc_close()
  * \brief print the possible OML parameters
  */
 static void
-usage()
+usage(void)
 
 {
   printf("OML Client V%d.%d.%d\n", OMLC_MAJOR_VERSION, OMLC_MINOR_VERSION, OMLC_REVISION);
@@ -523,7 +523,7 @@ create_mstream(
  * \return 0 if successful -1 otherwise
  */
 static int
-default_configuration()
+default_configuration(void)
 
 {
   OmlWriter* writer;
@@ -623,7 +623,7 @@ createDefaultFilter(
  * \return 0 if successful
  */
 static int
-write_meta()
+write_meta(void)
 
 {
   OmlWriter* writer = omlc_instance->firstWriter;
