@@ -1,0 +1,9 @@
+/var/log/oml-server.log {
+	weekly
+	rotate 4
+	missingok
+	notifempty
+	compress
+	nocreate
+}
+
