@@ -173,7 +173,17 @@ database_get_table(
     char* col = p;
     while (*p != ' ' && *p != '\0') p++;
     if (*p != '\0') *(p++) = '\0';
-    parse_col_decl(table, col, index, check_only);
+    if (!parse_col_decl(table, col, index, check_only))
+	  {
+		o_log(O_LOG_WARN, "A bad column specification was found in schema for table %s\n", table->name);
+		if (!check_only)
+		  {
+			o_log(O_LOG_ERROR, "This table will not be registered now\n");
+			o_log(O_LOG_ERROR, "(but another client can register it with a valid schema later on)\n");
+			table_free (table);
+			return NULL;
+		  }
+	  }
     o_log(O_LOG_DEBUG, "Column name '%s'\n", col);
     index++;
   }
@@ -187,6 +197,7 @@ database_get_table(
   }
   return table;
 }
+
 /**
  * \fn static int parse_col_decl( DbTable* self, char* col_decl, int index, int check_only)
  * \brief Create a column in the database
@@ -207,7 +218,8 @@ parse_col_decl(
   char* p = name;
   while (*p != ':' && *p != '\0') p++;
   if (*p == '\0') {
-    o_log(O_LOG_WARN, "Malformed schema type '%s'\n", name);
+    o_log(O_LOG_ERROR, "Malformed column schema '%s'\n", name);
+	return 0;
   }
   *(p++) = '\0';
   char* typeS = p;

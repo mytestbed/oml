@@ -267,8 +267,12 @@ sq3_insert(
   OmlValue* v = values;
   for (i = 0; i < value_count; i++, v++) {
     DbColumn* col = table->columns[i];
+	if (!col) {
+	  o_log(O_LOG_ERROR, "Column %d of table '%s' is NULL.  Not inserting.\n", i, table->name);
+	  return -1;
+	}
     if (v->type != col->type) {
-      o_log(O_LOG_ERROR, "Mismatch in %dth value type fo rtable '%s'\n", i, table->name);
+      o_log(O_LOG_ERROR, "Mismatch in %dth value type for table '%s'\n", i, table->name);
       return -1;
     }
     int res;
