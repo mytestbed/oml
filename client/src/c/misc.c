@@ -91,27 +91,53 @@ oml_value_copy(
       to->value.doubleValue = value->doubleValue;
       to->type = OML_DOUBLE_VALUE;
       break;
-    case OML_STRING_VALUE: {
-      to->type = OML_STRING_VALUE;
-      OmlString* str = &to->value.stringValue;
-      str->is_const = value->stringValue.is_const;
-      if (str->is_const) {
-	str->ptr = value->stringValue.ptr;
-      } else {
-	char* fstr = value->stringValue.ptr;
-	int size = strlen(fstr);
-	if (str->length < size + 1) {
-	  if (str->length > 0) {
-	    free(str->ptr);
+    case OML_STRING_VALUE:
+	  {
+		to->type = OML_STRING_VALUE;
+		OmlString* str = &to->value.stringValue;
+		str->is_const = value->stringValue.is_const;
+		if (str->is_const) {
+		  str->ptr = value->stringValue.ptr;
+		} else {
+		  char* fstr = value->stringValue.ptr;
+		  if (!fstr)
+			{
+			  o_log (O_LOG_WARN, "Trying to copy OML_STRING_VALUE from a NULL source\n");
+			  return -1;
+			}
+		  int size = strlen(fstr);
+
+		  /*
+		   * Reallocate the string if either:
+		   *
+		   *   1. The dest string value has some memory allocated and
+		   *   that memory is not enough to hold the new string; or
+		   *
+		   *   2. The dest string value does not have any memory
+		   *   allocated (ptr is NULL).
+		   */
+		  if (str->ptr == NULL || str->length < size + 1)
+			{
+			  if (str->ptr && str->length > 0)
+				{
+				  free(str->ptr);
+				}
+			  str->ptr = malloc(size + 1);
+			  str->length = size + 1;
+			}
+		  if (str->ptr)
+			{
+			  strncpy(str->ptr, fstr, size + 1);
+			}
+		  else
+			{
+			  o_log (O_LOG_WARN, "Trying to copy OML_STRING_VALUE '%s' to NULL destination\n", fstr);
+			  return -1;
+			}
+		  str->size = size;
+		}
+		break;
 	  }
-	  str->ptr = malloc(size + 1);
-	  str->length = size + 1;
-	}
-	strncpy(str->ptr, fstr, size);
-	str->size = size;
-      }
-      break;
-    }
     default:
       o_log(O_LOG_ERROR, "Copy for type '%d' not implemented'\n", type);
       return -1;
