@@ -101,7 +101,7 @@ sq3_release(
 ) {
   Sq3DB* self = (Sq3DB*)db->adapter_hdl;
   sqlite3_close(self->db_hdl);
-  // TODO: Release tabel specific data
+  // TODO: Release table specific data
 
   free(self);
   db->adapter_hdl = NULL;

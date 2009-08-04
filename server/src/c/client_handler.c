@@ -236,7 +236,7 @@ process_header(
     while (*(value++) == ' ' && (void*)value < (void*)mbuf->curr_p); // skip white space
     process_meta(self, line, value - 1);
  } else {
-    o_log(O_LOG_WARN, "Illformated meta line in header: <%s>\n", line);
+    o_log(O_LOG_WARN, "Malformed meta line in header: <%s>\n", line);
   }
   return 1; // still in header
 }

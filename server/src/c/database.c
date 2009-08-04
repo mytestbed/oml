@@ -64,7 +64,7 @@ database_find(
   // need to create a new one
   Database* self = (Database *)malloc(sizeof(Database));
   memset(self, 0, sizeof(Database));
-  o_log(O_LOG_DEBUG, "Creation of the database %s\n", name);
+  o_log(O_LOG_DEBUG, "Creating new database %s\n", name);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
   self->ref_count = 1;
 
