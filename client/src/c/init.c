@@ -26,6 +26,7 @@
 
 #include <ocomm/o_log.h>
 #include <string.h>
+#include <ctype.h>
 #include <malloc.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -59,6 +60,9 @@ static void install_close_handler(void);
 
 extern int parse_config(char* configFile);
 
+static const char* validate_app_name (const char* name);
+static const char* validate_mp_name (const char* name);
+
 /**
  * \fn int omlc_init( const char* appName, int* argcPtr, const char** argv, oml_log_fn custom_oml_log)
  * \brief function called by the application to initialise the oml measurements
@@ -66,7 +70,7 @@ extern int parse_config(char* configFile);
  * \param argcPtr the argc of the command line of the application
  * \param agrv the argv of the command line of the application
  * \param custom_oml_log the reference to the log file of oml
- * \return 0 when finished
+ * \return 0 on success, -1 on failure.
  */
 int
 omlc_init(
@@ -75,19 +79,17 @@ omlc_init(
   const char** argv,
   oml_log_fn custom_oml_log
 ) {
-
   o_set_log((o_log_fn)custom_oml_log);
   //  o_set_log_level(DEF_LOG_LEVEL);
   o_set_log_level(3);
 
+  const char* appliName = validate_app_name (appName);
 
-  const char* appliName = appName;
-  const char* p = appliName + strlen(appName);
-  while (! (p == appliName || *p == '/')) p--;
-  if (*p == '/') p++;
-  appliName = p;
-
-
+  if (!appliName)
+	{
+	  o_log (O_LOG_ERROR, "Found illegal whitespace in application name '%s'\n", appName);
+	  return -1;
+	}
 
   omlc_instance = NULL;
   const char* name = NULL;
@@ -103,63 +105,63 @@ omlc_init(
     if (strcmp(*argvPtr, "--oml-id") == 0) {
       if (--i <= 0) {
         o_log(O_LOG_ERROR, "Missing argument for '--oml-id'\n");
-        return 0;
+        return -1;
       }
       name = *++argvPtr;
       *argcPtr -= 2;
     } else if (strcmp(*argvPtr, "--oml-exp-id") == 0) {
       if (--i <= 0) {
         o_log(O_LOG_ERROR, "Missing argument for '--oml-exp-id'\n");
-        return 0;
+        return -1;
       }
       experimentId = *++argvPtr;
       *argcPtr -= 2;
     } else if (strcmp(*argvPtr, "--oml-file") == 0) {
       if (--i <= 0) {
         o_log(O_LOG_ERROR, "Missing argument for '--oml-file'\n");
-        return 0;
+        return -1;
       }
       localDataFile = *++argvPtr;
       *argcPtr -= 2;
     } else if (strcmp(*argvPtr, "--oml-config") == 0) {
       if (--i <= 0) {
         o_log(O_LOG_ERROR, "Missing argument for '--oml-config'\n");
-        return 0;
+        return -1;
       }
       configFile = *++argvPtr;
       *argcPtr -= 2;
     } else if (strcmp(*argvPtr, "--oml-samples") == 0) {
       if (--i <= 0) {
         o_log(O_LOG_ERROR, "Missing argument to '--oml-samples'\n");
-        return 0;
+        return -1;
       }
       sample_count = atoi(*++argvPtr);
       *argcPtr -= 2;
     } else if (strcmp(*argvPtr, "--oml-interval") == 0) {
       if (--i <= 0) {
         o_log(O_LOG_ERROR, "Missing argument to '--oml-interval'\n");
-        return 0;
+        return -1;
       }
       sample_interval = atof(*++argvPtr);
       *argcPtr -= 2;
     } else if (strcmp(*argvPtr, "--oml-log-file") == 0) {
       if (--i <= 0) {
         o_log(O_LOG_ERROR, "Missing argument to '--oml-log-file'\n");
-        return 0;
+        return -1;
       }
       o_set_log_file((char*)*++argvPtr);
       *argcPtr -= 2;
     } else if (strcmp(*argvPtr, "--oml-log-level") == 0) {
       if (--i <= 0) {
         o_log(O_LOG_ERROR, "Missing argument to '--oml-log-level'\n");
-        return 0;
+        return -1;
       }
       o_set_log_level(atoi(*++argvPtr));
       *argcPtr -= 2;
     } else if (strcmp(*argvPtr, "--oml-server") == 0) {
       if (--i <= 0) {
         o_log(O_LOG_ERROR, "Missing argument for '--oml-server'\n");
-        return 0;
+        return -1;
       }
       serverUri = (char*)*++argvPtr;
       *argcPtr -= 2;
@@ -179,9 +181,6 @@ omlc_init(
       *argv++ = *argvPtr;
     }
   }
-
-  //oml_marshall_test();
-
 
   o_log(O_LOG_INFO, "OML Client V%d.%d.%d %s\n",
   OMLC_MAJOR_VERSION, OMLC_MINOR_VERSION, OMLC_REVISION, OMLC_COPYRIGHT);
@@ -238,11 +237,17 @@ omlc_add_mp(
   OmlMPDef*   mp_def
 ) {
   if (omlc_instance == NULL) return NULL;
+  const char* name = validate_mp_name (mp_name);
+  if (!name)
+	{
+	  o_log (O_LOG_ERROR, "Found illegal whitespace in MP name '%s'.  MP will not be created\n", mp_name);
+	  return NULL;
+	}
 
   OmlMP* mp = (OmlMP*)malloc(sizeof(OmlMP));
   memset(mp, 0, sizeof(OmlMP));
 
-  mp->name = mp_name;
+  mp->name = name;
   mp->param_defs = mp_def;
   int pc = 0;
   OmlMPDef* dp = mp_def;
@@ -703,6 +708,67 @@ write_schema(
   return 0;
 }
 
+
+/**
+ *  Validate the name of the application.
+ *
+ *  If the application name contains a '/', it is truncated to the
+ *  sub-string following the final '/'.  If the application name
+ *  contains any whitespace, it is declared invalid.
+ *
+ *
+ *  @param name the name of the application.
+ *
+ *  @return If the application name is valid, a pointer to the
+ *  application name, possibly truncated, is returned.  If the
+ *  application name is not valid, returns NULL.  If the returned
+ *  pointer is not NULL, it may be different from name.
+ *
+ */
+static const char*
+validate_app_name (const char* name)
+{
+  const char* p = name + strlen (name);
+  while (p != name)
+	{
+	  if (*p == '/')
+		break;
+	  if (isspace (*p))
+		return NULL;
+	  p--;
+	}
+
+  if (*p == '/')
+	p++;
+  return p;
+}
+
+/**
+ *  Validate the name of a Measurement Point.
+ *
+ *  If the measurement point name contains any whitespace, it is
+ *  declared invalid.
+ *
+ *  @param name the name of the MP.
+ *
+ *  @return If the MP name is valid, a pointer to the MP name
+ *  returned.  If the MP name is not valid, returns NULL.  If the
+ *  returned pointer is not NULL, it may be different from name.
+ *
+ */
+static const char*
+validate_mp_name (const char* name)
+{
+  const char* p = name + strlen (name);
+  while (p != name)
+	{
+	  if (isspace (*p))
+		return NULL;
+	  p--;
+	}
+
+  return p;
+}
 
 
 /*
