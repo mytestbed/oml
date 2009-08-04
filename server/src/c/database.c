@@ -72,14 +72,14 @@ database_find(
   gettimeofday(&tv, NULL);
   self->start_time = tv.tv_sec;
 
-  // hook this one into the list of active databases
-  self->next = firstDB;
-  firstDB = self;
-
   if (sq3_create_database(self)) {
     free(self);
     return NULL;
   }
+
+  // hook this one into the list of active databases
+  self->next = firstDB;
+  firstDB = self;
 
   return self;
 }
@@ -120,12 +120,15 @@ database_release(
 
   // no longer needed
   DbTable* t_p = self->first_table;
-  while (t_p != NULL) {
-    table_free(t_p);
-    t_p = t_p->next;
-  }
+  while (t_p != NULL)
+	{
+	  DbTable* t = t_p->next;
+	  table_free(t_p);
+	  t_p = t;
+	}
   free(self);
 }
+
 /**
  * \fn DbTable* database_get_table(Database* database, char* schema)
  * \brief get a table from the database
@@ -274,18 +277,24 @@ static void
 table_free(
   DbTable* table
 ) {
-  if (table->columns != NULL) {
-    DbColumn* c;
-    int i;
-
-    for (i = 0; i < table->col_size; i++) {
-      if ((c = table->columns[i]) == NULL) {
-        break; // reached end
-      }
-      free(c);
-    }
-    free(table->columns);
-  }
+  if (table)
+	{
+	  o_log(O_LOG_DEBUG, "Freeing table %s\n", table->name);
+	  if (table->columns != NULL)
+		{
+		  int i;
+		  for (i = 0; i < table->col_size; i++)
+			{
+			  if (table->columns[i] == NULL)
+				break; // reached end
+			  free(table->columns[i]);
+			}
+		  free(table->columns);
+		}
+	  free(table);
+	}
+  else
+	o_log(O_LOG_WARN, "Tried to free a NULL table\n");
 }
 
 

@@ -172,7 +172,6 @@ sq3_create_table(
   int i = 0;
   while (col != NULL && max > 0) {
     char* t;
-    col = table->columns[i];
     switch (col->type) {
       case OML_LONG_VALUE: t = "INTEGER"; break;
       case OML_DOUBLE_VALUE: t = "REAL"; break;
@@ -192,11 +191,14 @@ sq3_create_table(
     is += strlen(is);
     i++;
     max--;
+    col = table->columns[i];
   }
   sprintf(cs, ");");
   sprintf(is, ");");
   o_log(O_LOG_DEBUG, "schema: %s\n", create);
   o_log(O_LOG_DEBUG, "insert: %s\n", insert);
+  o_log(O_LOG_DEBUG, "CREATE statement length: %d\n", strlen(create));
+  o_log(O_LOG_DEBUG, "INSERT statement length: %d\n", strlen(insert));
 
   Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
 
