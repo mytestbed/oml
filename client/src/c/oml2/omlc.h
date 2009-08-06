@@ -20,15 +20,16 @@
  * THE SOFTWARE.
  *
  */
-/*!\file omlc.h
-  \brief Header file for OML's client library.
-*/
-
-#ifndef OML_OMLC_H_
-#define OML_OMLC_H_
+/**
+ * \file omlc.h
+ * \brief Header file for OML's client library.
+ */
 
 #define omlc_is_numeric_type(t)					\
 	(((t) == OML_LONG_VALUE) || ((t) == OML_DOUBLE_VALUE))
+
+#ifndef OML_OMLC_H_
+#define OML_OMLC_H_
 
 #define omlc_set_long(var, val) \
     (var).longValue = (val);
@@ -44,7 +45,6 @@
     (var).stringValue.ptr = (val); (var).stringValue.is_const = 1; \
     (var).stringValue.size = (var).stringValue.length = 0;
 
-//#include <ocomm/queue.h>
 #include <pthread.h>
 #include <oml2/oml.h>
 
@@ -52,8 +52,7 @@ struct _omlFilter;   // can't include oml_filter.h yet
 struct _omlWriter;   // forward declaration
 
 /**
- * \struct
- * \brief
+ *  Representation of a string measurement value.
  */
 typedef struct _omlString {
   char* ptr;
@@ -95,139 +94,111 @@ extern int oml_value_copy(OmlValueU* value, OmlValueT type, OmlValue* to);
 //! Set all the values to either zero or the empty string.
 extern int oml_value_reset(OmlValue* v);
 
-
-////! Structure to store the definition of a measurement point
-//typedef struct _omlMPDef {
-//  //! Name of MP
-//  char* name;
-//  //! Index to find first OmlMStream for this MP
-//  int index;
-//  //! Number of parameters defined
-//  int param_count;
-//  //! Names of parameters
-//  char** param_names;
-//  //! Types of paramters
-//  OmlValueT* param_types;
-//
-//  //! Instead of array use linked list
-//  struct _omlMPDef* next;
-//} XXOmlMPDef;
-
 /**
- * \struct
- * \brief
+ * Structure to store the definition of a measurement point.
  */
-//! Structure to store the definition of a measurement point
-typedef struct _omlMPDef {
-  //! Name of MP
-  const char* name;
-  //! Types of paramters
-  OmlValueT  param_types;
-
-  //! Instead of array use linked list
-  //struct _omlMPDef* next;
+typedef struct _omlMPDef
+{
+	const char* name;       ///< Name of MP
+	OmlValueT  param_types; ///< Types of paramters
 } OmlMPDef;
 
 struct _omlMP;
 
 /**
- * \struct
- * \brief
+ * Structure to store how to collect a measurement point.
  */
-//! Structure to store how to collect a measurement point
-typedef struct _omlMStream {
+typedef struct _omlMStream
+{
+	char table_name[64]; ///< Name of database table this stream is stored in
 
-  //! Name of database table this stream is stored in
-  char table_name[64];
+	struct _omlMP* mp; ///< Encompasing MP
 
-  // Encompasing MP
-  struct _omlMP* mp;
+	OmlValue** values;
 
-  //! A queue for each parameter of an MP. If NULL, do not collect.
-  //OQueue** queues;
+	struct _omlFilter* firstFilter; ///< Linked list of filters on this MS.
 
-  OmlValue** values;
-  struct _omlFilter* firstFilter;
+	int index; ///< Index to identify this stream
 
-  //! Index to identify this stream
-  int index;
+	int sample_size; ///< Counts number of samples produced.
 
-  //! Number of expected parameters.
-  //int param_count;
+	int sample_thres; ///< Number of samples to collect before creating next measurment.
 
-  //! Counts number of samples produced.
-  int sample_size;
+	double sample_interval; ///< Interval between measurements in seconds
 
-  //! Number of samples to collect before creating next measurment.
-  int sample_thres;
+	long seq_no; ///< Counting the number of samples produced
 
-  //! Interval between measurements in seconds
-  double sample_interval;
+	pthread_cond_t  condVar; ///< CondVar for filter in sample mode
 
-  //! Counting the number of samples produced
-  long seq_no;
+	pthread_t  filter_thread; ///< Thread for filter on this stream
 
-  //! Mutex for entire group of linked MPoints. Only first one initializes it.
-//  pthread_mutex_t* mutexP;
+	struct _omlWriter* writer; ///< Associated writer
 
-  //! CondVar for filter in sample mode
-  pthread_cond_t  condVar;
-
-  //! Thread for filter on this stream
-  pthread_t  filter_thread;
-
-  //! Associated writer
-  struct _omlWriter* writer;
-
-  //! Next MP structure for same measurement point.
-  struct _omlMStream* next;
-
-  //! STORAGE
-//  pthread_mutex_t mutex;
-
+	struct _omlMStream* next; ///< Next MP structure for same measurement point.
 } OmlMStream;
 
 /**
- * \struct
- * \brief
+ * Structure to store how to collect a measurement point.
  */
-//! Structure to store how to collect a measurement point
-typedef struct _omlMP {
-  const char* name;
-  OmlMPDef*   param_defs;
-  int         param_count;
+typedef struct _omlMP
+{
+	const char* name;
+	OmlMPDef*   param_defs;
+	int         param_count;
 
-  int         table_count; // counts how many MS are associated with this
-                           // used for creating unique table names
+	//! Count how many MS are associated with this MP.
+	//! Used for creating unique table names
+	int         table_count;
 
-  //! Link to first stream. If NULL nobody is interested in
-  // this MP
-  OmlMStream*    firstStream;
+	//! Link to first stream.
+	//! If NULL then nobody is interested in this MP.
+	OmlMStream* firstStream;
 
-  int         active;  // Set to 1 if MP is active
+	int         active;  ///< Set to 1 if MP is active
 
-  //! Mutex for entire group of streams.
-  pthread_mutex_t* mutexP;
+	pthread_mutex_t* mutexP; ///< Mutex for entire group of streams.
+	pthread_mutex_t  mutex;  ///< STORAGE
 
-  //! STORAGE
-  pthread_mutex_t mutex;
-
-  //! Next MP structure for same measurement point.
-  struct _omlMP* next;
-
+	struct _omlMP*   next; ///< Next MP structure for same measurement point.
 } OmlMP;
 
-//! Reads command line parameters and builds primary datastructure
-//int
-//omlc_init(
-//  const char* appName,
-//  int* argcPtr,
-//  const char** argv,
-//  oml_log_fn oml_log,
-//  int mp_count,
-//  OmlMPDef** mp_definitions
-//);
-
+/**
+ *  Read command line parameters and build primary datastructures.
+ *
+ *  The appName must be the name of the application, and cannot
+ *  contain spaces (or tabs, etc.).  It may contain forward slashes
+ *  '/', in which case it is truncated to the substring following the
+ *  final slash.  This allows using a UNIX pathname such as from
+ *  argv[0].  An invalid application name will cause omlc_init() to
+ *  fail.
+ *
+ *  The call to omlc_init() must be the first call of an OML function
+ *  in the application.  Calling any other OML function before
+ *  omlc_init() has been called, or after a call to omlc_init() that
+ *  fails (returns -1), will result in undefined behaviour.
+ *
+ *  All OML-specific arguments are removed from the argument vector
+ *  after being processed.  This means that the client application's
+ *  command line argument processing does not need to be modified as
+ *  long as omlc_init() is called before any application-specific
+ *  command line processing is performed.
+ *
+ *  \param appName the name of the application.
+ *  \param argcPtr pointer to an integer containing the number of
+ *                 command line arguments.  When the function ends, if
+ *                 any OML arguments have been processed, *argcPtr
+ *                 will be set to the number of arguments remaining
+ *                 after the OML arguments are removed.
+ *  \param argv    pointer to the command line argument vector to
+ *                 process.  Any OML options are removed from the
+ *                 vector during processing.  When this function
+ *                 completes, argv will contain a contiguous vector of
+ *                 the original command line arguments minus any OML
+ *                 arguments that were processed.
+ *  \param oml_log A custom logging function to use, as per o_set_log().
+ *
+ *  \return 0 on success, -1 on failure.
+ */
 int
 omlc_init(
   const char* appName,
@@ -236,71 +207,91 @@ omlc_init(
   oml_log_fn oml_log
 );
 
-//! Register a measurement point. Needs to be called
-// for every measurment point AFTER +omlc_init2+
-// and before a final +omlc_start+.
-//
-// The returned +OmlMStream+ needs to be the first
-// argument in every +omlc_process+ call for this
-// specific measurment point.
-//
+/**
+ *  Register a measurement point.
+ *
+ *  This function should be called after omlc_init() and before
+ *  omlc_start().  It can be called multiple times, once for each
+ *  measurement point that the application needs to define.
+ *
+ *  The returned +OmlMP+ must be the first argument in every
+ *  +omlc_inject+ call for this specific measurement point.
+ *
+ *  The MP's input structure is defined by the mp_def parameter.
+ *
+ *  \param mp_name The name of this MP.  The name must not contain
+ *                 whitespace.
+ *  \param mp_def  Definition of this MP's input tuple, as an array
+ *                 of OmlMPDef objects.
+ *
+ *  \return 0 on success, -1 on failure.
+ */
 OmlMP*
 omlc_add_mp(
   const char* mp_name,
   OmlMPDef*  mp_def
 );
 
-//! Finalizes inital configurations and get
-// ready for consecutive 'omlc_process' calls
+/**
+ *  Finalize the initialization process and enable measurement
+ *  collection.
+ *
+ *  This function must be called after +omlc_init+ and after any calls
+ *  to +omlc_add_mp+.  It finalizes the initialization process and
+ *  initializes filters on all measurement points, according to the
+ *  current configuration (based on either command line options or the
+ *  XML config file named by the --oml-config command line option).
+ *
+ *  Once this function has been called, and if it succeeds, the
+ *  application is free to start creating measurement samples by
+ *  calling +omlc_inject+.
+ *
+ *  If this function fails, subsequent calls to +omlc_inject+ will
+ *  result in undefined behaviour.
+ *
+ *  \return 0 on success, -1 on failure.
+ */
 int
 omlc_start(
   void
 );
 
+/**
+ *  Inject a measurement sample into a Measurement Point.
+ *
+ *  \param mp     the measurement point to inject into, as returned by
+ *                +omlc_add_mp+.
+ *  \param values the measurement sample vector.  The types of the
+ *                values in this vector should match the definition
+ *                for this MP given in the call to +omlc_add_mp+.
+ */
 void
 omlc_inject(
   OmlMP*      mp,
   OmlValueU*  values
 );
 
-// DEPRECIATED
+// DEPRECATED
 void
 omlc_process(
   OmlMP*      mp,
   OmlValueU*  values
 );
 
-//! Finalizes all open connections. Any
-// futher cllas to 'omlc_process' are being
-// ignored.
-// NOTE: This call doesn't free all the memory
-// at this stage. There may also be a few threads
-// which will take some time to finish.
-//
+/**
+ *  Finalize all open connections.
+ *
+ *  Once this function has been called, any futher calls to
+ *  +omlc_inject+ will be ignored.
+ *
+ *  @note This call doesn't free all memory used by OML
+ *  immediately. There may be a few threads which will take some
+ *  time to finish.
+ */
 int
 omlc_close(
   void
 );
-
-////! Called at the start of every MP wrapper function.
-//OmlMStream*
-//omlc_mp_start(
-//  int index
-//);
-//
-////! Called when the particular MP has been filled.
-//void
-//omlc_ms_process(
-//  OmlMStream* mp
-//);
-//
-////! Called at the end of every MP wrapper function.
-//void
-//omlc_mp_end(
-//  int index
-//);
-
-
 
 #endif /*OML_OMLC_H_*/
 
