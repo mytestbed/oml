@@ -26,6 +26,7 @@
 #include <check.h>
 
 extern Suite* filters_suite (void);
+extern Suite* api_suite (void);
 
 #endif /* CHECK_LIBOML2_SUITES_H__ */
 

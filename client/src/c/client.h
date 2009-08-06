@@ -139,6 +139,14 @@ filter_process(OmlMStream* mp);
 extern char*
 oml_type_to_s(OmlValueT type);
 
+const char*
+validate_app_name (const char* name);
+
+const char*
+validate_mp_name (const char* name);
+
+
+
 #endif /*CLIENT_H_*/
 
 /*

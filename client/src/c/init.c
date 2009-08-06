@@ -60,9 +60,6 @@ static void install_close_handler(void);
 
 extern int parse_config(char* configFile);
 
-static const char* validate_app_name (const char* name);
-static const char* validate_mp_name (const char* name);
-
 /**
  * \fn int omlc_init( const char* appName, int* argcPtr, const char** argv, oml_log_fn custom_oml_log)
  * \brief function called by the application to initialise the oml measurements
@@ -100,86 +97,89 @@ omlc_init(
   int sample_count = 0;
   double sample_interval = 0.0;
   const char** argvPtr = argv;
-  int i;
-  for (i = *argcPtr; i > 0; i--, argvPtr++) {
-    if (strcmp(*argvPtr, "--oml-id") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument for '--oml-id'\n");
-        return -1;
-      }
-      name = *++argvPtr;
-      *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-exp-id") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument for '--oml-exp-id'\n");
-        return -1;
-      }
-      experimentId = *++argvPtr;
-      *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-file") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument for '--oml-file'\n");
-        return -1;
-      }
-      localDataFile = *++argvPtr;
-      *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-config") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument for '--oml-config'\n");
-        return -1;
-      }
-      configFile = *++argvPtr;
-      *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-samples") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument to '--oml-samples'\n");
-        return -1;
-      }
-      sample_count = atoi(*++argvPtr);
-      *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-interval") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument to '--oml-interval'\n");
-        return -1;
-      }
-      sample_interval = atof(*++argvPtr);
-      *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-log-file") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument to '--oml-log-file'\n");
-        return -1;
-      }
-      o_set_log_file((char*)*++argvPtr);
-      *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-log-level") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument to '--oml-log-level'\n");
-        return -1;
-      }
-      o_set_log_level(atoi(*++argvPtr));
-      *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-server") == 0) {
-      if (--i <= 0) {
-        o_log(O_LOG_ERROR, "Missing argument for '--oml-server'\n");
-        return -1;
-      }
-      serverUri = (char*)*++argvPtr;
-      *argcPtr -= 2;
-    } else if (strcmp(*argvPtr, "--oml-noop") == 0) {
-      *argcPtr -= 1;
-      omlc_instance = NULL;
-      return 1;
-    } else if (strcmp(*argvPtr, "--oml-help") == 0) {
-      usage();
-      *argcPtr -= 1;
-      exit(0);
-    } else if (strcmp(*argvPtr, "--oml-list-filters") == 0) {
-      print_filters();
-      *argcPtr -= 1;
-      exit(0);
-    } else {
-      *argv++ = *argvPtr;
-    }
+
+  if (argcPtr && argvPtr) {
+	int i;
+	for (i = *argcPtr; i > 0; i--, argvPtr++) {
+	  if (strcmp(*argvPtr, "--oml-id") == 0) {
+		if (--i <= 0) {
+		  o_log(O_LOG_ERROR, "Missing argument for '--oml-id'\n");
+		  return -1;
+		}
+		name = *++argvPtr;
+		*argcPtr -= 2;
+	  } else if (strcmp(*argvPtr, "--oml-exp-id") == 0) {
+		if (--i <= 0) {
+		  o_log(O_LOG_ERROR, "Missing argument for '--oml-exp-id'\n");
+		  return -1;
+		}
+		experimentId = *++argvPtr;
+		*argcPtr -= 2;
+	  } else if (strcmp(*argvPtr, "--oml-file") == 0) {
+		if (--i <= 0) {
+		  o_log(O_LOG_ERROR, "Missing argument for '--oml-file'\n");
+		  return -1;
+		}
+		localDataFile = *++argvPtr;
+		*argcPtr -= 2;
+	  } else if (strcmp(*argvPtr, "--oml-config") == 0) {
+		if (--i <= 0) {
+		  o_log(O_LOG_ERROR, "Missing argument for '--oml-config'\n");
+		  return -1;
+		}
+		configFile = *++argvPtr;
+		*argcPtr -= 2;
+	  } else if (strcmp(*argvPtr, "--oml-samples") == 0) {
+		if (--i <= 0) {
+		  o_log(O_LOG_ERROR, "Missing argument to '--oml-samples'\n");
+		  return -1;
+		}
+		sample_count = atoi(*++argvPtr);
+		*argcPtr -= 2;
+	  } else if (strcmp(*argvPtr, "--oml-interval") == 0) {
+		if (--i <= 0) {
+		  o_log(O_LOG_ERROR, "Missing argument to '--oml-interval'\n");
+		  return -1;
+		}
+		sample_interval = atof(*++argvPtr);
+		*argcPtr -= 2;
+	  } else if (strcmp(*argvPtr, "--oml-log-file") == 0) {
+		if (--i <= 0) {
+		  o_log(O_LOG_ERROR, "Missing argument to '--oml-log-file'\n");
+		  return -1;
+		}
+		o_set_log_file((char*)*++argvPtr);
+		*argcPtr -= 2;
+	  } else if (strcmp(*argvPtr, "--oml-log-level") == 0) {
+		if (--i <= 0) {
+		  o_log(O_LOG_ERROR, "Missing argument to '--oml-log-level'\n");
+		  return -1;
+		}
+		o_set_log_level(atoi(*++argvPtr));
+		*argcPtr -= 2;
+	  } else if (strcmp(*argvPtr, "--oml-server") == 0) {
+		if (--i <= 0) {
+		  o_log(O_LOG_ERROR, "Missing argument for '--oml-server'\n");
+		  return -1;
+		}
+		serverUri = (char*)*++argvPtr;
+		*argcPtr -= 2;
+	  } else if (strcmp(*argvPtr, "--oml-noop") == 0) {
+		*argcPtr -= 1;
+		omlc_instance = NULL;
+		return 1;
+	  } else if (strcmp(*argvPtr, "--oml-help") == 0) {
+		usage();
+		*argcPtr -= 1;
+		exit(0);
+	  } else if (strcmp(*argvPtr, "--oml-list-filters") == 0) {
+		print_filters();
+		*argcPtr -= 1;
+		exit(0);
+	  } else {
+		*argv++ = *argvPtr;
+	  }
+	}
   }
 
   o_log(O_LOG_INFO, "OML Client V%d.%d.%d %s\n",
@@ -206,8 +206,6 @@ omlc_init(
   omlc_instance->experiment_id = experimentId;
   omlc_instance->sample_count = sample_count;
   omlc_instance->sample_interval = sample_interval;
-
-
 
   if (localDataFile != NULL) {
     // dump every sample into localDataFile
@@ -274,7 +272,6 @@ omlc_start()
 
 {
   if (omlc_instance == NULL) return -1;
-
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -725,7 +722,7 @@ write_schema(
  *  pointer is not NULL, it may be different from name.
  *
  */
-static const char*
+const char*
 validate_app_name (const char* name)
 {
   const char* p = name + strlen (name);
@@ -737,6 +734,9 @@ validate_app_name (const char* name)
 		return NULL;
 	  p--;
 	}
+
+  if (isspace (*p))
+	return NULL;
 
   if (*p == '/')
 	p++;
@@ -756,18 +756,19 @@ validate_app_name (const char* name)
  *  returned pointer is not NULL, it may be different from name.
  *
  */
-static const char*
+const char*
 validate_mp_name (const char* name)
 {
   const char* p = name + strlen (name);
-  while (p != name)
+
+  do
 	{
 	  if (isspace (*p))
 		return NULL;
-	  p--;
 	}
+  while (p-- != name);
 
-  return p;
+  return ++p;
 }
 
 

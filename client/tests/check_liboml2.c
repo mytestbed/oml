@@ -23,13 +23,18 @@
 #include <stdlib.h>
 #include <check.h>
 #include "check_liboml2_suites.h"
+#include "ocomm/o_log.h"
 
 int
 main (void)
 {
   int number_failed = 0;
-  Suite* s = filters_suite ();
-  SRunner* sr = srunner_create (s);
+
+  o_set_log_file ("check_oml2.log");
+  SRunner* sr = srunner_create (filters_suite ());
+  srunner_add_suite (sr, api_suite ());
+  //  srunner_add_suite (sr, parser_suite ());
+
   srunner_run_all (sr, CK_NORMAL);
   number_failed += srunner_ntests_failed (sr);
   srunner_free (sr);
