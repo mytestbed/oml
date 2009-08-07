@@ -9,12 +9,12 @@ progname = omf_nmetrics
 bin_PROGRAMS = 
 
 if !DARWIN
-	bin_PROGRAMS += nmetrics_oml2
-	nmetrics_oml2_SOURCES = \
-		src/c/omf_nmetrics.c
-	nmetrics_oml2_LDADD = \
-		$(top_builddir)/client/liboml2.la \
-		-lsigar -lpopt
+bin_PROGRAMS += nmetrics_oml2
+nmetrics_oml2_SOURCES = \
+	src/c/omf_nmetrics.c
+nmetrics_oml2_LDADD = \
+	$(top_builddir)/client/liboml2.la \
+	-lsigar -lpopt
 endif
 
 
