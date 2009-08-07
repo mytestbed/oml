@@ -24,16 +24,11 @@
   \brief This file is the starting point.
 */
 
-#include <popt.h>
-/*
-#include <stdio.h>
-#include <strings.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/errno.h>
-#include <assert.h>
-*/
 
+#include <stdio.h>
+#include <popt.h>
+
+#include <oml2/oml_writer.h>
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>

@@ -27,16 +27,17 @@
 #include <malloc.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
+#include <oml2/oml_writer.h>
 
 #include "marshall.h"
 #include "client_handler.h"
 
 #define DEF_TABLE_COUNT 10
-
 
 static void
 client_callback(SockEvtSource* source,
@@ -71,6 +72,19 @@ client_handler_new(
   eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
   return self;
 }
+
+void
+client_handler_free (ClientHandler* self)
+{
+  if (self->database)
+	database_release (self->database);
+  if (self->tables)
+	free (self->tables);
+  free (self);
+
+  // FIXME:  What about destroying the socket data structure --> memory leak?
+}
+
 /**
  * \fn process_schema(ClientHandler* self,char* value)
  * \brief Process the data and put value inside the database
@@ -86,12 +100,19 @@ process_schema(
   while (!(*p == ' ' || *p == '\0')) p++;
   if (*p == '\0') {
     o_log(O_LOG_ERROR, "While parsing 'schema'. Can't find index (%s)\n", value);
+	self->state = C_PROTOCOL_ERROR;
     return;
   }
   *(p++) = '\0';
   int index = atoi(value);
+  o_log (O_LOG_DEBUG, "Looking for table '%s'\n", p);
   DbTable* t = database_get_table(self->database, p);
-  if (t == NULL) return;   // error parsing schema
+  if (t == NULL)
+	{
+	  o_log(O_LOG_ERROR, "While parsing schema '%s'.  Can't find table '%s'.\n", value, p);
+	  self->state = C_PROTOCOL_ERROR;
+	  return;   // error parsing schema
+	}
 
   if (index >= self->table_size) {
     DbTable** old = self->tables;
@@ -106,6 +127,18 @@ process_schema(
   }
   self->tables[index] = t;
 }
+
+void
+chomp (char* str)
+{
+  char* p = str + strlen (str);
+
+  while (p != str && isspace (*--p));
+
+  *++p = '\0';
+}
+
+
 /**
  * \fn static void process_meta(ClientHandler* self, char* key, char* value)
  * \brief Process a singel key/value pair contained in the header
@@ -120,9 +153,16 @@ process_meta(
   char* key,
   char* value
 ) {
+  chomp (value);
   o_log(O_LOG_DEBUG, "Meta <%s>:<%s>\n", key, value);
   if (strcmp(key, "protocol") == 0) {
-    // TODO: Check protocol
+	int protocol = atoi (value);
+	if (protocol != OML_PROTOCOL_VERSION)
+	  {
+		o_log (O_LOG_ERROR, "Client connected with incorrect protocol version (%d), <%s>\n", protocol, value);
+		self->state = C_PROTOCOL_ERROR;
+		return;
+	  }
   } else if (strcmp(key, "experiment-id") == 0) {
     self->database = database_find(value);
   } else if (strcmp(key, "content") == 0) {
@@ -156,7 +196,7 @@ process_meta(
       self->time_offset = start_time - self->database->start_time;
     }
   } else {
-    o_log(O_LOG_WARN, "Unknown meta info '%s' (%s)\n", key, value);
+    o_log(O_LOG_WARN, "Unknown meta info '%s' (%s) ignored\n", key, value);
   }
 }
 
@@ -171,7 +211,6 @@ static int
 read_line(
   char** line_p,
   int*   length_p,
-  ClientHandler* self,
   OmlMBuffer* mbuf
 ) {
   unsigned char* line = mbuf->curr_p;
@@ -203,7 +242,7 @@ process_header(
   char* line;
   int len;
 
-  if (read_line(&line, &len, self, mbuf) == 0) {
+  if (read_line(&line, &len, mbuf) == 0) {
     return 0;
   }
 
@@ -236,7 +275,9 @@ process_header(
     while (*(value++) == ' ' && (void*)value < (void*)mbuf->curr_p); // skip white space
     process_meta(self, line, value - 1);
  } else {
-    o_log(O_LOG_WARN, "Malformed meta line in header: <%s>\n", line);
+    o_log(O_LOG_ERROR, "Malformed meta line in header: <%s>\n", line);
+	self->state = C_PROTOCOL_ERROR;
+	return 0;
   }
   return 1; // still in header
 }
@@ -258,17 +299,18 @@ process_bin_data_message(
   ts += self->time_offset;
   if (table_index >= self->table_size || table_index < 0) {
     o_log(O_LOG_ERROR, "Table index '%d' out of bounds\n", table_index);
+	self->state = C_PROTOCOL_ERROR;
     return;
   }
   DbTable* table = self->tables[table_index];
   if (table == NULL) {
     o_log(O_LOG_ERROR, "Undefined table '%d'\n", table_index);
+	self->state = C_PROTOCOL_ERROR;
     return;
   }
   o_log(O_LOG_DEBUG, "bin_data - CALLING insert for seq no: %d \n", seq_no);
   self->database->insert(self->database, table, self->sender_id, seq_no, ts, self->values, cnt);
   //o_log(O_LOG_DEBUG, "Received %d values\n", cnt);
-
 }
 
 /**
@@ -289,6 +331,7 @@ process_bin_message(
   if (res == 0) {
     o_log(O_LOG_ERROR, "OUT OF SYNC\n");
     mbuf->buffer_fill = 0;
+	self->state = C_PROTOCOL_ERROR;
     return 0;
   } else if (res < 0) {
     // not enough data
@@ -300,6 +343,7 @@ process_bin_message(
       break;
     default:
       o_log(O_LOG_ERROR, "Unsupported message type '%d'\n", type);
+	  self->state = C_PROTOCOL_ERROR;
       // skip unknown message
       mbuf->curr_p += mbuf->buffer_remaining;
   }
@@ -410,7 +454,7 @@ process_text_message(
   int len;
 
   while (1) {
-    if (read_line(&line, &len, self, mbuf) == 0) {
+    if (read_line(&line, &len, mbuf) == 0) {
       return 0;
     }
 
@@ -463,9 +507,11 @@ client_callback(
   memcpy(mbuf->buffer + mbuf->buffer_fill, buf, buf_size);
   mbuf->buffer_fill += buf_size;
 
+
   process:
-  switch (self->state) {
-    case C_HEADER:
+  switch (self->state)
+	{
+	case C_HEADER:
       while (process_header(self, mbuf));
       if (self->state != C_HEADER) {
         //finished header, let someone else process rest of buffer
@@ -481,12 +527,19 @@ client_callback(
       while (process_text_message(self, mbuf));
       break;
 
+	case C_PROTOCOL_ERROR:
+	  // Protocol error:  close the client connection and teardown all
+	  // of it's allocated data.
+	  socket_close (self->socket);
+	  client_handler_free (self);
+	  break;
+
     default:
-      o_log(O_LOG_ERROR, "Unknown client state '%d'\n", self->state);
+      o_log(O_LOG_ERROR, "Client: %s: unknown client state '%d'\n", source->name, self->state);
       mbuf->curr_p = mbuf->buffer;
       mbuf->buffer_fill = 0; // reset data
       return;
-  }
+	}
 
 
   // move remaining buffer content to beginning
@@ -515,19 +568,32 @@ status_callback(
  int errno,
  void* handle
 ) {
-  switch (status) {
-    case SOCKET_CONN_CLOSED: {
-      ClientHandler* self = (ClientHandler*)handle;
-      database_release(self->database);
-      free(self->tables);
-      free(self);
+  o_log(O_LOG_DEBUG, "Socket status changed to %s(%d) on source '%s'; error code is %d\n",
+		socket_status_string (status),
+		status,
+		source->name,
+		errno);
+  switch (status)
+	{
+	case SOCKET_WRITEABLE:
+	  break;
+	case SOCKET_CONN_CLOSED:
+	  {
+		/* Client closed the connection */
+		ClientHandler* self = (ClientHandler*)handle;
+		client_handler_free (self);
 
-      o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
-      break;
-    default:
-      break;
-    }
-  }
+		o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
+		break;
+	  }
+	case SOCKET_CONN_REFUSED:
+	  break;
+	case SOCKET_DROPPED:
+	  break;
+	case SOCKET_UNKNOWN:
+	default:
+	  break;
+	}
 }
 
 /*

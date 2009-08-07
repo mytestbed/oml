@@ -28,7 +28,8 @@
 typedef enum _cstate {
   C_HEADER,       // processing header info
   C_BINARY_DATA,  // data is of binary format
-  C_TEXT_DATA
+  C_TEXT_DATA,    // data in binary format
+  C_PROTOCOL_ERROR,// a protocol error occurred --> kick the client
 } CState;
 
 #define DEF_NUM_VALUES 30

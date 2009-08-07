@@ -23,6 +23,7 @@
 #ifndef SERVER_H_
 #define SERVER_H_
 
+#include "ocomm/o_socket.h"
 
 void*
 client_handler_new(
