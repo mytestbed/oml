@@ -69,6 +69,10 @@ static Name names_vector [] =
 	{ "valid/name", 1 }
   };
 
+/******************************************************************************/
+/*                    APP and MP NAME HANDLING CHECKS                         */
+/******************************************************************************/
+
 START_TEST (test_api_app_name_spaces)
 {
   int res;
