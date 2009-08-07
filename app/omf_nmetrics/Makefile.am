@@ -6,10 +6,18 @@ AM_CPPFLAGS = \
 
 progname = omf_nmetrics
 
-bin_PROGRAMS = nmetrics_oml2
+bin_PROGRAMS = 
 
-nmetrics_oml2_SOURCES = \
-	src/c/omf_nmetrics.c
+if !DARWIN
+	bin_PROGRAMS += nmetrics_oml2
+	nmetrics_oml2_SOURCES = \
+		src/c/omf_nmetrics.c
+	nmetrics_oml2_LDADD = \
+		$(top_builddir)/client/liboml2.la \
+		-lsigar -lpopt
+endif
+
+
 
 BUILT_SOURCES = \
 	$(progname)_popt.h \
@@ -19,9 +27,6 @@ CLEANFILES = \
 	$(progname)_popt.h \
 	$(progname)_oml.h
 
-nmetrics_oml2_LDADD = \
-	$(top_builddir)/client/liboml2.la \
-	-lsigar -lpopt
 
 OML2_SCAFFOLD = $(top_builddir)/client/oml2_scaffold
 

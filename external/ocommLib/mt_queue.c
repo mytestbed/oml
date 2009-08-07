@@ -29,7 +29,7 @@
 #include "ocomm/o_log.h"
 
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <pthread.h>
 #include <errno.h>
 

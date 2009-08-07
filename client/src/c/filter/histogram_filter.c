@@ -24,7 +24,7 @@
   \brief Implements a filter which calculates
 */
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <ocomm/o_log.h>

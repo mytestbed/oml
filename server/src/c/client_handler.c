@@ -24,7 +24,7 @@
   \brief Deals with a single connected client.
 */
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>

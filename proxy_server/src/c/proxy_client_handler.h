@@ -26,7 +26,7 @@
 
 //#include "database.h"
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <pthread.h>

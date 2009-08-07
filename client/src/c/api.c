@@ -27,7 +27,7 @@
 
 #include <ocomm/o_log.h>
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <errno.h>
 
 #include <oml2/oml_filter.h>

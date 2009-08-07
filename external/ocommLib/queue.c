@@ -28,7 +28,7 @@
 #include "ocomm/o_log.h"
 
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #define OQUEUE_DONT_CARE_T 0x00
 #define OQUEUE_PTR_T 0x01

@@ -25,7 +25,7 @@
 */
 
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <ocomm/o_log.h>
 #include "filter/factory.h"
 

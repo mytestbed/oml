@@ -27,7 +27,7 @@
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
 #include <stdlib.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "oml2/omlc.h"

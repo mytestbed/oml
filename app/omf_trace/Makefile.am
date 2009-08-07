@@ -10,6 +10,10 @@ bin_PROGRAMS = trace_oml2
 trace_oml2_SOURCES = \
 	src/c/omf_trace.c
 
+trace_oml2_LDADD = \
+	$(top_builddir)/client/liboml2.la \
+	-ltrace -lpopt
+
 BUILT_SOURCES = \
 	$(progname)_popt.h \
 	$(progname)_oml.h
@@ -17,10 +21,6 @@ BUILT_SOURCES = \
 CLEANFILES = \
 	$(progname)_popt.h \
 	$(progname)_oml.h
-
-trace_oml2_LDADD = \
-	$(top_builddir)/client/liboml2.la \
-	-ltrace -lpopt
 
 OML2_SCAFFOLD = $(top_builddir)/client/oml2_scaffold
 

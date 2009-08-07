@@ -22,7 +22,7 @@
  */
 #include <string.h>
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <sqlite3.h>
 #include <ocomm/o_log.h>
 #include <time.h>

@@ -24,7 +24,7 @@
   \brief Implements a filter which captures the first value presented
 */
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ocomm/o_log.h>
 #include <oml2/omlc.h>

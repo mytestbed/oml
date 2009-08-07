@@ -26,7 +26,7 @@
 
 
 #include <ocomm/o_log.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
 #include <libxml/tree.h>

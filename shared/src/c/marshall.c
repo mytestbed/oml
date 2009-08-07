@@ -29,7 +29,7 @@
 #include <math.h>
 #include <arpa/inet.h>
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "marshall.h"

@@ -31,6 +31,7 @@ if test "x$HAVE_XML2CFG" != "x"; then
    AC_MSG_RESULT([$LIBXML2_LIBS])
 fi
 
+AM_CONDITIONAL([DARWIN], [test x`uname` = xDarwin])
 
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
 

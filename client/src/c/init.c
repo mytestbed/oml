@@ -27,7 +27,7 @@
 #include <ocomm/o_log.h>
 #include <string.h>
 #include <ctype.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <signal.h>
