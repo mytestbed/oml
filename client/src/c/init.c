@@ -47,14 +47,9 @@ static OmlClient instance_storage;
 
 static void usage(void);
 static void print_filters(void);
-//static int configure(char* configFile);
-static int default_configuration(void);
-static int write_meta(void);
-static int write_schema(
-  OmlMStream* ms,
-  int index
-);
-
+static int  default_configuration(void);
+static int  write_meta(void);
+static int  write_schema(OmlMStream* ms, int index);
 static void termination_handler(int signum);
 static void install_close_handler(void);
 
@@ -300,7 +295,8 @@ omlc_start()
     }
   }
   install_close_handler();
-  write_meta();
+  if (write_meta() == -1)
+	return -1;
   return 0;
 }
 
@@ -313,9 +309,13 @@ static void
 termination_handler(
   int signum
 ) {
-  o_log(O_LOG_DEBUG, "Closing OML (%d)\n", signum);
-  omlc_close();
-  exit(-1 * signum);
+  // SIGPIPE is handled by disabling the writer that caused it.
+  if (signum != SIGPIPE)
+	{
+	  o_log(O_LOG_DEBUG, "Closing OML (%d)\n", signum);
+	  omlc_close();
+	  exit(-1 * signum);
+	}
 }
 
 /**
@@ -344,6 +344,10 @@ install_close_handler(void)
   sigaction (SIGTERM, NULL, &old_action);
   if (old_action.sa_handler != SIG_IGN)
     sigaction (SIGTERM, &new_action, NULL);
+
+  sigaction (SIGPIPE, NULL, &old_action);
+  if (old_action.sa_handler != SIG_IGN)
+	sigaction (SIGPIPE, &new_action, NULL);
 }
 
 /**
@@ -353,7 +357,6 @@ install_close_handler(void)
  */
 int
 omlc_close()
-
 {
   if (omlc_instance == NULL) return -1;
 
@@ -436,8 +439,7 @@ create_writer(
   char* serverUri
 ) {
   if (omlc_instance == NULL){
-    o_log(O_LOG_ERROR,"no omlc\n");
-
+    o_log(O_LOG_ERROR,"No omlc_instance:  OML client was not initialized properly.\n");
     return NULL;
   }
 
@@ -462,12 +464,13 @@ create_writer(
       o_log(O_LOG_ERROR, "Missing '--oml-exp-id' flag \n");
       return NULL;
     }
-
     writer = net_writer_new(proto, p);
   }
   if (writer != NULL) {
-    writer->next = omlc_instance->firstWriter;
-    omlc_instance->firstWriter = writer;
+	writer->next = omlc_instance->firstWriter;
+	omlc_instance->firstWriter = writer;
+  } else {
+	o_log (O_LOG_WARN, "Failed to create writer for URI %s\n", serverUri);
   }
   return writer;
 }
@@ -539,7 +542,6 @@ default_configuration(void)
   }
   double sample_interval = omlc_instance->sample_interval;
 
-
   OmlMP* mp = omlc_instance->mpoints;
   while (mp != NULL) {
     //OmlMPDef* dp = omlc_instance->mp_definitions[i];
@@ -552,7 +554,6 @@ default_configuration(void)
     if (sample_interval > 0) {
       filter_engine_start(ms);
     }
-
 
     mp = mp->next;
     // Create thread to write measurements to file
@@ -573,7 +574,7 @@ createDefaultFilters(
     OmlMStream* ms
 ) {
   int param_count = mp->param_count;
-  //ms->filters = (OmlFilter**)malloc(param_count * sizeof(OmlFilter*));
+
   int j;
   OmlFilter* prev = NULL;
   for (j = 0; j < param_count; j++) {

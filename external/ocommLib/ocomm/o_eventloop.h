@@ -181,6 +181,11 @@ timer_stop(
   TimerEvtSource* timer
 );
 
+const char*
+socket_status_string(
+  SocketStatus status
+);
+
 #endif
 
 /*

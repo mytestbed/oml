@@ -105,6 +105,9 @@ typedef struct _socket {
 
   //! Link to next socket instance.
   struct _socket* next;
+
+  int is_disconnected; ///< True if detected a SIGPIPE on a sendto()
+
 } SocketInt;
 
 
@@ -127,6 +130,13 @@ socket_get_non_blocking_mode()
 
 {
   return nonblocking_mode;
+}
+
+int
+socket_is_disconnected (
+ Socket* socket;
+) {
+  return ((SocketInt*)socket)->is_disconnected;
 }
 
 //! Return a new 'instance' structure
@@ -517,11 +527,21 @@ socket_sendto(
 
   // TODO: Catch SIGPIPE signal if other side is half broken
   if(sendto(self->sockfd, buf, buf_size, 0,
-	    (struct sockaddr *)&(self->servAddr), sizeof(self->servAddr)) < 0) {
-    o_log(O_LOG_ERROR, "Socket(%s): Sending to multicast channel failed\n\t%s\n",
-	  self->name, strerror(errno));
-    return -1;
-  }
+			(struct sockaddr *)&(self->servAddr),
+			sizeof(self->servAddr)) < 0)
+	{
+	  if (errno == EPIPE || errno == ECONNRESET)
+		{
+		  // The other end closed the connection.
+		  self->is_disconnected = 1;
+		  o_log(O_LOG_ERROR, "Socket(%s): the remote peer closed the connection\n\t%d: %s\n",
+				self->name, errno, strerror(errno));
+		}
+	  else
+		o_log(O_LOG_ERROR, "Socket(%s): Sending to multicast channel failed\n\t%s\n",
+			  self->name, strerror(errno));
+	  return -1;
+	}
   return 0;
 }
 
@@ -545,6 +565,41 @@ socket_get_addr(
   return self->addr;
 }
 **/
+
+/**
+typedef enum _SockStatus {
+  SOCKET_WRITEABLE,
+  SOCKET_CONN_CLOSED,
+  SOCKET_CONN_REFUSED,
+  SOCKET_DROPPED,  //! Socket monitoring dropped by eventloop
+  SOCKET_UNKNOWN
+} SocketStatus;
+**/
+
+static const char* SocketStatus_names [] =
+  {
+	"SOCKET_WRITEABLE",
+	"SOCKET_CONN_CLOSED",
+	"SOCKET_CONN_REFUSED",
+	"SOCKET_DROPPED",  //! Socket monitoring dropped by eventloop
+	"SOCKET_UNKNOWN"
+  };
+
+const char*
+socket_status_string(
+  SocketStatus status
+ ) {
+  size_t length = sizeof (SocketStatus_names) / sizeof (SocketStatus_names[0]);
+
+  if (status < length)
+	{
+	  return SocketStatus_names[status];
+	}
+  else
+	{
+	  return "SOCKET_UNKNOWN";
+	}
+}
 
 /*
  Local Variables:

@@ -63,11 +63,16 @@ typedef struct _omlNetWriter {
 
   /**********************/
 
+  int        is_enabled;
   int        first_row;
   Socket*    socket;
   OmlMBuffer mbuf;
 
   int        stream_count; // used to give each stream an ID
+
+  const char* protocol;
+  const char* host;
+  int         port;
 
 } OmlNetWriter;
 
@@ -115,11 +120,16 @@ net_writer_new(
 
   //  char* localBind = p;  // This would be for multicast, ignore right now
 
+  self->protocol = protocol;
+  self->port = port;
+  self->host = host;
+
   o_log(O_LOG_INFO, "Net proto: <%s> host: <%s> port: <%d>\n", protocol, host, port);
 
   socket_set_non_blocking_mode(0);
   if (protocol == NULL || strcmp(protocol, "tcp") == 0) {
     if ((self->socket = socket_tcp_out_new("sock", host, port)) == NULL) {
+	  free (self);
       return NULL;
     }
   }
@@ -132,6 +142,7 @@ net_writer_new(
   self->close = close;
 
   self->first_row = 1;
+  self->is_enabled = 1;
 
   return (OmlWriter*)self;
 }
@@ -150,11 +161,22 @@ write_meta(
 ) {
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
+  if (!self->is_enabled) return 1;
   char s[512];
 
   sprintf(s, "%s\n", str);
   int len = strlen(s);
-  return (socket_sendto(self->socket, s, len) == len);
+
+  int result = socket_sendto(self->socket, s, len);
+
+  if (result == -1 && socket_is_disconnected (self->socket))
+	{
+	  o_log (O_LOG_WARN, "Connection to server at %s://%s:%d was lost\n",
+			 self->protocol, self->host, self->port);
+	  self->is_enabled = 0;  	  // Server closed the connection
+	}
+
+  return (result == len);
 }
 
 /**
@@ -189,6 +211,7 @@ out(
 ) {
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
+  if (!self->is_enabled) return 1;
 
   int cnt = marshall_values(&self->mbuf, values, value_count);
   return cnt == value_count;
@@ -210,13 +233,7 @@ row_start(
 ) {
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
-
-//  if (self->first_row) {
-//    // need to add eoln to separate from header
-//    char e = '\n';
-//    socket_sendto(self->socket, &e, 1);
-//    self->first_row = 0;
-//  }
+  if (!self->is_enabled) return 1;
 
   marshall_measurements(&self->mbuf, ms, now);
   return 1;
@@ -237,12 +254,22 @@ row_end(
   (void)ms; // FIXME:  Is this needed?  not used in file_writer either
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
+  if (!self->is_enabled) return 1;
 
   marshall_finalize(&self->mbuf);
   OmlMBuffer* buf = &self->mbuf;
   int len = buf->buffer_length - buf->buffer_remaining;
   o_log(O_LOG_DEBUG, "Sending message of size '%d'\n", len);
-  socket_sendto(self->socket, (char*)buf->buffer, len);
+
+  int result = socket_sendto(self->socket, (char*)buf->buffer, len);
+
+  if (result == -1 && socket_is_disconnected (self->socket))
+	{
+	  o_log (O_LOG_WARN, "Connection to server at %s://%s:%d was lost\n",
+			 self->protocol, self->host, self->port);
+	  self->is_enabled = 0;  	  // Server closed the connection
+	}
+
   return 1;
 }
 
