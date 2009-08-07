@@ -101,7 +101,8 @@ main(
     switch (c) {
     case 'v':
       printf(V_STRING, VERSION);
-      printf(COPYRIGHT);
+	  printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
+	  printf(COPYRIGHT);
       return 0;
     }
   }
@@ -117,6 +118,7 @@ main(
   }
 
   o_log(O_LOG_INFO, V_STRING, VERSION);
+  o_log(O_LOG_INFO, "OML Protocol V%d\n", OML_PROTOCOL_VERSION);
   o_log(O_LOG_INFO, COPYRIGHT);
 
   eventloop_init();

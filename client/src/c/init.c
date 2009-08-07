@@ -178,7 +178,8 @@ omlc_init(
   }
 
   o_log(O_LOG_INFO, "OML Client V%d.%d.%d %s\n",
-  OMLC_MAJOR_VERSION, OMLC_MINOR_VERSION, OMLC_REVISION, OMLC_COPYRIGHT);
+		OMLC_MAJOR_VERSION, OMLC_MINOR_VERSION, OMLC_REVISION, OMLC_COPYRIGHT);
+  o_log(O_LOG_INFO, "OML Protocol V%d\n", OML_PROTOCOL_VERSION);
 
   if (name == NULL)
     name = getenv("OML_NAME");
@@ -386,6 +387,7 @@ usage(void)
 
 {
   printf("OML Client V%d.%d.%d\n", OMLC_MAJOR_VERSION, OMLC_MINOR_VERSION, OMLC_REVISION);
+  printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
   printf("%s\n", OMLC_COPYRIGHT);
   printf("\n");
   printf("OML specific parameters:\n\n");
@@ -413,6 +415,7 @@ print_filters(void)
   register_builtin_filters();
 
   printf("OML Client V%d.%d.%d\n", OMLC_MAJOR_VERSION, OMLC_MINOR_VERSION, OMLC_REVISION);
+  printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
   printf("%s\n", OMLC_COPYRIGHT);
   printf("\n");
   printf("OML filters available:\n\n");
