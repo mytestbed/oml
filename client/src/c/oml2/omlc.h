@@ -25,11 +25,13 @@
  * \brief Header file for OML's client library.
  */
 
-#define omlc_is_numeric_type(t)					\
-	(((t) == OML_LONG_VALUE) || ((t) == OML_DOUBLE_VALUE))
-
 #ifndef OML_OMLC_H_
 #define OML_OMLC_H_
+
+#include <pthread.h>
+
+#define omlc_is_numeric_type(t)								\
+	(((t) == OML_LONG_VALUE) || ((t) == OML_DOUBLE_VALUE))
 
 #define omlc_set_long(var, val) \
     (var).longValue = (val);
@@ -45,8 +47,7 @@
     (var).stringValue.ptr = (val); (var).stringValue.is_const = 1; \
     (var).stringValue.size = (var).stringValue.length = 0;
 
-#include <pthread.h>
-#include <oml2/oml.h>
+typedef void (*oml_log_fn)(int log_level, const char* format, ...);
 
 struct _omlFilter;   // can't include oml_filter.h yet
 struct _omlWriter;   // forward declaration

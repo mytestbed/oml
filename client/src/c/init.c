@@ -33,7 +33,7 @@
 #include <signal.h>
 #include <sys/time.h>
 
-#include "oml2/oml.h"
+#include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
 #include "filter/factory.h"
 #include "client.h"

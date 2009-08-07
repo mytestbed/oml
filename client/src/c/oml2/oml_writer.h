@@ -24,6 +24,8 @@
 #ifndef OML_WRITER_H_
 #define OML_WRITER_H_
 
+#include <oml2/omlc.h>
+
 #define OML_PROTOCOL_VERSION 1
 
 struct _omlWriter;
