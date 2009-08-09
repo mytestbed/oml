@@ -187,9 +187,7 @@ int main( int argc,  char *argv[] ) {
     // start up client or server (listener)
     if ( gSettings->GetServerMode() == kMode_Server ) {
         // start up a listener
-        printf("OML_START 1\n");
         theListener = new Listener( ext_gSettings );
-        printf("OML_START 2\n");
         theListener->DeleteSelfAfterRun();
         
 
