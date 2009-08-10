@@ -8,7 +8,6 @@ oml2inc_HEADERS = \
 	src/c/oml2/o_log.h \
 	src/c/oml2/omlc.h \
 	src/c/oml2/oml_filter.h \
-	src/c/oml2/oml.h \
 	src/c/oml2/oml_writer.h
 
 AM_CPPFLAGS = \
@@ -42,7 +41,6 @@ liboml2_la_SOURCES = src/c/api.c \
 	src/c/oml2/o_log.h \
 	src/c/oml2/omlc.h \
 	src/c/oml2/oml_filter.h \
-	src/c/oml2/oml.h \
 	src/c/oml2/oml_writer.h
 
 liboml2_la_LIBADD = \
