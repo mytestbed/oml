@@ -29,6 +29,7 @@
 #define OML_OMLC_H_
 
 #include <pthread.h>
+#include <ocomm/o_log.h>
 
 #define omlc_is_numeric_type(t)								\
 	(((t) == OML_LONG_VALUE) || ((t) == OML_DOUBLE_VALUE))
@@ -46,8 +47,6 @@
 #define omlc_set_const_string(var, val) \
     (var).stringValue.ptr = (val); (var).stringValue.is_const = 1; \
     (var).stringValue.size = (var).stringValue.length = 0;
-
-typedef void (*oml_log_fn)(int log_level, const char* format, ...);
 
 struct _omlFilter;   // can't include oml_filter.h yet
 struct _omlWriter;   // forward declaration
@@ -205,7 +204,7 @@ omlc_init(
   const char* appName,
   int* argcPtr,
   const char** argv,
-  oml_log_fn oml_log
+  o_log_fn oml_log
 );
 
 /**

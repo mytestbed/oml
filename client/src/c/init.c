@@ -56,7 +56,7 @@ static void install_close_handler(void);
 extern int parse_config(char* configFile);
 
 /**
- * \fn int omlc_init( const char* appName, int* argcPtr, const char** argv, oml_log_fn custom_oml_log)
+ * \fn int omlc_init( const char* appName, int* argcPtr, const char** argv, o_log_fn custom_oml_log)
  * \brief function called by the application to initialise the oml measurements
  * \param appName the name of the application
  * \param argcPtr the argc of the command line of the application
@@ -69,7 +69,7 @@ omlc_init(
   const char* appName,
   int* argcPtr,
   const char** argv,
-  oml_log_fn custom_oml_log
+  o_log_fn custom_oml_log
 ) {
   o_set_log((o_log_fn)custom_oml_log);
   //  o_set_log_level(DEF_LOG_LEVEL);

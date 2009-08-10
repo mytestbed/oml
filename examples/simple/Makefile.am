@@ -1,6 +1,8 @@
 ACLOCAL_AMFLAGS = -I ../../m4
 
-AM_CPPFLAGS = -I $(top_srcdir)/client/src/c
+AM_CPPFLAGS = \
+	-I $(top_srcdir)/client/src/c \
+	-I $(top_srcdir)/external/ocommLib
 
 noinst_PROGRAMS = oml_ex_simple
 
