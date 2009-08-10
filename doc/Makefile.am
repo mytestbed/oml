@@ -91,3 +91,5 @@ html:	$(html_docs)
 else
 	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
 endif
+
+info_TEXINFOS = oml-user-manual.texinfo

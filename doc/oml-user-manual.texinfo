@@ -1,0 +1,1242 @@
+\input texinfo @c -*- texinfo -*-
+@c %**start of header
+@setfilename oml-user-manual.info
+@settitle OML User Manual
+@c %**end of header
+
+@copying
+Copyright @copyright{} 2009, NICTA
+
+Locked Bag 9013
+
+Alexandria NSW 1430
+
+AUSTRALIA
+
+TBD Permission is granted to...
+@end copying
+
+@titlepage
+@title OML User Manual
+@subtitle OML -- The OMF Measurement Library
+@subtitle For version 2.0.1, 20 July 2009
+@author Jolyon White
+
+@c The following two commands start the copyright page
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@c Output the table of contents at the beginning
+@contents
+
+@ifnottex
+@node Top
+@top OML User Manual
+
+This manual is for OML, The OMF Measurement Library, version 2.0.1, a
+package containing a software framework for distributed measurement
+collection in network testbeds or clustered simulation experiments.
+
+OMF is the cOntrol and Management Framework for maintaining network
+testbeds and running distributed networking experiments on network
+testbeds.  You can find out more about OMF at:
+
+@indicateurl{http://www.mytestbed.net}
+
+The core of OML consists of a measurement server and a client library.
+Users of OML can write applications that use the functions of the
+client library to record measurements from an experiment running on
+one network host, and either write them to a file locally on that
+host, or send them to the server over a network connection.  The
+server can record results of multiple experiments running
+simultaneously on multiple network hosts, and writes them to a
+database on the machine hosting the server.  It is even possible to
+run experiments on network hosts that are sometimes disconnected,
+using the OML proxy server.
+
+@end ifnottex
+@menu
+* Introduction::                Introduction to OML.
+* Architecture::                Overview of the architecture of OML.
+* Tutorial::                    A quickstart tutorial for getting up and running with OML.
+* Client::                      Using the client library.
+* Server::                      Using the OML server and the OML proxy server.
+* Custom Filters::              How to design custom filters for use with OML.
+* Non-instrumented Applications::  How to use OML with third party programs when you don't have source code.
+* Language Bindings::           Bindings for languages other than C/C++.
+* Measurement Database::        Querying the measurement database.
+
+
+* Index::                       Index.
+
+@detailmenu
+ --- The Detailed Node Listing ---
+
+Client
+
+* Client configuration::        How to configure an OML client application
+
+Client configuration
+
+* Command line::                Configuring the OML client from the command line
+* XML configuration::           Configuring the OML client using an XML file
+* Configuration errors::        What happens if you make a mistake configuring OML
+
+Command line
+
+* omlid::
+* omlexpid::
+* omlfile::
+* omlserver::
+* omlsamples::
+* omlinterval::
+* omlconfig::
+* omllogfile::
+* omlloglevel::
+* omlnoop::
+* omllistfilters::
+* omlhelp::
+
+XML configuration
+
+* Root element::                The root element of the XML file.
+* Data collectors::
+* Definining measurement points::  How to define what measurements to collect.
+* Defining filters::            How to create filters on each MP.
+* Example XML configuration::   An example XML configuration file.
+
+Custom Filters
+
+* Anatomy of a filter::         The basic components of an OML filter.
+* Filter API::                  The interface for filter writers.
+
+Filter API
+
+* Utility functions::           Functions for operating on filters.
+* Filter function prototypes::  The API that new filters must conform to.
+* Filter Tutorial::             A tutorial showing how to define your own filters.
+
+Bindings for other languages
+
+* Ruby::                        Bindings for Ruby
+* Python::                      Bindings for Python
+
+@end detailmenu
+@end menu
+
+@node Introduction
+@chapter Introduction
+
+@node Architecture
+@chapter Architecture
+
+@node Tutorial
+@chapter Tutorial
+@node Client
+@chapter Client
+
+@menu
+* Client configuration::        How to configure an OML client application
+@end menu
+
+@node Client configuration
+@section Client configuration
+
+Client applications can be given options on the command line to
+configure various aspects of the behaviour of the OML client library.
+They can also be configured more extensively using a configuration
+file in XML format.  For some users the command line configuration
+will be sufficient, but the XML format provides more power for more
+sophisticated measurement needs.
+
+@menu
+* Command line::                Configuring the OML client from the command line
+* XML configuration::           Configuring the OML client using an XML file
+* Configuration errors::        What happens if you make a mistake configuring OML
+@end menu
+
+@node Command line
+@subsection Command line
+
+The client application must initialize OML with a call to
+@code{omlc_init()}, passing it the programme's command line argument
+vector and count.  The @code{omlc_init()} function scans the command
+line for options that it understands, configures OML according to
+those options, and then removes the OML-specific options from the
+argument vector.  This allows the client application to have its own
+command line options without needing to worry about processing OML
+options as well.
+
+To see the available options, build your client application, linking
+with @code{-loml2}, and then execute it with the @option{--oml-help}
+option:
+@example
+$ my-oml-app --oml-help
+@end example
+@noindent
+
+Here is how the @code{main()} function of a typical OML client
+application might look:
+
+@example
+int main (int argc, char** argv)
+@{
+  int res;
+
+  res = omlc_init ("my-oml-app", &argc, &argv, NULL);
+  if (res)
+     return (-1);  /* OML failed to initialize */
+
+  /* Do our own options processing, if required */
+  ...
+  /* Add MP's with omlc_add_mp() */
+  ...
+
+  res = omlc_start ();
+
+  if (res)
+     return (-2);  /* OML failed to start */
+
+  /* Do the application, collect measurements with omlc_inject() */
+  ...
+
+  return 0; /* Program ran and finished successfully */
+@}
+@end example
+
+The call to @code{omlc_init()} parses the OML command line options and
+configures the library.  The @code{omlc_start()} function is
+responsible for creating the filter configuration.  If there is no XML
+configuration file specified (i.e. @option{--oml-config} is not given)
+then a default filter configuration is used.  In this configuration,
+there is a single datastore, specified by either @option{--oml-file}
+or @option{--oml-server}, and every MP that has been previously
+registered by a call to @code{omlc_add_mp()} is given a filter for
+every element of its input @math{n}-tuple.  The filter type for each
+element of the @math{n}-tuple is chosen automatically:
+
+@itemize
+@item
+If the element is an @code{OML_LONG_VALUE} or an
+@code{OML_DOUBLE_VALUE} then the averaging filter @code{avg} is used;
+
+@item
+If the elment is an @code{OML_STRING_VALUE}, then the first filter,
+@code{first}, is used.
+@end itemize
+
+The following subsections describe all the OML command line options in
+detail.
+
+@menu
+* omlid::
+* omlexpid::
+* omlfile::
+* omlserver::
+* omlsamples::
+* omlinterval::
+* omlconfig::
+* omllogfile::
+* omlloglevel::
+* omlnoop::
+* omllistfilters::
+* omlhelp::
+@end menu
+
+
+@node omlid
+@subsubsection @option{--oml-id} @var{id}
+
+@kindex --oml-id
+Set the client application's node ID.  This is not required if output is
+only going to a file, but it is mandatory if output is going to an OML
+server, as the OML server uses the node ID (and the experiment ID) to
+distinguish between measurements from different OML clients in the
+network.
+
+@node omlexpid
+@subsubsection @option{--oml-exp-id} @var{id}
+
+@kindex --oml-exp-id
+Set the client application's experiment ID.  This is not required if
+output is only going to a file, but it is mandatory if output is going
+to an OML server, as the OML server uses the experiment ID (and the
+node ID) to distinguish between measurements from different OML
+clients in the network.
+
+@node omlfile
+@subsubsection @option{--oml-file} @var{file}
+
+@kindex --oml-file
+Send measurement output to the local @var{file}.  If @var{file} is
+`@code{-}' then output is sent to the client application's standard
+output stream.
+
+@node omlserver
+@subsubsection @option{--oml-server} @var{uri}
+
+@kindex --oml-server
+Send measurement output to the server (or proxy server) indicated by
+the @var{uri} parameter.  The @var{uri} can specify either UDP or TCP
+protocol, together with a host and port number to connect to.  For
+example:
+@example
+--oml-server tcp://10.0.0.1:1234
+@end example
+@noindent
+would connect to port 1234 on machine 10.0.0.1 using TCP protocol.
+
+@node omlsamples
+@subsubsection @option{--oml-samples} @var{n}
+
+@kindex --oml-samples
+Set the sampling policy to compute filter outputs every @var{n} input
+samples for all defined measurement points.  Only one of
+@option{--oml-samples} and @option{--oml-interval} should be specified
+at the same time, otherwise an error will occur.
+
+@node omlinterval
+@subsubsection @option{--oml-interval} @var{period}
+
+@kindex --oml-interval
+Set the sampling policy to compute filter outputs every @var{period}
+seconds for all defined measurement points.  Only one of
+@option{--oml-interval} and @option{--oml-samples} should be specified
+at the same time, otherwise an error will occur.
+
+@node omlconfig
+@subsubsection @option{--oml-config} @var{config-file}
+
+@kindex --oml-config
+Use an XML @var{config-file} to configure OML.  @xref{XML
+configuration}.
+
+@node omllogfile
+@subsubsection @option{--oml-log-file} @var{log-file}
+
+@kindex --oml-log-file
+Log debug, informational, warning, and error messages to file
+@var{log-file}.  If @var{log-file} is `@code{-}', then the output goes
+to the client application's standard output stream.  Not all of the
+four levels of logging are sent to the log file.  This is controlled
+by @code{--oml-log-level}, @xref{omlloglevel}.
+
+@node omlloglevel
+@subsubsection @option{--oml-log-level} @var{level}
+
+@kindex --oml-log-level
+Control the amount of information logged to the OML log file.  The log
+@var{level} is a number from 1 to 4:
+@itemize
+@item
+@var{level}=1: Log only error messages to the log file.
+
+@item
+@var{level}=2: Log error messages and warnings to the log file.
+
+@item
+@var{level}=3: Log errors, warnings, and informational
+messages to the log file.
+
+@item
+@var{level}=4: Log errors, warnings, informational messages and
+debugging messages to the log file.
+@end itemize
+
+@node omlnoop
+@subsubsection @option{--oml-noop}
+
+@kindex --oml-noop
+Don't write any measurements to file or any servers.  This is useful
+if the OML client application needs to be run as part of a larger
+experiment, but its output is not interesting for this particular
+experiment.
+
+@node omllistfilters
+@subsubsection @option{--oml-list-filters}
+
+@kindex --oml-filter-types
+Print out the available filter types, for use in the XML configuration
+file, then exit.
+
+@node omlhelp
+@subsubsection @option{--oml-help}
+
+@kindex --oml-help
+Print out a usage message listing all the available options, then
+exit.
+
+@page
+@node XML configuration
+@subsection XML configuration
+
+@quotation Current implementation status
+With reference to the text below, the parser is not fully implemented.
+In particular, the filter parameters element @code{<fp/>} is parsed but
+the key/value pair is not sent to the filter's @code{set()} function.
+Also, the filter definition element @code{<f/>} has a defined
+attribute @code{multi_pnames}, but it isn't processed or used in any
+way.
+@end quotation
+
+While the command line provides a basic method for configuring OML,
+with averaging filters on numeric measurements and either sample count
+or interval based filtering, the full power of OML's filtering
+capabilities can only be accessed via its XML configuration file
+format.  The XML format allows the user of the OML client application
+to choose multiple different filters for each measurement stream, and
+to send the resulting filtered measurements to multiple different
+destinations.  To use an XML file for configuring OML, pass it the
+@option{--oml-config} option and specify a file as the argument.  For
+example:
+@example
+$ my-oml-app --oml-config config.xml ...
+@end example
+
+@menu
+* Root element::                The root element of the XML file.
+* Data collectors::
+* Definining measurement points::  How to define what measurements to collect.
+* Defining filters::            How to create filters on each MP.
+* Example XML configuration::
+@end menu
+
+@node Root element
+@subsubsection Root element
+
+The XML file must have a root element with tag @code{<omlc/>}.  The root
+element can also specify the node identifier and the experiment
+identifier, using the @code{id} and @code{exp_id} attributes,
+respectively.  For example, suppose that the client is running on a
+node called ``node-21'', and that this experiment is testing a new
+WiFi networking algorithm called ``xtream-wifi''.  The XML
+configuration file for this experiment might look like this:
+
+@example
+<omlc id="node-21" exp_id="xtream-wifi-1">
+...
+</omlc>
+@end example
+
+The @code{id} and @code{exp_id} attributes are not mandatory if
+results are being written to a file, however the OML client library
+can't send measurement output to an OML server without them.  In that
+case, @code{omlc_start()} will return an error.
+
+@node Data collectors
+@subsubsection Data collectors
+Under the root node there must be a list of one or more @code{<collect/>}
+elements.  The collect element indicates a data destination (i.e. a
+data ``collector'').  A data collector can represent either:
+
+@itemize
+@item
+a file on the local filesystem;
+@item
+an OML server located on a network accessible from the machine on
+which the client application is running; or
+@item
+an OML proxy server located on the same machine as the client
+application.
+@end itemize
+
+The destination is specified using the @code{url} attribute of the
+@code{<collect/>} element.  The structure of the URL determines the type
+of data store.  The following protocols are available:
+
+@enumerate
+@item
+@code{file:} -- writes measurement data to a file on the local
+filesystem.  For instance @code{<collect
+url="file:/tmp/my-data.txt"/>} will write to the file
+@file{/tmp/my-data.txt}.  Relative file names are interpreted relative
+to the current working directory of the OML client application when it
+launched.  A URL of @code{file:-} sends the outut to the client
+application's standard output stream.
+
+@item
+@code{tcp:} -- writes measurement data to a TCP connection that the
+client library establishes. The destination host and port are encoded
+in the URL.  For instance, @code{<collect
+url="tcp://10.42.54.2:3003"/>} will write data for this collector to
+TCP port 3003 of machine 10.42.54.2.
+
+@item
+@code{udp:} -- writes measurement data to a UDP connection that the
+client library establishes.  The destination host and port are encoded
+in the URL.  For instance, @code{<collect
+url="udp://10.42.54.3:3004"/>}.
+@end enumerate
+
+The client library communicates with the server using a binary line
+protocol.  The regular OML server and the OML proxy server both
+understand the same protocol, and are interchangeable from the point
+of view of the OML client application.
+
+The @code{url} attribute is a required attribute; it is an error to
+omit it.  @code{<collect/>} has no other attributes.
+
+@node Definining measurement points
+@subsubsection Defining measurement points
+The @code{<collect/>} element groups one or more @code{<mp/>}
+elements.  An @code{<mp/>} element is a representation of a
+Measurement Point (MP).  Each @code{<mp/>} has a @code{name}
+attribute, which is mandatory, and either a @code{samples} attribute
+or an @code{interval} attribute.  The @code{name} attribute must match
+the name of an MP that the client application registered using
+@code{omlc_add_mp()}.
+
+If @code{samples=n} is specified, where @code{n} is an integer, then
+the MP will call its filters' @code{output()} functions after every
+@code{n} samples, resulting in measurements being written to the MP's
+collector.  If @code{interval=T}, where @code{T} is a floating point
+number, then the MP will call its filters' @code{output()} functions
+every @code{T} seconds, so the filtered measurements will be sent to
+the collector's data store at that periodic interval.  Specifying both
+@code{samples} and @code{interval} on the same @code{<mp/>} element is an
+error.
+
+Each @code{<mp/>} groups a number of filter specification elements, which
+are given using the @code{<f/>} tag.  Thus, an example OML configuration
+file with one collector, one MP, and two filters might look like the
+following:
+
+@example
+<omlc id="node-21" exp_id="xtream-wifi-1">
+      <collect url="file:xtream-wifi-1-output.txt">
+               <mp name="packets" interval=1.0>
+                   <f .../>
+                   <f .../>
+               </mp>
+      </collect>
+</omlc>
+@end example
+
+
+This assumes that the ``xtream-wifi'' client application has created
+an MP named ``packets''.  This configuration could be used, for
+instance, to count the number of packets received per second (since
+the @code{interval} attribute is given with a 1 second period) using
+the first filter, and also the delay between packets using the second
+filter.
+
+@node Defining filters
+@subsubsection Defining filters
+The @code{<f/>} element is used to select the type and parameters for the
+filters attached to this MP.  All measurement samples injected into
+the MP by the client application using calls to @code{omlc_inject()}
+will be fed as input samples to all filters grouped under the MP.
+Because the injected samples are @math{n}-tuples, and most (but not
+all) filters are only interested in one element of the @math{n}-tuple,
+the @code{<f/>} tag allows you to select which element of the
+@math{n}-tuple gets sent to which filter.
+
+A filter is typically specified as follows:
+@example
+<f fname="avg" sname="ip_len_avg" pname="ip_len"/>
+@end example
+@noindent
+This filter might be used, for instance, to compute the average length
+of IP packets received.  The @code{fname} attribute specifies the type
+of filter to create.  In this case, an averaging filter (``avg'') is
+being used.  The @code{sname} attribute gives a name to the filter,
+which will appear in the schema sent to the datastore, so that outputs
+from this filter can be distinguished from others.  Finally, the
+@code{pname} attribute selects which element of the MP's input
+@math{n}-tuple to use as the primary filter input.
+
+The names of the available filter types can be determined by giving
+the @option{--oml-filter-types} option to the client application.  The names
+given there are appropriate to be used as the value of the
+@code{fname} attribute.
+
+@cartouche
+@quotation Alternative proposal
+Having three different attributes called ``@code{xname}'' is a bit confusing,
+and makes it difficult for a new user to remember what the ``x'' part
+means.  We could as an alternative rename these attributes:
+
+@itemize
+@item @code{fname} @result{} @code{type}
+@item @code{sname} @result{} @code{name}
+@item @code{pname} @result{} @code{parameter}
+@end itemize
+
+With this change the above example would look like this:
+@example
+<f name="ip_len_avg" type="avg" parameter="ip_len"/>
+@end example
+This makes it clear that the type of filter is an averaging filter,
+the filter's identifier is @code{ip_len_avg}, and it is filtering the
+MP's @code{ip_len} parameter.
+@end quotation
+@end cartouche
+
+In this case, the filter is taking its primary input from the
+@code{ip_len} parameter of the MP's @math{n}-tuple.  In general, the
+parameter name specified via the @code{<f/>} tag's @code{pname}
+attribute must match the name of a parameter in the MP's definition,
+as supplied in a call to @code{oml_add_mp()} in the OML client
+application.  If the name specified in the @code{pname} attribute
+doesn't match any parameter of the MP under which the filter is
+defined, an error occurs.  The @code{sname} attribute can be any string.
+
+An @code{<f/>} element can optionally contain @code{<fp/>} children that
+allow for setting filter properties.  We call them properties to avoid
+confusion with the MP's parameters.  A property is a way of
+customizing a filter's behaviour.  Properties are typed, named values.
+Allowable types are @code{integer}, @code{double}, and @code{string}.
+For instance, suppose a (hypothetical) filter type exists called
+@code{fft} that computes the Fast Fourier Transform of its input data.
+It might have an integer parameter @code{N} representing the size of
+the FFT input/output, and string parameter @code{dir} to select
+between an FFT and an IFFT.  This could be represented as follows:
+
+@example
+<f sname="vibration-fft" fname="fft" pname="displacement">
+   <fp name="N" type="integer">32</fp>
+   <fp name="dir" type="string">FFT</fp>
+</f>
+@end example
+
+In this case the FFT size chosen is 32 and the forward FFT will be
+computed, not the inverse FFT.
+
+@node Example XML configuration
+@subsubsection Example XML configuration
+
+The previous sections described everything required to configure and
+OML client application.  Here is a slightly longer example of an OML
+XML configuration file.
+
+@smallexample
+<omlc exp_id="exp99" id="node11">
+    <collect url="tcp:localhost:15500">
+        <mp name="omlsigar" interval="2" >
+            <f fname="avg" sname="cpu_user" pname="cpu_user" />
+        </mp>
+    </collect>
+
+    <collect url="tcp:10.0.0.1:15502">
+        <mp name="omlsigar" interval="2" >
+            <f fname="avg" sname="rx_bytes" pname="rx_bytes"/>
+            <f fname="histogram" sname="rx_hist" pname="rx_bytes">
+                <fp name="key">rx_bytes</fp>
+            </f>
+        </mp>
+    </collect>
+
+    <collect url="file:-">
+        <mp name="omlsigar" interval="2" >
+            <f fname="avg" sname="rx_bytes" pname="rx_bytes"/>
+            <f fname="avg" sname="tx_bytes" pname="tx_bytes"/>
+        </mp>
+    </collect>
+</omlc>
+@end smallexample
+
+This example sends data to an OML sever at the localhost port 15500,
+to another OML server at remote machine 10.0.0.1 port 15502, and to
+the standard output on the local machine.  The localhost server
+records the average CPU user time; the remote server records both the
+average received bytes and a histogram of the average received bytes;
+and the standard output prints both the average received and
+transmitted bytes.
+
+@node Configuration errors
+@subsection Configuration errors
+If an error is detected in the way that OML has been configured,
+either on the command line or in an XML configuration file, then
+@code{omlc_start()} will return with an error, and @code{omlc_init()}
+might as well.  In that case, the client application will probably not
+send measurements to the datastores; certainly not in the manner
+intended.  It is probable that measurements will be lost, and this
+behaviour is undefined.
+
+Client applications must check the return values of both
+@code{omlc_init()} @emph{and} @code{omlc_start()}.  If either returns
+an error, the client application should print a diagnostic message and
+quit with an error code.  The OML log file will contain log messages
+indicating the nature of the problem.  You should inspect these log
+messages and correct the problem before continuing.
+
+@node Server
+@chapter Server
+@node Custom Filters
+@chapter Custom Filters
+
+OML comes with several built-in filters already available for use by
+your applications.  The currently defined filters are:
+
+@itemize
+@item Average filter:  output the average, min and max of all the samples since the beginning of the experiment.
+@item First filter:  output only the first sample in each sampling interval, and discard the rest.
+@item Histogram filter:  record and output a histogram from the received measurements.
+@end itemize
+
+For many experiments these filters will be adequate.  OML provides a
+mechanism for experimenters to write custom filters in situations
+where the built-in filters do not provide the required functionality.
+This chapter describes the API for defining custom filters in your
+application, and gives an example of how to use it.
+
+@menu
+* Anatomy of a filter::         The basic components of an OML filter.
+* Filter API::                  The interface for filter writers.
+@end menu
+
+@node Anatomy of a filter
+@section Anatomy of a filter
+
+An OML filter is a processing element that accepts a stream of values
+from an MP and produces output that is some function of the input
+stream.  Typically a filter should produce output samples at a reduced
+rate compared to the input sample rate, although OML does not enforce
+this rule.  One significant reason for filtering is to reduce the
+amount of data produced by an experiment to a more manageable level.
+Another is to provide multiple alternative ways for looking at the
+experiment's result set.
+
+Each filter is attached to an MP when it is created.  The filter input
+stream therefore consists of @math{n}-tuples, where @math{n} is the
+width of the MP's input (as defined by a call to
+@code{omlc_add_mp()}).  The output stream of the filter consists of
+@math{m}-tuples, where @math{m} is defined by the filter writer.
+
+Note that the output width, @math{m}, is fixed by the filter writer
+and cannot change at runtime, whereas the input width, @math{n}, is
+defined by the MP to which the filter is attached, and is by nature a
+dynamic runtime quantity.
+
+Internally to the OML client library, a description of every type of
+filter is stored in a factory.  This description consists of the
+following:
+
+@itemize
+@item a create function, called @code{create()} in the following discussion;
+@item a parameter setting function, called @code{set()};
+@item a new sample input function, called @code{input()};
+@item a filter output function, called @code{output()};
+@item a meta function, called @code{meta()}; and
+@item an output description.
+@end itemize
+
+These functions and the output description are all provided by the
+filter writer via a call to @code{omlf_register_filter()}.  The
+@code{omlf_register_filter()} function and the required API for all of
+the user-provided functions are described fully in @ref{Filter API}.
+
+New filters are created during the call to @code{omlc_start()},
+according to either OML command line options or according to the XML
+configuration file, if specified.  There can be multiple instances of
+each type of filter, including user-defined filters.  Each instance is
+created by a call to the @code{create()} function for the filter
+type.  The @code{create()} function for a filter should allocate
+memory for any internal state that it needs to maintain, and should
+initialize the state appropriately.
+
+When the application begins running and generating measurement data,
+every time an MP receives new data from the application (in a call to
+@code{omlc_inject()}) it passes the sample data to all of its attached
+filters by calling their @code{input()} functions.  The input function
+should update the internal state of the filter to reflect the new
+sample.
+
+Each MP is defined with a sampling policy: it produces outputs either
+when a set time interval has elapsed, or when a set number of samples
+has been injected into the MP.  When an MP's sampling policy dictates
+that it should output a measurement, the MP will call the filter's
+@code{output()} function.  The @code{output()} function computes an
+output @math{m}-tuple based on all the previous samples, as reflected
+in its current internal state.  It must then send the output
+@math{m}-tuple to a writer object (provided by the OML client
+library), which either writes the output sample to file or sends it to
+the configured OML server.
+
+Once the output has been written to the data store, the
+@code{output()} function can reset any of its internal state as needed
+to be ready for the next set of samples to be injected into the MP.
+For instance, an averaging filter might reset its accumlator and count
+variables to zero at this point.
+
+The final aspect of a filter is the @code{meta()} function.  This
+function is used by OML to construct a schema to describe the filter's
+output.  The schema is used by the OML server to construct a database
+table to store the filter's output, and is always written out to file
+if the filter is configured to output its data to a local file.  The
+output description can be used to generate the schema automatically,
+in which case the @code{meta()} function is not required; but if you
+want to change the default schema produced from the output
+description, you can provide your own meta function.
+
+TODO: The above might be more enlightening with references to the XML
+config format (@pxref{XML configuration}).
+
+@node Filter API
+@section Filter API
+
+This section introduces the API for writing filters.  It consists of
+two parts:
+
+@enumerate
+@item
+Utility functions for registering a new filter type and for accessing
+elements of a filter instance; and
+@item
+Function prototypes and functional descriptions that the user-provided
+filter functions must conform to.
+@end enumerate
+
+Both the utility functions and the user-provided function prototypes
+definitions are contained in the file @file{oml_filter.h}.
+@pindex oml_filter.h
+
+Following this section is a brief tutorial showing how to use this API
+in practice.  @xref{Filter Tutorial}.
+
+@menu
+* Utility functions::           Functions for operating on filters.
+* Filter function prototypes::  The API that new filters must conform to.
+* Filter Tutorial::             A tutorial showing how to define your own filters.
+@end menu
+
+@node Utility functions
+@subsection Utility functions
+
+@deftp Struct OmlFilter
+Struct representing an instance of a filter.  The OML client library
+creates filter instances during the call to @code{omlc_start()}, based
+on the definitions in the filter factory.  The @code{OmlFilter} struct
+stores the filter instance's private instance data, as registered by
+the @code{omlf_set_instance_data()} function.  All of the filter
+functions provided by the filter writer take an @code{OmlFilter*} as
+their first parameter (see @ref{Filter function prototypes}).  The
+filter writer can use this pointer to set and access the instance
+data, query properties of the filter, and perform other necessary
+operations.  The rest of the functions in this section all operate on
+@code{OmlFilter} objects.
+@end deftp
+
+@deftp Struct OmlFilterDef
+Struct representing the definition of a filter's output, defined as
+follows:
+
+@example
+typedef struct _omlFilterDef
+@{
+        const char* name;
+        OmlValueT   type;
+@} OmlFilterDef;
+@end example
+
+When a new filter type is registered with
+@code{omlf_register_filter()}, the filter output @math{m}-tuple must
+be defined as an array of (name, type) pairs, represented using
+@code{OmlFilterDef}.  The filter designer should create an array of
+@math{m+1} @code{OmlFilterDef} objects specifying the output
+@math{m}-tuple of the filter, terminated by a sentinel initialized as
+@code{@{ NULL, 0 @}}, and pass it to @code{omlf_register_filter()}.
+@end deftp
+
+
+@deftypefun int omlf_register_filter ( @* @
+           @code{const char*}       @var{filter_name}, @* @
+           @code{oml_filter_create} @var{create},      @* @
+           @code{oml_filter_set}    @var{set},         @* @
+           @code{oml_filter_input}  @var{input},       @* @
+           @code{oml_filter_output} @var{output},      @* @
+           @code{oml_filter_meta}   @var{meta},        @* @
+           @code{OmlFilterDef*}     @var{filter_def})
+
+Register a new filter type with the OML client library's internal
+filter factory.
+
+The filter type is identified by the given @var{name}.  The @var{name}
+can be used in the XML configuration file to create instances of this
+type of filter.  Instances of this filter type will be created by a
+call to the given @var{create} function.  The OML client library will
+call the given @var{set}, @var{input}, @var{output} and @var{meta}
+functions for filter instances of type @var{filter_name}.
+
+This function returns 0 on success and @minus{1} on error.
+
+The @var{create}, @var{input}, and @var{output} functions are required
+and cannot be @code{NULL}.  If they are @code{NULL} then the filter
+type will not be registered with the factory and the function will
+return @minus{1} (error).
+
+If the @var{set} parameter is @code{NULL} then no error is generated
+and a default @code{set()} function, a no-op, is installed for this
+filter type.
+
+If the @var{meta} parameter is @code{NULL} then a default
+@code{meta()} function is installed for this filter type.  The default
+@code{meta()} function inspects the @var{filter_def} and automatically
+generates the schema information from it.
+
+The @var{filter_def} must point to an array of @code{OmlFilterDef}
+structs, terminated by a sentinel.  For example, it might look like
+the following:
+
+@example
+OmlFilterDef my_filter_def [] =
+@{
+        @{ "avg", OML_DOUBLE_VALUE @},
+        @{ "min", OML_LONG_VALUE @},
+        @{ "max", OML_LONG_VALUE @},
+        @{ NULL, 0 @}
+@};
+@end example
+
+The @var{filter_def} is also mandatory.  If it is @code{NULL}, an
+error will occur and the function returns @minus{1}.  If the type of
+an entry in the @var{filter_def} array is the pseudo-type
+@code{OML_INPUT_VALUE}, then the output type will be set to the type
+of the filter's primary input.
+
+The types @code{oml_filter_create}, @code{oml_filter_set}, etc., are
+function pointer types.  They are defined separately in @ref{Filter
+function prototypes}.
+@end deftypefun
+
+@deftypefun int omlf_set_instance_data (@code{OmlFilter*} f, @code{void*} instance_data)
+Set the private instance data for filter @var{f}.  This function
+returns 0 on success and @minus{1} on failure.  The function will fail
+if the filter already has private instance data, or if
+@var{instance_data} is @code{NULL}.
+@end deftypefun
+
+@deftypefun void* omlf_instance_data (@code{OmlFilter*} f)
+Return the private instance data for filter @var{f}, or @code{NULL} if
+no private data has been registered for this filter yet.
+@quotation Implementation note
+This function could be implemented as either an inline function or a
+macro for speed.
+@end quotation
+@end deftypefun
+
+@deftypefun OmlValue* omlf_create_result_vector (@code{OmlFilter*} f)
+Creates a new result vector for filter @var{f}, and returns a pointer
+to it.
+
+The result vector is a vector of @code{OmlValue} objects whose types
+are initialized to match the types specified in the filter's output
+definition, as supplied to @code{omlf_register_filter()}.  The values
+stored in the vector are initialized to 0 for numeric types and
+@code{NULL} for pointer types (strings).
+
+Returns @code{NULL} on failure.
+@end deftypefun
+
+@deftypefun @code{OmlValueT} omlf_input_type (@code{OmlFilter*} f, @code{int} index)
+Return the type of the filter input with the given @var{index} for
+filter @var{f}.  If @var{index} is not in the range @code{0..m-1},
+where @code{m} is the input width (as returned by
+@code{omlf_input_width()}), then this call will fail with the return
+value @code{OML_UNKNOWN_VALUE}.
+@quotation Implementation note
+This function could be implemented as either an inline function or a
+macro for speed.
+@end quotation
+@end deftypefun
+
+@deftypefun int omlf_input_width (@code{OmlFilter*} f)
+Returns the input width of filter @var{f}.  The input width is the
+length of the filter's input tuple.  The input width is calculated from the
+definition of the MP to which this filter is associated.
+@quotation Implementation note
+This function could be implemented as either an inline function or a
+macro for speed.
+@end quotation
+@end deftypefun
+
+@deftypefun int omlf_output_width (@code{OmlFilter*} f)
+Returns the output width of filter @var{f}.  The output width is the
+length of the filter's output tuple.  The output width is calculated from the
+filter definition supplied to @code{omlf_register_filter()}.
+@quotation Implementation note
+This function could be implemented as either an inline function or a
+macro for speed.
+@end quotation
+@end deftypefun
+
+@deftypefun int omlf_write_output (@code{OmlFilter*} f, @code{OmlValue*} result)
+Write the @var{result} vector for filter @var{f} to the data store.
+Returns 0 on success and @minus{1} on failure.
+
+This function is intended to be called from the filter's
+@code{output()} function.  Most filters will call this function once
+per invocation of the @code{output()} function.  However, some filters
+may need to output multiple lines of results, all adhering to the
+filter's output schema, for every call to @code{output()}.  In this
+case, the filter's @code{create()} function should call
+@code{omlf_set_multiline()}.  This will cause the
+@code{omlf_write_output()} function to emit an epoch on each line of
+output, and augment the schema to match it.
+
+The epoch is an incrementing counter that starts from 0 and increments
+after each call to the filter's @code{output()} function.  Thus, all
+filter outputs that logically belong to the same filtered measurement
+sample will have the same epoch.
+
+Note:  the filter definition passed to @code{omlf_register_filter()}
+does not need to be modified to include the epoch, it will be included
+in the schema automatically.  Even if you supply your own
+@code{meta()} function, you can write it as normal and the OML client
+library will take care of modifying the schema for multiline operation
+with an epoch included in the schema.
+
+@quotation Implementation note
+This function will write output to the associated writer object, which
+will be made available in the filter instance's @code{OmlFilter}
+struct.
+@end quotation
+@end deftypefun
+
+@deftypefun int omlf_set_multiline (@code{OmlFilter*} f)
+Set the filter @var{f} to multiline mode.  In multiline mode, the
+filter's @code{output()} function can call the
+@code{omlf_write_output()} function more than once, and the
+measurement results will be augmented with an incrementing epoch that
+groups all related measurement outputs.
+
+Returns 0 on success, @minus{1} on failure.
+@end deftypefun
+
+@node Filter function prototypes
+@subsection Filter function prototypes
+
+The core of a user-defined filter is the set of functions it provides
+to the OML client library.  This set of functions must conform to the
+API expected by OML, which is documented in this section.  You should
+write your filter's functions to match the descriptions below.
+
+@deftypefun @code{typedef int} (*oml_filter_create) ( @* @code{OmlFilter*} f, @* @code{OmlValueT} type)
+Prototype for every filter's @code{create()} function.  The create
+function is called when a new instance of this type of filter is
+created.  The OML client library first sets up the @code{OmlFilter}
+struct for this filter, then calls the @code{create()} function, so
+the filter is fully constructed (apart from instance data) and in a
+suitable state for all the functions in @ref{Utility functions} to be
+callable on @var{f}.
+
+The @var{type} parameter is the type of the filter's primary input
+value.  The @code{create()} function can cache this parameter and do
+polymorphic filtering based on the input type, or alternatively it can
+do type checking to ensure that the filter is used only with valid
+input types.
+
+The create function is responsible for initializing the internal state
+for the new instance of the filter type it belongs to.  Most filters
+would allocate memory for a private instance data structure,
+initialize the structure, and call @code{omlf_set_instance_data()} to
+register its instance data with the @code{OmlFilter} instance.  It
+should probably also call @code{omlf_create_result_vector()} to
+allocate an array to store its output.
+
+For instance, the @code{create()} function for the built-in averaging
+filter looks something like this:
+
+@smallexample
+typedef struct @{
+  /* Keep the sum and sample count to calculate average */
+  double  sample_sum;
+  int     sample_count;
+
+  double  sample_min;
+  double  sample_max;
+
+  OmlValue* result;
+@} InstanceData;
+
+int average_create (OmlFilter* f, OmlValueT type)
+@{
+   /* Validate the input type */
+   if (! (type == OML_LONG_VALUE || type == OML_DOUBLE_VALUE))
+     return -1;
+
+   /* Allocate private instance data structure */
+   InstanceData* self = (InstanceData*)malloc(sizeof(InstanceData));
+
+   if (!self)
+     return -1;
+
+   /* Initialize private instance data for computing avg, min, max */
+   memset(self, 0, sizeof(InstanceData));
+   self->sample_sum = 0;
+   self->sample_count = 0;
+   self->sample_min = HUGE;
+   self->sample_max = -1 * HUGE;
+
+   /* Create the result vector, and save it */
+   self->result = omlf_create_result_vector(f);
+
+   /* Store the private instance data for this filter instance */
+   omlf_set_instance_data(f, self);
+   return 0;
+@}
+@end smallexample
+
+If a filter is intended to operating in multiline mode, then its
+@code{create()} function should call @code{omlf_set_multiline()}.
+
+The @code{create()} function should return 0 on success and @minus{1}
+on failure.  If it signals a failure, then the filter factory will log
+an error to the OML log and the filter instance will not be created.
+The @code{create()} function should @code{free()} and memory it
+allocated before it exits in this case, including any instance data
+set via a call to @code{omlf_set_instance_data()}.
+@end deftypefun
+
+
+@deftypefun @code{typedef int} (*oml_filter_set)      ( @* @code{OmlFilter*} f, @* @code{const char*} name, @* @code{OmlValue*} value)
+Prototype for every filter's @code{set()} function.  The @code{set()}
+function is called by the OML client library to set parameters for the
+filter.  The parameter is specified as having the given @var{name} and
+@var{value} in the XML configuration file (see section XXX).
+
+It is up to the individual filter to store parameter values, most
+typically in its instance data.  It is free to ignore parameters if
+they are not meaningful for the particular filter type, but its
+@code{set()} function should return @minus{1} in this case to indicate
+failure.  On success, the @code{set()} function should return 0.
+@end deftypefun
+
+
+@deftypefun @code{typedef int} (*oml_filter_input)    ( @* @code{OmlFilter*} f, @* @code{OmlValue*} primary, @* @code{OmlValueU*} values)
+Prototype for every filter's @code{input} function.  The input
+function is called once for every time that the application calls
+@code{omlc_inject()} on the MP to which the filter instance is
+associated.  This function should update its internal state to reflect
+the new sample data.
+
+The @code{input()} function can use @code{omlf_instance_data(f)} to
+get access to the private instance data of filter @var{f}.  Parameter
+@var{f} is guaranteed to represent a filter of the correct type.
+
+The @var{primary} parameter is a pointer to the primary input value
+for this filter, for this input sample.  See this discussion of
+primary input values in section XXX.  Since it is an @code{OmlValue}
+object, the primary input value is typed and can be validated for type
+checking, or handled differently for different types.
+
+The @var{values} parameter points to the array of input values from
+the MP, i.e. it is the pointer to the MP's input @math{n}-tuple for
+the current input sample, where @math{n} is the value returned by
+@code{omlf_input_width()}.
+
+The @var{values} array is an array of @code{OmlValueU}'s, which are
+untyped.  This is for efficiency.  The filter can check the types of
+the elements of the @var{values} array by making calls to
+@code{omlf_input_type()}.
+
+Note that the value of @var{primary} will be present in the
+@var{values} array.  The reason for supplying @var{primary} is for
+convenience.  Many filters only require a single input value to filter
+(for instance, the built-in averaging filter).  For such filters,
+@var{primary} will be sufficient and more convenient than indexing the
+@var{values} array; the @var{values} array can be ignored in that
+case.  However, some filters may need to do computations on multiple
+elements of the MP's input @math{n}-tuple, and for these filters the
+@var{values} array is provided.
+
+The @code{input()} function should return 0 on success, and @minus{1} to
+indicate a failure.
+@end deftypefun
+
+@deftypefun @code{typedef int} (*oml_filter_output)   (@code{OmlFilter*} f)
+Prototype for every filter's @code{output()} function.  The
+@code{output()} function should perform any finalization of the
+accumulated filter state, store the output values in a result vector,
+and pass the result vector to the @code{omlf_write_output()} function.
+
+If the filter is set to use multiline operation, the @code{output()}
+function can make multiple calls to @code{omlf_write_output()}.
+
+The @code{output()} function should return 0 on success and @minus{1}
+on failure.
+@end deftypefun
+
+@deftypefun @code{typedef int} (*oml_filter_meta)     ( @* @code{OmlFilter*} f, @* @code{int} index, @* @code{char**} name_ptr, @* @code{OmlValueT*} type)
+Prototype for every filter's @code{meta()} function.  The
+@code{meta()} function's purpose is to provide the name and type of
+every element of the filter's output @math{m}-tuple, so that the OML
+client library can construct a schema for the filter.  The @var{index}
+parameter indicates which element of the output @math{m}-tuple is
+being queried.  The @code{meta()} function should set @var{*name_ptr}
+to point to a string representing the name of the output element, and
+@var{*type} to the type of the output element (@var{name_ptr} and
+@var{type} are output-parameters).
+
+For instance, here is the built-in averaging filter's @code{meta()}
+function:
+
+@smallexample
+int meta(OmlFilter* f, int index, char** name_ptr, OmlValueT* type)
+@{
+  if (!f || !name_ptr || !type) return -1;
+  if (index > 2) return -1;
+
+  switch (index) @{
+  case 0:
+    *name_ptr = "avg";
+    break;
+  case 1:
+    *name_ptr = "min";
+    break;
+  case 2:
+    *name_ptr = "max";
+    break;
+  @}
+  *type = OML_DOUBLE_VALUE;
+  return 0;
+@}
+@end smallexample
+
+The averaging filter's output @math{m}-tuple is an array of
+@code{OML_DOUBLE_VALUE}s.  The first element of the output
+@math{m}-tuple is called ``avg'', the second ``min'', the third
+``max''.
+
+The @code{meta()} function should return 0 on success and -1 on
+failure.  In particular, if the @var{index} parameter is out of range
+or one of the @var{name_ptr} or @var{type} variables are @code{NULL},
+the function should fail.
+@end deftypefun
+
+@node Filter Tutorial
+@subsection Filter tutorial
+
+@node Non-instrumented Applications
+@chapter Non-instrumented Applications
+
+@node Language Bindings
+@chapter Bindings for other languages
+
+@menu
+* Ruby::                        Bindings for Ruby
+* Python::                      Bindings for Python
+@end menu
+
+@node Ruby
+@section Ruby
+
+@node Python
+@section Python
+
+@node Measurement Database
+@chapter Measurement Database
+
+
+@node Index
+@unnumbered Index
+
+@printindex ky
+@printindex cp
+
+@bye
+
+
+@bye
