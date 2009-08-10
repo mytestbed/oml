@@ -77,10 +77,9 @@
 #include "PerfSocket.hpp"
 #include "Locale.hpp"
 #include "util.h"
-#include "ocomm/o_log.h"
 //#include "oml_orbit_winlab_iperf.h"
 extern "C" {
-#include <oml2/o_log.h>
+#include <ocomm/o_log.h>
 #include <oml2/omlc.h>
 
 extern OmlMP* tcp_measure;

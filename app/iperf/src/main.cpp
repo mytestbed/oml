@@ -74,7 +74,7 @@
 //#include "oml_orbit_winlab_iperf.h"
 extern "C" {
 #include <oml2/omlc.h>
-#include <oml2/o_log.h>
+#include <ocomm/o_log.h>
 OmlMP* tcp_measure;
 OmlMP* udp_measure;
 OmlMP* peer_information; 

@@ -39,7 +39,7 @@
 #define OML_FROM_MAIN
 #include "omf_nmetrics_oml.h"
 
-#include <oml2/o_log.h>
+#include <ocomm/o_log.h>
 
 OmlMP*   cpu_mp;
 OmlMP*   memory_mp;
