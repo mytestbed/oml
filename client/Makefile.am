@@ -5,7 +5,6 @@ SUBDIRS = . tests
 oml2incdir = $(includedir)/oml2
 
 oml2inc_HEADERS = \
-	src/c/oml2/o_log.h \
 	src/c/oml2/omlc.h \
 	src/c/oml2/oml_filter.h \
 	src/c/oml2/oml_writer.h
@@ -38,7 +37,6 @@ liboml2_la_SOURCES = src/c/api.c \
 	src/c/filter/average_filter.h \
 	src/c/filter/histogram_filter.h \
 	src/c/filter/stddev_filter.h \
-	src/c/oml2/o_log.h \
 	src/c/oml2/omlc.h \
 	src/c/oml2/oml_filter.h \
 	src/c/oml2/oml_writer.h
