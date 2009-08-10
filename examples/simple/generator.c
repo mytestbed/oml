@@ -1,25 +1,3 @@
-/*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- */
 
 /*
  * This programs implements a simple sin-wave generator with
@@ -40,13 +18,13 @@ static float samples = -1;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
-  { "amplitude", 'b', POPT_ARG_FLOAT, &amplitude, 0,
+  { "amplitude", 'b', POPT_ARG_FLOAT, &amplitude, 0, 
         "Amplitude of produce signal"},
-  { "frequency", 'd', POPT_ARG_FLOAT, &frequency, 0,
+  { "frequency", 'd', POPT_ARG_FLOAT, &frequency, 0, 
         "Frequency of wave generated [Hz]"  },
-  { "samples", 'n', POPT_ARG_INT, &samples, 0,
+  { "samples", 'n', POPT_ARG_INT, &samples, 0, 
         "Number of samples to take. -1 ... forever"},
-  { "sample-interval", 's', POPT_ARG_FLOAT, &sample_interval, 0,
+  { "sample-interval", 's', POPT_ARG_FLOAT, &sample_interval, 0, 
         "Time between consecutive measurements [sec]"},
   { NULL, 0, 0, NULL, 0 }
 };
@@ -102,7 +80,7 @@ run()
 
     angle = fmodf(angle + delta, 2 * M_PI);
     usleep(sleep);
-  }
+  }    
 }
 
 int
@@ -113,7 +91,7 @@ main(
   char c;
 
   // registering OML measurement points
-  omlc_init("generator", &argc, argv, NULL);
+  omlc_init("generator", &argc, argv, NULL); 
   m_lin = omlc_add_mp("lin", d_lin);
   m_sin = omlc_add_mp("sin", d_sin);
   omlc_start();
@@ -125,10 +103,3 @@ main(
   run();
   return(0);
 }
-
-/*
- Local Variables:
- mode: C
- tab-width: 4
- indent-tabs-mode: nil
-*/
