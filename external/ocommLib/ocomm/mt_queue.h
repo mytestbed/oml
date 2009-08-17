@@ -29,6 +29,10 @@
 #ifndef O_MT_QUEUE_H
 #define O_MT_QUEUE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct _MTQueue;
 
 typedef struct _MTQueue {
@@ -100,6 +104,10 @@ int
 mt_queue_is_empty(
   MTQueue* queue
 );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

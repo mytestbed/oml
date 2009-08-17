@@ -29,6 +29,10 @@
 #ifndef O_LOG_H
 #define O_LOG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define O_LOG_ERROR -2
 #define O_LOG_WARN  -1
 #define O_LOG_INFO  0
@@ -60,6 +64,10 @@ o_set_log_file(char* name);
 */
 void
 o_set_log_level(int level);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

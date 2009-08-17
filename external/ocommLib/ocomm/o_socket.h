@@ -29,6 +29,10 @@
 #ifndef O_SOCKET_H
 #define O_SOCKET_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct _Socket;
 
 /*! Send a message through the socket
@@ -195,7 +199,11 @@ socket_get_addr(
 );
 */
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* O_SOCKET_H */
 
 /*
  Local Variables:

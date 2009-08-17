@@ -29,7 +29,9 @@
 #ifndef O_SOCKET_GROUP_H
 #define O_SOCKET_GROUP_H
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*! Create an new socket group.
  */
@@ -54,8 +56,9 @@ socket_group_remove(
   Socket* socket  //! Socket to remove
 );
 
-
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

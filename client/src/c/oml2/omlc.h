@@ -31,6 +31,11 @@
 #include <pthread.h>
 #include <ocomm/o_log.h>
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define omlc_is_numeric_type(t)								\
 	(((t) == OML_LONG_VALUE) || ((t) == OML_DOUBLE_VALUE))
 
@@ -292,6 +297,11 @@ int
 omlc_close(
   void
 );
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif /*OML_OMLC_H_*/
 

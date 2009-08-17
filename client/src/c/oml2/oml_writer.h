@@ -109,11 +109,18 @@ typedef struct _omlWriter {
   struct _omlWriter* next;
 } OmlWriter;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 OmlWriter*
 create_writer(
     char* serverUri
 );
 
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* OML_WRITER_H */

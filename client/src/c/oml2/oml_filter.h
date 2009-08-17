@@ -26,6 +26,10 @@
 #include <oml2/omlc.h>
 #include <oml2/oml_writer.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct _omlFilter;
 
 typedef void* (*oml_filter_create)(
@@ -150,6 +154,9 @@ omlf_register_filter(const char* filter_name,
 		     oml_filter_meta meta,
 		     OmlFilterDef* filter_def);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*OML_FILTER_H_*/
 

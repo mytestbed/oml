@@ -29,6 +29,9 @@
 #ifndef O_QUEUE_H
 #define O_QUEUE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct _OQueue {
 
@@ -253,6 +256,10 @@ int
 oqueue_is_empty(
   OQueue* queue
 );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

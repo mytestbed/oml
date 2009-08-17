@@ -29,7 +29,12 @@
 #ifndef O_EVENTLOOP_H
 #define O_EVENTLOOP_H
 
+#include <time.h>
 #include <ocomm/o_socket.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct _TimerEvtSource {
 
@@ -47,10 +52,6 @@ typedef struct _sockEvtSource {
   Socket* socket;
 
 } SockEvtSource;
-
-
-#include <time.h>
-#include <ocomm/o_socket.h>
 
 
 /*! Defines the signature of a socket related callback function
@@ -185,6 +186,10 @@ const char*
 socket_status_string(
   SocketStatus status
 );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
