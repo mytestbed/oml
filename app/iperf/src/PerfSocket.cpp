@@ -78,16 +78,12 @@
 #include "Locale.hpp"
 #include "util.h"
 //#include "oml_orbit_winlab_iperf.h"
-extern "C" {
 #include <ocomm/o_log.h>
 #include <oml2/omlc.h>
 
 extern OmlMP* tcp_measure;
 extern OmlMP* udp_measure;
 extern OmlMP* peer_information; 
-
-}
-
 
 bool PerfSocket::sInterupted = false;
 Mutex PerfSocket::sReporting;

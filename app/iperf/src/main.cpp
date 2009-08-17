@@ -70,9 +70,8 @@
 #include "Condition.hpp"
 #include "List.h"
 #include "util.h"
-//#include "ocomm/o_log.h"
 //#include "oml_orbit_winlab_iperf.h"
-extern "C" {
+
 #include <oml2/omlc.h>
 #include <ocomm/o_log.h>
 OmlMP* tcp_measure;
@@ -106,7 +105,8 @@ static OmlMPDef peer_info[] = {
   {"foreign_port", OML_LONG_VALUE},
   {NULL, (OmlValueT)0}
 };
-}
+
+
 
 
 #ifdef WIN32
