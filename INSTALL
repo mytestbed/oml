@@ -63,8 +63,17 @@ installed: Autoconf, Automake, and Libtool.  If you use a Linux
 distribution, these should all be available via your system's package
 manager.
 
-Once you have installed the Autotools, you should be able to generate
-all the necessary configuration and Makefiles by doing this
+You'll also need to install the CHECK package (a unit testing
+framework).  You can find it here:
+
+http://check.sourceforge.net
+
+It's also available as an Ubuntu package:
+
+$ apt-get install check
+
+Once you have installed the Autotools and CHECK, you should be able to
+generate all the necessary configuration and Makefiles by doing this
 
     	cd oml2-xxx
 
