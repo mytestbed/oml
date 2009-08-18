@@ -162,10 +162,16 @@ write_meta(
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
-  char s[512];
 
-  sprintf(s, "%s\n", str);
-  int len = strlen(s);
+  int len = strlen (str);
+
+  /* +2 for '\n' and '\0' */
+  char *s = (char*)malloc ((strlen (str) + 2)* sizeof (char));
+
+  strncpy (s, str, len + 1);
+  s[len] = '\n';
+  s[len + 1] = '\0';
+  len = strlen(s);
 
   int result = socket_sendto(self->socket, s, len);
 
@@ -176,6 +182,7 @@ write_meta(
 	  self->is_enabled = 0;  	  // Server closed the connection
 	}
 
+  free (s);
   return (result == len);
 }
 
