@@ -106,10 +106,15 @@ unmarshall_value(
 
 unsigned char*
 marshall_resize(
-    OmlMBuffer*  mbuf,
-    int new_size
+  OmlMBuffer*  mbuf,
+  int new_size
 );
 
+unsigned char*
+marshall_check_resize(
+  OmlMBuffer* mbuf,
+  size_t bytes
+);
 
 #endif /*MARSHALL_H_*/
 

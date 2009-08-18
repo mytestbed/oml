@@ -167,9 +167,9 @@ marshall_value(
       uint32_t uv = (uint32_t)v;
       uint32_t nv = htonl(uv);
 
-      if ((mbuf->buffer_remaining -= 5) < 0) {
-        p = marshall_resize(mbuf, 2 * mbuf->buffer_length);
-      }
+	  p = marshall_check_resize (mbuf, 5);
+	  mbuf->buffer_remaining -= 5;
+
       *(p++) = LONG_T;
       memcpy(p, &nv, 4);
       p += 4;
@@ -189,9 +189,9 @@ marshall_value(
       uint32_t umant = (uint32_t)(mant * (1 << BIG_L));
       uint32_t nmant = htonl(umant);
 
-      if ((mbuf->buffer_remaining -= 6) < 0) {
-        p = marshall_resize(mbuf, 2 * mbuf->buffer_length);
-      }
+	  p = marshall_check_resize (mbuf, 6);
+	  mbuf->buffer_remaining -= 6;
+
       *(p++) = type;
       memcpy(p, &nmant, 4);
       p += 4;
@@ -199,7 +199,6 @@ marshall_value(
       break;
     }
     case OML_STRING_VALUE: {
-
       char* str = val->stringValue.ptr;
 
       int len = strlen(str);
@@ -207,9 +206,10 @@ marshall_value(
         o_log(O_LOG_ERROR, "Truncated string '%s'\n", str);
         len = 254;
       }
-      if ((mbuf->buffer_remaining -= (len + 2)) < 0) {
-        p = marshall_resize(mbuf, 2 * mbuf->buffer_length);
-      }
+
+	  p = marshall_check_resize (mbuf, (len+2));
+	  mbuf->buffer_remaining -= (len + 2);
+
       *(p++) = STRING_T;
       *(p++) = (char)(len & 0xff);
       for (; len > 0; len--, str++) *(p++) = *str;
@@ -276,6 +276,22 @@ marshall_resize(
   }
   mbuf->buffer = newBuf;
   mbuf->buffer_length = new_size;
+  return mbuf->curr_p;
+}
+
+/**
+ *  @brief Check that the buffer has space for the next piece of data,
+ *  and resize it if necessary.
+ *
+ *  Returns the current buffer insertion point.
+ */
+unsigned char*
+marshall_check_resize (OmlMBuffer* mbuf, size_t bytes)
+{
+  if (mbuf->buffer_remaining <= 0 || (size_t)mbuf->buffer_remaining < bytes)
+	{
+	  return marshall_resize (mbuf, 2 * mbuf->buffer_length);
+	}
   return mbuf->curr_p;
 }
 
