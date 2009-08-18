@@ -18,18 +18,18 @@ is doing and useful for.
 		:type => :string)
 
   a.defMeasurement("radiotap") do |m|
-    m.defMetric('tsft', 'long', ' wireless Timer Syncronisation Function')
-    m.defMetric('rate', 'long', ' Wireless Rate')
-    m.defMetric('freq', 'long', ' Wireless Channel Frequency')
-    m.defMetric('sig_strength_dBm', 'long', ' Wireless Signal Strength in dB')
-    m.defMetric('noise_strength_dBm', 'long', ' Wireless Noise Strength in dBm')
-    m.defMetric('sig_strength', 'long', ' Wireless Signal Strength in dB')
-    m.defMetric('noise_strength', 'long', ' Wireless Noise Strength in dB')
-    m.defMetric('attenuation', 'long', ' Transmit Attenuation')
-    m.defMetric('attenuation_dB', 'long', ' Transmit Attenuation in dB')
-    m.defMetric('power', 'long', ' Transmit Power in dBm')
-    m.defMetric('antenna', 'long', ' Wireless Antenna')
-  end
+      m.defMetric('tsft', 'long', ' wireless Timer Syncronisation Function')
+      m.defMetric('rate', 'long', ' Wireless Rate')
+      m.defMetric('freq', 'long', ' Wireless Channel Frequency')
+      m.defMetric('sig_strength_dBm', 'long', ' Wireless Signal Strength in dB')
+      m.defMetric('noise_strength_dBm', 'long', ' Wireless Noise Strength in dBm')
+      m.defMetric('sig_strength', 'long', ' Wireless Signal Strength in dB')
+      m.defMetric('noise_strength', 'long', ' Wireless Noise Strength in dB')
+      m.defMetric('attenuation', 'long', ' Transmit Attenuation')
+      m.defMetric('attenuation_dB', 'long', ' Transmit Attenuation in dB')
+      m.defMetric('power', 'long', ' Transmit Power in dBm')
+      m.defMetric('antenna', 'long', ' Wireless Antenna')
+ end
 
   a.defMeasurement("ip") do |m|
     m.defMetric('ip_tos', 'long', ' Type of Service')

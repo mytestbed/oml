@@ -22,13 +22,19 @@ omlc_inject_ip(
 ) {
     OmlValueU v[9];
     char* cp;
-    char addr_src[64];
-    char addr_dst[64];
+    char buf_addr_src[INET_ADDRSTRLEN];
+    char buf_addr_dst[INET_ADDRSTRLEN];
+    char addr_src[INET_ADDRSTRLEN];
+    char addr_dst[INET_ADDRSTRLEN];
 
-    cp = inet_ntoa(ip->ip_src);
-    strcpy(addr_src, cp);
-    cp = inet_ntoa(ip->ip_dst);
-    strcpy(addr_dst, cp);
+    inet_ntop(AF_INET, &(ip->ip_src), buf_addr_src, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &(ip->ip_dst), buf_addr_dst, INET_ADDRSTRLEN);
+    strcpy(addr_src,buf_addr_src);
+    strcpy(addr_dst,buf_addr_dst);
+
+//strcpy(addr_src, cp);
+    //cp = inet_ntoa(ip->ip_dst);
+    //strcpy(addr_dst, cp);
     
     omlc_set_long(v[0], ip->ip_tos);
     omlc_set_long(v[1], ip->ip_len);
@@ -37,7 +43,7 @@ omlc_inject_ip(
     omlc_set_long(v[4], ip->ip_ttl);
     omlc_set_long(v[5], ip->ip_p);
     omlc_set_long(v[6], ip->ip_sum);
-    omlc_set_const_string(v[7], addr_src);
+    omlc_set_const_string(v[7], addr_src );
     omlc_set_const_string(v[8], addr_dst);
     omlc_inject(g_oml_mps->ip, v);
 }
@@ -88,7 +94,7 @@ omlc_inject_radiotap(
   omlc_set_long(v[8], attenuation_db);
   omlc_set_long(v[9], txpower);
   omlc_set_long(v[10], antenna);
-  omlc_inject(g_oml_mps->radiotap, v);
+//  omlc_inject(g_oml_mps->radiotap, v);
 
 
 

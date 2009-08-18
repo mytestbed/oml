@@ -39,6 +39,19 @@ static OmlMP* m_lin;
 static OmlMPDef d_sin[] = {
     {"label", OML_STRING_VALUE},
     {"phase", OML_DOUBLE_VALUE},
+    {"phase", OML_DOUBLE_VALUE},
+    {"phase", OML_DOUBLE_VALUE},
+    {"phase", OML_DOUBLE_VALUE},
+    {"phase", OML_DOUBLE_VALUE},
+    {"value", OML_DOUBLE_VALUE},
+    {"value", OML_DOUBLE_VALUE},
+    {"value", OML_DOUBLE_VALUE},
+    {"value", OML_DOUBLE_VALUE},
+    {"value", OML_DOUBLE_VALUE},
+    {"value", OML_DOUBLE_VALUE},
+    {"value", OML_DOUBLE_VALUE},
+    {"value", OML_DOUBLE_VALUE},
+    {"value", OML_DOUBLE_VALUE},
     {"value", OML_DOUBLE_VALUE},
     {NULL, 0}
 };
@@ -69,10 +82,23 @@ run()
     float value = amplitude * sin(angle);
     {
       // "sin" measurement point
-      OmlValueU v[3];
+      OmlValueU v[16];
       omlc_set_const_string(v[0], label);
       omlc_set_double(v[1], angle);
       omlc_set_double(v[2], value);
+      omlc_set_double(v[3], angle);
+      omlc_set_double(v[4], angle);
+      omlc_set_double(v[5], angle);
+      omlc_set_double(v[6], angle);
+      omlc_set_double(v[7], angle);
+      omlc_set_double(v[8], angle);
+      omlc_set_double(v[9], angle);
+      omlc_set_double(v[10], angle);
+      omlc_set_double(v[11], angle);
+      omlc_set_double(v[12], angle);
+      omlc_set_double(v[13], angle);
+      omlc_set_double(v[14], angle);
+      omlc_set_double(v[15], angle);
       omlc_inject(m_sin, v);
     }
 
