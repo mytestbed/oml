@@ -543,7 +543,7 @@ client_callback(
 
 
   // move remaining buffer content to beginning
-  size_t remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
+  int remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
   if (remaining > 0) {
     memmove(mbuf->buffer, mbuf->curr_p, remaining);
     mbuf->buffer_fill = remaining;
