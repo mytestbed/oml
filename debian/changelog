@@ -1,3 +1,15 @@
+oml (2.0.2-4) hardy; urgency=low
+
+  * fix server
+
+ -- Guillaume Jourjon <guillaume.jourjon@nicta.com.au>  Tue, 18 Aug 2009 14:42:03 +1000
+
+oml (2.0.2-3ubuntu2) hardy; urgency=low
+
+  * fix bug in filtering and radiotap integration
+
+ -- Guillaume Jourjon <guillaume.jourjon@nicta.com.au>  Tue, 18 Aug 2009 12:12:22 +1000
+
 oml (2.0.2-2ubuntu1) hardy; urgency=low
 
   * release SVN 125
