@@ -672,16 +672,32 @@ write_meta(void)
  * \param index the index in the measurement points
  * \return 0 if successful
  */
+#define DEFAULT_SCHEMA_LENGTH 512
 static int
 write_schema(
   OmlMStream* ms,
   int index
 ) {
-  char s[512];
+  char s[DEFAULT_SCHEMA_LENGTH];
+  const size_t bufsize = sizeof (s) / sizeof (s[0]);
+  size_t schema_size = DEFAULT_SCHEMA_LENGTH;
+  char* schema = (char*)malloc (schema_size * sizeof (char));
+  size_t count = 0;
+  size_t n = 0;
   OmlWriter* writer = ms->writer;
 
   ms->index = index;
-  sprintf(s, "schema: %d %s ", ms->index, ms->table_name);
+  n = snprintf(s, bufsize, "schema: %d %s ", ms->index, ms->table_name);
+
+  if (n >= bufsize)
+	{
+	  o_log (O_LOG_ERROR, "Schema generation failed because the following table name was too long: %s\n", ms->table_name);
+	  free (schema);
+	  return -1;
+	}
+
+  strncpy (schema, s, n + 1);
+  count += n;
 
   // Loop over all the filters
   OmlFilter* filter = ms->firstFilter;
@@ -694,18 +710,38 @@ write_schema(
       if (filter->meta(filter, j, &name, &type) != -1) {
         char* type_s = oml_type_to_s(type);
         if (name == NULL) {
-          sprintf(s, "%s %s:%s", s, prefix, type_s);
+          n = snprintf(s, bufsize, "%s:%s ", prefix, type_s);
         } else {
-          sprintf(s, "%s %s_%s:%s", s, prefix, name, type_s);
+          n = snprintf(s, bufsize, "%s_%s:%s ", prefix, name, type_s);
         }
+
+		if (n >= bufsize)
+		  {
+			o_log (O_LOG_ERROR, "One of the schema entries for table %s was too long:\n\t%s\t%s\n",
+				   prefix, type_s);
+			free (schema);
+			return -1;
+		  }
+
+		if (count + n >= schema_size)
+		  {
+			schema_size += DEFAULT_SCHEMA_LENGTH;
+			char* new = (char*)malloc (schema_size * sizeof (char));
+			strncpy (new, schema, count);
+			free (schema);
+			schema = new;
+		  }
+		strncpy (&schema[count], s, n + 1);
+		count += n;
       } else {
-	o_log(O_LOG_WARN, "Filter %s failed to provide meta information for index %d.\n",
-	      filter->name,
-	      j);
+		o_log(O_LOG_WARN, "Filter %s failed to provide meta information for index %d.\n",
+			  filter->name,
+			  j);
       }
     }
   }
-  writer->meta(writer, s);
+  writer->meta(writer, schema);
+  free (schema);
   return 0;
 }
 
