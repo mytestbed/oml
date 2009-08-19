@@ -29,6 +29,8 @@ is doing and useful for.
       m.defMetric('attenuation_dB', 'long', ' Transmit Attenuation in dB')
       m.defMetric('power', 'long', ' Transmit Power in dBm')
       m.defMetric('antenna', 'long', ' Wireless Antenna')
+      m.defMetric('sourceMAC', 'long', ' Source MAC Address')
+      m.defMetric('dstMAC', 'long', ' Destination MAC Address')
  end
 
   a.defMeasurement("ip") do |m|

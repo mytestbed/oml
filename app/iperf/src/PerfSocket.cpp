@@ -313,8 +313,8 @@ void PerfSocket::ReportBW( max_size_t inBytes,
         v[0].longValue = (long) mSock;
         v[1].doubleValue = (double) inStart;
         v[2].doubleValue = (double) inStop;
-        omlc_set_const_string(v[3], bytes);
-        omlc_set_const_string(v[4], speed);
+        omlc_set_double(v[3], (double) inBytes);
+        omlc_set_double(v[4],(double) inBytes / (inStop - inStart));
        
         omlc_inject(tcp_measure, v); 
 	    printf( report_bw_format,
@@ -376,8 +376,8 @@ void PerfSocket::ReportBW_Jitter_Loss( max_size_t inBytes,
         v[0].longValue = (long) mSock;
         v[1].doubleValue = (double) inStart;
         v[2].doubleValue = (double) inStop;
-        omlc_set_const_string(v[3], bytes);
-        omlc_set_const_string(v[4], speed);
+        omlc_set_double(v[3], (double) inBytes);
+        omlc_set_double(v[4], (double) inBytes / (inStop - inStart));
         v[5].doubleValue = (double) (mJitter*1000.0);
         v[6].longValue = (long) inErrorcnt;
         v[7].longValue = (long) inDatagrams;

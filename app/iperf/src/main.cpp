@@ -81,16 +81,16 @@ static OmlMPDef tcp_receiverport[] = {
   {"ID", OML_LONG_VALUE},
   {"Begin_interval", OML_DOUBLE_VALUE},
   {"End_interval", OML_DOUBLE_VALUE},
-  {"Transfer", OML_STRING_VALUE},
-  {"Bandwidth", OML_STRING_VALUE},
+  {"Transfer", OML_DOUBLE_VALUE},
+  {"Bandwidth", OML_DOUBLE_VALUE},
   {NULL, (OmlValueT)0}
 };
 static OmlMPDef udp_receiverport[] = {
   {"ID", OML_LONG_VALUE},
   {"Begin_interval", OML_DOUBLE_VALUE},
   {"End_interval", OML_DOUBLE_VALUE},
-  {"Transfer", OML_STRING_VALUE},
-  {"Bandwidth", OML_STRING_VALUE},
+  {"Transfer", OML_DOUBLE_VALUE},
+  {"Bandwidth", OML_DOUBLE_VALUE},
   {"Jitter", OML_DOUBLE_VALUE},
   {"Packet_Lost", OML_LONG_VALUE},
   {"Total_Packet", OML_LONG_VALUE},

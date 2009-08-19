@@ -58,9 +58,10 @@ omlc_inject_tcp(
 static void
 omlc_inject_radiotap(
   libtrace_linktype_t linktype,
-  void* linkptr
+  void* linkptr,
+  libtrace_packet_t* packet
 ) {
-  OmlValueU v[11];
+  OmlValueU v[13];
   uint64_t tsft;
   uint8_t rate;
   uint16_t freq;
@@ -94,6 +95,8 @@ omlc_inject_radiotap(
   omlc_set_long(v[8], attenuation_db);
   omlc_set_long(v[9], txpower);
   omlc_set_long(v[10], antenna);
+  omlc_set_long(v[11], trace_get_source_mac(packet));
+  omlc_set_long(v[12], trace_get_destination_mac(packet)); 
   omlc_inject(g_oml_mps->radiotap, v);
 
 
@@ -118,7 +121,7 @@ per_packet(
   linkptr = trace_get_packet_buffer( packet, &linktype,	&remaining);  	
   
   if(linktype == 15){
-    omlc_inject_radiotap( linktype, linkptr);
+    omlc_inject_radiotap( linktype, linkptr, packet);
   }
 
   l3 = trace_get_layer3(packet, &ethertype, &remaining);
