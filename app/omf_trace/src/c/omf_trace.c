@@ -94,7 +94,7 @@ omlc_inject_radiotap(
   omlc_set_long(v[8], attenuation_db);
   omlc_set_long(v[9], txpower);
   omlc_set_long(v[10], antenna);
-//  omlc_inject(g_oml_mps->radiotap, v);
+  omlc_inject(g_oml_mps->radiotap, v);
 
 
 
