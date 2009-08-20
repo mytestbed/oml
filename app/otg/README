@@ -1,0 +1,67 @@
+
+Compiling:
+==========
+
+From the top directory:
+
+% make
+
+will build all the binaries and libraries in 'build/otg2'.
+
+Any customizations should be limited to the 'config.mk' file in 
+the top directory.
+
+Running:
+========
+
+To run the program before installing it, please set your 
+LD_LIBRARY_PATH to ./build/otg2/lib
+
+% cd top-directory-of-otg2-source
+% export LD_LIBRARY_PATH=`pwd`/build/otg2/lib
+
+To display help:
+
+% build/otg2/bin/otg2 -h 
+Usage: otg [OPTION...]
+  -h, --help[=[component]]                Show help
+  --usage                                 Display brief use message
+  -p, --protocol=[tcp|udp|raw_packet]     Name of protocol
+  -g, --generator=[cbr|expoo]             Name of generator
+  --clockref=hours                        hours since 01/01/1970
+  -d, --debug-level=INT                   Debug level (0..INFO, -2..ERROR)
+  -l, --logfile=STRING                    File to log to
+  -v, --version                           Print version information and exit
+
+
+To send UDP packets to the local interface
+
+$ build/otg2/bin/otg2 -d 5 --udp:dst_host localhost
+# OTG2 Traffic Generator V2.0
+# Copyright (c) 2005-07 WINLAB, 2007-08 NICTA
+# .. Binding port to '(null):0'
+# .... Sending UDP packet of size '512' to 'localhost:3000'
+# .... Sending UDP packet of size '512' to 'localhost:3000'
+# .... Sending UDP packet of size '512' to 'localhost:3000'
+# .... Sending UDP packet of size '512' to 'localhost:3000'
+# .... Sending UDP packet of size '512' to 'localhost:3000'
+# .... Sending UDP packet of size '512' to 'localhost:3000'
+
+
+To receive this flow, start 'otr2'
+
+$ build/otg2/bin/otr2 -d 5 --udp:local_port 3000
+# OTG2 Traffic Sink V2.0
+# Copyright (c) 2005-07 WINLAB, 2007-08 NICTA
+# .. Binding port to 'localhost:3000'
+# .... Receiving UDP packet of size '512' from '127.0.0.1:32770'
+# .... Consuming  packet of size '512'
+# .... Receiving UDP packet of size '512' from '127.0.0.1:32770'
+# .... Consuming  packet of size '512'
+# .... Receiving UDP packet of size '512' from '127.0.0.1:32770'
+# .... Consuming  packet of size '512'
+# .... Receiving UDP packet of size '512' from '127.0.0.1:32770'
+# .... Consuming  packet of size '512'
+
+
+
