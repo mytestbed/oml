@@ -7,5 +7,9 @@ AM_CPPFLAGS = \
 
 noinst_LTLIBRARIES = libshared.la
 
-libshared_la_SOURCES = src/c/marshall.c src/c/marshall.h
+libshared_la_SOURCES = \
+	src/c/marshall.c \
+	src/c/marshall.h \
+	src/c/mstring.c \
+	src/c/mstring.h
 

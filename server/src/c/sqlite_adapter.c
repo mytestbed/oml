@@ -27,6 +27,7 @@
 #include <ocomm/o_log.h>
 #include <time.h>
 #include <sys/time.h>
+#include <mstring.h>
 #include "database.h"
 
 typedef struct _sq3DB {
@@ -128,6 +129,130 @@ sq3_add_sender_id(
   //if (sql_stmt(self, s)) return -1;
   return index;
 }
+
+const char*
+oml_to_sql_type (OmlValueT type)
+{
+    switch (type) {
+      case OML_LONG_VALUE:    return "INTEGER"; break;
+      case OML_DOUBLE_VALUE:  return "REAL"; break;
+      case OML_STRING_VALUE:  return "TEXT"; break;
+      default:
+        o_log(O_LOG_ERROR, "Unknown type %d\n", type);
+		return NULL;
+    }
+}
+
+MString*
+sq3_make_sql_create (DbTable* table)
+{
+  int n = 0;
+  char workbuf[512]; // Working buffer
+  const int workbuf_size = sizeof (workbuf) / sizeof (workbuf[0]);
+  MString* mstr = mstring_create ();
+
+  if (mstr == NULL)
+	{
+	  o_log (O_LOG_ERROR, "Failed to create managed string for preparing SQL CREATE statement\n");
+	  goto fail_exit;
+	}
+
+  n = snprintf(workbuf, workbuf_size, "CREATE TABLE %s (oml_sender_id INTEGER, oml_seq INTEGER, oml_ts_client REAL, oml_ts_server REAL", table->name);
+  if (n >= workbuf_size)
+	{
+	  o_log (O_LOG_ERROR, "Table name '%s' was too long; unable to create prepared SQL CREATE statement.\n", table->name);
+	  goto fail_exit;
+	}
+
+  mstring_set (mstr, workbuf);
+
+  int first = 0;
+  DbColumn* col = table->columns[0];
+  int max = table->col_size;
+  int i = 0;
+  while (col != NULL && max > 0) {
+    const char* t = oml_to_sql_type (col->type);
+	if (!t)
+	  {
+		o_log(O_LOG_ERROR, "Unknown type %d in col '%s'\n", col->type, col->name);
+		goto fail_exit;
+	  }
+    if (first) {
+      n = snprintf(workbuf, workbuf_size, "%s %s", col->name, t);
+      first = 0;
+    } else
+      n = snprintf(workbuf, workbuf_size, ", %s %s", col->name, t);
+
+	if (n >= workbuf_size)
+	  {
+		o_log (O_LOG_ERROR, "Column name '%s' is too long.\n", col->name);
+		goto fail_exit;
+	  }
+	mstring_cat (mstr, workbuf);
+	//	o_log (O_LOG_DEBUG2, "%s\n", mstr->buf);
+    i++; max--;
+	if (max > 0)
+	  col = table->columns[i];
+  }
+
+  mstring_cat (mstr, ");");
+  return mstr;
+
+ fail_exit:
+  if (mstr) mstring_delete (mstr);
+  return NULL;
+}
+
+MString*
+sq3_make_sql_insert (DbTable* table)
+{
+  int n = 0;
+  char workbuf[512]; // Working buffer
+  const int workbuf_size = sizeof (workbuf) / sizeof (workbuf[0]);
+  MString* mstr = mstring_create ();
+
+  if (mstr == NULL)
+	{
+	  o_log (O_LOG_ERROR, "Failed to create managed string for preparing SQL INSERT statement\n");
+	  goto fail_exit;
+	}
+
+  n = snprintf(workbuf, workbuf_size, "INSERT INTO %s VALUES (?, ?, ?, ?", table->name);
+  if (n >= workbuf_size)
+	{
+	  o_log (O_LOG_ERROR, "Table name '%s' was too long; unable to create prepared SQL INSERT statement.\n", table->name);
+	  goto fail_exit;
+	}
+
+  mstring_set (mstr, workbuf);
+
+  int first = 0;
+  DbColumn* col = table->columns[0];
+  int max = table->col_size;
+  int i = 0;
+
+  while (col && max > 0)
+	{
+	  if (first)
+		{
+		  mstring_cat (mstr, "?");
+		  first = 0;
+		}
+	  else
+		mstring_cat (mstr, ", ?");
+	  i++; max--;
+	  if (max > 0)
+		col = table->columns[i];
+	}
+
+  mstring_cat (mstr, ");");
+  return mstr;
+
+ fail_exit:
+  if (mstr) mstring_delete (mstr);
+  return NULL;
+}
+
 /**
  * \fn int sq3_create_table(Database* db, DbTable* table)
  * \brief Create a sqlite3 table
@@ -140,12 +265,18 @@ sq3_create_table(
   Database* db,
   DbTable* table
 ) {
+  if (table == NULL) {
+	o_log (O_LOG_WARN, "Tried to create a table from a NULL definition.\n");
+	return -1;
+  }
+  if (db == NULL) {
+	  o_log (O_LOG_WARN, "Tried to create a table in a NULL database.\n");
+	  return -1;
+  }
   if (table->columns == NULL) {
-    o_log(O_LOG_WARN, "No cols defined for table '%s'\n", table->name);
+    o_log(O_LOG_WARN, "No columns defined for table '%s'\n", table->name);
     return -1;
   }
-
-  int max = table->col_size;
 
 //  BEGIN TRANSACTION;
 //       CREATE TABLE t1 (t1key INTEGER
@@ -156,59 +287,38 @@ sq3_create_table(
 //       COMMIT;
 //
 
-  char create[512];  // don't check for length
-  char insert[512];  // don't check for length
+  MString* create = sq3_make_sql_create (table);
+  MString* insert = sq3_make_sql_insert (table);
 
-  char* cs = create;
-  sprintf(cs, "CREATE TABLE %s (oml_sender_id INTEGER, oml_seq INTEGER, oml_ts_client REAL, oml_ts_server REAL", table->name);
-  cs += strlen(cs);
+  if (create == NULL || insert == NULL)
+	{
+	  o_log (O_LOG_WARN, "Failed to create prepared SQL statement strings for table %s.\n", table->name);
+	  if (create) mstring_delete (create);
+	  if (insert) mstring_delete (insert);
+	  return -1;
+	}
 
-  char* is = insert;
-  sprintf(is, "INSERT INTO %s VALUES (?, ?, ?, ?", table->name);
-  is += strlen(is);
-
-  int first = 0;
-  DbColumn* col = table->columns[0];
-  int i = 0;
-  while (col != NULL && max > 0) {
-    char* t;
-    switch (col->type) {
-      case OML_LONG_VALUE: t = "INTEGER"; break;
-      case OML_DOUBLE_VALUE: t = "REAL"; break;
-      case OML_STRING_VALUE: t = "TEXT"; break;
-      default:
-        o_log(O_LOG_ERROR, "Bug: Unknown type %d in col '%s'\n", col->type, col->name);
-    }
-    if (first) {
-      sprintf(cs, "%s %s", col->name, t);
-      sprintf(is, "?");
-      first = 0;
-    } else {
-      sprintf(cs, ", %s %s", col->name, t);
-      sprintf(is, ", ?");
-    }
-    cs += strlen(cs);
-    is += strlen(is);
-    i++;
-    max--;
-    col = table->columns[i];
-  }
-  sprintf(cs, ");");
-  sprintf(is, ");");
-  o_log(O_LOG_DEBUG, "schema: %s\n", create);
-  o_log(O_LOG_DEBUG, "insert: %s\n", insert);
-  o_log(O_LOG_DEBUG, "CREATE statement length: %d\n", strlen(create));
-  o_log(O_LOG_DEBUG, "INSERT statement length: %d\n", strlen(insert));
+  o_log(O_LOG_DEBUG, "schema: %s\n", mstring_buf(create));
+  o_log(O_LOG_DEBUG, "insert: %s\n", mstring_buf(insert));
+  o_log(O_LOG_DEBUG, "CREATE statement length: %d check %d\n", mstring_len(create), strlen (create->buf));
+  o_log(O_LOG_DEBUG, "INSERT statement length: %d check %d\n", mstring_len(insert), strlen (insert->buf));
 
   Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
 
-  if (sql_stmt(sq3db, create)) return -1;
+  if (sql_stmt(sq3db, mstring_buf(create))) {
+	mstring_delete (create);
+	mstring_delete (insert);
+    o_log(O_LOG_ERROR, "Could not create table: (%s).\n", sqlite3_errmsg(sq3db->db_hdl));
+	return -1;
+  }
 
   Sq3Table* sq3table = (Sq3Table*)malloc(sizeof(Sq3Table));
   memset(sq3table, 0, sizeof(Sq3Table));
   table->adapter_hdl = sq3table;
-  if (sqlite3_prepare_v2(sq3db->db_hdl, insert, -1, &sq3table->insert_stmt, 0) != SQLITE_OK) {
+  if (sqlite3_prepare_v2(sq3db->db_hdl, mstring_buf(insert), -1, &sq3table->insert_stmt, 0) != SQLITE_OK) {
     o_log(O_LOG_ERROR, "Could not prepare statement (%s).\n", sqlite3_errmsg(sq3db->db_hdl));
+	mstring_delete (create);
+	mstring_delete (insert);
     return -1;
   }
   return 0;
