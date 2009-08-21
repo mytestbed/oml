@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
@@ -80,6 +81,7 @@ client_handler_free (ClientHandler* self)
 	database_release (self->database);
   if (self->tables)
 	free (self->tables);
+  free (self->mbuf.buffer);
   free (self);
 
   // FIXME:  What about destroying the socket data structure --> memory leak?
@@ -213,9 +215,12 @@ read_line(
   int*   length_p,
   OmlMBuffer* mbuf
 ) {
+  assert (mbuf->buffer_fill <= mbuf->buffer_length);
+  assert (mbuf->curr_p >= mbuf->buffer);
+  assert (mbuf->curr_p - mbuf->buffer < mbuf->buffer_fill);
   unsigned char* line = mbuf->curr_p;
   int remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
-  while (remaining-- >= 0 && *(mbuf->curr_p++) != '\n');
+  while (remaining-- > 0 && *(mbuf->curr_p++) != '\n');
   if (*(mbuf->curr_p - 1) != '\n') {
     // not enough data for entire line
     mbuf->curr_p = line;
@@ -246,21 +251,11 @@ process_header(
     return 0;
   }
 
-  /**
-  char* line = mbuf->curr_p;
-  int remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
-  while (remaining-- >= 0 && *(mbuf->curr_p++) != '\n');
-  if (*(mbuf->curr_p - 1) != '\n') {
-    // not enough data for entire line
-    mbuf->curr_p = line;
-    return 0;
-  }
-  int len = mbuf->curr_p - (unsigned char*)line;
-  **/
-
   if (len == 1) {
     // empty line denotes separator between header and body
-    while (*mbuf->curr_p == '\n') mbuf->curr_p++;  // skip additional empty lines
+    while (mbuf->curr_p - mbuf->buffer < mbuf->buffer_fill &&
+		   *mbuf->curr_p == '\n')
+	  mbuf->curr_p++;  // skip additional empty lines
     self->state = self->content;
     return 0;
   }
@@ -296,6 +291,7 @@ process_bin_data_message(
   double ts;
 
   int cnt = unmarshall_measurements(mbuf, &table_index, &seq_no, &ts, self->values, self->value_count);
+
   ts += self->time_offset;
   if (table_index >= self->table_size || table_index < 0) {
     o_log(O_LOG_ERROR, "Table index '%d' out of bounds\n", table_index);
@@ -347,17 +343,7 @@ process_bin_message(
       // skip unknown message
       mbuf->curr_p += mbuf->buffer_remaining;
   }
-  // move remaining buffer content to beginning
-//  size_t remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
-//  if (remaining > 0) {
-//    memmove(mbuf->buffer, mbuf->curr_p, remaining);
-//    mbuf->buffer_fill = remaining;
-//  } else {
-//    // nothing left
-//    mbuf->buffer_fill = 0;
-//  }
-//  mbuf->curr_p = mbuf->buffer;
-//  return remaining;
+
   return 1;
 }
 
@@ -407,35 +393,19 @@ process_text_data_message(
     DbColumn* col = (*cols);
     char* val = *val_ap;
 
-    //o_log(O_LOG_DEBUG, "TABLE_COL %s %s\n", col->name, val);
-
     switch(col->type) {
     case OML_LONG_VALUE: v->value.longValue = atol(val); break;
     case OML_DOUBLE_VALUE: v->value.doubleValue = (double)atof(val); break;
     case OML_STRING_VALUE: v->value.stringValue.ptr = val; break;
-    default:			/*  */
+    default:
       o_log(O_LOG_ERROR, "Bug: Unknown type %d in col '%s'\n",
 	    col->type, col->name);
     }
     v->type = col->type;
   }
 
-  /***
-  v = self->values;
-  for (i = 0; i < size - 3; i++, v++) {
-    switch(v->type) {
-    case OML_LONG_VALUE: printf("L: %ld\n", v->value.longValue); break;
-    case OML_DOUBLE_VALUE: printf("D: %f\n", v->value.doubleValue); break;
-    case OML_STRING_VALUE: printf("S: %s\n", v->value.stringValue.ptr); break;
-    default:
-      o_log(O_LOG_ERROR, "Bug: Unknown type %d\n", v->type);
-    }
-  }
-  ***/
-
-  //o_log(O_LOG_DEBUG, "text-data - CALLING insert for seq no: %d \n", seq_no);
   self->database->insert(self->database, table, self->sender_id, seq_no,
-			 ts, self->values, size - 3);
+						 ts, self->values, size - 3);
 }
 
 /**
@@ -500,6 +470,7 @@ client_callback(
 ) {
   ClientHandler* self = (ClientHandler*)handle;
   OmlMBuffer* mbuf = &self->mbuf;
+
   int available =  mbuf->buffer_length - mbuf->buffer_fill;
   if (available < buf_size) {
     marshall_resize(mbuf, mbuf->buffer_fill + buf_size);
@@ -532,15 +503,18 @@ client_callback(
 	  // of it's allocated data.
 	  socket_close (self->socket);
 	  client_handler_free (self);
-	  break;
-
+	  /*
+	   * The mbuf is also freed by client_handler_free(), and there's
+	   * no point doing any of the buffer fiddling that we do after
+	   * the switch statement.
+	   */
+	  return;
     default:
       o_log(O_LOG_ERROR, "Client: %s: unknown client state '%d'\n", source->name, self->state);
       mbuf->curr_p = mbuf->buffer;
       mbuf->buffer_fill = 0; // reset data
       return;
 	}
-
 
   // move remaining buffer content to beginning
   int remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);

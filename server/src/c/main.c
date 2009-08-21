@@ -32,9 +32,9 @@
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
+#include <marshall.h>
 
 #include "version.h"
-#include "marshall.h"
 #include "server.h"
 
 #define DEF_PORT 3003

@@ -28,6 +28,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <ocomm/o_log.h>
+#include <assert.h>
 #include "sqlite_adapter.h"
 #include "database.h"
 
@@ -267,6 +268,8 @@ store_col(
   DbColumn* col,
   int       index
 ) {
+  assert (table != NULL && col != NULL);
+  assert (index >= 0);
   if (index >= table->col_size) {
     DbColumn** old = table->columns;
     int old_count = table->col_size;

@@ -31,6 +31,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "marshall.h"
 
@@ -262,6 +263,7 @@ marshall_resize(
   unsigned char* newBuf = (unsigned char*)malloc(new_size);
   if (mbuf->buffer != NULL) {
     int offset = mbuf->curr_p - mbuf->buffer;
+	int msg_offset = mbuf->message_start - mbuf->buffer;
     int len = offset + mbuf->buffer_fill;
     int i;
     unsigned char* from = mbuf->buffer;
@@ -269,13 +271,16 @@ marshall_resize(
     mbuf->buffer_remaining = new_size - len;
     for (i = 0; i < len; len--) *(to++) = *(from++);
     mbuf->curr_p = newBuf + offset;
+	mbuf->message_start = newBuf + msg_offset;
     free(mbuf->buffer);
   } else {
     mbuf->curr_p = newBuf;
+	mbuf->message_start = newBuf;
     mbuf->buffer_remaining = new_size;
   }
   mbuf->buffer = newBuf;
   mbuf->buffer_length = new_size;
+
   return mbuf->curr_p;
 }
 
@@ -400,35 +405,24 @@ unmarshall_measurements(
  */
 int
 unmarshall_values(
-  OmlMBuffer*  mbuffer,
+  OmlMBuffer*  mbuf,
   OmlValue*    values,
   int          max_value_count
 ) {
-//  if (*(p++) != DATA_P) {
-//    o_log(O_LOG_ERROR, "Expected buffer to start with 'DATA_P', but it was '%c'\n", *(p - 1));
-//    return -100;
-//  }
-//  int value_count = (int)*(mbuffer->curr_p);
-  int value_count = (int)*(mbuffer->message_start + 5);
+  int value_count = (int)*(mbuf->message_start + 5);
 
   if (value_count > max_value_count) {
+	o_log (O_LOG_DEBUG, "Value array is too small!  (Expecting maximum %d, but messages says %d values)\n",
+		   max_value_count, value_count);
     return max_value_count - value_count;  // value array is too small
   }
-  //mbuffer->curr_p++; mbuffer->buffer_remaining--;
 
-//  uint16_t nv = (int)(*p++ << 8);
-//  nv += (int)(*p++);
-//  int rec_length = ntohs(nv);
-//  if (rec_length > buffer_length) {
-//    o_log(O_LOG_ERROR, "Buffer is too short. Expected '%d', but got '%d'\n", rec_length, buffer_length);
-//    return -101;
-//  }
-//  int buf_remaining = rec_length;
   int i;
   OmlValue* val = values;
    //o_log(O_LOG_DEBUG, "value to analyse'%d'\n", value_count);
   for (i = 0; i < value_count; i++, val++) {
-    if (!unmarshall_value(mbuffer, val)) {
+    if (!unmarshall_value(mbuf, val)) {
+	  o_log (O_LOG_WARN, "Some kind of ERROR in unmarshall_value() call\n");
       return -1;
     }
   }
@@ -444,11 +438,11 @@ unmarshall_values(
  */
 int
 unmarshall_value(
-  OmlMBuffer*  mbuffer,
+  OmlMBuffer*  mbuf,
   OmlValue*    value
 ) {
-  unsigned char* p = mbuffer->curr_p;
-  int buf_remaining = mbuffer->buffer_remaining;
+  unsigned char* p = mbuf->curr_p;
+  int buf_remaining = mbuf->buffer_remaining;
 
   if ((buf_remaining --) < 0) {
     o_log(O_LOG_ERROR, "Buffer is too short for TYPE.\n");
@@ -523,8 +517,9 @@ unmarshall_value(
       o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", type);
       return 0;
   }
-  mbuffer->curr_p = p;
-  mbuffer->buffer_remaining = buf_remaining;
+  mbuf->curr_p = p;
+  mbuf->buffer_remaining = buf_remaining;
+
   return 1;
 }
 

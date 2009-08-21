@@ -37,7 +37,7 @@ typedef enum _cstate {
 
 typedef struct _clientHandler {
   //! Name used for debugging
-  char name[64];
+  char name[MAX_STRING_SIZE];
 
   Database*   database;
   DbTable**   tables;
