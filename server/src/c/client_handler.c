@@ -26,7 +26,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
 
@@ -65,8 +64,16 @@ client_handler_new(
     Socket* newSock
 ) {
   ClientHandler* self = (ClientHandler *)malloc(sizeof(ClientHandler));
+  if (!self) return NULL;
   memset(self, 0, sizeof(ClientHandler));
   self->value_count = DEF_NUM_VALUES;
+  self->values = (OmlValue*)malloc (self->value_count * sizeof (OmlValue));
+  if (!self->values)
+	{
+	  free (self);
+	  return NULL;
+	}
+  memset (self->values, 0, self->value_count * sizeof (OmlValue));
   self->state = C_HEADER;
   self->content = C_TEXT_DATA;
   self->socket = newSock;
@@ -128,6 +135,19 @@ process_schema(
     }
   }
   self->tables[index] = t;
+
+  /* Reallocate the values vector if this schema has more columns than can fit already. */
+  if (t->col_size > self->value_count)
+	{
+	  free (self->values);
+	  self->value_count = t->col_size + DEF_NUM_VALUES;
+	  self->values = (OmlValue*) malloc (self->value_count * sizeof (OmlValue));
+	  if (self->values == NULL)
+		{
+		  o_log (O_LOG_WARN, "Could not allocate values vector with %d elements\n",
+				 self->value_count);
+		}
+	}
 }
 
 void
@@ -217,7 +237,7 @@ read_line(
 ) {
   assert (mbuf->buffer_fill <= mbuf->buffer_length);
   assert (mbuf->curr_p >= mbuf->buffer);
-  assert (mbuf->curr_p - mbuf->buffer < mbuf->buffer_fill);
+  //  assert (mbuf->curr_p - mbuf->buffer < mbuf->buffer_fill);
   unsigned char* line = mbuf->curr_p;
   int remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
   while (remaining-- > 0 && *(mbuf->curr_p++) != '\n');
@@ -291,6 +311,10 @@ process_bin_data_message(
   double ts;
 
   int cnt = unmarshall_measurements(mbuf, &table_index, &seq_no, &ts, self->values, self->value_count);
+
+  /* Some error occurred in unmarshalling; can't continue */
+  if (cnt < 0)
+	return;
 
   ts += self->time_offset;
   if (table_index >= self->table_size || table_index < 0) {

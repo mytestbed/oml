@@ -335,8 +335,15 @@ unmarshall_init(
   // check if the full message is in the buffer
   int extra = mbuf->buffer_fill - ((p - mbuf->buffer) + len);
   if (extra < 0) {
+	int start_pos = mbuf->message_start - mbuf->buffer;
+	o_log (O_LOG_DEBUG, "Didn't get a full message, so unwinding the message buffer\n");
+	o_log (O_LOG_DEBUG, "(Message starts at %d; message length %d; fill - start =  %d; %d bytes short)\n",
+		   start_pos,
+		   len,
+		   mbuf->buffer_fill - (mbuf->message_start - mbuf->buffer),
+		   -extra);
     mbuf->curr_p = mbuf->message_start;  // rewind
-    return extra;  // need more input data
+	return extra;  // need more input data
   }
   return 1;
 }
@@ -366,10 +373,6 @@ unmarshall_measurements(
 
   *table_index = (int)*(mbuf->curr_p++);
   mbuf->buffer_remaining--;
-//  if (unmarshall_value(mbuf, table_name) != 1) {
-//    o_log(O_LOG_DEBUG, "Can't find table name in incoming measurement\n");
-//    return 0;
-//  }
 
   OmlValue v;
   if (unmarshall_value(mbuf, &v) != 1) {
@@ -412,8 +415,24 @@ unmarshall_values(
   int value_count = (int)*(mbuf->message_start + 5);
 
   if (value_count > max_value_count) {
-	o_log (O_LOG_DEBUG, "Value array is too small!  (Expecting maximum %d, but messages says %d values)\n",
-		   max_value_count, value_count);
+	o_log (O_LOG_WARN, "Measurement packet contained %d too many values for internal storage (max %d, actual %d); skipping packet\n",
+		   (value_count - max_value_count),
+		   max_value_count,
+		   value_count);
+	uint16_t nv = 0;
+	memcpy (&nv, mbuf->message_start + 3, 2);
+	uint16_t hv = ntohs (nv);
+	int msg_length = (int)hv;
+	o_log (O_LOG_WARN, "Message length appears to be %d + 5\n", msg_length);
+
+	mbuf->message_start += msg_length + 5;
+	mbuf->curr_p = mbuf->message_start;
+
+	if ((mbuf->curr_p - mbuf->buffer < mbuf->buffer_fill - 1) &&
+		(mbuf->curr_p[0] != SYNC_BYTE || mbuf->curr_p[1] != SYNC_BYTE))
+	  {
+		o_log (O_LOG_WARN, "Tried to skip a packet but lost sync in the process.  Entering a parallel universe...\n");
+	  }
     return max_value_count - value_count;  // value array is too small
   }
 
