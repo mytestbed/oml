@@ -32,7 +32,7 @@ typedef enum _cstate {
   C_PROTOCOL_ERROR,// a protocol error occurred --> kick the client
 } CState;
 
-#define DEF_NUM_VALUES 30
+#define DEF_NUM_VALUES  30
 #define MAX_STRING_SIZE 64
 
 typedef struct _clientHandler {
@@ -51,7 +51,7 @@ typedef struct _clientHandler {
   Socket*     socket;
   OmlMBuffer  mbuf;
 
-  OmlValue    values[DEF_NUM_VALUES];
+  OmlValue*   values;
   int         value_count;
 
   OmlValue    table_name;
