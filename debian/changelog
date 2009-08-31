@@ -1,3 +1,9 @@
+oml (2.0.2-5) hardy; urgency=low
+
+  * changed license to MIT, new otg package fixing bug #156
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Mon, 31 Aug 2009 19:23:56 +1000
+
 oml (2.0.2-4) hardy; urgency=low
 
   * fix server

@@ -17,7 +17,7 @@ configure-stamp:
 	dh_testdir
 	# Add here commands to configure the package.
 	autoreconf --install
-	./configure --prefix=$(CURDIR)/debian/oml-client/usr
+	./configure --prefix /usr
 	touch configure-stamp
 
 
@@ -49,7 +49,7 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/oml.
-	$(MAKE) install
+	$(MAKE) DESTDIR=$(CURDIR)/debian/oml-client install
 	mkdir -p $(CURDIR)/debian/oml-server/usr/bin
 	mv $(CURDIR)/debian/oml-client/usr/bin/oml2-server $(CURDIR)/debian/oml-server/usr/bin/
 	mv $(CURDIR)/debian/oml-client/usr/bin/oml2-proxy-server $(CURDIR)/debian/oml-server/usr/bin/
@@ -57,6 +57,9 @@ install: build
 	mv $(CURDIR)/debian/oml-client/usr/include/* $(CURDIR)/debian/liboml-dev/usr/include/
 	mkdir -p $(CURDIR)/debian/liboml/usr/lib
 	mv $(CURDIR)/debian/oml-client/usr/lib/* $(CURDIR)/debian/liboml/usr/lib/
+	mkdir -p $(CURDIR)/debian/otg/usr/bin
+	mv $(CURDIR)/debian/oml-client/usr/bin/otg2 $(CURDIR)/debian/otg/usr/bin/
+	mv $(CURDIR)/debian/oml-client/usr/bin/otr2 $(CURDIR)/debian/otg/usr/bin/	
 
 # Build architecture-independent files here.
 binary-indep: build install
