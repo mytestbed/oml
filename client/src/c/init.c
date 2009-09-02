@@ -187,6 +187,8 @@ omlc_init(
     experimentId = getenv("OML_EXP_ID");
   if (configFile == NULL)
     configFile = getenv("OML_CONFIG");
+  if (localDataFile == NULL && serverUri == NULL)
+	serverUri = getenv("OML_SERVER");
 
 //  if ((name == NULL) && (configFile == NULL) && (localDataFile == NULL)) {
 //    o_log(O_LOG_ERROR,
@@ -411,9 +413,11 @@ usage(void)
   printf("  OML_NAME=id            .. Name to identify this app instance (--oml-id)\n");
   printf("  OML_EXP_ID=expId       .. Name to experiment DB (--oml-exp-id)\n");
   printf("  OML_CONFIG=file        .. Read configuration from 'file' (--oml-config)\n");
+  printf("  OML_SERVER=uri         .. URI of server to send measurments to (--oml-server)\n");
   printf("\n");
   printf("If the corresponding command line option is present, it overrides\n");
-  printf("the environment variable.\n");
+  printf("the environment variable.  Note that OML_SERVER accepts the file://\n");
+  printf("protocol.\n");
   printf("\n");
 }
 
