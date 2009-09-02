@@ -5,7 +5,8 @@ SUBDIRS = src/cpp/core src/cpp/port src/cpp/generator
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
 	-I $(top_srcdir)/external/ocommLib \
-	-I $(srcdir)/src/cpp
+	-I $(srcdir)/src/cpp \
+	-DWITH_OML
 
 otgrlibs = \
 	-lpopt -lpthread \
