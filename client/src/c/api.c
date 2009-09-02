@@ -54,7 +54,7 @@ omlc_process(
   OmlMP*      mp,
   OmlValueU*  values
 ) {
-  o_log(O_LOG_WARN, "'omlc_process' is depreciated, use 'omlc_inject' instead\n");
+  o_log(O_LOG_WARN, "'omlc_process' is deprecated, use 'omlc_inject' instead\n");
   omlc_inject(mp, values);
 }
 
