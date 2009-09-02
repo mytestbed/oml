@@ -407,6 +407,14 @@ usage(void)
   printf("Valid URI: tcp|udp:host:port:[bindAddr] or file:localPath\n");
   printf("    The optional 'bindAddr' is used for multicast conections\n");
   printf("\n");
+  printf("The following environment variables are recognized:\n");
+  printf("  OML_NAME=id            .. Name to identify this app instance (--oml-id)\n");
+  printf("  OML_EXP_ID=expId       .. Name to experiment DB (--oml-exp-id)\n");
+  printf("  OML_CONFIG=file        .. Read configuration from 'file' (--oml-config)\n");
+  printf("\n");
+  printf("If the corresponding command line option is present, it overrides\n");
+  printf("the environment variable.\n");
+  printf("\n");
 }
 
 static void
