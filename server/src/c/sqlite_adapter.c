@@ -20,15 +20,17 @@
  * THE SOFTWARE.
  *
  */
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sqlite3.h>
 #include <ocomm/o_log.h>
 #include <time.h>
 #include <sys/time.h>
 #include <mstring.h>
 #include "database.h"
+#include "util.h"
+#include "table_descr.h"
 
 typedef struct _sq3DB {
   sqlite3*  db_hdl;
@@ -42,18 +44,58 @@ typedef struct _sq3Table {
 static int
 sql_stmt(Sq3DB* self, const char* stmt);
 
+TableDescr*
+sq3_get_table_list (Sq3DB* self, int* num_tables);
+
+char*
+sq3_get_metadata (Database* self, const char* key);
+int
+sq3_set_metadata (Database* self, const char* key, const char* value);
+
+
+char*
+sq3_get_key_value (Database* database, const char* table,
+				   const char* key_column, const char* value_column,
+				   const char* key);
+
+int
+sq3_set_key_value (Database* database, const char* table,
+				   const char* key_column, const char* value_column,
+				   const char* key, const char* value);
+
+char*
+sq3_get_sender_id (Database* database, const char* name);
+
+int
+sq3_set_sender_id (Database* database, const char* name, int id);
+
+int
+sq3_get_max_sender_id (Database* database);
+
+int
+sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id);
+
+int
+sq3_build_table_from_schema (DbTable* table, char* schema);
+
+MString*
+sq3_make_sql_insert (DbTable* table);
+
 static int
 sq3_insert(
   Database* db, DbTable*  table,
   int sender_id, int seq_no, double ts,
   OmlValue* values, int value_count
 );
+
 static int
 sq3_add_sender_id(Database* db, char* sender_id);
 
-// FIXME:  why is this defined but not used?
-//static sqlite3* db;
 static int first_row;
+
+const char* SQL_CREATE_EXPT_METADATA = "CREATE TABLE _experiment_metadata (key TEXT PRIMARY KEY, value TEXT);";
+const char* SQL_CREATE_SENDERS       = "CREATE TABLE _senders (name TEXT PRIMARY KEY, id INTEGER UNIQUE);";
+
 /**
  * \fn int sq3_create_database(Database* db)
  * \brief Create a sqlite3 database
@@ -64,11 +106,10 @@ int
 sq3_create_database(
   Database* db
 ) {
-
   char fname[128];
   sqlite3* db_hdl;
   int rc;
-  snprintf(fname, 127, "%s/%s.sq3", g_database_data_dir, db->name);
+  snprintf(fname, LENGTH (fname) - 1, "%s/%s.sq3", g_database_data_dir, db->name);
   rc = sqlite3_open(fname, &db_hdl);
   if (rc) {
     o_log(O_LOG_ERROR, "Can't open database: %s\n", sqlite3_errmsg(db_hdl));
@@ -81,13 +122,79 @@ sq3_create_database(
   self->db_hdl = db_hdl;
   db->insert = sq3_insert;
   db->add_sender_id = sq3_add_sender_id;
+  db->set_metadata = sq3_set_metadata;
+  db->get_metadata = sq3_get_metadata;
+  db->get_max_seq_no = sq3_get_max_seq_no;
 
   db->adapter_hdl = self;
 
+  int num_tables;
+  TableDescr* tables = sq3_get_table_list (self, &num_tables);
+  TableDescr* td = tables;
 
-//  char s[512];  // don't check for length
-  //char* s= "CREATE TABLE _senders (id INTEGER PRIMARY KEY, name TEXT);";
-  //if (sql_stmt(self, s)) return -1;
+  o_log (O_LOG_DEBUG, "Got table list with %d tables in it\n", num_tables);
+  int i = 0;
+  for (i = 0; i < num_tables; i++)
+	{
+	  // Don't try to treat the metadata tables as measurement tables.
+	  if (strcmp (td->name, "_experiment_metadata") == 0 ||
+		  strcmp (td->name, "_senders") == 0)
+		continue;
+
+	  DbTable* table = (DbTable*) malloc (sizeof (DbTable));
+	  memset (table, 0, sizeof (DbTable));
+	  strncpy (table->name, td->name, MAX_TABLE_NAME_SIZE);
+
+	  int res = sq3_build_table_from_schema (table, td->schema);
+
+	  // Only build the table if there was no issue parsing the schema
+	  if (res != -1)
+		{
+		  MString* insert = sq3_make_sql_insert (table);
+		  if (insert == NULL)
+			{
+			  o_log (O_LOG_WARN, "Failed to create prepared SQL insert statement string for table %s.\n", table->name);
+			}
+
+		  Sq3Table* sq3table = (Sq3Table*)malloc (sizeof (Sq3Table));
+		  memset (sq3table, 0, sizeof (Sq3Table));
+		  table->adapter_hdl = sq3table;
+		  if (sqlite3_prepare_v2 (self->db_hdl, mstring_buf(insert), -1, &sq3table->insert_stmt, 0) != SQLITE_OK)
+			{
+			  o_log (O_LOG_ERROR, "Could not prepare INSERT statement for table %s (%s).\n",
+					 table->name,
+					 sqlite3_errmsg (self->db_hdl));
+			  mstring_delete (insert);
+			}
+		  table->next = db->first_table;
+		  db->first_table = table;
+		  td = td->next;
+		}
+	  else
+		{
+		  o_log (O_LOG_WARN, "Unable to reconstruct table '%s' from schema... possibly not created by OML?\n",
+				 table->name);
+		  free(table);
+		}
+	}
+
+  if (!table_descr_have_table (tables, "_experiment_metadata"))
+	{
+	  if (sql_stmt (self, SQL_CREATE_EXPT_METADATA))
+		{
+		  table_descr_list_free (tables);
+		  return -1;
+		}
+	}
+
+  if (!table_descr_have_table (tables, "_senders"))
+	{
+	  if (sql_stmt (self, SQL_CREATE_SENDERS))
+		{
+		  table_descr_list_free (tables);
+		  return -1;
+		}
+	}
 
   return 0;
 }
@@ -116,31 +223,66 @@ sq3_release(
  */
 static int
 sq3_add_sender_id(
-  Database* db,
+  Database* database,
   char*     sender_id
 ) {
-  Sq3DB* self = (Sq3DB*)db->adapter_hdl;
-  int index = ++self->sender_cnt;
+  Sq3DB* self = (Sq3DB*)database->adapter_hdl;
+  int index = -1;
+  char* id_str = sq3_get_sender_id (database, sender_id);
 
-  // FIXME:  Why is this code commented out?  Function doesn't seem to do much of interest otherwise.
-  //char s[512];  // don't check for length
-  // TDEBUG
-  //sprintf(s, "INSERT INTO _senders VALUES (%d, '%s');\0", index, sender_id);
-  //if (sql_stmt(self, s)) return -1;
+  if (id_str)
+	{
+	  index = atoi (id_str);
+	}
+  else
+	{
+	  if (self->sender_cnt == 0)
+		{
+		  int max_sender_id = sq3_get_max_sender_id (database);
+		  if (max_sender_id < 0)
+			{
+			  o_log (O_LOG_ERROR, "Could not determing maximum sender id for database %s; starting at 0.\n",
+					 database->name);
+			  max_sender_id = 0;
+			}
+		  self->sender_cnt = max_sender_id;
+		}
+	  index = ++self->sender_cnt;
+
+	  sq3_set_sender_id (database, sender_id, index);
+	}
+
+  o_log (O_LOG_DEBUG, "Sender database id for sender '%s' is %d\n", sender_id, index);
   return index;
 }
 
-const char*
-oml_to_sql_type (OmlValueT type)
+char*
+sq3_get_sender_id (Database* database, const char* name)
 {
-    switch (type) {
-      case OML_LONG_VALUE:    return "INTEGER"; break;
-      case OML_DOUBLE_VALUE:  return "REAL"; break;
-      case OML_STRING_VALUE:  return "TEXT"; break;
-      default:
-        o_log(O_LOG_ERROR, "Unknown type %d\n", type);
-		return NULL;
-    }
+  return sq3_get_key_value (database, "_senders", "name", "id", name);
+}
+
+int
+sq3_set_sender_id (Database* database, const char* name, int id)
+{
+  char s[64];
+  snprintf (s, LENGTH(s), "%d", id);
+  return sq3_set_key_value (database, "_senders", "name", "id", name, s);
+}
+
+int
+sq3_get_max_sender_id (Database* database)
+{
+  return sq3_get_max_value (database, "_senders", "id", NULL, NULL);
+}
+
+int
+sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id)
+{
+  char s[64];
+  snprintf (s, LENGTH(s), "%lu", sender_id);
+  // SELECT MAX(oml_seq) FROM table WHERE oml_sender_id='sender_id';
+  return sq3_get_max_value (database, table->name, "oml_seq", "oml_sender_id", s);
 }
 
 MString*
@@ -189,7 +331,7 @@ sq3_make_sql_create (DbTable* table)
 		goto fail_exit;
 	  }
 	mstring_cat (mstr, workbuf);
-	//	o_log (O_LOG_DEBUG2, "%s\n", mstr->buf);
+
     i++; max--;
 	if (max > 0)
 	  col = table->columns[i];
@@ -278,15 +420,6 @@ sq3_create_table(
     return -1;
   }
 
-//  BEGIN TRANSACTION;
-//       CREATE TABLE t1 (t1key INTEGER
-//                    PRIMARY KEY,data TEXT,num double,timeEnter DATE);
-//       INSERT INTO "t1" VALUES(1, 'This is sample data', 3, NULL);
-//       INSERT INTO "t1" VALUES(2, 'More sample data', 6, NULL);
-//       INSERT INTO "t1" VALUES(3, 'And a little more', 9, NULL);
-//       COMMIT;
-//
-
   MString* create = sq3_make_sql_create (table);
   MString* insert = sq3_make_sql_insert (table);
 
@@ -298,10 +431,8 @@ sq3_create_table(
 	  return -1;
 	}
 
-  o_log(O_LOG_DEBUG, "schema: %s\n", mstring_buf(create));
-  o_log(O_LOG_DEBUG, "insert: %s\n", mstring_buf(insert));
-  o_log(O_LOG_DEBUG, "CREATE statement length: %d check %d\n", mstring_len(create), strlen (create->buf));
-  o_log(O_LOG_DEBUG, "INSERT statement length: %d check %d\n", mstring_len(insert), strlen (insert->buf));
+  //  o_log(O_LOG_DEBUG, "schema: %s\n", mstring_buf(create));
+  //  o_log(O_LOG_DEBUG, "insert: %s\n", mstring_buf(insert));
 
   Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
 
@@ -505,10 +636,425 @@ sql_stmt(
   ret = sqlite3_exec(self->db_hdl, stmt, 0, 0, &errmsg);
 
   if (ret != SQLITE_OK) {
-    o_log(O_LOG_WARN, "Error in statement: %s [%s].\n", stmt, errmsg);
+    o_log(O_LOG_WARN, "Error(%d) in statement: %s [%s].\n", ret, stmt, errmsg);
     return -1;
   }
   return 0;
+}
+
+TableDescr*
+sq3_get_table_list (Sq3DB* self, int *num_tables)
+{
+  const char* stmt = "SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name;";
+  char* errmsg;
+  char** result;
+  int nrows;
+  int ncols;
+  int ret = sqlite3_get_table (self->db_hdl, stmt, &result, &nrows, &ncols, &errmsg);
+
+  if (ret != SQLITE_OK)
+	{
+	  o_log (O_LOG_ERROR, "Error in SELECT statement %s [%s].\n", stmt, errmsg);
+	  sqlite3_free (errmsg);
+	  return NULL;
+	}
+
+  if (ncols == 0 || nrows == 0)
+	{
+	  o_log (O_LOG_DEBUG, "Database table list seems empty; need to create tables.\n");
+	  sqlite3_free_table (result);
+	  *num_tables = 0;
+	  return NULL;
+	}
+
+  int i = 0;
+  int name_col = -1;
+  int schema_col = -1;
+  for (i = 0; i < ncols; i++)
+	{
+	  if (strcasecmp(result[i], "name") == 0)
+		{
+		  name_col = i;
+		}
+	  if (strcasecmp (result[i], "sql") == 0)
+		{
+		  schema_col = i;
+		}
+	}
+
+  if (name_col == -1 || schema_col == -1)
+	{
+	  o_log (O_LOG_ERROR, "Couldn't get the 'name' or 'schema' column index from the SQLITE database list of tables\n");
+	  sqlite3_free_table (result);
+	  *num_tables = 0;
+	  return NULL;
+	}
+
+  TableDescr* tables = NULL;
+
+  int n = 0;
+  int j = 0;
+  for (i = name_col + ncols,
+		 j = schema_col + ncols;
+	   i < (nrows + 1) * ncols;
+	   i += ncols,
+		 j+= ncols,
+		 n++)
+	{
+	  TableDescr* t = table_descr_new (result[i], result[j]);
+	  #if 0
+	  size_t len = strlen (result[i]) + 1;
+	  char* name = (char*) malloc (len * sizeof (char));
+	  strncpy (name, result[i], len);
+
+	  len = strlen (result[j]) + 1;
+	  char* schema = (char*) malloc (len * sizeof (char));
+	  strncpy (schema, result[j], len);
+
+	  TableDescr* t = (TableDescr*) malloc (sizeof(TableDescr));
+	  memset (t, 0, sizeof (TableDescr));
+	  t->name = name;
+	  t->schema = schema;
+	  #endif
+	  t->next = tables;
+	  tables = t;
+	}
+
+  sqlite3_free_table (result);
+  *num_tables = n;
+  return tables;
+}
+
+char*
+parse_sql_column (char* p, char** name, char** type)
+{
+  if (p == NULL || name == NULL || type == NULL)
+	{
+	  if (name != NULL) *name = NULL;
+	  if (type != NULL) *type = NULL;
+	  return NULL;
+	}
+
+  // Legitimate end of SQL columns spec
+  if (*p == ')')
+	{
+	  *name = NULL;
+	  *type = NULL;
+	  return NULL;
+	}
+
+  char* q = p;
+
+  while (*q == ' ') q++; // skip leading whitespace
+
+  *name = q;
+  char* end;
+
+  // column specs are delimited by ',' and terminated by ')'
+  while (*q != ',' && *q != ')') q++;
+
+  end = q;
+  q = *name;
+  while (*q != ' ' && *q != ',' && *q != ')') q++;
+
+  // Couldn't separate column name from column type
+  if (*q == ',' || *q == ')')
+	{
+	  *name = NULL;
+	  *type = NULL;
+	  return NULL;
+	}
+
+  *q++ = '\0'; // Terminate the name component
+
+  while (*q == ' ') q++; // Skip any whitespace
+
+  *type = q;
+  q = end;
+
+  if (*end == ')') end = NULL; // end of column specs
+  else end++; // Skip the column spec delimiter
+
+  *q = '\0'; // Terminate the type component
+
+  return end;
+}
+
+int
+sq3_build_table_from_schema (DbTable* table, char* schema)
+{
+  const char* sql = "CREATE TABLE ";
+  char* p = schema;
+
+  // First check that the schema is a CREATE TABLE statement
+  if (strncmp (p, sql, strlen (sql)) != 0)
+	  return -1;
+
+  p += strlen (sql);
+
+  while (*p == ' ') p++;
+
+  // Second, check that the table name is correct for the schema
+  if (strncmp (p, table->name, strlen (table->name)) != 0)
+	return -1;
+
+  p += strlen (table->name);
+
+  while (*p == ' ') p++;
+
+  // Opening parenthesis of the column spec
+  if (*p++ != '(')
+	return -1;
+
+  int done = 0;
+  int metadata = 0;
+  int index = 0;
+  char *name = NULL;
+  char *type = NULL;
+  while (!done)
+	{
+	  char* q = parse_sql_column (p, &name, &type);
+	  if (name != NULL && type != NULL)
+		{
+		  OmlValueT oml_type = sql_to_oml_type (type);
+		  if (metadata < 4)
+			{
+			  if (strcmp (name, "oml_sender_id") == 0)
+				{
+				  metadata++;
+				  if (oml_type != OML_LONG_VALUE)
+					return -1;
+				}
+			  else if (strcmp (name, "oml_seq") == 0)
+				{
+				  metadata++;
+				  if (oml_type != OML_LONG_VALUE)
+					return -1;
+				}
+			  else if (strcmp (name, "oml_ts_client") == 0)
+				{
+				  metadata++;
+				  if (oml_type != OML_DOUBLE_VALUE)
+					return -1;
+				}
+			  else if (strcmp (name, "oml_ts_server") == 0)
+				{
+				  metadata++;
+				  if (oml_type != OML_DOUBLE_VALUE)
+					return -1;
+				}
+			}
+		  else
+			{
+			  database_table_add_col (table, name, oml_type, index);
+			  index++;
+			}
+		  p = q;
+		}
+	  else
+		{
+		  done = 1;
+		}
+	}
+
+  // Didn't manage to add any columns --> empty table or some error.
+  if (table->columns == NULL)
+	return -1;
+  return 0;
+}
+
+char*
+sq3_get_metadata (Database* database, const char* key)
+{
+  return sq3_get_key_value (database, "_experiment_metadata", "key", "value", key);
+}
+
+int
+sq3_set_metadata (Database* database, const char* key, const char* value)
+{
+  return sq3_set_key_value (database, "_experiment_metadata", "key", "value", key, value);
+}
+
+/**
+ *  @brief Do a key-value style select on a database table.
+ *
+ *  This function does a key lookup on a database table that is set up
+ *  in key-value style.  The table can have more than two columns, but
+ *  this function SELECT's two of them and returns the value of the
+ *  value column.  It checks to make sure that the key returned is the
+ *  one requested, then returns its corresponding value.
+ *
+ *  This function makes a lot of assumptions about the database and
+ *  the table:
+ *
+ *  #- the database exists and is open
+ *  #- the table exists in the database
+ *  #- there is a column named key_column in the table
+ *  #- there is a column named value_column in the table
+ *
+ *  The function does not check for any of these conditions, but just
+ *  assumes they are true.  Be advised.
+ *
+ *  @param database the database to look up in.
+ *  @param table the name of the table to look up in.
+ *  @param key_column the name of the column holding the key strings.
+ *  @param value_column the name of the column holding the value strings.
+ *  @param key the key string to look up (i.e. WHERE key_column='key').
+ *
+ *  @return the string value corresponding to the given key, or NULL
+ *  if an error occurred of if the key was not present in the table.
+ */
+char*
+sq3_get_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key)
+{
+  if (database == NULL || table == NULL || key_column == NULL || value_column == NULL || key == NULL)
+	return NULL;
+
+  Sq3DB* sq3db = (Sq3DB*) database->adapter_hdl;
+  char s[512];
+  const char* stmt_fmt = "SELECT %s,%s FROM %s WHERE %s='%s';";
+  char* errmsg;
+  char** result;
+  int nrows;
+  int ncols;
+
+  size_t n = snprintf (s, LENGTH(s), stmt_fmt, key_column, value_column, table, key_column, key);
+
+  if (n >= LENGTH(s))
+	o_log (O_LOG_WARN, "Key-value lookup for key '%s' in %s(%s, %s): SELECT statement had to be truncated\n",
+		   key, table, key_column, value_column);
+
+  int ret = sqlite3_get_table (sq3db->db_hdl, s, &result, &nrows, &ncols, &errmsg);
+
+  if (ret != SQLITE_OK)
+	{
+	  o_log (O_LOG_ERROR, "Error in SELECT statement %s [%s].\n", stmt_fmt, errmsg);
+	  sqlite3_free (errmsg);
+	  return NULL;
+	}
+
+  if (ncols == 0 || nrows == 0)
+	{
+	  o_log (O_LOG_INFO, "Key-value lookup on table %s:  result set is empty.\n", table);
+	  sqlite3_free_table (result);
+	  return NULL;
+	}
+
+  if (nrows > 1)
+	  o_log (O_LOG_WARN, "Key-value lookup for key '%s' in %s(%s, %s) returned more than one possible key.\n",
+			 key, table, key_column, value_column);
+
+  char* value = NULL;
+
+  if (strcmp (key, result[2]) == 0)
+	{
+	  size_t len = strlen (result[3]) + 1;
+	  value = (char*) malloc (len * sizeof (char));
+	  strncpy (value, result[3], len);
+	}
+
+  return value;
+}
+
+int
+sq3_set_key_value (Database* database, const char* table,
+				   const char* key_column, const char* value_column,
+				   const char* key, const char* value)
+{
+  Sq3DB* sq3db = (Sq3DB*) database->adapter_hdl;
+  char stmt[512];
+  size_t n;
+  if (sq3_get_key_value (database, table, key_column, value_column, key) == NULL)
+	n = snprintf (stmt, LENGTH(stmt), "INSERT INTO %s (%s, %s) VALUES ('%s', '%s');",
+				  table,
+				  key_column, value_column,
+				  key, value);
+  else
+	n = snprintf (stmt, LENGTH(stmt), "UPDATE %s SET %s='%s' WHERE %s='%s';",
+				  table,
+				  value_column, value,
+				  key_column, key);
+
+  if (n >= LENGTH (stmt))
+	{
+	  o_log (O_LOG_WARN, "SQL statement too long trying to update key-value pair %s='%s' in %s(%s, %s)\n",
+			 key, value, table, key_column, value_column);
+	  return -1;
+	}
+
+  if (sql_stmt (sq3db, stmt))
+	{
+	  o_log (O_LOG_WARN, "Key-value update failed for %s='%s' in %s(%s, %s) (database error)\n",
+			 key, value, table, key_column, value_column);
+	  return -1;
+	}
+
+  return 0;
+}
+
+int
+sq3_get_max_value (Database* database, const char* table, const char* column_name,
+				   const char* where_column, const char* where_value)
+{
+  if (database == NULL)
+	return -1;
+
+  Sq3DB* sq3db = (Sq3DB*) database->adapter_hdl;
+  char* errmsg;
+  char** result;
+  int nrows;
+  int ncols;
+  char stmt[512];
+  size_t n;
+
+  if (where_column && where_value)
+	n = snprintf (stmt, LENGTH(stmt), "SELECT MAX(%s) FROM %s WHERE %s='%s'",
+				  column_name, table, where_column, where_value);
+  else
+	n = snprintf (stmt, LENGTH(stmt), "SELECT MAX(%s) FROM %s",
+				  column_name, table);
+
+
+  if (n >= LENGTH (stmt))
+	{
+	  o_log (O_LOG_WARN, "SQL statement too long trying to find MAX of column %s in table %s\n",
+			 column_name, table);
+	  return -1;
+	}
+
+  int ret = sqlite3_get_table (sq3db->db_hdl, stmt, &result, &nrows, &ncols, &errmsg);
+
+  if (ret != SQLITE_OK)
+	{
+	  o_log (O_LOG_ERROR, "Error in SELECT statement %s [%s].\n", stmt, errmsg);
+	  sqlite3_free (errmsg);
+	  return -1;
+	}
+
+  if (ncols == 0 || nrows == 0)
+	{
+	  o_log (O_LOG_INFO, "Max-value lookup on table %s:  result set to be empty.\n",
+			 table);
+	  sqlite3_free_table (result);
+	  return 0;
+	}
+
+  if (nrows > 1)
+	o_log (O_LOG_WARN, "Max-value lookup for column '%s' in table %s returned more than one possible value.\n",
+		   column_name, table);
+
+  if (ncols > 1)
+	o_log (O_LOG_WARN, "Max-value lookup for column '%s' in table %s returned more than one possible column.\n",
+		   column_name, table);
+
+  int max = 0;
+  if (result[1] == NULL)
+	max = 0;
+  else
+	max = atoi (result[1]);
+
+  sqlite3_free_table (result);
+  return max;
 }
 
 /*

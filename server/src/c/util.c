@@ -20,51 +20,51 @@
  * THE SOFTWARE.
  *
  */
-#ifndef CLIENT_HANDLER_H_
-#define CLIENT_HANDLER_H_
 
-#include "database.h"
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include "util.h"
 
-typedef enum _cstate {
-  C_HEADER,       // processing header info
-  C_BINARY_DATA,  // data is of binary format
-  C_TEXT_DATA,    // data in binary format
-  C_PROTOCOL_ERROR,// a protocol error occurred --> kick the client
-} CState;
+void
+chomp (char* str)
+{
+  char* p = str + strlen (str);
 
-#define DEF_NUM_VALUES  30
-#define MAX_STRING_SIZE 64
+  while (p != str && isspace (*--p));
 
-typedef struct _clientHandler {
-  //! Name used for debugging
-  char name[MAX_STRING_SIZE];
-
-  Database*   database;
-  DbTable**   tables;
-  int*        seq_no_offset;
-  int         table_size;    // size of tables array and seq_no_offset array
-
-//  char        app_name[MAX_STRING_SIZE];
-  int         sender_id;
-
-  CState      state;
-  CState      content;
-  Socket*     socket;
-  OmlMBuffer  mbuf;
-
-  OmlValue*   values;
-  int         value_count;
-
-  OmlValue    table_name;
-
-  long        time_offset;  // value to add to remote ts to
-                            // sync time across all connections
+  *++p = '\0';
+}
 
 
-} ClientHandler;
+OmlValueT sql_to_oml_type (const char* type)
+{
+  if (strcmp (type, "INTEGER") == 0)
+	return OML_LONG_VALUE;
+  else if (strcmp (type, "REAL") == 0)
+	return OML_DOUBLE_VALUE;
+  else if (strcmp (type, "TEXT") == 0)
+	return OML_STRING_VALUE;
+  else
+	{
+	  o_log (O_LOG_WARN, "Unknown SQL type %s --> OML_UNKNOWN_VALUE\n", type);
+	  return OML_UNKNOWN_VALUE; // error
+	}
+}
 
+const char*
+oml_to_sql_type (OmlValueT type)
+{
+  switch (type) {
+  case OML_LONG_VALUE:    return "INTEGER"; break;
+  case OML_DOUBLE_VALUE:  return "REAL"; break;
+  case OML_STRING_VALUE:  return "TEXT"; break;
+  default:
+	o_log(O_LOG_ERROR, "Unknown type %d\n", type);
+	return NULL;
+  }
+}
 
-#endif /*CLIENT_HANDLER_H_*/
 
 /*
  Local Variables:

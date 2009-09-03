@@ -20,51 +20,23 @@
  * THE SOFTWARE.
  *
  */
-#ifndef CLIENT_HANDLER_H_
-#define CLIENT_HANDLER_H_
 
-#include "database.h"
+#ifndef TABLE_DESCR_H__
+#define TABLE_DESCR_H__
 
-typedef enum _cstate {
-  C_HEADER,       // processing header info
-  C_BINARY_DATA,  // data is of binary format
-  C_TEXT_DATA,    // data in binary format
-  C_PROTOCOL_ERROR,// a protocol error occurred --> kick the client
-} CState;
+typedef struct TableDescr
+{
+  char* name;
+  char* schema;
+  struct TableDescr* next;
+} TableDescr;
 
-#define DEF_NUM_VALUES  30
-#define MAX_STRING_SIZE 64
+TableDescr* table_descr_new (const char* name, const char* schema);
+void table_descr_array_free (TableDescr* tables, int n);
+void table_descr_list_free (TableDescr* tables);
+int  table_descr_have_table (TableDescr* tables, const char* table_name);
 
-typedef struct _clientHandler {
-  //! Name used for debugging
-  char name[MAX_STRING_SIZE];
-
-  Database*   database;
-  DbTable**   tables;
-  int*        seq_no_offset;
-  int         table_size;    // size of tables array and seq_no_offset array
-
-//  char        app_name[MAX_STRING_SIZE];
-  int         sender_id;
-
-  CState      state;
-  CState      content;
-  Socket*     socket;
-  OmlMBuffer  mbuf;
-
-  OmlValue*   values;
-  int         value_count;
-
-  OmlValue    table_name;
-
-  long        time_offset;  // value to add to remote ts to
-                            // sync time across all connections
-
-
-} ClientHandler;
-
-
-#endif /*CLIENT_HANDLER_H_*/
+#endif // TABLE_DESCR_H__
 
 /*
  Local Variables:

@@ -16,6 +16,10 @@ oml2_server_SOURCES = \
 	src/c/server.h \
 	src/c/sqlite_adapter.c \
 	src/c/sqlite_adapter.h \
+	src/c/util.c \
+	src/c/util.h \
+	src/c/table_descr.c \
+	src/c/table_descr.h \
 	src/c/version.h
 
 oml2_server_LDADD = \

@@ -36,6 +36,7 @@
 
 #include "marshall.h"
 #include "client_handler.h"
+#include "util.h"
 
 #define DEF_TABLE_COUNT 10
 
@@ -114,7 +115,6 @@ process_schema(
   }
   *(p++) = '\0';
   int index = atoi(value);
-  o_log (O_LOG_DEBUG, "Looking for table '%s'\n", p);
   DbTable* t = database_get_table(self->database, p);
   if (t == NULL)
 	{
@@ -125,16 +125,22 @@ process_schema(
 
   if (index >= self->table_size) {
     DbTable** old = self->tables;
+	int* old_seq_no_offset = self->seq_no_offset;
     int old_count = self->table_size;
 
     self->table_size += DEF_TABLE_COUNT;
     self->tables = (DbTable**)malloc(self->table_size * sizeof(DbTable*));
+	self->seq_no_offset = (int*)malloc(self->table_size * sizeof (int));
     int i;
     for (i = old_count - 1; i >= 0; i--) {
       self->tables[i] = old[i];
+	  self->seq_no_offset[i] = old_seq_no_offset[i];
     }
   }
   self->tables[index] = t;
+  // FIXME:  schema must come after sender-id
+  // Look up the max sequence number for this sender in this table
+  self->seq_no_offset[index] = self->database->get_max_seq_no (self->database, t, self->sender_id);
 
   /* Reallocate the values vector if this schema has more columns than can fit already. */
   if (t->col_size > self->value_count)
@@ -149,17 +155,6 @@ process_schema(
 		}
 	}
 }
-
-void
-chomp (char* str)
-{
-  char* p = str + strlen (str);
-
-  while (p != str && isspace (*--p));
-
-  *++p = '\0';
-}
-
 
 /**
  * \fn static void process_meta(ClientHandler* self, char* key, char* value)
@@ -267,9 +262,8 @@ process_header(
   char* line;
   int len;
 
-  if (read_line(&line, &len, mbuf) == 0) {
+  if (read_line(&line, &len, mbuf) == 0)
     return 0;
-  }
 
   if (len == 1) {
     // empty line denotes separator between header and body
@@ -280,8 +274,6 @@ process_header(
     return 0;
   }
 
-  //*(mbuf->curr_p - 1) = '\0';
-
   // separate key from value (check for ':')
   char* value = line;
   while (*(value++) != ':' && (void*)value < (void*)mbuf->curr_p);
@@ -289,7 +281,7 @@ process_header(
     *(value - 1) = '\0';
     while (*(value++) == ' ' && (void*)value < (void*)mbuf->curr_p); // skip white space
     process_meta(self, line, value - 1);
- } else {
+  } else {
     o_log(O_LOG_ERROR, "Malformed meta line in header: <%s>\n", line);
 	self->state = C_PROTOCOL_ERROR;
 	return 0;
@@ -329,7 +321,13 @@ process_bin_data_message(
     return;
   }
   o_log(O_LOG_DEBUG, "bin_data - CALLING insert for seq no: %d \n", seq_no);
-  self->database->insert(self->database, table, self->sender_id, seq_no, ts, self->values, cnt);
+  self->database->insert(self->database,
+						 table,
+						 self->sender_id,
+						 seq_no + self->seq_no_offset[table_index],
+						 ts,
+						 self->values,
+						 cnt);
   //o_log(O_LOG_DEBUG, "Received %d values\n", cnt);
 }
 

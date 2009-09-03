@@ -20,51 +20,23 @@
  * THE SOFTWARE.
  *
  */
-#ifndef CLIENT_HANDLER_H_
-#define CLIENT_HANDLER_H_
 
-#include "database.h"
+#ifndef UTIL_H__
+#define UTIL_H__
 
-typedef enum _cstate {
-  C_HEADER,       // processing header info
-  C_BINARY_DATA,  // data is of binary format
-  C_TEXT_DATA,    // data in binary format
-  C_PROTOCOL_ERROR,// a protocol error occurred --> kick the client
-} CState;
+#include <oml2/omlc.h>
 
-#define DEF_NUM_VALUES  30
-#define MAX_STRING_SIZE 64
+#define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
 
-typedef struct _clientHandler {
-  //! Name used for debugging
-  char name[MAX_STRING_SIZE];
+void
+chomp (char* str);
 
-  Database*   database;
-  DbTable**   tables;
-  int*        seq_no_offset;
-  int         table_size;    // size of tables array and seq_no_offset array
+OmlValueT sql_to_oml_type (const char* type);
 
-//  char        app_name[MAX_STRING_SIZE];
-  int         sender_id;
+const char*
+oml_to_sql_type (OmlValueT type);
 
-  CState      state;
-  CState      content;
-  Socket*     socket;
-  OmlMBuffer  mbuf;
-
-  OmlValue*   values;
-  int         value_count;
-
-  OmlValue    table_name;
-
-  long        time_offset;  // value to add to remote ts to
-                            // sync time across all connections
-
-
-} ClientHandler;
-
-
-#endif /*CLIENT_HANDLER_H_*/
+#endif // UTIL_H__
 
 /*
  Local Variables:

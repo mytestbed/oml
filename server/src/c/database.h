@@ -48,6 +48,9 @@ typedef int (*db_adapter_insert)(
     int               value_count
 );
 
+typedef char* (*db_adapter_get_metadata) (struct _database* db, const char* key);
+typedef int   (*db_adapter_set_metadata) (struct _database* db, const char* key, const char* value);
+
 /*! Add the name of a sender to the 'sender' table
  * and return its id for refernce in the respective
  * measurement table.
@@ -61,6 +64,8 @@ typedef long (*db_get_time_offset)(
     struct _database* db,
     long              start_time
 );
+
+typedef long (*db_adapter_get_max_seq_no) (struct _database* db, struct _dbTable* table, int sender_id);
 
 typedef struct _dbColumn {
   char       name[MAX_COL_NAME_SIZE];
@@ -87,8 +92,10 @@ typedef struct _database{
 
   void*      adapter_hdl;
   db_adapter_insert  insert;
-
+  db_adapter_get_metadata get_metadata;
+  db_adapter_set_metadata set_metadata;
   db_add_sender_id   add_sender_id;
+  db_adapter_get_max_seq_no get_max_seq_no;
 
   long               start_time;
 
@@ -124,6 +131,15 @@ database_get_table(
     Database* database,
     char* schema
 );
+
+void
+database_table_free(DbTable* table);
+
+void
+database_table_add_col (DbTable* table, const char* name, OmlValueT type, int index);
+
+void
+database_table_store_col(DbTable* table, DbColumn* col, int index);
 
 #endif /*DATABASE_H_*/
 

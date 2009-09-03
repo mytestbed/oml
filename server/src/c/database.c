@@ -31,17 +31,13 @@
 #include <assert.h>
 #include "sqlite_adapter.h"
 #include "database.h"
-
+#include "util.h"
 
 #define DEF_COLUMN_COUNT 1
 #define DEF_TABLE_COUNT 1
 
 static int
 parse_col_decl(DbTable* self, char* col_decl, int index, int check_only);
-static void
-table_free(DbTable* table);
-static void
-store_col(DbTable* table, DbColumn* col, int index);
 
 static Database* firstDB = NULL;
 /**
@@ -69,14 +65,28 @@ database_find(
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
   self->ref_count = 1;
 
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  self->start_time = tv.tv_sec;
-
   if (sq3_create_database(self)) {
     free(self);
     return NULL;
   }
+
+  char* start_time_str = self->get_metadata (self, "start_time");
+
+  if (start_time_str == NULL)
+	{
+	  struct timeval tv;
+	  gettimeofday(&tv, NULL);
+	  self->start_time = tv.tv_sec;
+	  char s[64];
+	  snprintf (s, LENGTH(s), "%lu", self->start_time);
+	  self->set_metadata (self, "start_time", s);
+	  o_log (O_LOG_DEBUG, "Set DB start-time = %lu\n", self->start_time);
+	}
+  else
+	{
+	  self->start_time = atoi (start_time_str);
+	  o_log (O_LOG_DEBUG, "Retrieved DB start-time = %lu\n", self->start_time);
+	}
 
   // hook this one into the list of active databases
   self->next = firstDB;
@@ -124,7 +134,7 @@ database_release(
   while (t_p != NULL)
 	{
 	  DbTable* t = t_p->next;
-	  table_free(t_p);
+	  database_table_free(t_p);
 	  t_p = t;
 	}
   free(self);
@@ -149,7 +159,6 @@ database_get_table(
   char* tname = p;
   while (*p != ' ' && *p != '\0') p++;
   *(p++) = '\0';
-  o_log(O_LOG_DEBUG, "Table name '%s'\n", tname);
 
   // Check if table already exists
   int check_only = 0; // only check col decl if table already exists
@@ -163,6 +172,7 @@ database_get_table(
     table = table->next;
   }
   if (table == NULL) {
+	assert (check_only == 0);
     table = (DbTable*)malloc(sizeof(DbTable));
     memset(table, 0, sizeof(DbTable));
     strncpy(table->name, tname, MAX_TABLE_NAME_SIZE);
@@ -181,7 +191,7 @@ database_get_table(
 		  {
 			o_log(O_LOG_ERROR, "This table will not be registered now\n");
 			o_log(O_LOG_ERROR, "(but another client can register it with a valid schema later on)\n");
-			table_free (table);
+			database_table_free (table);
 			return NULL;
 		  }
 	  }
@@ -247,13 +257,20 @@ parse_col_decl(
       return 0;
     }
   } else {
-    col = (DbColumn*)malloc(sizeof(DbColumn));
-    memset(col, 0, sizeof(DbColumn));
-    strncpy(col->name, name, MAX_COL_NAME_SIZE);
-    col->type = type;
-    store_col(self, col, index);
+	database_table_add_col (self, name, type, index);
   }
+
   return 1;
+}
+
+void
+database_table_add_col (DbTable* table, const char* name, OmlValueT type, int index)
+{
+  DbColumn* col = (DbColumn*) malloc (sizeof (DbColumn));
+  memset (col, 0, sizeof (DbColumn));
+  strncpy (col->name, name, MAX_COL_NAME_SIZE);
+  col->type = type;
+  database_table_store_col (table, col, index);
 }
 /**
  * \fn static void store_col( DbTable*  table, DbColumn* col, int index)
@@ -262,8 +279,8 @@ parse_col_decl(
  * \param col the column to store
  * \param index the index of the column
  */
-static void
-store_col(
+void
+database_table_store_col(
   DbTable*  table,
   DbColumn* col,
   int       index
@@ -288,8 +305,8 @@ store_col(
  * \brief Free the table
  * \param table the table to free
  */
-static void
-table_free(
+void
+database_table_free(
   DbTable* table
 ) {
   if (table)
