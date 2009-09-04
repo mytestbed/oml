@@ -89,7 +89,16 @@ client_handler_free (ClientHandler* self)
 	database_release (self->database);
   if (self->tables)
 	free (self->tables);
+  if (self->seq_no_offset)
+	free (self->seq_no_offset);
   free (self->mbuf.buffer);
+  int i = 0;
+  for (i = 0; i < self->value_count; i++)
+	{
+	  if (self->values[i].type == OML_STRING_VALUE)
+		free (self->values[i].value.stringValue.ptr);
+	}
+  free (self->values);
   free (self);
 
   // FIXME:  What about destroying the socket data structure --> memory leak?
@@ -118,7 +127,7 @@ process_schema(
   DbTable* t = database_get_table(self->database, p);
   if (t == NULL)
 	{
-	  o_log(O_LOG_ERROR, "While parsing schema '%s'.  Can't find table '%s'.\n", value, p);
+	  o_log(O_LOG_ERROR, "While parsing schema '%s'.  Can't find table '%s' or the client declared a schema that doesn't match the previous declaration.\n", value, p);
 	  self->state = C_PROTOCOL_ERROR;
 	  return;   // error parsing schema
 	}
@@ -284,9 +293,12 @@ process_header(
   } else {
     o_log(O_LOG_ERROR, "Malformed meta line in header: <%s>\n", line);
 	self->state = C_PROTOCOL_ERROR;
-	return 0;
   }
-  return 1; // still in header
+
+  if (self->state == C_PROTOCOL_ERROR)
+	return 0;
+  else
+	return 1; // still in header
 }
 /**
  * \fn static void process_bin_data_message(ClientHandler* self)

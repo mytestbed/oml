@@ -154,6 +154,7 @@ sq3_create_database(
 		  if (insert == NULL)
 			{
 			  o_log (O_LOG_WARN, "Failed to create prepared SQL insert statement string for table %s.\n", table->name);
+			  continue;
 			}
 
 		  Sq3Table* sq3table = (Sq3Table*)malloc (sizeof (Sq3Table));
@@ -164,8 +165,8 @@ sq3_create_database(
 			  o_log (O_LOG_ERROR, "Could not prepare INSERT statement for table %s (%s).\n",
 					 table->name,
 					 sqlite3_errmsg (self->db_hdl));
-			  mstring_delete (insert);
 			}
+		  mstring_delete (insert);
 		  table->next = db->first_table;
 		  db->first_table = table;
 		  td = td->next;
@@ -196,6 +197,7 @@ sq3_create_database(
 		}
 	}
 
+  table_descr_list_free (tables);
   return 0;
 }
 /**
@@ -214,6 +216,16 @@ sq3_release(
   free(self);
   db->adapter_hdl = NULL;
 }
+
+void
+sq3_table_free (DbTable* table)
+{
+  Sq3Table* sq3table = (Sq3Table*)table->adapter_hdl;
+  if (sqlite3_finalize (sq3table->insert_stmt) != SQLITE_OK)
+	o_log (O_LOG_WARN, "Error encountered trying to finalize SQLITE3 prepared statement\n");
+  free (sq3table);
+}
+
 /**
  * \fn static int sq3_add_sender_id(Database* db, char* sender_id)
  * \brief  Add sender ID to the table
@@ -233,6 +245,7 @@ sq3_add_sender_id(
   if (id_str)
 	{
 	  index = atoi (id_str);
+	  free (id_str);
 	}
   else
 	{
@@ -431,9 +444,6 @@ sq3_create_table(
 	  return -1;
 	}
 
-  //  o_log(O_LOG_DEBUG, "schema: %s\n", mstring_buf(create));
-  //  o_log(O_LOG_DEBUG, "insert: %s\n", mstring_buf(insert));
-
   Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
 
   if (sql_stmt(sq3db, mstring_buf(create))) {
@@ -452,6 +462,9 @@ sq3_create_table(
 	mstring_delete (insert);
     return -1;
   }
+
+  mstring_delete (create);
+  mstring_delete (insert);
   return 0;
 }
 /**
@@ -702,20 +715,6 @@ sq3_get_table_list (Sq3DB* self, int *num_tables)
 		 n++)
 	{
 	  TableDescr* t = table_descr_new (result[i], result[j]);
-	  #if 0
-	  size_t len = strlen (result[i]) + 1;
-	  char* name = (char*) malloc (len * sizeof (char));
-	  strncpy (name, result[i], len);
-
-	  len = strlen (result[j]) + 1;
-	  char* schema = (char*) malloc (len * sizeof (char));
-	  strncpy (schema, result[j], len);
-
-	  TableDescr* t = (TableDescr*) malloc (sizeof(TableDescr));
-	  memset (t, 0, sizeof (TableDescr));
-	  t->name = name;
-	  t->schema = schema;
-	  #endif
 	  t->next = tables;
 	  tables = t;
 	}
@@ -953,6 +952,7 @@ sq3_get_key_value (Database* database, const char* table, const char* key_column
 	  strncpy (value, result[3], len);
 	}
 
+  sqlite3_free_table (result);
   return value;
 }
 
@@ -964,7 +964,8 @@ sq3_set_key_value (Database* database, const char* table,
   Sq3DB* sq3db = (Sq3DB*) database->adapter_hdl;
   char stmt[512];
   size_t n;
-  if (sq3_get_key_value (database, table, key_column, value_column, key) == NULL)
+  char* check_value = sq3_get_key_value (database, table, key_column, value_column, key);
+  if (check_value == NULL)
 	n = snprintf (stmt, LENGTH(stmt), "INSERT INTO %s (%s, %s) VALUES ('%s', '%s');",
 				  table,
 				  key_column, value_column,
@@ -974,6 +975,9 @@ sq3_set_key_value (Database* database, const char* table,
 				  table,
 				  value_column, value,
 				  key_column, key);
+
+  if (check_value != NULL)
+	free (check_value);
 
   if (n >= LENGTH (stmt))
 	{
@@ -1033,7 +1037,7 @@ sq3_get_max_value (Database* database, const char* table, const char* column_nam
 
   if (ncols == 0 || nrows == 0)
 	{
-	  o_log (O_LOG_INFO, "Max-value lookup on table %s:  result set to be empty.\n",
+	  o_log (O_LOG_INFO, "Max-value lookup on table %s:  result set seems to be empty.\n",
 			 table);
 	  sqlite3_free_table (result);
 	  return 0;

@@ -85,6 +85,7 @@ database_find(
   else
 	{
 	  self->start_time = atoi (start_time_str);
+	  free (start_time_str);
 	  o_log (O_LOG_DEBUG, "Retrieved DB start-time = %lu\n", self->start_time);
 	}
 
@@ -192,8 +193,8 @@ database_get_table(
 			o_log(O_LOG_ERROR, "This table will not be registered now\n");
 			o_log(O_LOG_ERROR, "(but another client can register it with a valid schema later on)\n");
 			database_table_free (table);
-			return NULL;
 		  }
+		return NULL;
 	  }
     o_log(O_LOG_DEBUG, "Column name '%s'\n", col);
     index++;
@@ -227,38 +228,44 @@ parse_col_decl(
 ) {
   char* name = col_decl;
   char* p = name;
+
   while (*p != ':' && *p != '\0') p++;
-  if (*p == '\0') {
-    o_log(O_LOG_ERROR, "Malformed column schema '%s'\n", name);
-	return 0;
-  }
+
+  if (*p == '\0')
+	{
+	  o_log(O_LOG_ERROR, "Malformed column schema '%s'\n", name);
+	  return 0;
+	}
   *(p++) = '\0';
+
   char* typeS = p;
   OmlValueT type;
+  if      (strcmp(typeS, "string") == 0) type = OML_STRING_VALUE;
+  else if (strcmp(typeS, "long")   == 0) type = OML_LONG_VALUE;
+  else if (strcmp(typeS, "double") == 0) type = OML_DOUBLE_VALUE;
+  else
+	{
+	  o_log(O_LOG_ERROR, "Unknown column type '%s'\n", typeS);
+	  return 0;
+	}
 
-  if (strcmp(typeS, "string") == 0) {
-    type = OML_STRING_VALUE;
-  } else if (strcmp(typeS, "long") == 0) {
-    type = OML_LONG_VALUE;
-  } else if (strcmp(typeS, "double") == 0) {
-    type = OML_DOUBLE_VALUE;
-  } else {
-    o_log(O_LOG_ERROR, "Unknown column type '%s'\n", typeS);
-    return 0;
-  }
-
-  DbColumn* col;
-
-  if (check_only) {
-    col = self->columns[index];
-    if (col == NULL || strcmp(col->name, name) != 0 || col->type != type) {
-      o_log(O_LOG_WARN, "Column '%s' of table '%s' different to previous declarations'\n",
-          name, self->name);
-      return 0;
-    }
-  } else {
+  if (check_only)
+	{
+	  if (index < self->col_size)
+		{
+		  DbColumn* col = self->columns[index];
+		  if (col == NULL || strcmp(col->name, name) != 0 || col->type != type)
+			{
+			  o_log(O_LOG_WARN, "Column '%s' of table '%s' different to previous declarations'\n",
+					name, self->name);
+			  return 0;
+			}
+		}
+	  else
+		return 0; // This column is out of range for the previous schema... error!
+	}
+  else
 	database_table_add_col (self, name, type, index);
-  }
 
   return 1;
 }
@@ -297,6 +304,8 @@ database_table_store_col(
     for (i = old_count - 1; i >= 0; i--) {
       table->columns[i] = old[i];
     }
+
+	free (old);
   }
   table->columns[index] = col;
 }
@@ -306,9 +315,8 @@ database_table_store_col(
  * \param table the table to free
  */
 void
-database_table_free(
-  DbTable* table
-) {
+database_table_free(DbTable* table)
+{
   if (table)
 	{
 	  o_log(O_LOG_DEBUG, "Freeing table %s\n", table->name);
@@ -323,6 +331,7 @@ database_table_free(
 			}
 		  free(table->columns);
 		}
+	  sq3_table_free (table);
 	  free(table);
 	}
   else
