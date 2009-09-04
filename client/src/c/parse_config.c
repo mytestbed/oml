@@ -412,11 +412,15 @@ getAttr(
   xmlChar* attrVal;
   char* val = NULL;
   attrVal = xmlGetProp(el, (const xmlChar*)attrName);
-  if (attrVal != NULL) {
-    val = (char*)malloc(sizeof(attrVal) + 1);
-    strcpy(val, (char*)attrVal);
-  }
-  xmlFree(attrVal);
+  if (attrVal != NULL)
+	{
+	  size_t len = strlen (attrVal) + 1;
+	  val = (char*)malloc(len * sizeof (char));
+	  memset (val, 0, len);
+	  strncpy(val, (char*)attrVal, len);
+	  xmlFree(attrVal);
+	}
+
   return val;
 }
 
