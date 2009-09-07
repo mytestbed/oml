@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 SUBDIRS = simple omf_nmetrics omf_trace iperf otg
 
 AM_CPPFLAGS = \
-	-I $(top_srcdir)/lib/client/src/c \
+	-I $(top_srcdir)/lib/client \
 	-I $(top_srcdir)/lib/ocomm \
 	-I $(top_srcdir)/libsigar/include 
 

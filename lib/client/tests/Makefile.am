@@ -10,11 +10,11 @@ check_liboml2_SOURCES = \
 	check_liboml2_api.c \
 	check_liboml2_filters.c \
 	check_liboml2_parser.c \
-	$(top_srcdir)/lib/client/src/c/oml2/omlc.h \
-	$(top_srcdir)/lib/client/src/c/oml2/oml_filter.h
+	$(top_srcdir)/lib/client/oml2/omlc.h \
+	$(top_srcdir)/lib/client/oml2/oml_filter.h
 
 AM_CPPFLAGS = \
-	-I  $(top_srcdir)/lib/client/src/c \
+	-I  $(top_srcdir)/lib/client \
 	-I  $(top_srcdir)/lib/ocomm/
 
 check_liboml2_CFLAGS = @CHECK_CFLAGS@

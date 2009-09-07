@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 SUBDIRS = src/cpp/core src/cpp/port src/cpp/generator
 
 AM_CPPFLAGS = \
-	-I $(top_srcdir)/lib/client/src/c \
+	-I $(top_srcdir)/lib/client \
 	-I $(top_srcdir)/lib/ocomm \
 	-I $(srcdir)/src/cpp \
 	-DWITH_OML
