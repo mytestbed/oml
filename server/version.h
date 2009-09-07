@@ -33,7 +33,7 @@
 "OML2 Server V%s\n"
 
 #define COPYRIGHT \
-"Copyright 2007-08 NICTA\n"
+"Copyright 2007-2009 NICTA\n"
 
 #endif /*VERSION_H_*/
 
