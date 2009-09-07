@@ -3,24 +3,24 @@ ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
 	-I $(top_srcdir)/lib/ocomm \
-	-I $(top_srcdir)/lib/shared/src/c
+	-I $(top_srcdir)/lib/shared
 
 bin_PROGRAMS = oml2-server
 
 oml2_server_SOURCES = \
-	src/c/main.c \
-	src/c/client_handler.c \
-	src/c/client_handler.h \
-	src/c/database.c \
-	src/c/database.h \
-	src/c/server.h \
-	src/c/sqlite_adapter.c \
-	src/c/sqlite_adapter.h \
-	src/c/util.c \
-	src/c/util.h \
-	src/c/table_descr.c \
-	src/c/table_descr.h \
-	src/c/version.h
+	main.c \
+	client_handler.c \
+	client_handler.h \
+	database.c \
+	database.h \
+	server.h \
+	sqlite_adapter.c \
+	sqlite_adapter.h \
+	util.c \
+	util.h \
+	table_descr.c \
+	table_descr.h \
+	version.h
 
 oml2_server_LDADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \

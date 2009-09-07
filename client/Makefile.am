@@ -12,7 +12,7 @@ oml2inc_HEADERS = \
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
 	-I $(top_srcdir)/lib/ocomm \
-	-I $(top_srcdir)/lib/shared/src/c \
+	-I $(top_srcdir)/lib/shared \
 	$(LIBXML2_CFLAGS)
 
 lib_LTLIBRARIES = liboml2.la

@@ -3,16 +3,16 @@ ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
 	-I $(top_srcdir)/lib/ocomm \
-	-I $(top_srcdir)/lib/shared/src/c
+	-I $(top_srcdir)/lib/shared
 
 bin_PROGRAMS = oml2-proxy-server
 
 oml2_proxy_server_SOURCES = \
-	src/c/main.c \
-	src/c/proxy_client_handler.c \
-	src/c/proxy_client_handler.h \
-	src/c/proxy_server.h \
-	src/c/version.h
+	main.c \
+	proxy_client_handler.c \
+	proxy_client_handler.h \
+	proxy_server.h \
+	version.h
 
 oml2_proxy_server_LDADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \
