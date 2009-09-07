@@ -10,16 +10,16 @@ check_liboml2_SOURCES = \
 	check_liboml2_api.c \
 	check_liboml2_filters.c \
 	check_liboml2_parser.c \
-	$(top_srcdir)/client/src/c/oml2/omlc.h \
-	$(top_srcdir)/client/src/c/oml2/oml_filter.h
+	$(top_srcdir)/lib/client/src/c/oml2/omlc.h \
+	$(top_srcdir)/lib/client/src/c/oml2/oml_filter.h
 
 AM_CPPFLAGS = \
-	-I  $(top_srcdir)/client/src/c \
+	-I  $(top_srcdir)/lib/client/src/c \
 	-I  $(top_srcdir)/lib/ocomm/
 
 check_liboml2_CFLAGS = @CHECK_CFLAGS@
 
-check_liboml2_LDADD = $(top_builddir)/client/liboml2.la @CHECK_LIBS@
+check_liboml2_LDADD = $(top_builddir)/lib/client/liboml2.la @CHECK_LIBS@
 
 BUILT_SOURCES = \
 	stddev_0.c \
@@ -29,7 +29,7 @@ CLEANFILES = \
 	stddev_0.c \
 	stddev_1.c
 
-STDDEV = $(top_srcdir)/client/tests/stddev.py
+STDDEV = $(srcdir)/stddev.py
 
 stddev_0.c stddev_1.c:	Makefile
 	$(STDDEV)

@@ -1,3 +1,3 @@
 ACLOCAL_AMFLAGS = -I ../m4
 
-SUBDIRS = ocomm shared
+SUBDIRS = ocomm shared client

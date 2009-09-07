@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
 AM_CPPFLAGS = \
-	-I $(top_srcdir)/client/src/c \
+	-I $(top_srcdir)/lib/client/src/c \
 	-I $(top_srcdir)/app/iperf/lib \
 	-I $(top_srcdir)/app/iperf/cfg \
 	-I $(top_srcdir)/lib/ocomm
@@ -69,7 +69,7 @@ iperf_oml2_SOURCES = lib/config.h \
 	src/version.h
 
 iperf_oml2_LDADD = \
-	$(top_builddir)/client/liboml2.la \
+	$(top_builddir)/lib/client/liboml2.la \
 	-ltrace -lpopt 
 
 

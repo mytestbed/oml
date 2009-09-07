@@ -10,7 +10,7 @@ oml2inc_HEADERS = \
 	src/c/oml2/oml_writer.h
 
 AM_CPPFLAGS = \
-	-I $(top_srcdir)/client/src/c \
+	-I $(top_srcdir)/lib/client/src/c \
 	-I $(top_srcdir)/lib/ocomm \
 	-I $(top_srcdir)/lib/shared \
 	$(LIBXML2_CFLAGS)
@@ -48,7 +48,7 @@ liboml2_la_LIBADD = \
 
 liboml2_la_LDFLAGS = -version-info 0:0:0
 
-script_src = $(top_srcdir)/client/src/ruby/oml2_scaffold
+script_src = $(srcdir)/src/ruby/oml2_scaffold
 
 bin_SCRIPTS = oml2_scaffold
 CLEANFILES = $(bin_SCRIPTS)

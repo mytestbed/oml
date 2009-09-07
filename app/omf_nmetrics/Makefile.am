@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
 AM_CPPFLAGS = \
-	-I $(top_srcdir)/client/src/c \
+	-I $(top_srcdir)/lib/client/src/c \
 	-I $(top_srcdir)/lib/ocomm \
 	-I $(top_srcdir)/libsigar/include
 
@@ -14,7 +14,7 @@ bin_PROGRAMS += nmetrics_oml2
 nmetrics_oml2_SOURCES = \
 	src/c/omf_nmetrics.c
 nmetrics_oml2_LDADD = \
-	$(top_builddir)/client/liboml2.la \
+	$(top_builddir)/lib/client/liboml2.la \
 	$(top_builddir)/lib/ocomm/libocomm.la \
 	-lsigar -lpopt
 endif
@@ -30,7 +30,7 @@ CLEANFILES = \
 	$(progname)_oml.h
 
 
-OML2_SCAFFOLD = $(top_builddir)/client/oml2_scaffold
+OML2_SCAFFOLD = $(top_builddir)/lib/client/oml2_scaffold
 
 $(progname)_popt.h:	src/c/$(progname).app Makefile
 	$(OML2_SCAFFOLD) --opts $<

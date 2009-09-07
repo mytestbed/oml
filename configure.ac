@@ -65,10 +65,10 @@ AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memmove memset socket sqrt 
 
 AC_CONFIG_FILES([Makefile
 		 lib/Makefile
+		 lib/client/Makefile
+		 lib/client/tests/Makefile
 		 lib/shared/Makefile
 		 lib/ocomm/Makefile
-		 client/Makefile
-		 client/tests/Makefile
 		 server/Makefile
 		 proxy_server/Makefile
 		 app/Makefile

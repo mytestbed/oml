@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
 AM_CPPFLAGS = \
-	-I $(top_srcdir)/client/src/c \
+	-I $(top_srcdir)/lib/client/src/c \
 	-I $(top_srcdir)/lib/ocomm
 
 progname = omf_trace
@@ -12,7 +12,7 @@ trace_oml2_SOURCES = \
 	src/c/omf_trace.c
 
 trace_oml2_LDADD = \
-	$(top_builddir)/client/liboml2.la \
+	$(top_builddir)/lib/client/liboml2.la \
 	-ltrace -lpopt
 
 BUILT_SOURCES = \
@@ -23,7 +23,7 @@ CLEANFILES = \
 	$(progname)_popt.h \
 	$(progname)_oml.h
 
-OML2_SCAFFOLD = $(top_builddir)/client/oml2_scaffold
+OML2_SCAFFOLD = $(top_builddir)/lib/client/oml2_scaffold
 
 $(progname)_popt.h:	src/c/$(progname).app Makefile
 	$(OML2_SCAFFOLD) --opts $<
