@@ -1,3 +1,3 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = shared external client server proxy_server app
+SUBDIRS = lib client server proxy_server app

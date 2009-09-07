@@ -11,8 +11,8 @@ oml2inc_HEADERS = \
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
-	-I $(top_srcdir)/external/ocommLib \
-	-I $(top_srcdir)/shared/src/c \
+	-I $(top_srcdir)/lib/ocomm \
+	-I $(top_srcdir)/lib/shared/src/c \
 	$(LIBXML2_CFLAGS)
 
 lib_LTLIBRARIES = liboml2.la
@@ -42,8 +42,8 @@ liboml2_la_SOURCES = src/c/api.c \
 	src/c/oml2/oml_writer.h
 
 liboml2_la_LIBADD = \
-	$(top_builddir)/external/ocommLib/libocomm.la \
-	$(top_builddir)/shared/libshared.la \
+	$(top_builddir)/lib/ocomm/libocomm.la \
+	$(top_builddir)/lib/shared/libshared.la \
 	$(LIBXML2_LIBS) -lpthread -lpopt
 
 liboml2_la_LDFLAGS = -version-info 0:0:0

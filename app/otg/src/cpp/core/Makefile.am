@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I ../../../../../m4 -Wnone
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
-	-I $(top_srcdir)/external/ocommLib \
+	-I $(top_srcdir)/lib/ocomm \
 	-I $(srcdir)/.. \
 	-DWITH_OML
 
@@ -17,4 +17,4 @@ libotg2core_la_SOURCES = \
 	unixtime.cpp
 
 libotg2core_la_LIBADD = \
-	$(top_builddir)/external/ocommLib/libocomm.la
+	$(top_builddir)/lib/ocomm/libocomm.la

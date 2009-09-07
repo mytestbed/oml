@@ -4,7 +4,7 @@ AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
 	-I $(top_srcdir)/app/iperf/lib \
 	-I $(top_srcdir)/app/iperf/cfg \
-	-I $(top_srcdir)/external/ocommLib
+	-I $(top_srcdir)/lib/ocomm
 
 progname = iperf_oml2
 

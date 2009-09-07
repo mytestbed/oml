@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
-	-I $(top_srcdir)/external/ocommLib
+	-I $(top_srcdir)/lib/ocomm
 
 progname = omf_trace
 

@@ -4,14 +4,14 @@ SUBDIRS = src/cpp/core src/cpp/port src/cpp/generator
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
-	-I $(top_srcdir)/external/ocommLib \
+	-I $(top_srcdir)/lib/ocomm \
 	-I $(srcdir)/src/cpp \
 	-DWITH_OML
 
 otgrlibs = \
 	-lpopt -lpthread \
 	$(top_builddir)/client/liboml2.la \
-	$(top_builddir)/external/ocommLib/libocomm.la \
+	$(top_builddir)/lib/ocomm/libocomm.la \
 	libotg2.la
 
 bin_PROGRAMS = otg2 otr2
@@ -31,7 +31,7 @@ libotg2_la_SOURCES = \
 
 
 libotg2_la_LIBADD = \
-	$(top_builddir)/external/ocommLib/libocomm.la \
+	$(top_builddir)/lib/ocomm/libocomm.la \
 	src/cpp/core/libotg2core.la \
 	src/cpp/port/libotg2port.la \
 	src/cpp/generator/libotg2generator.la

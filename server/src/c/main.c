@@ -32,7 +32,6 @@
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
-#include <marshall.h>
 
 #include "version.h"
 #include "server.h"

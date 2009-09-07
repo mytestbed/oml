@@ -64,9 +64,9 @@ AC_FUNC_MALLOC
 AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memmove memset socket sqrt strerror])
 
 AC_CONFIG_FILES([Makefile
-		 shared/Makefile
-		 external/Makefile
-		 external/ocommLib/Makefile
+		 lib/Makefile
+		 lib/shared/Makefile
+		 lib/ocomm/Makefile
 		 client/Makefile
 		 client/tests/Makefile
 		 server/Makefile

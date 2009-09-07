@@ -15,7 +15,7 @@ check_liboml2_SOURCES = \
 
 AM_CPPFLAGS = \
 	-I  $(top_srcdir)/client/src/c \
-	-I  $(top_srcdir)/external/ocommLib/
+	-I  $(top_srcdir)/lib/ocomm/
 
 check_liboml2_CFLAGS = @CHECK_CFLAGS@
 

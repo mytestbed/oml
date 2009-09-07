@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
-	-I $(top_srcdir)/external/ocommLib \
+	-I $(top_srcdir)/lib/ocomm \
 	-I $(top_srcdir)/libsigar/include
 
 progname = omf_nmetrics
@@ -15,6 +15,7 @@ nmetrics_oml2_SOURCES = \
 	src/c/omf_nmetrics.c
 nmetrics_oml2_LDADD = \
 	$(top_builddir)/client/liboml2.la \
+	$(top_builddir)/lib/ocomm/libocomm.la \
 	-lsigar -lpopt
 endif
 
