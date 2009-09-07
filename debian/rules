@@ -58,8 +58,10 @@ install: build
 	mkdir -p $(CURDIR)/debian/liboml/usr/lib
 	mv $(CURDIR)/debian/oml-client/usr/lib/* $(CURDIR)/debian/liboml/usr/lib/
 	mkdir -p $(CURDIR)/debian/otg/usr/bin
+	mkdir -p $(CURDIR)/debian/otg/usr/lib
 	mv $(CURDIR)/debian/oml-client/usr/bin/otg2 $(CURDIR)/debian/otg/usr/bin/
-	mv $(CURDIR)/debian/oml-client/usr/bin/otr2 $(CURDIR)/debian/otg/usr/bin/	
+	mv $(CURDIR)/debian/oml-client/usr/bin/otr2 $(CURDIR)/debian/otg/usr/bin/
+	mv $(CURDIR)/debian/liboml/usr/lib/libotg* $(CURDIR)/debian/otg/usr/lib/
 
 # Build architecture-independent files here.
 binary-indep: build install

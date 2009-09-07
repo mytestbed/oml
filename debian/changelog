@@ -1,3 +1,9 @@
+oml (2.0.2-8) stable; urgency=low
+
+  * changed distribution to 'stable', fixed bug in otg package
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Mon, 07 Sep 2009 14:08:59 +1000
+
 oml (2.0.2-7) hardy; urgency=low
 
   * changed license to MIT, new otg package fixing bug #156
