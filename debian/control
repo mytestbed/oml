@@ -2,7 +2,7 @@ Source: oml
 Section: unknown
 Priority: extra
 Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
-Build-Depends: debhelper (>= 5), libxml2-dev, libpcap0.8-dev, libpopt-dev, libsqlite3-dev, autoconf, check, libtrace3-dev, automake, libtool, ruby, libsigar
+Build-Depends: debhelper (>= 5), libxml2-dev, libpcap0.8-dev, libpopt-dev, libsqlite3-dev, autoconf, check, libtrace3-dev, automake, libtool, ruby, libsigar, libsigar-dev
 Standards-Version: 3.7.2
 
 Package: oml-client
