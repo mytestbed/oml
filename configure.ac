@@ -76,6 +76,8 @@ AC_CONFIG_FILES([Makefile
 		 app/omf_nmetrics/Makefile
 		 app/omf_trace/Makefile
 		 app/iperf/Makefile
+		 app/gps/Makefile
+		 app/wlanconfig/Makefile
 		 app/otg/Makefile
 		 app/otg/src/cpp/core/Makefile
 		 app/otg/src/cpp/port/Makefile
