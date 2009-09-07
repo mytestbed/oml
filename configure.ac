@@ -71,9 +71,8 @@ AC_CONFIG_FILES([Makefile
 		 client/tests/Makefile
 		 server/Makefile
 		 proxy_server/Makefile
-		 examples/Makefile
-		 examples/simple/Makefile
 		 app/Makefile
+		 app/simple/Makefile
 		 app/omf_nmetrics/Makefile
 		 app/omf_trace/Makefile
 		 app/iperf/Makefile

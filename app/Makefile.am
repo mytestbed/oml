@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
-SUBDIRS = omf_nmetrics omf_trace iperf otg
+SUBDIRS = simple omf_nmetrics omf_trace iperf otg
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/client/src/c \
