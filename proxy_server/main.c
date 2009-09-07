@@ -21,18 +21,9 @@
  *
  */
 
+#include <config.h>
 #include <popt.h>
 #include <string.h>
-
-// FIXME:  Why are these header files commented out??
-/*
-#include <stdio.h>
-#include <strings.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/errno.h>
-#include <assert.h>
-*/
 
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>

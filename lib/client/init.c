@@ -24,6 +24,7 @@
   \brief Implements OML's client side initialization
 */
 
+#include <config.h>
 #include <ocomm/o_log.h>
 #include <string.h>
 #include <ctype.h>
@@ -177,8 +178,7 @@ omlc_init(
 	}
   }
 
-  o_log(O_LOG_INFO, "OML Client V%d.%d.%d %s\n",
-		OMLC_MAJOR_VERSION, OMLC_MINOR_VERSION, OMLC_REVISION, OMLC_COPYRIGHT);
+  o_log(O_LOG_INFO, "OML Client V%s %s\n", VERSION, OMLC_COPYRIGHT);
   o_log(O_LOG_INFO, "OML Protocol V%d\n", OML_PROTOCOL_VERSION);
 
   if (name == NULL)
@@ -388,7 +388,7 @@ static void
 usage(void)
 
 {
-  printf("OML Client V%d.%d.%d\n", OMLC_MAJOR_VERSION, OMLC_MINOR_VERSION, OMLC_REVISION);
+  printf("OML Client V%s\n", VERSION);
   printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
   printf("%s\n", OMLC_COPYRIGHT);
   printf("\n");
@@ -426,7 +426,7 @@ print_filters(void)
 {
   register_builtin_filters();
 
-  printf("OML Client V%d.%d.%d\n", OMLC_MAJOR_VERSION, OMLC_MINOR_VERSION, OMLC_REVISION);
+  printf("OML Client V%s\n", VERSION);
   printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
   printf("%s\n", OMLC_COPYRIGHT);
   printf("\n");

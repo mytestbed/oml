@@ -24,7 +24,7 @@
   \brief This file is the starting point.
 */
 
-
+#include <config.h>
 #include <stdio.h>
 #include <popt.h>
 

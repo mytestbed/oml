@@ -23,9 +23,6 @@
 #ifndef OML2_VERSION_H_
 #define OML2_VERSION_H_
 
-#define OMLC_MAJOR_VERSION 1
-#define OMLC_MINOR_VERSION 1
-#define OMLC_REVISION 1
 #define OMLC_COPYRIGHT "Copyright (c)2007-09, NICTA"
 
 #endif /* OML2_VERSION_H_*/
