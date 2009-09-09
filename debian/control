@@ -7,7 +7,7 @@ Standards-Version: 3.7.2
 
 Package: oml-client
 Architecture: i386
-Depends: ${shlibs:Depends}, ${misc:Depends}, libsigar, libxml2, libpcap0.8, libpopt0, liboml (= ${Source-Version}), libtrace3
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsigar, libxml2, libpcap0.8, libpopt0, liboml (= ${Source-Version}), libtrace3, ruby
 Description: OML measurement client
  The OML client component is integrated in the application to collect measurements taken or produced by that applications. Dynamically configurable filters analyze the various measurement streams before they are forwarded to the OML Server.
 
@@ -19,7 +19,7 @@ Description: OML measurement server
 
 Package: otg
 Architecture: i386
-Depends: ${shlibs:Depends}, ${misc:Depends}, liboml (= ${Source-Version})
+Depends: ${shlibs:Depends}, ${misc:Depends}, libpopt0, liboml (= ${Source-Version})
 Description: Orbit Traffic Generator
  Orbit Traffic Generator 
 
@@ -33,7 +33,7 @@ Description: OML measurement library headers
 Package: liboml
 Section: libs
 Architecture: i386
-Depends: ${shlibs:Depends}, ${misc:Depends}, libxml2, libpcap0.8, libpopt0
+Depends: ${shlibs:Depends}, ${misc:Depends}, libxml2
 Description: OML measurement library
  A measurement library developed in the context of the OMF Testbed Management Framework. This library allows experimenter to define customizable measurement points inside applications or passive traffic listener using the pcap library.
 
