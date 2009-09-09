@@ -18,13 +18,13 @@ static float samples = -1;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
-  { "amplitude", 'b', POPT_ARG_FLOAT, &amplitude, 0, 
+  { "amplitude", 'b', POPT_ARG_FLOAT, &amplitude, 0,
         "Amplitude of produce signal"},
-  { "frequency", 'd', POPT_ARG_FLOAT, &frequency, 0, 
+  { "frequency", 'd', POPT_ARG_FLOAT, &frequency, 0,
         "Frequency of wave generated [Hz]"  },
-  { "samples", 'n', POPT_ARG_INT, &samples, 0, 
+  { "samples", 'n', POPT_ARG_INT, &samples, 0,
         "Number of samples to take. -1 ... forever"},
-  { "sample-interval", 's', POPT_ARG_FLOAT, &sample_interval, 0, 
+  { "sample-interval", 's', POPT_ARG_FLOAT, &sample_interval, 0,
         "Time between consecutive measurements [sec]"},
   { NULL, 0, 0, NULL, 0 }
 };
@@ -39,27 +39,13 @@ static OmlMP* m_lin;
 static OmlMPDef d_sin[] = {
     {"label", OML_STRING_VALUE},
     {"phase", OML_DOUBLE_VALUE},
-    {"phase1", OML_DOUBLE_VALUE},
-    {"phase2", OML_DOUBLE_VALUE},
-    {"phase3", OML_DOUBLE_VALUE},
-    {"phase4", OML_DOUBLE_VALUE},
-    {"value1", OML_DOUBLE_VALUE},
-    {"value2", OML_DOUBLE_VALUE},
-    {"value3", OML_DOUBLE_VALUE},
-    {"value4", OML_DOUBLE_VALUE},
-    {"value5", OML_DOUBLE_VALUE},
-    {"value6", OML_DOUBLE_VALUE},
-    {"value7", OML_DOUBLE_VALUE},
-    {"value8", OML_DOUBLE_VALUE},
-    {"value9", OML_DOUBLE_VALUE},
-    {"value0", OML_DOUBLE_VALUE},
+    {"value", OML_DOUBLE_VALUE},
     {NULL, 0}
 };
 static OmlMP* m_sin;
 
 void
 run()
-
 {
   float angle = 0;
   float delta = frequency * sample_interval * 2 * M_PI;
@@ -82,23 +68,10 @@ run()
     float value = amplitude * sin(angle);
     {
       // "sin" measurement point
-      OmlValueU v[16];
+      OmlValueU v[3];
       omlc_set_const_string(v[0], label);
       omlc_set_double(v[1], angle);
-      omlc_set_double(v[2], value);
-      omlc_set_double(v[3], angle);
-      omlc_set_double(v[4], angle);
-      omlc_set_double(v[5], angle);
-      omlc_set_double(v[6], angle);
-      omlc_set_double(v[7], angle);
-      omlc_set_double(v[8], angle);
-      omlc_set_double(v[9], angle);
-      omlc_set_double(v[10], angle);
-      omlc_set_double(v[11], angle);
-      omlc_set_double(v[12], angle);
-      omlc_set_double(v[13], angle);
-      omlc_set_double(v[14], angle);
-      omlc_set_double(v[15], angle);
+	  omlc_set_double(v[2], value);
       omlc_inject(m_sin, v);
     }
 
@@ -106,7 +79,7 @@ run()
 
     angle = fmodf(angle + delta, 2 * M_PI);
     usleep(sleep);
-  }    
+  }
 }
 
 int
@@ -117,7 +90,7 @@ main(
   char c;
 
   // registering OML measurement points
-  omlc_init("generator", &argc, argv, NULL); 
+  omlc_init("generator", &argc, argv, NULL);
   m_lin = omlc_add_mp("lin", d_lin);
   m_sin = omlc_add_mp("sin", d_sin);
   omlc_start();
