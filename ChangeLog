@@ -1,0 +1,97 @@
+2009-09-09    <jolyon.white@nicta.com.au>
+
+	* OML: Release version 2.3.0.
+	
+	* OML: Package is now autoconfiscated.
+	
+	* OML: Package now builds under Mac OS X (but is not well tested
+	on that platform).
+
+	* OML: Layout of the source package has been re-organized to make
+	it cleaner.
+
+	* oml2-server: Added server capability to re-open existing
+	experiment databases and add new measurements to them.  This
+	allows long running experiments where the client applications may
+	be restarted many times.
+
+	This required the server to create two additional tables in the
+	experiment database: '_experiment_data' and '_senders'.  The
+	'_senders' table stores a mapping between the client's sender
+	id (as specified in either the --oml-id command line option, the
+	OML_NAME environment variable, or 'id' attribute of the XML
+	configuration file on the client side) and the server-generated
+	numeric id that is stored in the 'oml_sender_id' column of the
+	measurement tables.  The '_experiment_metadata' table is a generic
+	key-value table that can be used to store arbitrary experiment
+	metadata.  Currently the OML server uses this to store the
+	experiment's start-time, which is the time reference against which
+	all of the client data timestamps are calculated.
+	
+	* oml2-server: New text-based protocol added.
+	lib/client/ruby/oml.rb implements a client for this protocol.
+
+	* oml2-server: Removed buffer overflow conditions in SQL prepared
+	statement generation, and removed an unintended artificial limit
+	on the size of table schema (both number of characters and number
+	of columns).
+
+	* oml2-server: Significant improvements in error condition
+	handling on the server.  Clients are now dropped if the server
+	detects a protocol error.
+
+	* oml2-server: Server was given a thorough code review and
+	numerous segfaults, memory leaks, and other bugs were fixed.  Ran
+	the server under valgrind memcheck to find run-time memory errors,
+	and fixed another bunch of numerous memory handling errors.
+
+	* liboml2: XML configuration file format has been modified to be
+	more expressive.  This change is incompatible with XML
+	configuration files from previous versions of OML.  See
+	app/simple/config.xml for an example of the new format.
+
+	* liboml2: Added a prototype custom filter API.  This is not
+	documented and will be modified in the next release.
+
+	* liboml2: Client headers are now suitable for direct inclusion in
+	C++ translation units; they automatically perform extern "C"
+	guarding as appropriate.
+
+	* liboml2: Client now detects server disconnects and handles them
+	gracefully.  If a measurement stream that was connected to an OML
+	server suffers a disconnect, the stream is shut down (or rather,
+	its writer is) and the application continues, sending measurements
+	to any remaining streams with active writers (whether to file or
+	to another OML server).
+
+	* liboml2: Added OML_SERVER environment variable as an alternative
+	way to specify the server to which to send measurements.  This is
+	overridden by an XML configuration file or the --oml-server
+	command line option, if present.  The file:// protocol is
+	understood by this environment variable.
+	
+	* liboml2: Added --oml-list-filters client command line option.
+
+	* liboml2: Added new standard deviation filter (stddev).
+
+	* oml2-server, liboml2: Server and client now both report the same
+	version number (which is identical to the package version number).
+
+	* oml2-server, liboml2: Server and client now both report the
+	protocol version to their logging streams on startup.
+
+	* oml2-server, liboml2: Fixed lots of compiler warnings.
+
+	* apps: Integrated the OTG project source into the OML project
+	tree.  The OTG source tree builds two applications, otg2 and otr2.
+
+	* apps: All applications except for otg2, otr2, and the simple
+	example application, now name their binaries according to the
+	format '<app_name>_oml2', to signify that they are OML2 client
+	applications.
+
+	* apps: Added radiotap support to trace_oml2 (app/omf_trace).
+
+	* apps: Added application iperf under app/iperf.
+
+	
