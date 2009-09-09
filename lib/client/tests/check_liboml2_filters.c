@@ -147,7 +147,7 @@ START_TEST (test_filter_first_create)
   FirstInstanceData* data = NULL;
 
   f = create_filter ("first", "inst", OML_LONG_VALUE, 2);
-  fail_if (f == NULL, "Filter creation failed for `histogram' filter");
+  fail_if (f == NULL, "Filter creation failed for `first' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
 
   fail_unless (f->index == 2);
@@ -275,14 +275,14 @@ filters_suite (void)
   TCase* tc_filter = tcase_create ("FilterCore");
   TCase* tc_filter_avg = tcase_create ("FilterAverage");
   TCase* tc_filter_first = tcase_create ("FilterFirst");
-  TCase* tc_filter_hist = tcase_create ("FilterHistogram");
+  //  TCase* tc_filter_hist = tcase_create ("FilterHistogram");
   TCase* tc_filter_stddev = tcase_create ("FilterStddev");
 
   /* Setup fixtures */
   tcase_add_checked_fixture (tc_filter,       filter_setup, filter_teardown);
   tcase_add_checked_fixture (tc_filter_avg,   filter_setup, filter_teardown);
   tcase_add_checked_fixture (tc_filter_first, filter_setup, filter_teardown);
-  tcase_add_checked_fixture (tc_filter_hist,  filter_setup, filter_teardown);
+  //tcase_add_checked_fixture (tc_filter_hist,  filter_setup, filter_teardown);
   tcase_add_checked_fixture (tc_filter_stddev,filter_setup, filter_teardown);
 
   /* Add tests to test case "FilterCore" */
@@ -295,7 +295,7 @@ filters_suite (void)
   tcase_add_test (tc_filter_first, test_filter_first_create);
 
   /* Add tests to test case "FilterHistogram" */
-  tcase_add_test (tc_filter_hist, test_filter_hist_create);
+  //tcase_add_test (tc_filter_hist, test_filter_hist_create);
 
   /* Add tests to test case "FilterStddev" */
   tcase_add_test (tc_filter_stddev, test_filter_stddev_create);
@@ -306,7 +306,7 @@ filters_suite (void)
   suite_add_tcase (s, tc_filter);
   suite_add_tcase (s, tc_filter_avg);
   suite_add_tcase (s, tc_filter_first);
-  suite_add_tcase (s, tc_filter_hist);
+  //suite_add_tcase (s, tc_filter_hist);
   suite_add_tcase (s, tc_filter_stddev);
 
   return s;

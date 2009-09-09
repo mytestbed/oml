@@ -249,7 +249,7 @@ void register_builtin_filters ()
 {
   omlf_register_filter_average ();
   omlf_register_filter_first ();
-  omlf_register_filter_histogram ();
+  //  omlf_register_filter_histogram ();
   omlf_register_filter_stddev ();
 }
 
