@@ -63,6 +63,10 @@ sq3_set_key_value (Database* database, const char* table,
 				   const char* key_column, const char* value_column,
 				   const char* key, const char* value);
 
+int
+sq3_get_max_value (Database* database, const char* table, const char* column_name,
+				   const char* where_column, const char* where_value);
+
 char*
 sq3_get_sender_id (Database* database, const char* name);
 
@@ -72,7 +76,7 @@ sq3_set_sender_id (Database* database, const char* name, int id);
 int
 sq3_get_max_sender_id (Database* database);
 
-int
+long
 sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id);
 
 int
@@ -289,11 +293,11 @@ sq3_get_max_sender_id (Database* database)
   return sq3_get_max_value (database, "_senders", "id", NULL, NULL);
 }
 
-int
+long
 sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id)
 {
   char s[64];
-  snprintf (s, LENGTH(s), "%lu", sender_id);
+  snprintf (s, LENGTH(s), "%u", sender_id);
   // SELECT MAX(oml_seq) FROM table WHERE oml_sender_id='sender_id';
   return sq3_get_max_value (database, table->name, "oml_seq", "oml_sender_id", s);
 }
