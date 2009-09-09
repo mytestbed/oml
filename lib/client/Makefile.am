@@ -45,7 +45,7 @@ liboml2_la_SOURCES = \
 liboml2_la_LIBADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \
 	$(top_builddir)/lib/shared/libshared.la \
-	$(LIBXML2_LIBS) -lpthread -lpopt
+	$(LIBXML2_LIBS) -lpthread
 
 liboml2_la_LDFLAGS = -version-info 0:0:0
 

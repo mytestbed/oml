@@ -20,4 +20,4 @@ libocomm_la_SOURCES = \
 	socket.c \
 	socket_group.c
 
-libocomm_la_LIBADD = -lpthread -lpopt
+libocomm_la_LIBADD = -lpthread
