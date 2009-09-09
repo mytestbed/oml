@@ -1,3 +1,9 @@
+oml (2.3.0-1) stable; urgency=low
+
+  * Latest upstream release (SVN tags/Release_2_3). 
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Wed, 09 Sep 2009 17:56:05 +1000
+
 oml (2.0.2-8) stable; urgency=low
 
   * changed distribution to 'stable', fixed bug in otg package
