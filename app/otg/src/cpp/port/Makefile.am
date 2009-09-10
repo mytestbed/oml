@@ -13,7 +13,11 @@ libotg2port_la_SOURCES = \
 	factory.cpp \
 	udp_outport.cpp \
 	udp_inport.cpp \
-	null_outport.cpp
+	null_outport.cpp \
+	socket.h \
+	udp_outport.h \
+	udp_inport.h \
+	null_outport.h
 
 libotg2port_la_LIBADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la

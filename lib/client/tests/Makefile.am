@@ -10,6 +10,7 @@ check_liboml2_SOURCES = \
 	check_liboml2_api.c \
 	check_liboml2_filters.c \
 	check_liboml2_parser.c \
+	check_liboml2_suites.h \
 	$(top_srcdir)/lib/client/oml2/omlc.h \
 	$(top_srcdir)/lib/client/oml2/oml_filter.h
 
@@ -30,6 +31,8 @@ CLEANFILES = \
 	stddev_1.c
 
 STDDEV = $(srcdir)/stddev.py
+
+dist_check_SCRIPTS=$(STDDEV)
 
 stddev_0.c stddev_1.c:	Makefile
 	$(STDDEV)

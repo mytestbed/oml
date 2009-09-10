@@ -28,6 +28,7 @@ CLEANFILES = \
 	$(progname)_popt.h \
 	$(progname)_oml.h
 
+EXTRA_DIST=src/c/$(progname).app
 
 OML2_SCAFFOLD = $(top_builddir)/lib/client/oml2_scaffold
 

@@ -39,7 +39,6 @@
 #include "ocomm/o_log.h"
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
-#include "app_sigar.h"
 #include "client.h"
 #include "version.h"
 

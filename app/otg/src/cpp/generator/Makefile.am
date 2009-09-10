@@ -12,7 +12,10 @@ libotg2generator_la_SOURCES = \
 	factory.cpp \
 	cbr_generator.cpp \
 	expo_generator.cpp \
-	randomvariable.cpp
+	randomvariable.cpp \
+	cbr_generator.h \
+	expo_generator.h \
+	randomvariable.h
 
 libotg2generator_la_LIBADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la

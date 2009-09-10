@@ -16,7 +16,23 @@ otgrlibs = \
 
 bin_PROGRAMS = otg2 otr2
 
-otg2_SOURCES = src/cpp/otg2.cpp
+otg2_SOURCES = \
+	src/cpp/version.h \
+	src/cpp/otg2.cpp \
+	src/cpp/otg2/address.h \
+	src/cpp/otg2/application.h \
+	src/cpp/otg2/component.h \
+	src/cpp/otg2/generator.h \
+	src/cpp/otg2/otg2_app.h \
+	src/cpp/otg2/otr2_app.h \
+	src/cpp/otg2/packet.h \
+	src/cpp/otg2/port.h \
+	src/cpp/otg2/sender.h \
+	src/cpp/otg2/source.h \
+	src/cpp/otg2/stream.h \
+	src/cpp/otg2/unixtime.h
+
+
 otr2_SOURCES = src/cpp/otr2.cpp
 
 otg2_LDADD = $(otgrlibs)
