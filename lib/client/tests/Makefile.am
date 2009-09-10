@@ -28,7 +28,8 @@ BUILT_SOURCES = \
 
 CLEANFILES = \
 	stddev_0.c \
-	stddev_1.c
+	stddev_1.c \
+	check_oml2.log
 
 STDDEV = $(srcdir)/stddev.py
 
