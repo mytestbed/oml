@@ -1230,6 +1230,369 @@ the function should fail.
 @chapter Measurement Database
 
 
+@node Server protocol
+@chapter Server protocol
+
+The OML server accepts connections from clients and responds to a custom
+protocol.  The protocol is one-way: the client connects to the server
+and transmits its measurement data, but the server does not respond to
+the client with any control or acknowledgement messages.  Any number of
+clients can simultaneously connect to the server (subject to operating
+system limits).
+
+There are two variants of the protocol:  a binary variant and a text
+variant.  The client declares the variant of the protocol it wishes to
+use when it initiates the connection.  It is possible for multiple
+clients to be communicating with the server simultaneously using either
+variant.  A client cannot change the protocol variant it is using
+during the life of the connection.
+
+The protocol is divided into two parts:  the client sends a set of
+configuration headers in the first part, and then sends its measurement
+data in the second part.  The two parts are separated by two consecutive
+new line characters (`@code{\n}', 0x0A).  The following grammar describes the
+format for the headers:
+
+@multitable @columnfractions .22 .05 .80
+
+@item @var{oml-stream} @tab : @tab  @var{oml-headers} `@code{\n}' `@code{\n}' @var{measurement-data}
+
+@item @var{oml-headers} @tab : @tab @var{oml-headers} `@code{\n}' @var{oml-header} | @var{oml-header}
+
+@item @var{oml-header} @tab : @tab  @var{header-key} `@code{:}' @var{header-value}
+
+@item @var{header-key} @tab : @tab    @code{protocol} | @* 
+                       @code{app-name} | @*
+                       @code{sender-id} | @*
+                       @code{experiment-id} | @*
+                       @code{start_time} | @*
+                       @code{start-time} | @*
+                       @code{content} | @*
+                       @code{schema}
+
+@item @var{measurement-data} @tab : @tab @var{measurement-data-binary}
+| @var{measurement-data-text}
+
+@end multitable
+
+It is acceptable for there to be whitespace separating the header key
+names and the header values from the delimiter colon (`@code{:}').
+The acceptable values for the headers are shown in the next section,
+followed by the formats for the text and binary measurement data.
+
+@node Protocol headers
+@section Protocol headers
+
+The majority of the protocol headers are expected to appear only once
+in the headers part for each client's data stream.  The exception is
+the @code{schema} header, which can appear multiple times.  If any of
+the other headers appear more than once, the server will accept the
+header without complaint, but the results will be undefined and may
+cause improper behaviour of the server.  Omission of any header except
+@code{app-name} will also result in undefined behaviour.  The
+@code{sender-id} header must follow the @code{experiment-id} header,
+otherwise the server will report an error and drop the connection to
+the client.
+
+@node Protocol
+@subsection @code{protocol}
+
+The @code{protocol} header identifies the version of the protocol that
+the client is using.  If the server implements a different version of
+the protocol, the server will drop the client connection and no
+measurements from that client will be stored in the experiment database.
+
+Currently the supported protocol version is 1.
+
+@node app-name
+@subsection @code{app-name}
+
+The @code{app-name} header is not used and is ignored by the server.
+
+@node sender-id
+@subsection @code{sender-id}
+
+The @code{sender-id} header is used to identify the client to the
+server.  The OML client library sends the argument of the
+@code{--oml-id} command line option as the value of this header.
+
+@node experiment-id
+@subsection @code{experiment-id}
+
+The @code{experiment-id} header names the database in which the client's
+measurements should be stored; all measurement data from the same
+experiment is stored in a single database.  The OML client library sends
+the argument given to the @code{--oml-exp-id} command line option as the
+value of this header.
+
+@node start_time
+@subsection @code{start_time}
+
+The @code{start_time} header is a synonym for the @code{start-time}
+header, supported for backwards compatibility reasons.
+
+@node start-time
+@subsection @code{start-time}
+
+The @code{start-time} header specifies the client time reference. It
+should be an integer that gives the timestamp of client when the client
+application started. This is used to synchronize timestamps of all
+measurements from all clients in a given experiment. It should be
+generated as the @code{tv_sec} member of the @code{struct timeval}
+object returned by a call to @code{gettimeofday(2)} on the client.
+
+@node content
+@subsection @code{content}
+
+The value of the @code{content} header may be either @code{text} or
+@code{binary}.  Any other value is an error;  in that case the server
+will assume text data, but this should behaviour should be changed to
+drop the client in a future version.
+
+The @code{content} header determines how the server will interpret the
+subsequent measurement data stream.
+
+@node schema
+@subsection @code{schema}
+
+The @code{schema} header specifies the schema for one measurement
+stream.  There can be multiple measurement streams for each client, and
+thus there can be multiple @code{schema} header lines transmitted by a
+single client.
+
+The @code{schema} header value consists of a measurement stream (MS)
+index, an MS name, and a string of variable:type pairs, colon-separated:
+
+@multitable @columnfractions .15 .05 .80
+
+@item @var{schema-value}
+@tab :
+@tab @var{ms-index} @var{ms-name} @var{field-specs}
+
+@item @var{field-specs}
+@tab :
+@tab @var{field-specs} @var{field-spec} | @var{field-spec}
+
+@item @var{field-spec}
+@tab :
+@tab @var{field-name} `@code{:}' @var{field-type}
+
+@item @var{field-type}
+@tab :
+@tab @code{long} | @code{double} | @code{string}
+
+@end multitable
+
+
+Valid field names should be alpha-numeric identifiers containing no
+spaces; they may contain a hyphen `-' or underscore `_'.
+
+The MS name is used to identify into which database table to insert
+measurements for this client. The MS index is used to associate
+subsequent measurement messages with this MS, so that the server knows
+which table it should insert each measurement into.  See also...
+
+@node Binary measurement data
+@section Binary measurement data
+
+If the @code{content} header is set to @code{binary} by the client, then
+the server will begin interpreting the @code{measurement-data} as
+@code{measurement-data-binary} for that client.  The binary protocol
+consists of a sequence of binary messages, each of each corresponds to
+the output of one measurement point/stream on the client,
+post-filtering.  Thus, each of the binary messages represents an
+@math{m}-tuple of measurement values, each of which could have a
+different type.  Each binary measurement message follows the same
+format, which begins with its own header.
+
+The message format is shown below:
+
+
+@example
+
+Octet#   Datum
+-----------------------------
+0      |  SYNC-BYTE
+1      |  SYNC-BYTE
+2      |  OMB_DATA_P
+3      |  msg-len-H
+4      |  msg-len-L
+5      |  num-measurements
+6      |  ms-index
+-----------------------------
+7      | 
+8      |   Typed Binary Values
+9      |
+...    |      ...
+@end example
+
+The @code{SYNC-BYTE} identifies the start of a binary measurement
+message and is equal to 0xAA.  The @code{OMB_DATA_P} identifies the type of
+packet, and is equal to 1.
+
+The @code{msg-len-L} and @code{msg-len-H} together form a 16-bit
+unsigned integer, @code{msg-len} that the client sets equal to the
+number of octets in the entire message, less 5; i.e. it is the number
+of octets following the @code{msg-len-L} octet.  This integer is
+transmitted in network byte order, and so the @code{ntohs()} function
+should be used to portably read it on a server implementation.
+
+The @code{num-measurements} octet specifies the number of measurement
+fields in the message, and the @code{ms-index} identifies the
+measurement stream to which this measurement message belongs.  It is
+the same as the @code{ms-index} specified in the @code{schema} header
+for this measurement stream.
+
+All of the octets following the @code{ms-index} octet belong to typed binary
+value objects.  A typed binary value object is a binary representation
+of a numeric or string value sent by the client.  The first octet of a
+typed binary value identifies the type of the object.  The
+interpretation of the following octets of the typed binary value
+depend on the type.  The lengths of typed binary value objects vary
+depending on the type as well.
+
+If the first 7 octets up to and including the @code{ms-index} octet
+form the binary message header, then the binary message can be
+described by the following grammar:
+
+@multitable @columnfractions .31 .05 .64
+
+@item @var{oml-binary-message}
+@tab :
+@tab @var{header} @var{typed-binary-values}
+
+@item @var{typed-binary-values}
+@tab :
+@tab @var{seq-no} @var{timestamp} @var{typed-binary-measurements}
+
+@item @var{typed-binary-measurements}
+@tab :
+@tab @var{typed-binary-measurements} @var{typed-binary-value} | @*
+@var{typed-binary-value}
+
+@item @var{seq-no}
+@tab :
+@tab @var{typed-binary-value}
+
+@item @var{timestamp}
+@tab :
+@tab @var{typed-binary-value}
+
+@end multitable
+
+
+
+The @code{seq-no} is an incrementing sequence number represented as a
+typed binary value object.  The timestamp is a floating point
+timestamp that represents the number of seconds between the client's
+@code{start-time} header value and the time when the measurement
+values in this packet were captured and sent to the server.  The
+@code{typed-binary-measurements} are the actual application
+measurement data, and they should be exactly equal in number to
+@code{num-measurements}.
+
+There are four supported @code{typed-binary-value} types:
+@enumerate
+@item
+@code{LONG_T}:  32-bit signed long integer values;
+@item
+@code{DOUBLE_T}:  Double precision floating point values;
+@item
+@code{DOUBLE_NAN}:  A type representing the floating point
+``Not-a-Number'' (NaN) value;
+@item
+@code{STRING_T}:  A type representing character string values.
+@end enumerate
+
+@node LONG_T type
+@subsection @code{LONG_T}
+The format of the @code{LONG_T} type is:
+@example
+Octet#   Datum
+-----------------------------
+0      |  LONG_T
+1      |  long-byte-3
+2      |  long-byte-2
+3      |  long-byte-1
+4      |  long-byte-0
+-----------------------------
+@end example
+
+The value of the first octet is @code{LONG_T=0x1}, which identifies
+the type.  The following four octets are the four 8-bit bytes of the
+32-bit long integer, in network byte order.  A portable server
+implementation should read this integer back using @code{ntohl()}.
+The octet labelled @code{long-byte-3} is the most significant byte,
+and the byte labelled @code{long-byte-0} is the least significant byte.
+
+@node DOUBLE_T type
+@subsection @code{DOUBLE_T}
+The format of the @code{DOUBLE_T} type is:
+@example
+Octet#   Datum
+-----------------------------
+0      |  DOUBLE_T
+1      |  mant-byte-3
+2      |  mant-byte-2
+3      |  mant-byte-1
+4      |  mant-byte-0
+5      |  exp
+-----------------------------
+@end example
+The value of the first octet is @code{DOUBLE_T=0x2}, which identifies
+the type.  The following four octets are the four 8-bit bytes of a
+32-bit signed long integer representation of the mantissa of the
+floating point value, in network byte order.  A portable server
+implementation should read this integer back using @code{ntohl()}.
+Following the mantissa is the exponent, represented as a signed byte.
+
+The mantissa word is transmitted in a scaled representation; the
+scaling factor is @math{2^{30}}.  The original floating point value
+should be reconstructed using the formula
+@iftex
+@tex
+$$
+v = {2^x M \over 2^{30}}
+$$
+@end tex
+@end iftex
+@ifhtml
+<p align=''center''>v = (2^x * M) / (2^30)</p>
+@end ifhtml
+where @math{M} is the mantissa and @math{x} is the exponent.
+
+@node DOUBLE_NAN type
+@subsection @code{DOUBLE_NAN}
+The @code{DOUBLE_NAN} is a pseudo-type that represents the floating
+point value Not-a-Number (NaN).  Its format is identical to the
+@code{DOUBLE_T} type, but the first octet is equal to
+@code{DOUBLE_NAN=0x3}, and the remaining five octets do not contain
+any valid data.
+
+@node STRING_T type
+@subsection @code{STRING_T}
+The format of the @code{STRING_T} type is:
+@example
+Octet#   Datum
+-----------------------------
+0      |  STRING_T
+1      |  N
+2      |  str-byte-0
+3      |  str-byte-1
+...
+N+1    |  str-byte-(N-1)
+-----------------------------
+@end example
+The value of the first octet is @code{STRING_T=0x4}, which identifies
+the type.  The second octet is @code{N}, the length of the string.
+The length of a string is limited to 254 8-bit characters, not
+including a null-terminator.  The third and subsequent octets are the
+string data, not including any null-terminator.
+
+@node Text measurement data
+@section Text measurement data
+
+
 @node Index
 @unnumbered Index
 
