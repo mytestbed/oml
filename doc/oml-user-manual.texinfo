@@ -7,19 +7,15 @@
 @copying
 Copyright @copyright{} 2009, NICTA
 
-Locked Bag 9013
-
-Alexandria NSW 1430
-
-AUSTRALIA
-
-TBD Permission is granted to...
+Locked Bag 9013 @*
+Alexandria NSW 1430 @*
+AUSTRALIA @*
 @end copying
 
 @titlepage
 @title OML User Manual
 @subtitle OML -- The OMF Measurement Library
-@subtitle For version 2.0.1, 20 July 2009
+@subtitle For version 2.3.0, 20 July 2009
 @author Jolyon White
 
 @c The following two commands start the copyright page
@@ -35,7 +31,7 @@ TBD Permission is granted to...
 @node Top
 @top OML User Manual
 
-This manual is for OML, The OMF Measurement Library, version 2.0.1, a
+This manual is for OML, The OMF Measurement Library, version 2.3.0, a
 package containing a software framework for distributed measurement
 collection in network testbeds or clustered simulation experiments.
 
@@ -59,7 +55,6 @@ using the OML proxy server.
 @end ifnottex
 @menu
 * Introduction::                Introduction to OML.
-* Architecture::                Overview of the architecture of OML.
 * Tutorial::                    A quickstart tutorial for getting up and running with OML.
 * Client::                      Using the client library.
 * Server::                      Using the OML server and the OML proxy server.
@@ -129,9 +124,7 @@ Bindings for other languages
 @node Introduction
 @chapter Introduction
 
-@node Architecture
-@chapter Architecture
-
+OML is the OMF Measurement Library.  
 @node Tutorial
 @chapter Tutorial
 @node Client
@@ -728,14 +721,14 @@ filter writer via a call to @code{omlf_register_filter()}.  The
 @code{omlf_register_filter()} function and the required API for all of
 the user-provided functions are described fully in @ref{Filter API}.
 
-New filters are created during the call to @code{omlc_start()},
-according to either OML command line options or according to the XML
-configuration file, if specified.  There can be multiple instances of
-each type of filter, including user-defined filters.  Each instance is
-created by a call to the @code{create()} function for the filter
-type.  The @code{create()} function for a filter should allocate
-memory for any internal state that it needs to maintain, and should
-initialize the state appropriately.
+New filters instances are created during the call to
+@code{omlc_start()}, according to either OML command line options or
+according to the XML configuration file, if specified. There can be
+multiple instances of each type of filter, including user-defined
+filters. Each instance is created by a call to the @code{create()}
+function for the filter type. The @code{create()} function for a filter
+should allocate memory for any internal state that it needs to maintain,
+and should initialize the state appropriately.
 
 When the application begins running and generating measurement data,
 every time an MP receives new data from the application (in a call to
@@ -917,15 +910,19 @@ macro for speed.
 @end quotation
 @end deftypefun
 
-@deftypefun OmlValue* omlf_create_result_vector (@code{OmlFilter*} f)
+@deftypefun OmlValue* omlf_create_result_vector (@code{OmlFilter*} f, @code{OmlValueT*} type, @code{unsigned int} n)
 Creates a new result vector for filter @var{f}, and returns a pointer
 to it.
 
-The result vector is a vector of @code{OmlValue} objects whose types
-are initialized to match the types specified in the filter's output
-definition, as supplied to @code{omlf_register_filter()}.  The values
-stored in the vector are initialized to 0 for numeric types and
-@code{NULL} for pointer types (strings).
+If @var{type} is @code{NULL}, the result vector is a vector of
+@code{OmlValue} objects whose types are initialized to match the types
+specified in the filter's output definition, as supplied to
+@code{omlf_register_filter()}.  Otherwise, @var{type} should point to an
+array of length @var{n} of @code{OmlValueT} objects, specifying the type of
+each field in the output @math{m}-tuple of the filter.
+
+The values stored in the vector are initialized to 0 for numeric types
+and @code{NULL} for pointer types (strings).
 
 Returns @code{NULL} on failure.
 @end deftypefun
@@ -1002,6 +999,8 @@ filter's @code{output()} function can call the
 measurement results will be augmented with an incrementing epoch that
 groups all related measurement outputs.
 
+This function must only be called within the filter's @code{create()} function.
+
 Returns 0 on success, @minus{1} on failure.
 @end deftypefun
 
@@ -1071,7 +1070,7 @@ int average_create (OmlFilter* f, OmlValueT type)
    self->sample_max = -1 * HUGE;
 
    /* Create the result vector, and save it */
-   self->result = omlf_create_result_vector(f);
+   self->result = omlf_create_result_vector(f, NULL, 0);
 
    /* Store the private instance data for this filter instance */
    omlf_set_instance_data(f, self);
