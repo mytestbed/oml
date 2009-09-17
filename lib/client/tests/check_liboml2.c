@@ -34,6 +34,7 @@ main (void)
   SRunner* sr = srunner_create (filters_suite ());
   srunner_add_suite (sr, api_suite ());
   srunner_add_suite (sr, parser_suite ());
+  srunner_add_suite (sr, marshall_suite ());
 
   srunner_run_all (sr, CK_NORMAL);
   number_failed += srunner_ntests_failed (sr);
