@@ -55,16 +55,7 @@ int mbuf_read (OmlMBuffer* mbuf, uint8_t* buf, size_t len);
 int mbuf_begin_read (OmlMBuffer* mbuf);
 int mbuf_begin_write (OmlMBuffer* mbuf);
 
-
-
-
-
-
-
-
-
-
-
+char* to_octets (unsigned char* buf, int len);
 
 #endif // MBUF_H__
 

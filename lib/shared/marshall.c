@@ -51,6 +51,19 @@
 
 inline int marshall_value(OmlMBuffer* mbuf, OmlValueT val_type,  OmlValueU* val);
 
+unsigned char*
+find_sync (unsigned char* buf, int len)
+{
+  int i;
+
+  for (i = 1; i < len; i++)
+	{
+	  if (buf[i] == SYNC_BYTE && buf[i-1] == SYNC_BYTE)
+		return &buf[i-1];
+	}
+  return NULL;
+}
+
 /**
  * \fn OmlMBuffer* marshall_init(OmlMBuffer*  mbuf, OmlMsgType  packet_type)
  * \brief

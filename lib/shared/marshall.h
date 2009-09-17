@@ -116,6 +116,9 @@ marshall_check_resize(
   size_t bytes
 );
 
+unsigned char*
+find_sync (unsigned char* buf, int len);
+
 #endif /*MARSHALL_H_*/
 
 /*
