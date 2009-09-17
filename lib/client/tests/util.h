@@ -26,6 +26,8 @@
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
 
+#define LENGTH(a) ((sizeof(a))/(sizeof((a)[0])))
+
 typedef struct
 {
   int length; /* Length of the test vector */
