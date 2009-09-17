@@ -63,6 +63,8 @@ AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memmove memset socket sqrt strerror])
 
+AC_C_BIGENDIAN
+
 AC_CONFIG_FILES([Makefile
 		 lib/Makefile
 		 lib/client/Makefile
