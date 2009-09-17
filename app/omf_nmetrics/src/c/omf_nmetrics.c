@@ -45,7 +45,7 @@ OmlMP*   cpu_mp;
 OmlMP*   memory_mp;
 OmlMP*   net_mp;
 
-#include <sigar.h>
+#include <libsigar/sigar.h>
 
 typedef struct _if_monitor_t {
   char           if_name[64];
