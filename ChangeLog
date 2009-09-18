@@ -1,3 +1,7 @@
+2009-09-18    <jolyon.white@nicta.com.au>
+
+	* liboml2: Fix segfault when attempting to marshall NULL strings.
+
 2009-09-09    <jolyon.white@nicta.com.au>
 
 	* OML: Release version 2.3.0.

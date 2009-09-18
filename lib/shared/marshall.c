@@ -202,6 +202,12 @@ marshall_value(
     case OML_STRING_VALUE: {
       char* str = val->stringValue.ptr;
 
+	  if (str == NULL)
+		{
+		  str = "";
+		  o_log (O_LOG_WARN, "Attempting to send a NULL string; sending empty string instead\n");
+		}
+
       int len = strlen(str);
       if (len > 254) {
         o_log(O_LOG_ERROR, "Truncated string '%s'\n", str);

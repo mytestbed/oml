@@ -54,6 +54,9 @@ omlf_first_new(
   self->result = result;
   self->result[0].type = type;  // FIXME:  Is this needed?
 
+  if (type == OML_STRING_VALUE)
+	omlc_set_const_string (self->result[0].value, "");
+
   return self;
 }
 
@@ -105,6 +108,8 @@ process(
   self->is_first = 1;
   writer->out(writer, self->result, 1);
   oml_value_reset(&self->result[0]);
+  if (self->result[0].type == OML_STRING_VALUE)
+	omlc_set_const_string (self->result[0].value, "");
   return 0;
 }
 
