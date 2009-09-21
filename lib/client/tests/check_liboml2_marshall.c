@@ -219,7 +219,7 @@ START_TEST (test_marshall_value_double)
   v.doubleValue = double_values[_i];
   int iexp;
   double dmant = frexp (v.doubleValue, &iexp) * (1 << 30);
-  uint32_t imant = (uint32_t)dmant;
+  int32_t imant = (int32_t)dmant;
 
   int result = marshall_value (&mbuf, OML_DOUBLE_VALUE, &v);
 
