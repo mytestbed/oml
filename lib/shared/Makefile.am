@@ -10,6 +10,8 @@ noinst_LTLIBRARIES = libshared.la
 libshared_la_SOURCES = \
 	marshall.c \
 	marshall.h \
+	mbuf.c \
+	mbuf.h \
 	mstring.c \
 	mstring.h
 

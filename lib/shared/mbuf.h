@@ -45,15 +45,15 @@ uint8_t* mbuf_buffer (OmlMBufferEx* mbuf);
 size_t mbuf_length (OmlMBufferEx* mbuf);
 size_t mbuf_remaining (OmlMBufferEx* mbuf);
 size_t mbuf_fill (OmlMBufferEx* mbuf);
-size_t mbuf_read_offset (OmlMBuffer* mbuf);
-size_t mbuf_write_offset (OmlMBuffer* mbuf);
-size_t mbuf_message_offset (OmlMBuffer* mbuf);
+size_t mbuf_read_offset (OmlMBufferEx* mbuf);
+size_t mbuf_write_offset (OmlMBufferEx* mbuf);
+size_t mbuf_message_offset (OmlMBufferEx* mbuf);
 int mbuf_resize (OmlMBufferEx* mbuf, size_t new_length);
 int mbuf_check_resize (OmlMBufferEx* mbuf, size_t bytes);
-int mbuf_write (OmlMBuffer* mbuf, const uint8_t* buf, size_t len);
-int mbuf_read (OmlMBuffer* mbuf, uint8_t* buf, size_t len);
-int mbuf_begin_read (OmlMBuffer* mbuf);
-int mbuf_begin_write (OmlMBuffer* mbuf);
+int mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len);
+int mbuf_read (OmlMBufferEx* mbuf, uint8_t* buf, size_t len);
+int mbuf_begin_read (OmlMBufferEx* mbuf);
+int mbuf_begin_write (OmlMBufferEx* mbuf);
 
 char* to_octets (unsigned char* buf, int len);
 

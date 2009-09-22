@@ -20,8 +20,10 @@
  * THE SOFTWARE.
  *
  */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "mbuf.h"
 
@@ -74,14 +76,15 @@ mbuf_create (void)
 	  free (mbuf);
 	  return NULL;
 	}
+  memset (mbuf->base, 0, mbuf->length);
 
   mbuf->rdptr = mbuf->base;
   mbuf->wrptr = mbuf->base;
   mbuf->fill = 0;
   mbuf->wr_remaining = mbuf->length;
-  mbuf->rd_remaiing = mbuf->wrptr - mbuf->rdptr;
+  mbuf->rd_remaining = mbuf->wrptr - mbuf->rdptr;
 
-  mbuf_check_invariant();
+  mbuf_check_invariant(mbuf);
 
   return mbuf;
 }
@@ -108,6 +111,7 @@ mbuf_length (OmlMBufferEx* mbuf)
 size_t
 mbuf_remaining (OmlMBufferEx* mbuf)
 {
+  // ???
   return mbuf->fill;
 }
 
@@ -118,19 +122,19 @@ mbuf_fill (OmlMBufferEx* mbuf)
 }
 
 size_t
-mbuf_read_offset (OmlMBuffer* mbuf)
+mbuf_read_offset (OmlMBufferEx* mbuf)
 {
   return mbuf->rdptr - mbuf->base;
 }
 
 size_t
-mbuf_write_offset (OmlMBuffer* mbuf)
+mbuf_write_offset (OmlMBufferEx* mbuf)
 {
   return mbuf->wrptr - mbuf->base;
 }
 
 size_t
-mbuf_message_offset (OmlMBuffer* mbuf)
+mbuf_message_offset (OmlMBufferEx* mbuf)
 {
   return mbuf->message_start - mbuf->base;
 }
@@ -138,7 +142,7 @@ mbuf_message_offset (OmlMBuffer* mbuf)
 int
 mbuf_resize (OmlMBufferEx* mbuf, size_t new_length)
 {
-  mbuf_check_invariant ();
+  mbuf_check_invariant (mbuf);
 
   if (mbuf == NULL || mbuf->base == NULL)
 	return -1;
@@ -167,7 +171,7 @@ mbuf_resize (OmlMBufferEx* mbuf, size_t new_length)
   mbuf->length = new_length;
   mbuf->wr_remaining = mbuf->length - mbuf->fill;
 
-  mbuf_check_invariant ();
+  mbuf_check_invariant (mbuf);
 
   return 0;
 }
@@ -196,7 +200,7 @@ mbuf_check_resize (OmlMBufferEx* mbuf, size_t bytes)
  *
  */
 int
-mbuf_write (OmlMBuffer* mbuf, const uint8_t* buf, size_t len)
+mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len)
 {
   mbuf_check_invariant (mbuf);
 
@@ -230,7 +234,7 @@ mbuf_write (OmlMBuffer* mbuf, const uint8_t* buf, size_t len)
  *
  */
 int
-mbuf_read (OmlMBuffer* mbuf, uint8_t* buf, size_t len)
+mbuf_read (OmlMBufferEx* mbuf, uint8_t* buf, size_t len)
 {
   mbuf_check_invariant (mbuf);
 
@@ -249,13 +253,13 @@ mbuf_read (OmlMBuffer* mbuf, uint8_t* buf, size_t len)
 }
 
 int
-mbuf_begin_read (OmlMBuffer* mbuf)
+mbuf_begin_read (OmlMBufferEx* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
   if (mbuf == NULL) return -1;
 
-  mbuf->message_start = mbuf->rd_ptr;
+  mbuf->message_start = mbuf->rdptr;
 
   mbuf_check_invariant (mbuf);
 
@@ -263,13 +267,13 @@ mbuf_begin_read (OmlMBuffer* mbuf)
 }
 
 int
-mbuf_begin_write (OmlMBuffer* mbuf)
+mbuf_begin_write (OmlMBufferEx* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
   if (mbuf == NULL) return -1;
 
-  mbuf->message_start = mbuf->wr_ptr;
+  mbuf->message_start = mbuf->wrptr;
 
   mbuf_check_invariant (mbuf);
 
