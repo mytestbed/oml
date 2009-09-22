@@ -1,3 +1,9 @@
+oml (2.3.1-1) stable; urgency=low
+
+  * Fix bug when marshalling NULL strings.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Fri, 18 Sep 2009 12:40:11 +1000
+
 oml (2.3.0-1) stable; urgency=low
 
   * Latest upstream release (SVN tags/Release_2_3). 
