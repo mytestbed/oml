@@ -1,0 +1,672 @@
+/*
+ * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <math.h>
+#include <check.h>
+#include <mbuf.h>
+
+#include "util.h"
+
+START_TEST (test_mbuf_create)
+{
+  void* buf = malloc (4096);
+  if (buf == NULL)
+	fail ("malloc(3) failed, so mbuf_create() might fail too\n");
+
+  free (buf);
+
+  OmlMBufferEx* mbuf = mbuf_create ();
+
+  fail_if (mbuf == NULL);
+  fail_if (mbuf->base == NULL);
+  fail_if (mbuf->rdptr != mbuf->base);
+  fail_if (mbuf->wrptr != mbuf->base);
+  fail_if (mbuf->fill != 0);
+  fail_unless (mbuf->length > 0);
+  fail_if (mbuf->wr_remaining != mbuf->length);
+  fail_if (mbuf->rd_remaining != (mbuf->wrptr - mbuf->rdptr));
+  int i;
+  for (i = 0; i < mbuf->length; i++)
+	fail_if (mbuf->base[i] != 0);
+}
+END_TEST
+
+START_TEST (test_mbuf_buffer)
+{
+  OmlMBufferEx* mbuf = mbuf_create ();
+  fail_if (mbuf_buffer (mbuf) != mbuf->base);
+}
+END_TEST
+
+START_TEST (test_mbuf_length)
+{
+  OmlMBufferEx* mbuf = mbuf_create ();
+  fail_if (mbuf_length (mbuf) != mbuf->length);
+}
+END_TEST
+
+START_TEST (test_mbuf_resize)
+{
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  size_t length_1 = mbuf_length (mbuf);
+
+  result = mbuf_resize (mbuf, length_1 / 2);
+
+  fail_if (result == -1);
+  fail_if (mbuf->base == NULL);
+  fail_if (mbuf_length (mbuf) != length_1); // Don't resize if new length is less
+
+  size_t length_2 = length_1 + 1;
+
+  result = mbuf_resize (mbuf, length_2);
+
+  fail_if (result == -1);
+  fail_if (mbuf->base == NULL);
+  fail_if (mbuf_length (mbuf) != length_2);
+
+  size_t length_3 = 2 * length_1;
+
+  result = mbuf_resize (mbuf, length_3);
+
+  fail_if (result == -1);
+  fail_if (mbuf->base == NULL);
+  fail_if (mbuf_length (mbuf) != length_3);
+}
+END_TEST
+
+START_TEST (test_mbuf_resize_contents)
+{
+  uint8_t s[8192];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  size_t length_1 = mbuf_length (mbuf);
+
+  memset (s, 0, sizeof (s));
+  int i = 0;
+  for (i = 0; i < length_1; i++)
+	{
+	  s[i] = 'A' + (i % 16);
+	}
+
+  memcpy (mbuf->base, s, length_1);
+  result = mbuf_resize (mbuf, length_1 / 2);
+
+}
+END_TEST
+
+static const uint8_t* test_strings [] =
+  {
+	"",
+	"a",
+	"ab",
+	"abc",
+	"abcd",
+	"abcde",
+	"abcdef",
+	"0123456789ABCDEF",
+	"wxyz",
+	"xyz",
+	"yz",
+	"z",
+	"",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+	"0123456789ABCDEF",
+  };
+
+START_TEST (test_mbuf_write)
+{
+  uint8_t s[8192];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t length = mbuf_length (mbuf);
+  size_t len = strlen (test_strings[0]);
+  memset (s, 0, sizeof (s));
+
+  while (n + len < length && i < LENGTH (test_strings))
+	{
+	  strcat (s, test_strings[i]);
+	  result = mbuf_write (mbuf, test_strings[i], len);
+	  n += len;
+
+	  fail_if (result == -1);
+	  fail_if (mbuf->fill != n);
+	  fail_if (mbuf->wrptr - mbuf->base != n);
+	  fail_if (mbuf->rdptr != mbuf->base);
+	  fail_if (mbuf->wr_remaining != length - n);
+	  fail_if (mbuf->rd_remaining != n);
+	  fail_if (mbuf->wrptr < mbuf->rdptr);
+	  fail_if (strncmp (mbuf->base, s, n) != 0,
+			   "Expected:\n%s\nActual:\n%s\n", s, mbuf->base);
+
+	  i++;
+	  if (i < LENGTH (test_strings))
+		len = strlen (test_strings[i]);
+	}
+
+  /* Now do it again and try to overrun the buffer */
+  i = 0;
+  int done = 0;
+  len = strlen (test_strings[i]);
+  while (i < LENGTH (test_strings) && !done)
+	{
+	  result = mbuf_write (mbuf, test_strings[i], len);
+
+	  if (result != -1)
+		{
+		  strcat (s, test_strings[i]);
+		  n += len;
+
+		  i++;
+		  if (i < LENGTH (test_strings))
+			len = strlen (test_strings[i]);
+		}
+	  else
+		{
+		  done = 1;
+		}
+	}
+
+  fail_unless (done == 1); // Fail if we didn't overflow the buf
+
+  fail_unless (strncmp (mbuf->base, s, n) == 0,
+			   "Expected:\n%s\nActual:\n%s\n", s, mbuf->base);
+
+  // Check that we didn't write any bytes the last mbuf_write()
+  for (i = n; i < length; i++)
+	fail_unless (mbuf->base[i] == 0);
+
+  fail_if (mbuf->fill != n);
+  fail_if (mbuf->wrptr - mbuf->base != n);
+  fail_if (mbuf->rdptr != mbuf->base);
+  fail_if (mbuf->wr_remaining != length - n);
+  fail_if (mbuf->rd_remaining != n);
+  fail_if (mbuf->wrptr < mbuf->rdptr);
+}
+END_TEST
+
+START_TEST (test_mbuf_write_null)
+{
+  char s[] = "abc";
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t rdstart = 0;
+  size_t length = mbuf_length (mbuf);
+  memset (s, 0, sizeof (s));
+
+  result = mbuf_write (NULL, s, 1);
+  fail_if (result != -1);
+
+  result = mbuf_write (mbuf, NULL, 1);
+  fail_if (result != -1);
+  fail_if (mbuf->wrptr != mbuf->base);
+  fail_if (mbuf->fill != 0);
+  fail_if (mbuf->wr_remaining != mbuf->length);
+}
+END_TEST
+
+START_TEST (test_mbuf_read)
+{
+  uint8_t s[8192];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t rdstart = 0;
+  size_t length = mbuf_length (mbuf);
+  memset (s, 0, sizeof (s));
+
+  result = mbuf_read (mbuf, s, 100);
+
+  fail_if (result != -1, "Trying to read from an empty buffer did not fail!\n");
+
+  for (i = 0; i < LENGTH (s); i++)
+	s[i] = 'A' + (i % 16);
+
+  // Fill the buffer
+  result = mbuf_write (mbuf, s, length);
+  fail_if (result == -1, "Trying to write test data into the buffer\n");
+  memset (s, 0, LENGTH(s));
+
+  result = mbuf_read (mbuf, s, 0);
+  fail_if (result == -1, "Trying to read 0 bytes\n");
+  fail_if (s[0] != 0);
+  fail_if (mbuf->rdptr != mbuf->base);
+  fail_if (mbuf->rd_remaining != mbuf->fill);
+
+  size_t old_remaining = mbuf->rd_remaining;
+  size_t remaining = mbuf->rd_remaining;
+  while (remaining)
+	{
+	  memset (s, 0, LENGTH (s));
+	  int rdlen = remaining * (((double)rand())/RAND_MAX) + 1;
+
+	  result = mbuf_read (mbuf, s, rdlen);
+	  fail_if (result == -1, "Unabled to read %d bytes from mbuf\n", rdlen);
+
+	  n += rdlen;
+	  fail_if (strncmp (s, &mbuf->base[rdstart], rdlen) != 0);
+	  rdstart += rdlen;
+	  fail_if (remaining > old_remaining);
+	  old_remaining = remaining;
+	  remaining = mbuf->rd_remaining;
+	  fail_if (mbuf->rdptr > mbuf->wrptr);
+	}
+
+  fail_if (n != length);
+  fail_if (mbuf->rd_remaining != 0);
+  fail_if (mbuf->rdptr - mbuf->base != mbuf->length);
+  fail_if (mbuf->wrptr != mbuf->rdptr);
+  fail_if (mbuf->message_start != mbuf->base);
+  fail_if (mbuf->wr_remaining != 0);
+}
+END_TEST
+
+START_TEST (test_mbuf_read_null)
+{
+  char s[8192];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t rdstart = 0;
+  size_t length = mbuf_length (mbuf);
+  memset (s, 0, sizeof (s));
+
+  for (i = 0; i < LENGTH (s); i++)
+	s[i] = 'A' + (i % 16);
+
+  // Fill the buffer
+  result = mbuf_write (mbuf, s, length);
+  fail_if (result == -1, "Trying to write test data into the buffer\n");
+
+  result = mbuf_read (mbuf, NULL, 1);
+  fail_if (result != -1);
+  fail_if (mbuf->rdptr != mbuf->base);
+  fail_if (mbuf->rd_remaining != mbuf->fill);
+
+  result = mbuf_read (NULL, s, 1);
+  fail_if (result != -1);
+}
+END_TEST
+
+START_TEST (test_mbuf_begin_read)
+{
+  char s[8192];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t rdstart = 0;
+  size_t length = mbuf_length (mbuf);
+  memset (s, 0, sizeof (s));
+
+  for (i = 0; i < LENGTH (test_strings); i++)
+	{
+	  result = mbuf_write (mbuf, test_strings[i], strlen (test_strings[i]));
+	  fail_if (result == -1);
+	}
+
+  for (i = 0; i < LENGTH (test_strings); i++)
+	{
+	  memset (s, 0, LENGTH (s));
+	  result = mbuf_read (mbuf, s, strlen (test_strings[i]));
+	  fail_if (result == -1);
+
+	  result = mbuf_begin_read (mbuf);
+	  fail_if (result == -1);
+	  fail_if (mbuf->message_start != mbuf->rdptr);
+	  fail_if (strncmp (s, test_strings[i], strlen (test_strings[i])) != 0);
+	}
+}
+END_TEST
+
+START_TEST (test_mbuf_begin_write)
+{
+  char s[8192];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t rdstart = 0;
+  size_t length = mbuf_length (mbuf);
+  memset (s, 0, sizeof (s));
+
+  for (i = 0; i < LENGTH (test_strings); i++)
+	{
+	  result = mbuf_write (mbuf, test_strings[i], strlen (test_strings[i]));
+	  fail_if (result == -1);
+
+	  result = mbuf_begin_write (mbuf);
+	  fail_if (result == -1);
+	  fail_if (mbuf->message_start != mbuf->wrptr);
+	}
+}
+END_TEST
+
+START_TEST (test_mbuf_reset_read)
+{
+  char s[4096];
+  char t[4096];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t rdstart = 0;
+  size_t length = mbuf_length (mbuf);
+  memset (s, 0, sizeof (s));
+  memset (t, 0, sizeof (t));
+
+  for (i = 0; i < LENGTH (test_strings[i]); i++)
+	{
+	  result = mbuf_write (mbuf, test_strings[i], strlen (test_strings[i]));
+	  fail_if (result == -1);
+	}
+
+  result = mbuf_begin_read (mbuf);
+  fail_if (result == -1);
+  fail_if (mbuf->message_start != mbuf->base);
+  fail_if (mbuf->rdptr != mbuf->base);
+
+  for (i = 0; i < LENGTH (test_strings[i]); i++)
+	{
+	  uint8_t* old_message_start = mbuf->message_start;
+	  memset (s, 0, LENGTH(s));
+	  strcat (t, test_strings[i]);
+	  n += strlen (test_strings[i]);
+
+	  result = mbuf_read (mbuf, s, n);
+	  fail_if (result == -1);
+
+	  fail_if (mbuf->rdptr - mbuf->message_start != n,
+			   "\nRead(%d) of string %s (%d) gives rdptr-start = %d (rdptr=%d, start=%d)\n",
+			   i,
+			   test_strings[i], strlen(test_strings[i]),
+			   mbuf->rdptr - mbuf->message_start,
+			   mbuf->rdptr - mbuf->base,
+			   mbuf->message_start - mbuf->base);
+	  fail_if (strncmp (s, t, n) != 0);
+
+	  result = mbuf_reset_read (mbuf);
+	  fail_if (result == -1);
+	  fail_if (mbuf->message_start != old_message_start);
+	  fail_if (mbuf->rdptr != mbuf->message_start);
+	}
+}
+END_TEST
+
+START_TEST (test_mbuf_reset_write)
+{
+  char s[4096];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t rdstart = 0;
+  size_t length = mbuf_length (mbuf);
+  memset (s, 0, sizeof (s));
+
+  for (i = 0; i < LENGTH(test_strings); i++)
+	{
+	  uint8_t* old_message_start = mbuf->message_start;
+	  result = mbuf_write (mbuf, test_strings[i], strlen (test_strings[i]));
+
+	  fail_if (result == -1);
+	  fail_if (mbuf->wrptr < mbuf->message_start);
+	  fail_if (mbuf->wrptr < mbuf->rdptr);
+	  fail_if (strncmp (mbuf->base, test_strings[i], strlen (test_strings[i])) != 0);
+
+	  result = mbuf_reset_write (mbuf);
+
+	  fail_if (result == -1);
+	  fail_if (mbuf->message_start != old_message_start);
+	  fail_if (mbuf->wrptr != mbuf->message_start);
+	  fail_if (mbuf->wrptr != mbuf->base);
+	}
+}
+END_TEST
+
+START_TEST (test_mbuf_consume_message)
+{
+  char s[4096];
+  char t[4096];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t rdstart = 0;
+  size_t length = mbuf_length (mbuf);
+  memset (s, 0, sizeof (s));
+  memset (t, 0, sizeof (t));
+
+  for (i = 0; i < LENGTH (test_strings); i++)
+	{
+	  memset (s, 0, LENGTH (s));
+	  uint8_t* old_message_start = mbuf->message_start;
+	  size_t msglen = strlen (test_strings[i]);
+
+	  result = mbuf_write (mbuf, test_strings[i], msglen);
+	  fail_if (result == -1);
+	  fail_if (mbuf->wrptr < mbuf->message_start);
+	  fail_if (mbuf->wrptr < mbuf->rdptr);
+	  fail_if (mbuf->wrptr - mbuf->rdptr != msglen);
+
+	  result = mbuf_read (mbuf, s, msglen);
+	  fail_if (result == -1);
+	  fail_if (mbuf->rdptr != mbuf->wrptr);
+	  fail_if (mbuf->message_start != old_message_start);
+	  fail_if (strcmp (s, test_strings[i]) != 0);
+
+	  result = mbuf_reset_read (mbuf);
+	  fail_if (result == -1);
+	  fail_if (mbuf->message_start != old_message_start);
+	  fail_if (mbuf->rdptr != mbuf->message_start);
+
+	  result = mbuf_read (mbuf, s, msglen);
+	  fail_if (result == -1);
+	  fail_if (mbuf->rdptr != mbuf->wrptr);
+	  fail_if (mbuf->message_start != old_message_start);
+	  fail_if (strcmp (s, test_strings[i]) != 0);
+
+	  result = mbuf_consume_message (mbuf);
+	  fail_if (result == -1);
+	  fail_if (mbuf->message_start - old_message_start != msglen);
+	  fail_if (mbuf->wrptr != mbuf->rdptr);
+	  fail_if (mbuf->message_start != mbuf->rdptr);
+	}
+}
+END_TEST
+
+START_TEST (test_mbuf_repack)
+{
+  char s[4096];
+  char t[4096];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t m = 0;
+  memset (s, 0, sizeof (s));
+  memset (t, 0, sizeof (t));
+
+  size_t n_test_strings = LENGTH (test_strings);
+  size_t consumed = n_test_strings / 2;
+
+  // FIXME: this is a weak test.
+
+  for (i = 0; i < n_test_strings; i++)
+	{
+	  if (i < consumed)
+		n += strlen (test_strings[i]);
+	  else
+		{
+		  m += strlen (test_strings[i]);
+		  strcat (s, test_strings[i]);
+		}
+
+	  result = mbuf_write (mbuf, test_strings[i], strlen (test_strings[i]));
+	  fail_if (result == -1);
+	}
+
+  result = mbuf_begin_read (mbuf);
+  fail_if (result == -1);
+
+  for (i = 0; i < consumed; i++)
+	{
+	  result = mbuf_read (mbuf, t, strlen (test_strings[i]));
+	  fail_if (result == -1);
+	}
+
+  fail_unless (mbuf->rdptr - mbuf->base == n);
+  fail_unless (mbuf->message_start == mbuf->base);
+
+  result = mbuf_repack (mbuf);
+  fail_if (mbuf->rdptr != mbuf->base);
+  fail_if (mbuf->message_start != mbuf->base);
+  fail_if (mbuf->wrptr != mbuf->base + mbuf->fill);
+  fail_if (mbuf->fill != mbuf->rd_remaining);
+  fail_if (mbuf->fill != m);
+  fail_if (strncmp (mbuf->base, s, mbuf->fill) != 0);
+}
+END_TEST
+
+START_TEST (test_mbuf_repack_message)
+{
+  char s[4096];
+  char t[4096];
+  OmlMBufferEx* mbuf = mbuf_create ();
+  int result = 0;
+  int i = 0;
+  size_t n = 0;
+  size_t m = 0;
+  memset (s, 0, sizeof (s));
+  memset (t, 0, sizeof (t));
+
+  size_t n_test_strings = LENGTH (test_strings);
+  size_t consumed = n_test_strings / 2;
+
+  // FIXME: this is a weak test.
+
+  for (i = 0; i < n_test_strings; i++)
+	{
+	  if (i < consumed - 1) // consumed - 1 is intentional
+		n += strlen (test_strings[i]);
+	  else
+		{
+		  m += strlen (test_strings[i]);
+		  strcat (s, test_strings[i]);
+		}
+
+	  result = mbuf_write (mbuf, test_strings[i], strlen (test_strings[i]));
+	  fail_if (result == -1);
+	}
+
+  result = mbuf_begin_read (mbuf);
+  fail_if (result == -1);
+
+  for (i = 0; i < consumed - 1; i++)  // consumed - 1 is intentional
+	{
+	  result = mbuf_read (mbuf, t, strlen (test_strings[i]));
+	  fail_if (result == -1);
+	}
+
+  // Set the message_start equal to the current rdptr
+  result = mbuf_consume_message (mbuf);
+  fail_if (result == -1);
+  fail_unless (mbuf->rdptr - mbuf->base == n);
+  fail_unless (mbuf->message_start == mbuf->rdptr);
+
+  // Make the rdptr different to the message_start by reading one more string
+  result = mbuf_read (mbuf, t, strlen (test_strings[i]));
+  fail_if (result == -1);
+  fail_unless (mbuf->message_start < mbuf->rdptr);
+
+  size_t old_rd_offset = mbuf->rdptr - mbuf->message_start;
+  size_t old_rd_remaining = mbuf->rd_remaining;
+
+  result = mbuf_repack_message (mbuf);
+  fail_if (mbuf->message_start != mbuf->base);
+  fail_if (mbuf->rdptr != mbuf->message_start + old_rd_offset);
+  fail_if (mbuf->wrptr != mbuf->base + mbuf->fill);
+  fail_if (mbuf->rd_remaining != old_rd_remaining);
+  fail_if (mbuf->fill != m);
+  fail_if (strncmp (mbuf->base, s, mbuf->fill) != 0);
+}
+END_TEST
+
+Suite*
+mbuf_suite (void)
+{
+  Suite* s = suite_create ("Mbuf");
+
+  /* Mbuf test cases */
+  TCase* tc_mbuf = tcase_create ("Mbuf");
+
+  /* Add tests to "Mbuf" */
+  tcase_add_test (tc_mbuf, test_mbuf_create);
+  tcase_add_test (tc_mbuf, test_mbuf_buffer);
+  tcase_add_test (tc_mbuf, test_mbuf_length);
+  tcase_add_test (tc_mbuf, test_mbuf_resize);
+  tcase_add_test (tc_mbuf, test_mbuf_write);
+  tcase_add_test (tc_mbuf, test_mbuf_write_null);
+  tcase_add_test (tc_mbuf, test_mbuf_read);
+  tcase_add_test (tc_mbuf, test_mbuf_read_null);
+  tcase_add_test (tc_mbuf, test_mbuf_begin_read);
+  tcase_add_test (tc_mbuf, test_mbuf_begin_write);
+  tcase_add_test (tc_mbuf, test_mbuf_reset_read);
+  tcase_add_test (tc_mbuf, test_mbuf_reset_write);
+  tcase_add_test (tc_mbuf, test_mbuf_consume_message);
+  tcase_add_test (tc_mbuf, test_mbuf_repack);
+  tcase_add_test (tc_mbuf, test_mbuf_repack_message);
+
+
+  suite_add_tcase (s, tc_mbuf);
+
+  return s;
+}
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 4
+ indent-tabs-mode: nil
+*/

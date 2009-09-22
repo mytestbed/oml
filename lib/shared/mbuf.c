@@ -59,6 +59,7 @@ mbuf_check_invariant (OmlMBufferEx* mbuf)
   assert (mbuf->wrptr >= mbuf->rdptr);
   assert (mbuf->wrptr - mbuf->base == mbuf->fill);
   assert (mbuf->rd_remaining == (mbuf->wrptr - mbuf->rdptr));
+  assert ((mbuf->message_start <= mbuf->rdptr) || (mbuf->message_start <= mbuf->wrptr));
 }
 
 OmlMBufferEx*
@@ -80,6 +81,7 @@ mbuf_create (void)
 
   mbuf->rdptr = mbuf->base;
   mbuf->wrptr = mbuf->base;
+  mbuf->message_start = mbuf->base;
   mbuf->fill = 0;
   mbuf->wr_remaining = mbuf->length;
   mbuf->rd_remaining = mbuf->wrptr - mbuf->rdptr;
@@ -163,6 +165,7 @@ mbuf_resize (OmlMBufferEx* mbuf, size_t new_length)
 
   memcpy (new, mbuf->base, mbuf->fill);
   free (mbuf->base);
+  mbuf->base = new;
 
   mbuf->wrptr = mbuf->base + wr_offset;
   mbuf->rdptr = mbuf->base + rd_offset;
@@ -202,9 +205,9 @@ mbuf_check_resize (OmlMBufferEx* mbuf, size_t bytes)
 int
 mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len)
 {
-  mbuf_check_invariant (mbuf);
-
   if (mbuf == NULL || buf == NULL) return -1;
+
+  mbuf_check_invariant (mbuf);
 
   if (mbuf->wr_remaining < len) return -1;
 
@@ -213,6 +216,7 @@ mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len)
   mbuf->wrptr += len;
   mbuf->fill += len;
   mbuf->wr_remaining -= len;
+  mbuf->rd_remaining += len;
 
   mbuf_check_invariant (mbuf);
 
@@ -236,9 +240,9 @@ mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len)
 int
 mbuf_read (OmlMBufferEx* mbuf, uint8_t* buf, size_t len)
 {
-  mbuf_check_invariant (mbuf);
-
   if (mbuf == NULL || buf == NULL) return -1;
+
+  mbuf_check_invariant (mbuf);
 
   if (mbuf->rd_remaining < len) return -1;
 
@@ -285,6 +289,8 @@ mbuf_clear (OmlMBufferEx* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
+  if (mbuf == NULL) return -1;
+
   memset (mbuf->base, 0, mbuf->length);
 
   mbuf->rdptr = mbuf->wrptr = mbuf->message_start = mbuf->base;
@@ -299,6 +305,8 @@ int
 mbuf_reset_write (OmlMBufferEx* mbuf)
 {
   mbuf_check_invariant (mbuf);
+
+  if (mbuf == NULL) return -1;
 
   // If in the middle of a read, can't do a write reset
   if (mbuf->rdptr > mbuf->message_start)
@@ -319,6 +327,8 @@ mbuf_reset_read (OmlMBufferEx* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
+  if (mbuf == NULL) return -1;
+
   // If in the middle of a write, can't do a read reset
   if (mbuf->message_start > mbuf->rdptr)
 	return -1;
@@ -334,6 +344,8 @@ int
 mbuf_consume_message (OmlMBufferEx* mbuf)
 {
   mbuf_check_invariant (mbuf);
+
+  if (mbuf == NULL) return -1;
 
   // Can't consume message if we're in the middle of writing it
   if (mbuf->message_start > mbuf->rdptr)
