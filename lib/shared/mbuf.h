@@ -35,7 +35,7 @@ typedef struct
 
 	uint8_t* rdptr;            //! Pointer at which to read the next byte from the buffer
 	uint8_t* wrptr;            //! Pointer at which to write the next byte into the buffer
-	uint8_t* message_start;    //! Begin of message if there are more than one in buffer
+	uint8_t* msgptr;           //! Begining of message if more than one in buffer
 
 } OmlMBufferEx;
 

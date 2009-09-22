@@ -44,7 +44,7 @@
  *
  *  mbuf->wrptr : When writing the buffer, pointer to the next byte to be written
  *
- *  mbuf->message_start : When reading the buffer, pointer to the base of the start of the current message
+ *  mbuf->msgptr : When reading the buffer, pointer to the base of the start of the current message
  *
  */
 
@@ -59,7 +59,7 @@ mbuf_check_invariant (OmlMBufferEx* mbuf)
   assert (mbuf->wrptr >= mbuf->rdptr);
   assert (mbuf->wrptr - mbuf->base == mbuf->fill);
   assert (mbuf->rd_remaining == (mbuf->wrptr - mbuf->rdptr));
-  assert ((mbuf->message_start <= mbuf->rdptr) || (mbuf->message_start <= mbuf->wrptr));
+  assert ((mbuf->msgptr <= mbuf->rdptr) || (mbuf->msgptr <= mbuf->wrptr));
 }
 
 OmlMBufferEx*
@@ -81,7 +81,7 @@ mbuf_create (void)
 
   mbuf->rdptr = mbuf->base;
   mbuf->wrptr = mbuf->base;
-  mbuf->message_start = mbuf->base;
+  mbuf->msgptr = mbuf->base;
   mbuf->fill = 0;
   mbuf->wr_remaining = mbuf->length;
   mbuf->rd_remaining = mbuf->wrptr - mbuf->rdptr;
@@ -138,7 +138,7 @@ mbuf_write_offset (OmlMBufferEx* mbuf)
 size_t
 mbuf_message_offset (OmlMBufferEx* mbuf)
 {
-  return mbuf->message_start - mbuf->base;
+  return mbuf->msgptr - mbuf->base;
 }
 
 int
@@ -159,7 +159,7 @@ mbuf_resize (OmlMBufferEx* mbuf, size_t new_length)
 
   int wr_offset = mbuf->wrptr - mbuf->base;
   int rd_offset = mbuf->rdptr - mbuf->base;
-  int msg_offset = mbuf->message_start - mbuf->base;
+  int msg_offset = mbuf->msgptr - mbuf->base;
 
   assert (wr_offset == mbuf->fill);
 
@@ -169,7 +169,7 @@ mbuf_resize (OmlMBufferEx* mbuf, size_t new_length)
 
   mbuf->wrptr = mbuf->base + wr_offset;
   mbuf->rdptr = mbuf->base + rd_offset;
-  mbuf->message_start = mbuf->base + msg_offset;
+  mbuf->msgptr = mbuf->base + msg_offset;
 
   mbuf->length = new_length;
   mbuf->wr_remaining = mbuf->length - mbuf->fill;
@@ -263,7 +263,7 @@ mbuf_begin_read (OmlMBufferEx* mbuf)
 
   if (mbuf == NULL) return -1;
 
-  mbuf->message_start = mbuf->rdptr;
+  mbuf->msgptr = mbuf->rdptr;
 
   mbuf_check_invariant (mbuf);
 
@@ -277,7 +277,7 @@ mbuf_begin_write (OmlMBufferEx* mbuf)
 
   if (mbuf == NULL) return -1;
 
-  mbuf->message_start = mbuf->wrptr;
+  mbuf->msgptr = mbuf->wrptr;
 
   mbuf_check_invariant (mbuf);
 
@@ -293,7 +293,7 @@ mbuf_clear (OmlMBufferEx* mbuf)
 
   memset (mbuf->base, 0, mbuf->length);
 
-  mbuf->rdptr = mbuf->wrptr = mbuf->message_start = mbuf->base;
+  mbuf->rdptr = mbuf->wrptr = mbuf->msgptr = mbuf->base;
   mbuf->fill = 0;
   mbuf->wr_remaining = mbuf->length;
   mbuf->rd_remaining = 0;
@@ -309,14 +309,14 @@ mbuf_reset_write (OmlMBufferEx* mbuf)
   if (mbuf == NULL) return -1;
 
   // If in the middle of a read, can't do a write reset
-  if (mbuf->rdptr > mbuf->message_start)
+  if (mbuf->rdptr > mbuf->msgptr)
 	return -1;
 
-  size_t msglen = mbuf->wrptr - mbuf->message_start;
+  size_t msglen = mbuf->wrptr - mbuf->msgptr;
   mbuf->fill -= msglen;
   mbuf->wr_remaining += msglen;
   mbuf->rd_remaining -= msglen;
-  mbuf->wrptr = mbuf->message_start;
+  mbuf->wrptr = mbuf->msgptr;
 
   mbuf_check_invariant (mbuf);
   return 0;
@@ -330,10 +330,10 @@ mbuf_reset_read (OmlMBufferEx* mbuf)
   if (mbuf == NULL) return -1;
 
   // If in the middle of a write, can't do a read reset
-  if (mbuf->message_start > mbuf->rdptr)
+  if (mbuf->msgptr > mbuf->rdptr)
 	return -1;
 
-  mbuf->rdptr = mbuf->message_start;
+  mbuf->rdptr = mbuf->msgptr;
   mbuf->rd_remaining = mbuf->wrptr - mbuf->rdptr;
 
   mbuf_check_invariant (mbuf);
@@ -348,10 +348,10 @@ mbuf_consume_message (OmlMBufferEx* mbuf)
   if (mbuf == NULL) return -1;
 
   // Can't consume message if we're in the middle of writing it
-  if (mbuf->message_start > mbuf->rdptr)
+  if (mbuf->msgptr > mbuf->rdptr)
 	return -1;
 
-  mbuf->message_start = mbuf->rdptr;
+  mbuf->msgptr = mbuf->rdptr;
 
   mbuf_check_invariant (mbuf);
   return 0;
@@ -369,13 +369,13 @@ mbuf_repack (OmlMBufferEx* mbuf)
   mbuf->fill = mbuf->rd_remaining;
   mbuf->wr_remaining = mbuf->length - mbuf->fill;
   mbuf->wrptr = mbuf->base + mbuf->fill;
-  mbuf->message_start = mbuf->rdptr = mbuf->base;
+  mbuf->msgptr = mbuf->rdptr = mbuf->base;
 
   mbuf_check_invariant (mbuf);
   return 0;
 }
 
-// Preserve the rdptr relative to the message_start
+// Preserve the rdptr relative to the msgptr
 int
 mbuf_repack_message (OmlMBufferEx* mbuf)
 {
@@ -383,14 +383,14 @@ mbuf_repack_message (OmlMBufferEx* mbuf)
 
   if (mbuf == NULL) return -1;
 
-  size_t msg_remaining = mbuf->wrptr - mbuf->message_start;
+  size_t msg_remaining = mbuf->wrptr - mbuf->msgptr;
 
-  memmove (mbuf->base, mbuf->message_start, msg_remaining);
+  memmove (mbuf->base, mbuf->msgptr, msg_remaining);
 
-  mbuf->fill = mbuf->wrptr - mbuf->message_start;
+  mbuf->fill = mbuf->wrptr - mbuf->msgptr;
   mbuf->wr_remaining = mbuf->length - mbuf->fill;
   mbuf->wrptr = mbuf->base + mbuf->fill;
-  mbuf->message_start = mbuf->base;
+  mbuf->msgptr = mbuf->base;
   mbuf->rdptr = mbuf->wrptr - mbuf->rd_remaining;
 
   mbuf_check_invariant (mbuf);

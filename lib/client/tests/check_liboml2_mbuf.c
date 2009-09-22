@@ -296,7 +296,7 @@ START_TEST (test_mbuf_read)
   fail_if (mbuf->rd_remaining != 0);
   fail_if (mbuf->rdptr - mbuf->base != mbuf->length);
   fail_if (mbuf->wrptr != mbuf->rdptr);
-  fail_if (mbuf->message_start != mbuf->base);
+  fail_if (mbuf->msgptr != mbuf->base);
   fail_if (mbuf->wr_remaining != 0);
 }
 END_TEST
@@ -354,7 +354,7 @@ START_TEST (test_mbuf_begin_read)
 
 	  result = mbuf_begin_read (mbuf);
 	  fail_if (result == -1);
-	  fail_if (mbuf->message_start != mbuf->rdptr);
+	  fail_if (mbuf->msgptr != mbuf->rdptr);
 	  fail_if (strncmp (s, test_strings[i], strlen (test_strings[i])) != 0);
 	}
 }
@@ -378,7 +378,7 @@ START_TEST (test_mbuf_begin_write)
 
 	  result = mbuf_begin_write (mbuf);
 	  fail_if (result == -1);
-	  fail_if (mbuf->message_start != mbuf->wrptr);
+	  fail_if (mbuf->msgptr != mbuf->wrptr);
 	}
 }
 END_TEST
@@ -404,12 +404,12 @@ START_TEST (test_mbuf_reset_read)
 
   result = mbuf_begin_read (mbuf);
   fail_if (result == -1);
-  fail_if (mbuf->message_start != mbuf->base);
+  fail_if (mbuf->msgptr != mbuf->base);
   fail_if (mbuf->rdptr != mbuf->base);
 
   for (i = 0; i < LENGTH (test_strings[i]); i++)
 	{
-	  uint8_t* old_message_start = mbuf->message_start;
+	  uint8_t* old_msgptr = mbuf->msgptr;
 	  memset (s, 0, LENGTH(s));
 	  strcat (t, test_strings[i]);
 	  n += strlen (test_strings[i]);
@@ -417,19 +417,19 @@ START_TEST (test_mbuf_reset_read)
 	  result = mbuf_read (mbuf, s, n);
 	  fail_if (result == -1);
 
-	  fail_if (mbuf->rdptr - mbuf->message_start != n,
+	  fail_if (mbuf->rdptr - mbuf->msgptr != n,
 			   "\nRead(%d) of string %s (%d) gives rdptr-start = %d (rdptr=%d, start=%d)\n",
 			   i,
 			   test_strings[i], strlen(test_strings[i]),
-			   mbuf->rdptr - mbuf->message_start,
+			   mbuf->rdptr - mbuf->msgptr,
 			   mbuf->rdptr - mbuf->base,
-			   mbuf->message_start - mbuf->base);
+			   mbuf->msgptr - mbuf->base);
 	  fail_if (strncmp (s, t, n) != 0);
 
 	  result = mbuf_reset_read (mbuf);
 	  fail_if (result == -1);
-	  fail_if (mbuf->message_start != old_message_start);
-	  fail_if (mbuf->rdptr != mbuf->message_start);
+	  fail_if (mbuf->msgptr != old_msgptr);
+	  fail_if (mbuf->rdptr != mbuf->msgptr);
 	}
 }
 END_TEST
@@ -447,19 +447,19 @@ START_TEST (test_mbuf_reset_write)
 
   for (i = 0; i < LENGTH(test_strings); i++)
 	{
-	  uint8_t* old_message_start = mbuf->message_start;
+	  uint8_t* old_msgptr = mbuf->msgptr;
 	  result = mbuf_write (mbuf, test_strings[i], strlen (test_strings[i]));
 
 	  fail_if (result == -1);
-	  fail_if (mbuf->wrptr < mbuf->message_start);
+	  fail_if (mbuf->wrptr < mbuf->msgptr);
 	  fail_if (mbuf->wrptr < mbuf->rdptr);
 	  fail_if (strncmp (mbuf->base, test_strings[i], strlen (test_strings[i])) != 0);
 
 	  result = mbuf_reset_write (mbuf);
 
 	  fail_if (result == -1);
-	  fail_if (mbuf->message_start != old_message_start);
-	  fail_if (mbuf->wrptr != mbuf->message_start);
+	  fail_if (mbuf->msgptr != old_msgptr);
+	  fail_if (mbuf->wrptr != mbuf->msgptr);
 	  fail_if (mbuf->wrptr != mbuf->base);
 	}
 }
@@ -481,37 +481,37 @@ START_TEST (test_mbuf_consume_message)
   for (i = 0; i < LENGTH (test_strings); i++)
 	{
 	  memset (s, 0, LENGTH (s));
-	  uint8_t* old_message_start = mbuf->message_start;
+	  uint8_t* old_msgptr = mbuf->msgptr;
 	  size_t msglen = strlen (test_strings[i]);
 
 	  result = mbuf_write (mbuf, test_strings[i], msglen);
 	  fail_if (result == -1);
-	  fail_if (mbuf->wrptr < mbuf->message_start);
+	  fail_if (mbuf->wrptr < mbuf->msgptr);
 	  fail_if (mbuf->wrptr < mbuf->rdptr);
 	  fail_if (mbuf->wrptr - mbuf->rdptr != msglen);
 
 	  result = mbuf_read (mbuf, s, msglen);
 	  fail_if (result == -1);
 	  fail_if (mbuf->rdptr != mbuf->wrptr);
-	  fail_if (mbuf->message_start != old_message_start);
+	  fail_if (mbuf->msgptr != old_msgptr);
 	  fail_if (strcmp (s, test_strings[i]) != 0);
 
 	  result = mbuf_reset_read (mbuf);
 	  fail_if (result == -1);
-	  fail_if (mbuf->message_start != old_message_start);
-	  fail_if (mbuf->rdptr != mbuf->message_start);
+	  fail_if (mbuf->msgptr != old_msgptr);
+	  fail_if (mbuf->rdptr != mbuf->msgptr);
 
 	  result = mbuf_read (mbuf, s, msglen);
 	  fail_if (result == -1);
 	  fail_if (mbuf->rdptr != mbuf->wrptr);
-	  fail_if (mbuf->message_start != old_message_start);
+	  fail_if (mbuf->msgptr != old_msgptr);
 	  fail_if (strcmp (s, test_strings[i]) != 0);
 
 	  result = mbuf_consume_message (mbuf);
 	  fail_if (result == -1);
-	  fail_if (mbuf->message_start - old_message_start != msglen);
+	  fail_if (mbuf->msgptr - old_msgptr != msglen);
 	  fail_if (mbuf->wrptr != mbuf->rdptr);
-	  fail_if (mbuf->message_start != mbuf->rdptr);
+	  fail_if (mbuf->msgptr != mbuf->rdptr);
 	}
 }
 END_TEST
@@ -557,11 +557,11 @@ START_TEST (test_mbuf_repack)
 	}
 
   fail_unless (mbuf->rdptr - mbuf->base == n);
-  fail_unless (mbuf->message_start == mbuf->base);
+  fail_unless (mbuf->msgptr == mbuf->base);
 
   result = mbuf_repack (mbuf);
   fail_if (mbuf->rdptr != mbuf->base);
-  fail_if (mbuf->message_start != mbuf->base);
+  fail_if (mbuf->msgptr != mbuf->base);
   fail_if (mbuf->wrptr != mbuf->base + mbuf->fill);
   fail_if (mbuf->fill != mbuf->rd_remaining);
   fail_if (mbuf->fill != m);
@@ -609,23 +609,23 @@ START_TEST (test_mbuf_repack_message)
 	  fail_if (result == -1);
 	}
 
-  // Set the message_start equal to the current rdptr
+  // Set the msgptr equal to the current rdptr
   result = mbuf_consume_message (mbuf);
   fail_if (result == -1);
   fail_unless (mbuf->rdptr - mbuf->base == n);
-  fail_unless (mbuf->message_start == mbuf->rdptr);
+  fail_unless (mbuf->msgptr == mbuf->rdptr);
 
-  // Make the rdptr different to the message_start by reading one more string
+  // Make the rdptr different to the msgptr by reading one more string
   result = mbuf_read (mbuf, t, strlen (test_strings[i]));
   fail_if (result == -1);
-  fail_unless (mbuf->message_start < mbuf->rdptr);
+  fail_unless (mbuf->msgptr < mbuf->rdptr);
 
-  size_t old_rd_offset = mbuf->rdptr - mbuf->message_start;
+  size_t old_rd_offset = mbuf->rdptr - mbuf->msgptr;
   size_t old_rd_remaining = mbuf->rd_remaining;
 
   result = mbuf_repack_message (mbuf);
-  fail_if (mbuf->message_start != mbuf->base);
-  fail_if (mbuf->rdptr != mbuf->message_start + old_rd_offset);
+  fail_if (mbuf->msgptr != mbuf->base);
+  fail_if (mbuf->rdptr != mbuf->msgptr + old_rd_offset);
   fail_if (mbuf->wrptr != mbuf->base + mbuf->fill);
   fail_if (mbuf->rd_remaining != old_rd_remaining);
   fail_if (mbuf->fill != m);
