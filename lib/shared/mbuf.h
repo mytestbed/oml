@@ -54,6 +54,12 @@ int mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len);
 int mbuf_read (OmlMBufferEx* mbuf, uint8_t* buf, size_t len);
 int mbuf_begin_read (OmlMBufferEx* mbuf);
 int mbuf_begin_write (OmlMBufferEx* mbuf);
+int mbuf_clear (OmlMBufferEx* mbuf);
+int mbuf_reset_write (OmlMBufferEx* mbuf);
+int mbuf_reset_read (OmlMBufferEx* mbuf);
+int mbuf_consume_message (OmlMBufferEx* mbuf);
+int mbuf_repack (OmlMBufferEx* mbuf);
+int mbuf_repack_message (OmlMBufferEx* mbuf);
 
 char* to_octets (unsigned char* buf, int len);
 

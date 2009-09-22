@@ -280,6 +280,111 @@ mbuf_begin_write (OmlMBufferEx* mbuf)
   return 0;
 }
 
+int
+mbuf_clear (OmlMBufferEx* mbuf)
+{
+  mbuf_check_invariant (mbuf);
+
+  memset (mbuf->base, 0, mbuf->length);
+
+  mbuf->rdptr = mbuf->wrptr = mbuf->message_start = mbuf->base;
+  mbuf->fill = 0;
+  mbuf->wr_remaining = mbuf->length;
+  mbuf->rd_remaining = 0;
+
+  mbuf_check_invariant (mbuf);
+}
+
+int
+mbuf_reset_write (OmlMBufferEx* mbuf)
+{
+  mbuf_check_invariant (mbuf);
+
+  // If in the middle of a read, can't do a write reset
+  if (mbuf->rdptr > mbuf->message_start)
+	return -1;
+
+  size_t msglen = mbuf->wrptr - mbuf->message_start;
+  mbuf->fill -= msglen;
+  mbuf->wr_remaining += msglen;
+  mbuf->rd_remaining -= msglen;
+  mbuf->wrptr = mbuf->message_start;
+
+  mbuf_check_invariant (mbuf);
+  return 0;
+}
+
+int
+mbuf_reset_read (OmlMBufferEx* mbuf)
+{
+  mbuf_check_invariant (mbuf);
+
+  // If in the middle of a write, can't do a read reset
+  if (mbuf->message_start > mbuf->rdptr)
+	return -1;
+
+  mbuf->rdptr = mbuf->message_start;
+  mbuf->rd_remaining = mbuf->wrptr - mbuf->rdptr;
+
+  mbuf_check_invariant (mbuf);
+  return 0;
+}
+
+int
+mbuf_consume_message (OmlMBufferEx* mbuf)
+{
+  mbuf_check_invariant (mbuf);
+
+  // Can't consume message if we're in the middle of writing it
+  if (mbuf->message_start > mbuf->rdptr)
+	return -1;
+
+  mbuf->message_start = mbuf->rdptr;
+
+  mbuf_check_invariant (mbuf);
+  return 0;
+}
+
+int
+mbuf_repack (OmlMBufferEx* mbuf)
+{
+  mbuf_check_invariant (mbuf);
+
+  if (mbuf == NULL) return -1;
+
+  memmove (mbuf->base, mbuf->rdptr, mbuf->rd_remaining);
+
+  mbuf->fill = mbuf->rd_remaining;
+  mbuf->wr_remaining = mbuf->length - mbuf->fill;
+  mbuf->wrptr = mbuf->base + mbuf->fill;
+  mbuf->message_start = mbuf->rdptr = mbuf->base;
+
+  mbuf_check_invariant (mbuf);
+  return 0;
+}
+
+// Preserve the rdptr relative to the message_start
+int
+mbuf_repack_message (OmlMBufferEx* mbuf)
+{
+  mbuf_check_invariant (mbuf);
+
+  if (mbuf == NULL) return -1;
+
+  size_t msg_remaining = mbuf->wrptr - mbuf->message_start;
+
+  memmove (mbuf->base, mbuf->message_start, msg_remaining);
+
+  mbuf->fill = mbuf->wrptr - mbuf->message_start;
+  mbuf->wr_remaining = mbuf->length - mbuf->fill;
+  mbuf->wrptr = mbuf->base + mbuf->fill;
+  mbuf->message_start = mbuf->base;
+  mbuf->rdptr = mbuf->wrptr - mbuf->rd_remaining;
+
+  mbuf_check_invariant (mbuf);
+  return 0;
+}
+
 char*
 to_octets (unsigned char* buf, int len)
 {
