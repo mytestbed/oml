@@ -32,29 +32,23 @@ typedef enum _omPktType {
 
 struct _omBuffer;
 
-/*! Resize the uchar buffer held by +mbuffer+ to +new_size+. This function
- * will copy to content of the old buffer and return +curr_p+.
- *
- * Return mbuffer->curr_p or NULL if resize failed.
- */
-typedef unsigned char* (*ob_resize)(struct _omBuffer* mbuffer, int new_size);
+typedef struct _omlBinaryHeader OmlBinaryHeader;
 
-typedef struct _omBuffer {
-  unsigned char* curr_p;        //! Ptr to first 'empty' character
-  int            buffer_remaining; //! Bytes remaining for this message
-  int            buffer_fill;   //! number of bytes 'valid' (used in unmarshall)
-  unsigned char* message_start;  // Begin of message if there are more than one in buffer
-
-  unsigned char* buffer;        //! buffer to marshall into
-  int            buffer_length; //! size of allocated buffer
-
-  ob_resize      resize;
-} OmlMBuffer;
+struct _omlBinaryHeader
+{
+	OmlMsgType type;
+	int length;
+	int values;
+	int stream;
+	int seqno;
+	double timestamp;
+};
 
 int
 marshall_measurements(
   OmlMBufferEx* mbuf,
-  OmlMStream* ms,
+  int         stream,
+  int         seqno,
   double      now
 );
 
@@ -71,6 +65,8 @@ marshall_values(
   int            value_count  //! size of above array
 );
 
+inline int marshall_value(OmlMBufferEx* mbuf, OmlValueT val_type,  OmlValueU* val);
+
 int
 marshall_finalize(
   OmlMBufferEx*  mbuf
@@ -78,44 +74,34 @@ marshall_finalize(
 
 int
 unmarshall_init(
-  OmlMBuffer*  mbuf,
-  OmlMsgType* type_p
+  OmlMBufferEx*  mbuf,
+  OmlBinaryHeader* header
 );
 
 int
 unmarshall_measurements(
-  OmlMBuffer* mbuf,
-  int*        table_index,
-  int*        seq_no_p,
-  double*     ts_p,
+  OmlMBufferEx* mbuf,
+  OmlBinaryHeader* header,
   OmlValue*   values,          //! measurement values
   int         max_value_count  //! max. length of above array
 );
 
 int
 unmarshall_values(
-    OmlMBuffer*  mbuffer,
+    OmlMBufferEx*  mbuffer,
+	OmlBinaryHeader* header,
     OmlValue*    values,       //! type of sample
     int          max_value_count  //! max. length of above array
 );
 
 int
 unmarshall_value(
-  OmlMBuffer*  mbuffer,
+  OmlMBufferEx*  mbuffer,
   OmlValue*    value
 );
 
-unsigned char*
-marshall_resize(
-  OmlMBuffer*  mbuf,
-  int new_size
-);
-
-unsigned char*
-marshall_check_resize(
-  OmlMBuffer* mbuf,
-  size_t bytes
-);
+int
+unmarshal_typed_value (OmlMBufferEx* mbuf, const char* name, OmlValueT type, OmlValue* value);
 
 unsigned char*
 find_sync (unsigned char* buf, int len);

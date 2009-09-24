@@ -245,7 +245,7 @@ row_start(
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
 
-  marshall_measurements(self->mbuf, ms, now);
+  marshall_measurements(self->mbuf, ms->index, ms->seq_no, now);
   return 1;
 }
 

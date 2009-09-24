@@ -34,7 +34,8 @@
 #include <ocomm/o_eventloop.h>
 #include <oml2/oml_writer.h>
 
-#include "marshall.h"
+#include <marshall.h>
+#include <mbuf.h>
 #include "client_handler.h"
 #include "util.h"
 
@@ -76,6 +77,7 @@ client_handler_new(
   memset (self->values, 0, self->value_count * sizeof (OmlValue));
   self->state = C_HEADER;
   self->content = C_TEXT_DATA;
+  self->mbuf = mbuf_create ();
   self->socket = newSock;
   eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
   return self;
@@ -90,7 +92,7 @@ client_handler_free (ClientHandler* self)
 	free (self->tables);
   if (self->seq_no_offset)
 	free (self->seq_no_offset);
-  free (self->mbuf.buffer);
+  mbuf_destroy (self->mbuf);
   int i = 0;
   for (i = 0; i < self->value_count; i++)
 	{
@@ -230,25 +232,18 @@ process_meta(
  * \return 1 if successful, 0 otherwise
  */
 static int
-read_line(
-  char** line_p,
-  int*   length_p,
-  OmlMBuffer* mbuf
-) {
-  assert (mbuf->buffer_fill <= mbuf->buffer_length);
-  assert (mbuf->curr_p >= mbuf->buffer);
-  //  assert (mbuf->curr_p - mbuf->buffer < mbuf->buffer_fill);
-  unsigned char* line = mbuf->curr_p;
-  int remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
-  while (remaining-- > 0 && *(mbuf->curr_p++) != '\n');
-  if (*(mbuf->curr_p - 1) != '\n') {
-    // not enough data for entire line
-    mbuf->curr_p = line;
-    return 0;
-  }
+read_line(char** line_p, int* length_p, OmlMBufferEx* mbuf)
+{
+  uint8_t* line = mbuf_rdptr (mbuf);
+  int length = mbuf_find (mbuf, '\n');
+
+  // No newline found
+  if (length == -1)
+	return 0;
+
   *line_p = (char*)line;
-  *length_p = mbuf->curr_p - line;
-  *(mbuf->curr_p - 1) = '\0';
+  *length_p = length;
+  *(line + length) = '\0';
   return 1;
 }
 
@@ -259,37 +254,49 @@ read_line(
  * \return 1 if successful, 0 otherwise
  */
 static int
-process_header(
-  ClientHandler* self,
-  OmlMBuffer* mbuf
-) {
+process_header(ClientHandler* self, OmlMBufferEx* mbuf)
+{
   char* line;
   int len;
 
   if (read_line(&line, &len, mbuf) == 0)
     return 0;
 
-  if (len == 1) {
+  if (len == 0) {
     // empty line denotes separator between header and body
-    while (mbuf->curr_p - mbuf->buffer < mbuf->buffer_fill &&
-		   *mbuf->curr_p == '\n')
-	  mbuf->curr_p++;  // skip additional empty lines
+	int skip_count = mbuf_find_not (mbuf, '\n');
+	mbuf_read_skip (mbuf, skip_count + 1);
     self->state = self->content;
     return 0;
   }
 
   // separate key from value (check for ':')
   char* value = line;
-  while (*(value++) != ':' && (void*)value < (void*)mbuf->curr_p);
-  if (*(value - 1) == ':') {
-    *(value - 1) = '\0';
-    while (*(value++) == ' ' && (void*)value < (void*)mbuf->curr_p); // skip white space
-    process_meta(self, line, value - 1);
-  } else {
-    o_log(O_LOG_ERROR, "Malformed meta line in header: <%s>\n", line);
-	self->state = C_PROTOCOL_ERROR;
-  }
+  int count = 0;
+  while (*(value) != ':' && count < len)
+	{
+	  value++;
+	  count++;
+	}
 
+  if (*value == ':')
+	{
+	  *value++ = '\0';
+	  while (*(value) == ' ' && count < len)
+		{
+		  value++;
+		  count++;
+		}
+	  mbuf_read_skip (mbuf, len + 1);
+	  process_meta(self, line, value);
+	}
+  else
+	{
+	  o_log(O_LOG_ERROR, "Malformed meta line in header: <%s>\n", line);
+	  self->state = C_PROTOCOL_ERROR;
+	}
+
+  // process_meta() might have signalled protocol error, so we have to check here.
   if (self->state == C_PROTOCOL_ERROR)
 	return 0;
   else
@@ -301,39 +308,41 @@ process_header(
  */
 static void
 process_bin_data_message(
-  ClientHandler* self
+  ClientHandler* self,
+  OmlBinaryHeader* header
 ) {
-  OmlMBuffer* mbuf = &self->mbuf;
-  int table_index;
-  int seq_no;
-  double ts;
-
-  int cnt = unmarshall_measurements(mbuf, &table_index, &seq_no, &ts, self->values, self->value_count);
+  OmlMBufferEx* mbuf = self->mbuf;
+  int cnt = unmarshall_measurements(mbuf, header, self->values, self->value_count);
 
   /* Some error occurred in unmarshalling; can't continue */
   if (cnt < 0)
 	return;
 
-  ts += self->time_offset;
-  if (table_index >= self->table_size || table_index < 0) {
-    o_log(O_LOG_ERROR, "Table index '%d' out of bounds\n", table_index);
+  double ts;
+
+  ts = self->time_offset + header->timestamp;
+
+  if (header->stream >= self->table_size || header->stream < 0) {
+    o_log(O_LOG_ERROR, "Table index '%d' out of bounds\n", header->stream);
 	self->state = C_PROTOCOL_ERROR;
     return;
   }
-  DbTable* table = self->tables[table_index];
+  DbTable* table = self->tables[header->stream];
   if (table == NULL) {
-    o_log(O_LOG_ERROR, "Undefined table '%d'\n", table_index);
+    o_log(O_LOG_ERROR, "Undefined table '%d'\n", header->stream);
 	self->state = C_PROTOCOL_ERROR;
     return;
   }
-  o_log(O_LOG_DEBUG, "bin_data - CALLING insert for seq no: %d \n", seq_no);
+  o_log(O_LOG_DEBUG, "bin_data - CALLING insert for seq no: %d \n", header->seqno);
   self->database->insert(self->database,
 						 table,
 						 self->sender_id,
-						 seq_no + self->seq_no_offset[table_index],
+						 header->seqno + self->seq_no_offset[header->stream],
 						 ts,
 						 self->values,
 						 cnt);
+
+  mbuf_consume_message (mbuf);
   //o_log(O_LOG_DEBUG, "Received %d values\n", cnt);
 }
 
@@ -346,29 +355,40 @@ process_bin_data_message(
 static int
 process_bin_message(
   ClientHandler* self,
-  OmlMBuffer*    mbuf
+  OmlMBufferEx*    mbuf
 ) {
-  OmlMsgType type;
+  OmlBinaryHeader header;
 
-  int res = unmarshall_init(mbuf, &type);
+  unsigned char* sync = find_sync (mbuf->base, mbuf->fill);
+  int sync_pos;
+  if (sync == NULL)
+	sync_pos = -1;
+  else
+	sync_pos = sync - mbuf->base;
+  char* octets_str = to_octets (mbuf->base, mbuf->fill);
+  //o_log (O_LOG_DEBUG, "Received %d octets (sync at %d):\t%s\n", mbuf->fill, sync_pos, octets_str);
+  o_log (O_LOG_DEBUG, "Received %d octets (sync at %d)\n", mbuf->fill, sync_pos);
+  free (octets_str);
+
+  int res = unmarshall_init(mbuf, &header);
+  //  int res = -1;
   if (res == 0) {
-    o_log(O_LOG_ERROR, "OUT OF SYNC\n");
-    mbuf->buffer_fill = 0;
+    o_log(O_LOG_ERROR, "An error occurred while reading binary message header\n");
+	mbuf_clear (mbuf);
 	self->state = C_PROTOCOL_ERROR;
     return 0;
   } else if (res < 0) {
     // not enough data
     return 0;
   }
-  switch (type) {
+  switch (header.type) {
     case OMB_DATA_P:
-      process_bin_data_message(self);
+      process_bin_data_message(self, &header);
       break;
     default:
-      o_log(O_LOG_ERROR, "Unsupported message type '%d'\n", type);
+      o_log(O_LOG_ERROR, "Unsupported message type '%d'\n", header.type);
 	  self->state = C_PROTOCOL_ERROR;
-      // skip unknown message
-      mbuf->curr_p += mbuf->buffer_remaining;
+	  return 0;
   }
 
   return 1;
@@ -443,7 +463,7 @@ process_text_data_message(
 static int
 process_text_message(
   ClientHandler* self,
-  OmlMBuffer*    mbuf
+  OmlMBufferEx*    mbuf
 ) {
   char* line;
   int len;
@@ -493,15 +513,15 @@ client_callback(
   int buf_size
 ) {
   ClientHandler* self = (ClientHandler*)handle;
-  OmlMBuffer* mbuf = &self->mbuf;
+  OmlMBufferEx* mbuf = self->mbuf;
 
-  int available =  mbuf->buffer_length - mbuf->buffer_fill;
-  if (available < buf_size) {
-    marshall_resize(mbuf, mbuf->buffer_fill + buf_size);
-  }
-  memcpy(mbuf->buffer + mbuf->buffer_fill, buf, buf_size);
-  mbuf->buffer_fill += buf_size;
+  int result = mbuf_write (mbuf, buf, buf_size);
 
+  if (result == -1)
+	{
+	  o_log (O_LOG_ERROR, "Failed to write message from client into message buffer (mbuf_write())\n");
+	  return;
+	}
 
   process:
   switch (self->state)
@@ -529,27 +549,17 @@ client_callback(
 	  client_handler_free (self);
 	  /*
 	   * The mbuf is also freed by client_handler_free(), and there's
-	   * no point doing any of the buffer fiddling that we do after
-	   * the switch statement.
+	   * no point repacking the buffer in that case, so just return.
 	   */
 	  return;
     default:
       o_log(O_LOG_ERROR, "Client: %s: unknown client state '%d'\n", source->name, self->state);
-      mbuf->curr_p = mbuf->buffer;
-      mbuf->buffer_fill = 0; // reset data
+	  mbuf_clear (mbuf);
       return;
 	}
 
   // move remaining buffer content to beginning
-  int remaining = mbuf->buffer_fill - (mbuf->curr_p - mbuf->buffer);
-  if (remaining > 0) {
-    memmove(mbuf->buffer, mbuf->curr_p, remaining);
-    mbuf->buffer_fill = remaining;
-  } else {
-    // nothing left
-    mbuf->buffer_fill = 0;
-  }
-  mbuf->curr_p = mbuf->buffer;
+  mbuf_repack_message (mbuf);
 }
 /**
  * \brief Call back function when the status of the socket change

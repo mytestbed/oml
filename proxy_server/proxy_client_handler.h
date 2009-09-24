@@ -78,8 +78,6 @@ typedef struct _proxyClientHandler {
 
   Socket*     socket;
 
-  OmlMBuffer  mbuf;
-
   int currentPageNumber;
 
   struct _proxyClientBuffer* buffer;

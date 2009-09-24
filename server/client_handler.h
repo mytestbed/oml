@@ -43,14 +43,12 @@ typedef struct _clientHandler {
   DbTable**   tables;
   int*        seq_no_offset;
   int         table_size;    // size of tables array and seq_no_offset array
-
-//  char        app_name[MAX_STRING_SIZE];
   int         sender_id;
 
   CState      state;
   CState      content;
   Socket*     socket;
-  OmlMBuffer  mbuf;
+  OmlMBufferEx* mbuf;
 
   OmlValue*   values;
   int         value_count;

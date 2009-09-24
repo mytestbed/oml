@@ -48,10 +48,16 @@
 
 #define SYNC_BYTE 0xAA
 
-#define MIN_LENGTH  64  // Min. length of string buffer allocation
+#define PACKET_HEADER_SIZE 5
+#define STREAM_HEADER_SIZE 2
 
+#define LONG_T_SIZE       4
+#define DOUBLE_T_SIZE     5
+#define STRING_T_MAX_SIZE 254
 
-inline int marshall_value(OmlMBufferEx* mbuf, OmlValueT val_type,  OmlValueU* val);
+#define MAX_STRING_LENGTH STRING_T_MAX_SIZE
+
+#define MIN_LENGTH 64
 
 unsigned char*
 find_sync (unsigned char* buf, int len)
@@ -72,7 +78,6 @@ find_sync (unsigned char* buf, int len)
  * \param packet_type
  * \return
  */
-#define PACKET_HEADER_SIZE 5
 OmlMBufferEx*
 marshall_init(OmlMBufferEx*  mbuf, OmlMsgType  packet_type)
 {
@@ -107,10 +112,10 @@ marshall_init(OmlMBufferEx*  mbuf, OmlMsgType  packet_type)
  * \return 1 if successful
  */
 int
-marshall_measurements(OmlMBufferEx* mbuf, OmlMStream* ms, double now)
+marshall_measurements(OmlMBufferEx* mbuf, int stream, int seqno, double now)
 {
   OmlValueU v;
-  uint8_t s[2] = { 0, (uint8_t)ms->index };
+  uint8_t s[2] = { 0, (uint8_t)stream };
   mbuf = marshall_init(mbuf, OMB_DATA_P);
   int result = mbuf_write (mbuf, s, LENGTH (s));
 
@@ -121,7 +126,7 @@ marshall_measurements(OmlMBufferEx* mbuf, OmlMStream* ms, double now)
 	  return -1;
 	}
 
-  v.longValue = ms->seq_no;
+  v.longValue = seqno;
   marshall_value(mbuf, OML_LONG_VALUE, &v);
 
   v.doubleValue = now;
@@ -220,9 +225,9 @@ marshall_value(OmlMBufferEx* mbuf, OmlValueT val_type, OmlValueU* val)
 	 }
 
    size_t len = strlen(str);
-   if (len > 254) {
+   if (len > STRING_T_MAX_SIZE) {
 	 o_log(O_LOG_ERROR, "Truncated string '%s'\n", str);
-	 len = 254;
+	 len = STRING_T_MAX_SIZE;
    }
 
    uint8_t buf[2] = { STRING_T, (uint8_t)(len & 0xff) };
@@ -281,102 +286,67 @@ marshall_finalize(OmlMBufferEx*  mbuf)
 }
 
 /**
- * \brief
- * \param mbuf
- * \param new_size
- * \return the current pointer to the buffer
- */
-unsigned char*
-marshall_resize(OmlMBuffer*  mbuf, int new_size)
-{
-  if (mbuf->resize != NULL) {
-    return mbuf->resize(mbuf, new_size);
-  }
-  if (new_size < MIN_LENGTH) new_size = MIN_LENGTH;
-  unsigned char* newBuf = (unsigned char*)malloc(new_size);
-  if (mbuf->buffer != NULL) {
-    int offset = mbuf->curr_p - mbuf->buffer;
-	int msg_offset = mbuf->message_start - mbuf->buffer;
-    int len = offset + mbuf->buffer_fill;
-    int i;
-    unsigned char* from = mbuf->buffer;
-    unsigned char* to = newBuf;
-    mbuf->buffer_remaining = new_size - len;
-    for (i = 0; i < len; len--) *(to++) = *(from++);
-    mbuf->curr_p = newBuf + offset;
-	mbuf->message_start = newBuf + msg_offset;
-    free(mbuf->buffer);
-  } else {
-    mbuf->curr_p = newBuf;
-	mbuf->message_start = newBuf;
-    mbuf->buffer_remaining = new_size;
-  }
-  mbuf->buffer = newBuf;
-  mbuf->buffer_length = new_size;
-
-  return mbuf->curr_p;
-}
-
-/**
- *  @brief Check that the buffer has space for the next piece of data,
- *  and resize it if necessary.
- *
- *  Returns the current buffer insertion point.
- */
-unsigned char*
-marshall_check_resize (OmlMBuffer* mbuf, size_t bytes)
-{
-  if (mbuf->buffer_remaining <= 0 || (size_t)mbuf->buffer_remaining < bytes)
-	{
-	  return marshall_resize (mbuf, 2 * mbuf->buffer_length);
-	}
-  return mbuf->curr_p;
-}
-
-/**
  * \brief Reads the header information contained in the +buffer+ contained in +mbuf+. It stores the message type in +type_p+.
  * \param mbuf
  * \param type_p
  * \return It returns 1 if everything is fine. If the buffer is too short it returns the size of the missing section as a negative number.
  */
 int
-unmarshall_init(
-  OmlMBuffer*  mbuf,
-  OmlMsgType* type_p
-) {
-  unsigned char* p = mbuf->message_start = mbuf->curr_p;
-  int remaining = mbuf->buffer_fill - (p - mbuf->buffer);
+unmarshall_init(OmlMBufferEx* mbuf, OmlBinaryHeader* header)
+{
+  uint8_t header_str[PACKET_HEADER_SIZE];
+  uint8_t stream_header_str[STREAM_HEADER_SIZE];
 
-  if (remaining < 6) {
-    return remaining - 6;
-  }
-  if (! (*(p++) == SYNC_BYTE && *(p++) == SYNC_BYTE)) {
-    o_log(O_LOG_ERROR, "Out of sync. Don't know how to get back\n");
-    return 0;
-  }
-  *type_p = (OmlMsgType)*(p++);
+  // Assumption:  msgptr == rdptr at this point
+  int result = mbuf_read (mbuf, header_str, LENGTH (header_str));
+
+  if (result == -1)
+	return mbuf_remaining (mbuf) - PACKET_HEADER_SIZE;
+
+  o_log (O_LOG_DEBUG, "HEADER: %s\n", to_octets (header_str, LENGTH (header_str)));
+
+  if (! (header_str[0] == SYNC_BYTE && header_str[1] == SYNC_BYTE))
+	{
+	  o_log(O_LOG_ERROR, "Out of sync. Don't know how to get back\n");
+	  return 0;
+	}
+
+  header->type = (OmlMsgType)header_str[2];
   uint16_t nv = 0;
-  memcpy(&nv,p,2);
-  p += 2;
-  uint16_t hv = ntohs(nv);
-  int len = (int)(hv);
+  memcpy (&nv, &header_str[3], 2);
+  uint16_t hv = ntohs (nv);
+  header->length = (int)hv;
 
-  mbuf->curr_p = p;
-  mbuf->buffer_remaining = len;
+  int extra = mbuf_remaining (mbuf) - header->length;
+  if (extra < 0)
+	{
+	  o_log (O_LOG_DEBUG, "Didn't get a full message (%d octets short), so unwinding the message buffer\n", -extra);
+	  mbuf_reset_read (mbuf);
+	  return extra;
+	}
 
-  // check if the full message is in the buffer
-  int extra = mbuf->buffer_fill - ((p - mbuf->buffer) + len);
-  if (extra < 0) {
-	int start_pos = mbuf->message_start - mbuf->buffer;
-	o_log (O_LOG_DEBUG, "Didn't get a full message, so unwinding the message buffer\n");
-	o_log (O_LOG_DEBUG, "(Message starts at %d; message length %d; fill - start =  %d; %d bytes short)\n",
-		   start_pos,
-		   len,
-		   mbuf->buffer_fill - (mbuf->message_start - mbuf->buffer),
-		   -extra);
-    mbuf->curr_p = mbuf->message_start;  // rewind
-	return extra;  // need more input data
-  }
+  result = mbuf_read (mbuf, stream_header_str, LENGTH (stream_header_str));
+  if (result == -1)
+	{
+	  o_log (O_LOG_ERROR, "Unable to read stream header\n");
+	  return 0;
+	}
+
+  header->values = (int)stream_header_str[0];
+  header->stream = (int)stream_header_str[1];
+
+  OmlValue seqno;
+  OmlValue timestamp;
+
+  if (unmarshal_typed_value (mbuf, "seq-no", OML_LONG_VALUE, &seqno) == -1)
+	return 0;
+
+  if (unmarshal_typed_value (mbuf, "timestamp", OML_DOUBLE_VALUE, &timestamp) == -1)
+	return 0;
+
+  header->seqno = seqno.value.longValue;
+  header->timestamp = timestamp.value.doubleValue;
+
   return 1;
 }
 
@@ -392,41 +362,12 @@ unmarshall_init(
  */
 int
 unmarshall_measurements(
-  OmlMBuffer* mbuf,
-  int*        table_index,
-  int*        seq_no_p,
-  double*     ts_p,
+  OmlMBufferEx* mbuf,
+  OmlBinaryHeader* header,
   OmlValue*   values,
   int         max_value_count
 ) {
-  mbuf->curr_p++;           // That's where we keep the number of values
-  mbuf->buffer_remaining--;
-
-  *table_index = (int)*(mbuf->curr_p++);
-  mbuf->buffer_remaining--;
-
-  OmlValue v;
-  if (unmarshall_value(mbuf, &v) != 1) {
-    o_log(O_LOG_DEBUG, "Can't find seq_no in incoming measurement\n");
-    return 0;
-  }
-  if (v.type != OML_LONG_VALUE) {
-    o_log(O_LOG_DEBUG, "Expected an integer for seq_no, but got type '%d'\n", v.type);
-    return 0;
-  }
-  *seq_no_p = (int)v.value.longValue;
-
-  if (unmarshall_value(mbuf, &v) != 1) {
-    o_log(O_LOG_DEBUG, "Can't find time_stamp in incoming measurement\n");
-    return 0;
-  }
-  if (v.type != OML_DOUBLE_VALUE) {
-    o_log(O_LOG_DEBUG, "Expected a double for time_stamp, but got type '%d'\n", v.type);
-    return 0;
-  }
-  *ts_p = v.value.doubleValue;
-
-  return unmarshall_values(mbuf, values, max_value_count);
+  return unmarshall_values(mbuf, header, values, max_value_count);
 }
 
 /**
@@ -438,31 +379,24 @@ unmarshall_measurements(
  */
 int
 unmarshall_values(
-  OmlMBuffer*  mbuf,
+  OmlMBufferEx*  mbuf,
+  OmlBinaryHeader* header,
   OmlValue*    values,
   int          max_value_count
 ) {
-  int value_count = (int)*(mbuf->message_start + 5);
+  int value_count = header->values;
 
   if (value_count > max_value_count) {
 	o_log (O_LOG_WARN, "Measurement packet contained %d too many values for internal storage (max %d, actual %d); skipping packet\n",
 		   (value_count - max_value_count),
 		   max_value_count,
 		   value_count);
-	uint16_t nv = 0;
-	memcpy (&nv, mbuf->message_start + 3, 2);
-	uint16_t hv = ntohs (nv);
-	int msg_length = (int)hv;
-	o_log (O_LOG_WARN, "Message length appears to be %d + 5\n", msg_length);
+	o_log (O_LOG_WARN, "Message length appears to be %d + 5\n", header->length);
 
-	mbuf->message_start += msg_length + 5;
-	mbuf->curr_p = mbuf->message_start;
+	mbuf_read_skip (mbuf, header->length + PACKET_HEADER_SIZE);
+	mbuf_begin_read (mbuf);
 
-	if ((mbuf->curr_p - mbuf->buffer < mbuf->buffer_fill - 1) &&
-		(mbuf->curr_p[0] != SYNC_BYTE || mbuf->curr_p[1] != SYNC_BYTE))
-	  {
-		o_log (O_LOG_WARN, "Tried to skip a packet but lost sync in the process.  Entering a parallel universe...\n");
-	  }
+	// FIXME:  Check for sync
     return max_value_count - value_count;  // value array is too small
   }
 
@@ -470,7 +404,7 @@ unmarshall_values(
   OmlValue* val = values;
    //o_log(O_LOG_DEBUG, "value to analyse'%d'\n", value_count);
   for (i = 0; i < value_count; i++, val++) {
-    if (!unmarshall_value(mbuf, val)) {
+    if (unmarshall_value(mbuf, val) == 0) {
 	  o_log (O_LOG_WARN, "Some kind of ERROR in unmarshall_value() call\n");
       return -1;
     }
@@ -486,28 +420,29 @@ unmarshall_values(
  */
 int
 unmarshall_value(
-  OmlMBuffer*  mbuf,
+  OmlMBufferEx*  mbuf,
   OmlValue*    value
 ) {
-  unsigned char* p = mbuf->curr_p;
-  int buf_remaining = mbuf->buffer_remaining;
+  if (mbuf_remaining(mbuf) == 0)
+	{
+	  o_log(O_LOG_ERROR, "Tried to unmarshall a value from the buffer, but didn't receive enough data to do that\n");
+	  return 0;
+	}
 
-  if ((buf_remaining --) < 0) {
-    o_log(O_LOG_ERROR, "Buffer is too short for TYPE.\n");
-    return 0;
-  }
-  char type = *p++;
+  int type = mbuf_read_byte (mbuf);
+  if (type == -1) return 0;
+
   switch (type) {
     case LONG_T: {
-      if ((buf_remaining -= 4) < 0) {
-        o_log(O_LOG_ERROR, "Buffer is too short for LONG.\n");
-        return 0;
-      }
-      uint32_t nv = 0;
-      memcpy(&nv,p,4);
-      p += 4;
-      uint32_t hv = ntohl(nv);
-      //long v = (long)(hv - BIG_L);
+	  uint8_t buf [LONG_T_SIZE];
+
+	  if (mbuf_read (mbuf, buf, LENGTH (buf)) == -1)
+		{
+		  o_log(O_LOG_ERROR, "Failed to unmarshal OML_LONG_VALUE; not enough data?\n");
+		  return 0;
+		}
+
+      uint32_t hv = ntohl(*((uint32_t*)buf));
       long v = (long)(hv);
       value->value.longValue = v;
       value->type = OML_LONG_VALUE;
@@ -515,16 +450,17 @@ unmarshall_value(
       break;
     }
     case DOUBLE_T: {
-      if ((buf_remaining -= 5) < 0) {
-        o_log(O_LOG_ERROR, "Buffer is too short for DOUBLE.\n");
-        return -102;
-      }
-      uint32_t nmant = 0;
-      memcpy(&nmant,p,4);
-      p += 4;
-      int hmant = (int)ntohl(nmant);
+	  uint8_t buf [DOUBLE_T_SIZE];
+
+	  if (mbuf_read (mbuf, buf, LENGTH (buf)) == -1)
+		{
+		  o_log(O_LOG_ERROR, "Failed to unmarshal OML_DOUBLE_VALUE; not enough data?\n");
+		  return 0;
+		}
+
+      int hmant = (int)ntohl(*((uint32_t*)buf));
       double mant = hmant * 1.0 / (1 << BIG_L);
-      int exp = (signed char)*p++;
+      int exp = (int8_t) buf[4];
       double v = ldexp(mant, exp);
       value->value.doubleValue = v;
       value->type = OML_DOUBLE_VALUE;
@@ -532,19 +468,23 @@ unmarshall_value(
       break;
     }
     case STRING_T: {
-      if ((buf_remaining -= 1) < 0) {
-        o_log(O_LOG_ERROR, "Buffer is too short for STRING (len).\n");
-        return 0;
-      }
-      int len = (int)(*p++);
+	  int len = 0;
+	  uint8_t buf [STRING_T_MAX_SIZE];
+
+	  len = mbuf_read_byte (mbuf);
+
+	  if (len == -1 || mbuf_read (mbuf, buf, len) == -1)
+		{
+		  o_log(O_LOG_ERROR, "Failed to unmarshal OML_STRING_VALUE; not enough data?\n");
+		  return 0;
+		}
+
+	  // FIXME:  All this fiddling with the string internals should be behind an API.
       if (value->type != OML_STRING_VALUE) {
         value->value.stringValue.size = 0;
         value->type = OML_STRING_VALUE;
       }
-      if ((buf_remaining -= len) < 0) {
-        o_log(O_LOG_ERROR, "Buffer is too short for STRING (text).\n");
-        return 0;
-      }
+
       if (len >= value->value.stringValue.size) {
         if (value->value.stringValue.size > 0) {
           free(value->value.stringValue.ptr);
@@ -554,22 +494,37 @@ unmarshall_value(
         value->value.stringValue.ptr = (char*)malloc(mlen);
         value->value.stringValue.size = mlen - 1;
         value->value.stringValue.length = mlen;
-
       }
-      strncpy(value->value.stringValue.ptr, (char*)p, len);
+      strncpy(value->value.stringValue.ptr, (char*)buf, len);
       *(value->value.stringValue.ptr + len) = '\0';
-      p += len;
       break;
     }
     default:
       o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", type);
       return 0;
   }
-  mbuf->curr_p = p;
-  mbuf->buffer_remaining = buf_remaining;
 
   return 1;
 }
+
+int
+unmarshal_typed_value (OmlMBufferEx* mbuf, const char* name, OmlValueT type, OmlValue* value)
+{
+  if (unmarshall_value (mbuf, value) != 1)
+	{
+	  o_log (O_LOG_ERROR, "Error reading %s from binary packet\n", name);
+	  return -1;
+	}
+
+  if (value->type != type)
+	{
+	  o_log (O_LOG_ERROR, "Expected type %d for %s, but got type '%d' instead\n",
+			 type, name, value->type);
+	  return -1;
+	}
+  return 0;
+}
+
 
 
 

@@ -113,8 +113,7 @@ mbuf_length (OmlMBufferEx* mbuf)
 size_t
 mbuf_remaining (OmlMBufferEx* mbuf)
 {
-  // ???
-  return mbuf->fill;
+  return mbuf->wrptr - mbuf->rdptr;
 }
 
 size_t
@@ -151,6 +150,18 @@ uint8_t*
 mbuf_message (OmlMBufferEx* mbuf)
 {
   return mbuf->msgptr;
+}
+
+uint8_t*
+mbuf_rdptr (OmlMBufferEx* mbuf)
+{
+  return mbuf->rdptr;
+}
+
+uint8_t*
+mbuf_wrptr (OmlMBufferEx* mbuf)
+{
+  return mbuf->wrptr;
 }
 
 int
@@ -268,6 +279,80 @@ mbuf_read (OmlMBufferEx* mbuf, uint8_t* buf, size_t len)
   mbuf_check_invariant (mbuf);
 
   return 0;
+}
+
+int
+mbuf_read_skip (OmlMBufferEx* mbuf, size_t len)
+{
+  if (mbuf == NULL) return -1;
+
+  mbuf_check_invariant (mbuf);
+
+  if (mbuf->rd_remaining < len) return -1;
+
+  mbuf->rdptr += len;
+  mbuf->rd_remaining -= len;
+
+  mbuf_check_invariant (mbuf);
+
+  return 0;
+}
+
+int
+mbuf_read_byte (OmlMBufferEx* mbuf)
+{
+  if (mbuf == NULL) return -1;
+
+  mbuf_check_invariant (mbuf);
+
+  if (mbuf->rd_remaining < 1) return -1;
+
+  int byte = (int)*(mbuf->rdptr);
+
+  mbuf->rdptr++;
+  mbuf->rd_remaining--;
+
+  mbuf_check_invariant (mbuf);
+
+  return byte;
+}
+
+size_t
+mbuf_find (OmlMBufferEx* mbuf, uint8_t c)
+{
+  if (mbuf == NULL) return -1;
+
+  mbuf_check_invariant (mbuf);
+
+  uint8_t* p = mbuf->rdptr;
+
+  while (p < mbuf->wrptr && *p != c) p++;
+
+  int result = -1;
+  if (*p == c)
+	result = p - mbuf->rdptr;
+
+  mbuf_check_invariant (mbuf);
+  return result;
+}
+
+size_t
+mbuf_find_not (OmlMBufferEx* mbuf, uint8_t c)
+{
+  if (mbuf == NULL) return -1;
+
+  mbuf_check_invariant (mbuf);
+
+  uint8_t* p = mbuf->rdptr;
+
+  while (p < mbuf->wrptr && *p == c) p++;
+
+  int result = -1;
+  if (*p != c)
+	result = p - mbuf->rdptr;
+
+  mbuf_check_invariant (mbuf);
+  return result;
 }
 
 int
