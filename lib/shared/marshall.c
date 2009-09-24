@@ -67,7 +67,6 @@ find_sync (unsigned char* buf, int len)
 }
 
 /**
- * \fn OmlMBuffer* marshall_init(OmlMBuffer*  mbuf, OmlMsgType  packet_type)
  * \brief
  * \param mbuf
  * \param packet_type
@@ -93,7 +92,7 @@ marshall_init(OmlMBufferEx*  mbuf, OmlMsgType  packet_type)
   result = mbuf_write (mbuf, buf, LENGTH (buf));
   if (result == -1)
 	{
-	  o_log (O_LOG_ERROR, "Error when trying to marshall packet header (mbuf_write())\n");
+	  o_log (O_LOG_ERROR, "Error when trying to marshal packet header (mbuf_write())\n");
 	  return NULL;
 	}
 
@@ -101,7 +100,6 @@ marshall_init(OmlMBufferEx*  mbuf, OmlMsgType  packet_type)
 }
 
 /**
- * \fn int marshall_measurements(OmlMBuffer* mbuf, OmlMStream* ms, double      now)
  * \brief
  * \param mbuf
  * \param ms
@@ -133,7 +131,6 @@ marshall_measurements(OmlMBufferEx* mbuf, OmlMStream* ms, double now)
 }
 
 /**
- * \fn int marshall_values(OmlMBuffer* mbuf, OmlValue* values, int value_count)
  * \brief Marshall the array of +values+ into +buffer+ and return the size of the buffer used. If the returned number is negative marshalling didn't finish as the provided buffer was short of the number of bytes returned (when multiplied by -1).
  * \param mbuf
  * \param values
@@ -156,7 +153,6 @@ marshall_values(OmlMBufferEx* mbuf, OmlValue* values, int value_count)
 }
 
 /**
- * \fn inline int marshall_value(OmlMBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
  * \brief
  * \param mbuf
  * \param val_type
@@ -258,7 +254,6 @@ marshall_value(OmlMBufferEx* mbuf, OmlValueT val_type, OmlValueU* val)
 }
 
 /**
- * \fn int marshall_finalize(OmlMBuffer*  mbuf)
  * \brief
  * \param mbuf
  * \return 1 when finished
@@ -286,11 +281,10 @@ marshall_finalize(OmlMBufferEx*  mbuf)
 }
 
 /**
- * \fn unsigned char* marshall_resize( OmlMBuffer*  mbuf, int new_size)
  * \brief
  * \param mbuf
  * \param new_size
- * \return the current ointer to the buffer
+ * \return the current pointer to the buffer
  */
 unsigned char*
 marshall_resize(OmlMBuffer*  mbuf, int new_size)
@@ -340,7 +334,6 @@ marshall_check_resize (OmlMBuffer* mbuf, size_t bytes)
 }
 
 /**
- * \fn
  * \brief Reads the header information contained in the +buffer+ contained in +mbuf+. It stores the message type in +type_p+.
  * \param mbuf
  * \param type_p
@@ -388,7 +381,6 @@ unmarshall_init(
 }
 
 /**
- * \fn int unmarshall_measurements(OmlMBuffer* mbuf, int* table_index, int* seq_no_p,  double* ts_p, OmlValue*   values, int         max_value_count)
  * \brief
  * \param mbuf
  * \param table_index
@@ -438,7 +430,6 @@ unmarshall_measurements(
 }
 
 /**
- * \fn int unmarshall_values(OmlMBuffer*  mbuffer, OmlValue*    values, int max_value_count)
  * \brief Unmarshalls the content of +buffer+ into an array of +values+ whose max. allocated size is +value_count+.
  * \param mbuffer
  * \param values type of sample
@@ -488,7 +479,6 @@ unmarshall_values(
 }
 
 /**
- * \fn int unmarshall_value(OmlMBuffer*  mbuffer, OmlValue*    value)
  * \brief
  * \param mbuffer
  * \param value

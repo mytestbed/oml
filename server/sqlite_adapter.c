@@ -101,7 +101,6 @@ const char* SQL_CREATE_EXPT_METADATA = "CREATE TABLE _experiment_metadata (key T
 const char* SQL_CREATE_SENDERS       = "CREATE TABLE _senders (name TEXT PRIMARY KEY, id INTEGER UNIQUE);";
 
 /**
- * \fn int sq3_create_database(Database* db)
  * \brief Create a sqlite3 database
  * \param db the databse to associate with the sqlite3 database
  * \return 0 if successful, -1 otherwise
@@ -205,7 +204,6 @@ sq3_create_database(
   return 0;
 }
 /**
- * \fn void sq3_release(Database* db)
  * \brief Release the sqlite3 database
  * \param db the database that contains the sqlite3 database
  */
@@ -231,7 +229,6 @@ sq3_table_free (DbTable* table)
 }
 
 /**
- * \fn static int sq3_add_sender_id(Database* db, char* sender_id)
  * \brief  Add sender ID to the table
  * \param db the database that contains the sqlite3 db
  * \param sender_id the sender ID
@@ -413,7 +410,6 @@ sq3_make_sql_insert (DbTable* table)
 }
 
 /**
- * \fn int sq3_create_table(Database* db, DbTable* table)
  * \brief Create a sqlite3 table
  * \param db the database that contains the sqlite3 db
  * \param table the table to associate in sqlite3 database
@@ -472,7 +468,6 @@ sq3_create_table(
   return 0;
 }
 /**
- * \fn static intsq3_insert(Database* db, DbTable*  table, int sender_id, int seq_no, double time_stamp, OmlValue* values, int value_count)
  * \brief Insert value in the sqlite3 database
  * \param db the database that contains the sqlite3 db
  * \param table the table to insert data in
@@ -562,7 +557,6 @@ sq3_insert(
 }
 
 /**
- * \fn static int select_callback(void*  p_data, int    num_fields, char** p_fields, char** p_col_names)
  * \brief
  * \param p_data
  * \param num_fields
@@ -610,7 +604,6 @@ select_callback(
   return 0;
 }
 /**
- * \fn static int select_stmt(Sq3DB* self, const char* stmt)
  * \brief Prespare sqlite statement
  * \param self the sqlite3 database
  * \param stmt the statement to prepare
@@ -636,7 +629,6 @@ select_stmt(
   return nrecs;
 }
 /**
- * \fn static int sql_stmt(Sq3DB* self, const char* stmt)
  * \brief Execute sqlite3 statement
  * \param self the sqlite3 database
  * \param stmt the statement to prepare

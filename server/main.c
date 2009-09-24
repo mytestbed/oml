@@ -61,7 +61,6 @@ struct poptOption options[] = {
   { NULL, 0, 0, NULL, 0 }
 };
 /**
- * \fn on_connect(Socket* newSock, void* handle)
  * \brief Called when a node connects via TCP
  * \param newSock
  */
@@ -78,7 +77,6 @@ on_connect(
 }
 
 /**
- * \fn int main(int argc, const char *argv[])
  * \brief
  * \param argc
  * \param argv

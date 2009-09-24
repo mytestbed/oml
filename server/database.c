@@ -41,7 +41,6 @@ parse_col_decl(DbTable* self, char* col_decl, int index, int check_only);
 
 static Database* firstDB = NULL;
 /**
- * \fn Database* database_find(char* name)
  * \brief create a date with the name +name+
  * \param name the name of the database
  * \return a new database
@@ -96,7 +95,6 @@ database_find(
   return self;
 }
 /**
- * \fn void database_release(Database* self)
  * \brief Client no longer uses this database. If this was the last client checking out, close database.
  * \param self the database to release
  */
@@ -142,7 +140,6 @@ database_release(
 }
 
 /**
- * \fn DbTable* database_get_table(Database* database, char* schema)
  * \brief get a table from the database
  * \param database the database to extract the table
  * \param schema name of the table
@@ -211,7 +208,6 @@ database_get_table(
 }
 
 /**
- * \fn static int parse_col_decl( DbTable* self, char* col_decl, int index, int check_only)
  * \brief Create a column in the database
  * \param self the database where we create the column
  * \param col_decl the name of the column
@@ -280,7 +276,6 @@ database_table_add_col (DbTable* table, const char* name, OmlValueT type, int in
   database_table_store_col (table, col, index);
 }
 /**
- * \fn static void store_col( DbTable*  table, DbColumn* col, int index)
  * \brief store the column in the databse
  * \param table the table of the
  * \param col the column to store
@@ -310,7 +305,6 @@ database_table_store_col(
   table->columns[index] = col;
 }
 /**
- * \fn static void table_free(DbTable* table)
  * \brief Free the table
  * \param table the table to free
  */
