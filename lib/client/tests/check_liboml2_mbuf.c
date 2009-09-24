@@ -204,19 +204,20 @@ START_TEST (test_mbuf_write)
 		}
 	}
 
-  fail_unless (done == 1); // Fail if we didn't overflow the buf
+  // FIXME:  semantics changed:  mbuf_write() now resizes buffer as needed.
+  //  fail_unless (done == 1); // Fail if we didn't overflow the buf
 
   fail_unless (strncmp (mbuf->base, s, n) == 0,
 			   "Expected:\n%s\nActual:\n%s\n", s, mbuf->base);
 
   // Check that we didn't write any bytes the last mbuf_write()
-  for (i = n; i < length; i++)
-	fail_unless (mbuf->base[i] == 0);
+  //  for (i = n; i < length; i++)
+  //	fail_unless (mbuf->base[i] == 0);
 
   fail_if (mbuf->fill != n);
   fail_if (mbuf->wrptr - mbuf->base != n);
   fail_if (mbuf->rdptr != mbuf->base);
-  fail_if (mbuf->wr_remaining != length - n);
+  //fail_if (mbuf->wr_remaining != length - n);
   fail_if (mbuf->rd_remaining != n);
   fail_if (mbuf->wrptr < mbuf->rdptr);
 }

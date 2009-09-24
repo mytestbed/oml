@@ -35,6 +35,7 @@
 #include "oml2/oml_writer.h"
 #include "oml2/oml_filter.h"
 #include "marshall.h"
+#include "mbuf.h"
 
 #define DEF_PROTOCOL "tcp"
 #define DEF_PORT 3003
@@ -66,7 +67,7 @@ typedef struct _omlNetWriter {
   int        is_enabled;
   int        first_row;
   Socket*    socket;
-  OmlMBuffer mbuf;
+  OmlMBufferEx* mbuf;
 
   int        stream_count; // used to give each stream an ID
 
@@ -101,6 +102,8 @@ net_writer_new(
 ) {
   OmlNetWriter* self = (OmlNetWriter *)malloc(sizeof(OmlNetWriter));
   memset(self, 0, sizeof(OmlNetWriter));
+
+  self->mbuf = mbuf_create ();
 
   char* host;
   char* p = location;
@@ -220,7 +223,7 @@ out(
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
 
-  int cnt = marshall_values(&self->mbuf, values, value_count);
+  int cnt = marshall_values(self->mbuf, values, value_count);
   return cnt == value_count;
 }
 
@@ -242,7 +245,7 @@ row_start(
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
 
-  marshall_measurements(&self->mbuf, ms, now);
+  marshall_measurements(self->mbuf, ms, now);
   return 1;
 }
 
@@ -263,12 +266,10 @@ row_end(
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
 
-  marshall_finalize(&self->mbuf);
-  OmlMBuffer* buf = &self->mbuf;
-  int len = buf->buffer_length - buf->buffer_remaining;
+  marshall_finalize(self->mbuf);
+  int len = mbuf_message_length (self->mbuf);
   o_log(O_LOG_DEBUG, "Sending message of size '%d'\n", len);
-
-  int result = socket_sendto(self->socket, (char*)buf->buffer, len);
+  int result = socket_sendto(self->socket, (char*)mbuf_buffer (self->mbuf), len);
 
   if (result == -1 && socket_is_disconnected (self->socket))
 	{
@@ -277,6 +278,7 @@ row_end(
 	  self->is_enabled = 0;  	  // Server closed the connection
 	}
 
+  mbuf_clear (self->mbuf);
   return 1;
 }
 

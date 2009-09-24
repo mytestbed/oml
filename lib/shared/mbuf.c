@@ -53,12 +53,12 @@ mbuf_check_invariant (OmlMBufferEx* mbuf)
 {
   assert (mbuf != NULL);
   assert (mbuf->base != NULL);
-  assert (mbuf->wr_remaining >= 0 && mbuf->wr_remaining <= mbuf->length);
-  assert (mbuf->fill >= 0 && mbuf->fill <= mbuf->length);
+  assert (mbuf->wr_remaining <= mbuf->length);
+  assert (mbuf->fill <= mbuf->length);
   assert (mbuf->fill + mbuf->wr_remaining == mbuf->length);
   assert (mbuf->wrptr >= mbuf->rdptr);
-  assert (mbuf->wrptr - mbuf->base == mbuf->fill);
-  assert (mbuf->rd_remaining == (mbuf->wrptr - mbuf->rdptr));
+  assert (mbuf->wrptr - mbuf->base == (int)mbuf->fill);
+  assert ((int)mbuf->rd_remaining == (mbuf->wrptr - mbuf->rdptr));
   assert ((mbuf->msgptr <= mbuf->rdptr) || (mbuf->msgptr <= mbuf->wrptr));
 }
 
@@ -141,6 +141,18 @@ mbuf_message_offset (OmlMBufferEx* mbuf)
   return mbuf->msgptr - mbuf->base;
 }
 
+size_t
+mbuf_message_length (OmlMBufferEx* mbuf)
+{
+  return mbuf->wrptr - mbuf->msgptr;
+}
+
+uint8_t*
+mbuf_message (OmlMBufferEx* mbuf)
+{
+  return mbuf->msgptr;
+}
+
 int
 mbuf_resize (OmlMBufferEx* mbuf, size_t new_length)
 {
@@ -154,6 +166,7 @@ mbuf_resize (OmlMBufferEx* mbuf, size_t new_length)
 	return 0;
 
   uint8_t* new = (uint8_t*) malloc (new_length * sizeof (uint8_t));
+  memset (new, 0, sizeof (new));
   if (new == NULL)
 	return -1;
 
@@ -161,7 +174,7 @@ mbuf_resize (OmlMBufferEx* mbuf, size_t new_length)
   int rd_offset = mbuf->rdptr - mbuf->base;
   int msg_offset = mbuf->msgptr - mbuf->base;
 
-  assert (wr_offset == mbuf->fill);
+  assert (wr_offset == (int)mbuf->fill);
 
   memcpy (new, mbuf->base, mbuf->fill);
   free (mbuf->base);
@@ -209,7 +222,8 @@ mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len)
 
   mbuf_check_invariant (mbuf);
 
-  if (mbuf->wr_remaining < len) return -1;
+  if (mbuf_check_resize (mbuf, len) == -1)
+	return -1;
 
   memcpy (mbuf->wrptr, buf, len);
 
@@ -299,6 +313,7 @@ mbuf_clear (OmlMBufferEx* mbuf)
   mbuf->rd_remaining = 0;
 
   mbuf_check_invariant (mbuf);
+  return 0;
 }
 
 int

@@ -24,6 +24,7 @@
 #define MARSHALL_H_
 
 #include <oml2/omlc.h>
+#include "mbuf.h"
 
 typedef enum _omPktType {
   OMB_DATA_P = 0x1
@@ -52,27 +53,27 @@ typedef struct _omBuffer {
 
 int
 marshall_measurements(
-  OmlMBuffer* mbuf,
+  OmlMBufferEx* mbuf,
   OmlMStream* ms,
   double      now
 );
 
-OmlMBuffer*
+OmlMBufferEx*
 marshall_init(
-  OmlMBuffer* mbuf,
+  OmlMBufferEx* mbuf,
   OmlMsgType packet_type
 );
 
 int
 marshall_values(
-  OmlMBuffer*    mbuffer,
+  OmlMBufferEx*    mbuffer,
   OmlValue*      values,       //! type of sample
   int            value_count  //! size of above array
 );
 
 int
 marshall_finalize(
-  OmlMBuffer*  mbuf
+  OmlMBufferEx*  mbuf
 );
 
 int

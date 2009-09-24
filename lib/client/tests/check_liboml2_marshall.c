@@ -164,56 +164,46 @@ static char* string_values [] =
 
 START_TEST (test_marshall_init)
 {
-  OmlMBuffer mbuf;
-  memset (&mbuf, 0, sizeof (OmlMBuffer));
+  OmlMBufferEx* mbuf = mbuf_create ();
+  OmlMBufferEx* result = marshall_init (mbuf, OMB_DATA_P);
 
-  OmlMBuffer* result = marshall_init (&mbuf, OMB_DATA_P);
-
-  fail_if (&mbuf != result);
-  fail_if (mbuf.buffer == NULL);
-  fail_if (mbuf.buffer_length != 64);
-  fail_unless (mbuf.buffer[0] == 0xAA);
-  fail_unless (mbuf.buffer[1] == 0xAA);
-  fail_unless ((int)mbuf.buffer[2] == OMB_DATA_P);
-  fail_unless (mbuf.curr_p == mbuf.buffer + 5);
-  fail_unless (mbuf.buffer_remaining == mbuf.buffer_length - (mbuf.curr_p - mbuf.buffer));
+  fail_if (mbuf != result);
+  fail_unless (mbuf->base[0] == 0xAA);
+  fail_unless (mbuf->base[1] == 0xAA);
+  fail_unless ((int)mbuf->base[2] == OMB_DATA_P);
 }
 END_TEST
 
 START_TEST (test_marshall_value_long)
 {
-  OmlMBuffer mbuf;
-  memset (&mbuf, 0, sizeof (OmlMBuffer));
+  OmlMBufferEx* mbuf = mbuf_create ();
+  OmlMBufferEx* pmbuf = marshall_init (mbuf, OMB_DATA_P);
 
-  OmlMBuffer* pmbuf = marshall_init (&mbuf, OMB_DATA_P);
-
-  fail_if (&mbuf != pmbuf);
-  fail_if (mbuf.buffer == NULL);
+  fail_if (mbuf != pmbuf);
+  fail_if (mbuf->base == NULL);
 
   OmlValueU v;
   v.longValue = long_values[_i];
-  int result = marshall_value (&mbuf, OML_LONG_VALUE, &v);
+  int result = marshall_value (mbuf, OML_LONG_VALUE, &v);
 
   uint32_t nv = 0;
-  memcpy (&nv, mbuf.buffer + 6, 4);
+  memcpy (&nv, mbuf->base + 6, 4);
   uint32_t hv = ntohl (nv);
   int val = (int)hv;
 
   fail_if (result != 1);
-  fail_if ((int)*(mbuf.buffer + 5) != LONG_T); // LONG_T
+  fail_if ((int)*(mbuf->base + 5) != LONG_T); // LONG_T
   fail_if (val != v.longValue);
 }
 END_TEST
 
 START_TEST (test_marshall_value_double)
 {
-  OmlMBuffer mbuf;
-  memset (&mbuf, 0, sizeof (OmlMBuffer));
+  OmlMBufferEx* mbuf = mbuf_create ();
+  OmlMBufferEx* pmbuf = marshall_init (mbuf, OMB_DATA_P);
 
-  OmlMBuffer* pmbuf = marshall_init (&mbuf, OMB_DATA_P);
-
-  fail_if (&mbuf != pmbuf);
-  fail_if (mbuf.buffer == NULL);
+  fail_if (mbuf != pmbuf);
+  fail_if (mbuf->base == NULL);
 
   OmlValueU v;
   v.doubleValue = double_values[_i];
@@ -221,12 +211,12 @@ START_TEST (test_marshall_value_double)
   double dmant = frexp (v.doubleValue, &iexp) * (1 << 30);
   int32_t imant = (int32_t)dmant;
 
-  int result = marshall_value (&mbuf, OML_DOUBLE_VALUE, &v);
+  int result = marshall_value (mbuf, OML_DOUBLE_VALUE, &v);
 
-  uint8_t type = mbuf.buffer[5];
+  uint8_t type = mbuf->base[5];
   uint32_t nv = 0;
-  memcpy (&nv, &mbuf.buffer[6], 4);
-  int8_t exp = mbuf.buffer[10];
+  memcpy (&nv, &mbuf->base[6], 4);
+  int8_t exp = mbuf->base[10];
   uint32_t hv = ntohl (nv);
   int mant = (int)hv;
 
@@ -244,14 +234,11 @@ unsigned char string_buf[MAX_MARSHALLED_STRING_LENGTH * 2];
 
 START_TEST (test_marshall_value_string)
 {
-  OmlMBuffer mbuf;
-  memset (&mbuf, 0, sizeof (OmlMBuffer));
-  marshall_resize(&mbuf, LENGTH (string_buf));
+  OmlMBufferEx* mbuf = mbuf_create ();
+  OmlMBufferEx* pmbuf = marshall_init (mbuf, OMB_DATA_P);
 
-  OmlMBuffer* pmbuf = marshall_init (&mbuf, OMB_DATA_P);
-
-  fail_if (&mbuf != pmbuf);
-  fail_if (mbuf.buffer == NULL);
+  fail_if (mbuf != pmbuf);
+  fail_if (mbuf->base == NULL);
 
   OmlValueU v;
   char* test_string = string_values[_i];
@@ -261,24 +248,24 @@ START_TEST (test_marshall_value_string)
   v.stringValue.size = len;
   v.stringValue.length = len + 1; // Underlying storage.
 
-  int result = marshall_value (&mbuf, OML_STRING_VALUE, &v);
+  int result = marshall_value (mbuf, OML_STRING_VALUE, &v);
 
   fail_if (result != 1);
-  fail_if (mbuf.buffer[5] != 0x4); // STRING_T
+  fail_if (mbuf->base[5] != 0x4); // STRING_T
 
   memset (string_buf, 0, MAX_MARSHALLED_STRING_LENGTH);
-  memcpy (string_buf, &mbuf.buffer[7], mbuf.buffer[6]);
+  memcpy (string_buf, &mbuf->base[7], mbuf->base[6]);
 
   if (len <= MAX_MARSHALLED_STRING_LENGTH)
 	{
-	  fail_if (mbuf.buffer[6] != len); // Length of string
+	  fail_if (mbuf->base[6] != len); // Length of string
 	  fail_if (strlen(string_buf) != len);
 	  fail_if (strcmp (string_buf, test_string) != 0);
 	  // FIXME:  Check that the buffer is zero past the last element of the test string.
 	}
   else
 	{
-	  fail_if (mbuf.buffer[6] != MAX_MARSHALLED_STRING_LENGTH); // Length of string
+	  fail_if (mbuf->base[6] != MAX_MARSHALLED_STRING_LENGTH); // Length of string
 	  fail_if (strlen(string_buf) != MAX_MARSHALLED_STRING_LENGTH);
 	  fail_if (strncmp (string_buf, test_string, MAX_MARSHALLED_STRING_LENGTH) != 0);
 	  // FIXME:  Check that the buffer doesn't contain more elements of the test string than it should
@@ -294,22 +281,20 @@ START_TEST (test_marshall_unmarshall_long)
   const int UINT32_VALUE_OFFSET = 1;
   const int UINT32_SIZE = sizeof (uint32_t);
 
-  OmlMBuffer mbuf;
-  memset (&mbuf, 0, sizeof (OmlMBuffer));
-  marshall_resize (&mbuf, 2 * LENGTH(long_values) * UINT32_LENGTH);
-  OmlMBuffer* pmbuf = marshall_init (&mbuf, OMB_DATA_P);
+  OmlMBufferEx* mbuf = mbuf_create ();
+  OmlMBufferEx* pmbuf = marshall_init (mbuf, OMB_DATA_P);
 
-  fail_if (&mbuf != pmbuf);
-  fail_if (mbuf.buffer == NULL);
+  fail_if (mbuf != pmbuf);
+  fail_if (mbuf->base == NULL);
 
   int i = 0;
   for (i = 0; i < LENGTH (long_values); i++)
 	{
 	  OmlValueU v;
 	  v.longValue = long_values[i];
-	  int result = marshall_value (&mbuf, OML_LONG_VALUE, &v);
+	  int result = marshall_value (mbuf, OML_LONG_VALUE, &v);
 
-	  uint8_t* buf = &mbuf.buffer[VALUES_OFFSET + i * UINT32_LENGTH];
+	  uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * UINT32_LENGTH];
 	  int type =  buf[UINT32_TYPE_OFFSET];
 	  uint8_t* valptr = &buf[UINT32_VALUE_OFFSET];
 
@@ -323,14 +308,20 @@ START_TEST (test_marshall_unmarshall_long)
 	  fail_if (val != v.longValue);
 	}
 
-  mbuf.buffer_fill = VALUES_OFFSET + i * UINT32_LENGTH;
-  mbuf.curr_p = mbuf.buffer;
+  marshall_finalize (mbuf);
+
+  OmlMBuffer umbuf;
+  memset (&umbuf, 0, sizeof (umbuf));
+  marshall_resize (&umbuf, mbuf_length (mbuf));
+  memcpy (umbuf.buffer, mbuf->base, mbuf_fill (mbuf));
+  umbuf.buffer_fill = mbuf_fill (mbuf);
+  umbuf.curr_p = umbuf.buffer;
+  umbuf.message_start = umbuf.buffer;
 
   OmlMsgType msg_type = 0;
-  marshall_finalize (&mbuf);
-  unmarshall_init (&mbuf, &msg_type);
+  unmarshall_init (&umbuf, &msg_type);
 
-  mbuf.curr_p = mbuf.buffer + VALUES_OFFSET; // Kludge!
+  umbuf.curr_p = umbuf.buffer + VALUES_OFFSET; // Kludge!
 
   fail_unless (msg_type == OMB_DATA_P);
 
@@ -338,7 +329,7 @@ START_TEST (test_marshall_unmarshall_long)
 	{
 	  OmlValue value;
 
-	  unmarshall_value (&mbuf, &value);
+	  unmarshall_value (&umbuf, &value);
 
 	  fail_unless (value.type == OML_LONG_VALUE);
 	  fail_unless (value.value.longValue == long_values[i],
@@ -358,22 +349,20 @@ START_TEST (test_marshall_unmarshall_double)
   const int DOUBLE_MANT_SIZE = sizeof (int32_t);
   const int DOUBLE_EXP_SIZE = sizeof (int8_t);
 
-  OmlMBuffer mbuf;
-  memset (&mbuf, 0, sizeof (OmlMBuffer));
-  marshall_resize (&mbuf, 2 * LENGTH(long_values) * DOUBLE_LENGTH);
-  OmlMBuffer* pmbuf = marshall_init (&mbuf, OMB_DATA_P);
+  OmlMBufferEx* mbuf = mbuf_create ();
+  OmlMBufferEx* pmbuf = marshall_init (mbuf, OMB_DATA_P);
 
-  fail_if (&mbuf != pmbuf);
-  fail_if (mbuf.buffer == NULL);
+  fail_if (mbuf != pmbuf);
+  fail_if (mbuf->base == NULL);
 
   int i = 0;
   for (i = 0; i < LENGTH (double_values); i++)
 	{
 	  OmlValueU v;
 	  v.doubleValue = double_values[i];
-	  int result = marshall_value (&mbuf, OML_DOUBLE_VALUE, &v);
+	  int result = marshall_value (mbuf, OML_DOUBLE_VALUE, &v);
 
-	  uint8_t* buf = &mbuf.buffer[VALUES_OFFSET + i * DOUBLE_LENGTH];
+	  uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * DOUBLE_LENGTH];
 	  int type =  buf[DOUBLE_TYPE_OFFSET];
 	  uint8_t* mantptr = &buf[DOUBLE_MANT_OFFSET];
 	  uint8_t* expptr = &buf[DOUBLE_EXP_OFFSET];
@@ -393,14 +382,20 @@ START_TEST (test_marshall_unmarshall_double)
 			   val, v.doubleValue);
 	}
 
-  mbuf.buffer_fill = VALUES_OFFSET + i * DOUBLE_LENGTH;
-  mbuf.curr_p = mbuf.buffer;
+  marshall_finalize (mbuf);
+
+  OmlMBuffer umbuf;
+  memset (&umbuf, 0, sizeof (umbuf));
+  marshall_resize (&umbuf, mbuf_length (mbuf));
+  memcpy (umbuf.buffer, mbuf->base, mbuf_fill (mbuf));
+  umbuf.buffer_fill = mbuf_fill (mbuf);
+  umbuf.curr_p = umbuf.buffer;
+  umbuf.message_start = umbuf.buffer;
 
   OmlMsgType msg_type = 0;
-  marshall_finalize (&mbuf);
-  unmarshall_init (&mbuf, &msg_type);
+  unmarshall_init (&umbuf, &msg_type);
 
-  mbuf.curr_p = mbuf.buffer + VALUES_OFFSET; // Kludge!
+  umbuf.curr_p = umbuf.buffer + VALUES_OFFSET; // Kludge!
 
   fail_unless (msg_type == OMB_DATA_P);
 
@@ -408,7 +403,7 @@ START_TEST (test_marshall_unmarshall_double)
 	{
 	  OmlValue value;
 
-	  unmarshall_value (&mbuf, &value);
+	  unmarshall_value (&umbuf, &value);
 
 	  fail_unless (value.type == OML_DOUBLE_VALUE);
 	  fail_unless (relative_error (value.value.doubleValue, double_values[i]) < EPSILON,
@@ -426,15 +421,13 @@ START_TEST (test_marshall_unmarshall_string)
   const int STRING_VALUE_OFFSET = 2;
   char string[MAX_MARSHALLED_STRING_LENGTH + 16];
 
-  OmlMBuffer mbuf;
-  memset (&mbuf, 0, sizeof (OmlMBuffer));
-  marshall_resize (&mbuf, 2 * LENGTH(string_values) * MAX_MARSHALLED_STRING_LENGTH);
-  OmlMBuffer* pmbuf = marshall_init (&mbuf, OMB_DATA_P);
+  OmlMBufferEx* mbuf = mbuf_create ();
+  OmlMBufferEx* pmbuf = marshall_init (mbuf, OMB_DATA_P);
 
-  fail_if (&mbuf != pmbuf);
-  fail_if (mbuf.buffer == NULL);
+  fail_if (mbuf != pmbuf);
+  fail_if (mbuf->base == NULL);
 
-  uint8_t* curr_p = &mbuf.buffer[VALUES_OFFSET];
+  int current_index = VALUES_OFFSET;
 
   int i = 0;
   for (i = 0; i < LENGTH (string_values); i++)
@@ -446,9 +439,9 @@ START_TEST (test_marshall_unmarshall_string)
 	  v.stringValue.size = strlen (string_values[i]);
 	  v.stringValue.length = v.stringValue.size + 1; // Underlying storage.
 
-	  int result = marshall_value (&mbuf, OML_STRING_VALUE, &v);
+	  int result = marshall_value (mbuf, OML_STRING_VALUE, &v);
 
-	  uint8_t* buf = curr_p;
+	  uint8_t* buf = &mbuf->base[current_index];
 	  int type =  buf[STRING_TYPE_OFFSET];
 	  uint8_t* lenptr = &buf[STRING_LENGTH_OFFSET];
 	  uint8_t* valptr = &buf[STRING_VALUE_OFFSET];
@@ -474,17 +467,23 @@ START_TEST (test_marshall_unmarshall_string)
 		  fail_if (strncmp (string, string_values[i], MAX_MARSHALLED_STRING_LENGTH) != 0);
 		}
 
-	  curr_p += len + 2;
+	  current_index += len + 2;
 	}
 
-  mbuf.buffer_fill = curr_p - mbuf.buffer;
-  mbuf.curr_p = mbuf.buffer;
+  marshall_finalize (mbuf);
+
+  OmlMBuffer umbuf;
+  memset (&umbuf, 0, sizeof (umbuf));
+  marshall_resize (&umbuf, mbuf_length (mbuf));
+  memcpy (umbuf.buffer, mbuf->base, mbuf_fill (mbuf));
+  umbuf.buffer_fill = mbuf_fill (mbuf);
+  umbuf.curr_p = umbuf.buffer;
+  umbuf.message_start = umbuf.buffer;
 
   OmlMsgType msg_type = 0;
-  marshall_finalize (&mbuf);
-  unmarshall_init (&mbuf, &msg_type);
+  unmarshall_init (&umbuf, &msg_type);
 
-  mbuf.curr_p = mbuf.buffer + VALUES_OFFSET; // Kludge!
+  umbuf.curr_p = umbuf.buffer + VALUES_OFFSET; // Kludge!
 
   fail_unless (msg_type == OMB_DATA_P);
 
@@ -492,7 +491,7 @@ START_TEST (test_marshall_unmarshall_string)
 	{
 	  OmlValue value;
 
-	  unmarshall_value (&mbuf, &value);
+	  unmarshall_value (&umbuf, &value);
 
 	  fail_unless (value.type == OML_STRING_VALUE);
 

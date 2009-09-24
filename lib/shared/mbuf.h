@@ -48,6 +48,8 @@ size_t mbuf_fill (OmlMBufferEx* mbuf);
 size_t mbuf_read_offset (OmlMBufferEx* mbuf);
 size_t mbuf_write_offset (OmlMBufferEx* mbuf);
 size_t mbuf_message_offset (OmlMBufferEx* mbuf);
+size_t mbuf_message_length (OmlMBufferEx* mbuf);
+uint8_t* mbuf_message (OmlMBufferEx* mbuf);
 int mbuf_resize (OmlMBufferEx* mbuf, size_t new_length);
 int mbuf_check_resize (OmlMBufferEx* mbuf, size_t bytes);
 int mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len);

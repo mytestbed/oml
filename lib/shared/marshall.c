@@ -34,7 +34,9 @@
 #include <assert.h>
 
 #include "marshall.h"
+#include "mbuf.h"
 
+#define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
 
 #define BIG_S 15
 #define BIG_L 30
@@ -49,7 +51,7 @@
 #define MIN_LENGTH  64  // Min. length of string buffer allocation
 
 
-inline int marshall_value(OmlMBuffer* mbuf, OmlValueT val_type,  OmlValueU* val);
+inline int marshall_value(OmlMBufferEx* mbuf, OmlValueT val_type,  OmlValueU* val);
 
 unsigned char*
 find_sync (unsigned char* buf, int len)
@@ -71,25 +73,29 @@ find_sync (unsigned char* buf, int len)
  * \param packet_type
  * \return
  */
-OmlMBuffer*
-marshall_init(
-  OmlMBuffer*  mbuf,
-  OmlMsgType  packet_type
-) {
+#define PACKET_HEADER_SIZE 5
+OmlMBufferEx*
+marshall_init(OmlMBufferEx*  mbuf, OmlMsgType  packet_type)
+{
+  uint8_t buf[PACKET_HEADER_SIZE] = { SYNC_BYTE, SYNC_BYTE, packet_type, 0, 0 };
+  int result;
 
-  if (mbuf->buffer == NULL || mbuf->buffer_length < MIN_LENGTH) {
-    if (!marshall_resize(mbuf, MIN_LENGTH)) {
-      return NULL;
-    }
-  }
-  unsigned char* p = mbuf->buffer;
+  if (mbuf == NULL)
+	return NULL;
 
-  *(p++) = SYNC_BYTE;
-  *(p++) = SYNC_BYTE;
-  *(p) = packet_type;
-  mbuf->curr_p = mbuf->buffer + 5;  // Leave two more for size
-  mbuf->buffer_remaining = mbuf->buffer_length -
-                            (mbuf->curr_p - mbuf->buffer);
+  result = mbuf_begin_write(mbuf);
+  if (result == -1)
+	{
+	  o_log (O_LOG_ERROR, "Couldn't start marshalling packet (mbuf_begin_write())\n");
+	  return NULL;
+	}
+
+  result = mbuf_write (mbuf, buf, LENGTH (buf));
+  if (result == -1)
+	{
+	  o_log (O_LOG_ERROR, "Error when trying to marshall packet header (mbuf_write())\n");
+	  return NULL;
+	}
 
   return mbuf;
 }
@@ -103,27 +109,19 @@ marshall_init(
  * \return 1 if successful
  */
 int
-marshall_measurements(
-  OmlMBuffer* mbuf,
-  OmlMStream* ms,
-  double      now
-) {
+marshall_measurements(OmlMBufferEx* mbuf, OmlMStream* ms, double now)
+{
   OmlValueU v;
-
+  uint8_t s[2] = { 0, (uint8_t)ms->index };
   mbuf = marshall_init(mbuf, OMB_DATA_P);
+  int result = mbuf_write (mbuf, s, LENGTH (s));
 
-  // Make room for 'value_count'
-  if (mbuf->buffer_remaining < 1) {
-    marshall_resize(mbuf, 2 * mbuf->buffer_length);
-  }
-  *(mbuf->curr_p++) = (unsigned char)0;
-  mbuf->buffer_remaining--;
-
-  // index to database table
-  *(mbuf->curr_p++) = (unsigned char)ms->index;
-  mbuf->buffer_remaining--;
-//  v.stringPtrValue = table_name;
-//  marshall_value(mbuf, OML_STRING_PTR_VALUE, &v);
+  if (result == -1)
+	{
+	  o_log (O_LOG_ERROR, "Unable to marshal table number and measurement count (mbuf_write())\n");
+	  mbuf_reset_write (mbuf);
+	  return -1;
+	}
 
   v.longValue = ms->seq_no;
   marshall_value(mbuf, OML_LONG_VALUE, &v);
@@ -143,18 +141,17 @@ marshall_measurements(
  * \return 1 when finished
  */
 int
-marshall_values(
-  OmlMBuffer*    mbuf,
-  OmlValue*      values,       //! type of sample
-  int            value_count   //! size of above array
-) {
+marshall_values(OmlMBufferEx* mbuf, OmlValue* values, int value_count)
+{
   OmlValue* val = values;
   int i;
 
   for (i = 0; i < value_count; i++, val++) {
     marshall_value(mbuf, val->type, &val->value);
   }
-  *(mbuf->buffer + 5) += value_count; // store the number of values added
+
+  uint8_t* buf = mbuf_message (mbuf);
+  buf[5] += value_count;
   return 1;
 }
 
@@ -167,79 +164,96 @@ marshall_values(
  * \return 1 if successful, 0 otherwise
  */
 inline int
-marshall_value(
-  OmlMBuffer*    mbuf,
-  OmlValueT      val_type,
-  OmlValueU*     val
-) {
-  unsigned char* p = mbuf->curr_p;
-
+marshall_value(OmlMBufferEx* mbuf, OmlValueT val_type, OmlValueU* val)
+{
   switch (val_type) {
-    case OML_LONG_VALUE: {
-      long v = val->longValue;
-      //uint32_t uv = v >= 0 ? ((uint32_t)v + BIG_L) : (-1 * v);
-      uint32_t uv = (uint32_t)v;
-      uint32_t nv = htonl(uv);
+  case OML_LONG_VALUE: {
+	long v = val->longValue;
+	uint32_t uv = (uint32_t)v;
+	uint32_t nv = htonl(uv);
+	uint8_t buf[5];
 
-	  p = marshall_check_resize (mbuf, 5);
-	  mbuf->buffer_remaining -= 5;
+	buf[0] = LONG_T;
+	memcpy(&buf[1], &nv, sizeof (nv));
 
-      *(p++) = LONG_T;
-      memcpy(p, &nv, 4);
-      p += 4;
-      break;
-    }
-    case OML_DOUBLE_VALUE: {
-      char type = DOUBLE_T;
-      double v = val->doubleValue;
-      int exp;
-      double mant = frexp(v, &exp);
-      signed char nexp = (signed char)exp;
-      if (nexp != exp) {
-        o_log(O_LOG_ERROR, "Double number '%lf' is out of bounds\n", v);
-        type = DOUBLE_NAN;
-        nexp = 0;
-      }
-      int32_t imant = (int32_t)(mant * (1 << BIG_L));
-      uint32_t nmant = htonl(imant);
+	int result = mbuf_write (mbuf, buf, LENGTH (buf));
 
-	  p = marshall_check_resize (mbuf, 6);
-	  mbuf->buffer_remaining -= 6;
-
-      *(p++) = type;
-      memcpy(p, &nmant, 4);
-      p += 4;
-      *(p++) = nexp;
-      break;
-    }
-    case OML_STRING_VALUE: {
-      char* str = val->stringValue.ptr;
-
-	  if (str == NULL)
-		{
-		  str = "";
-		  o_log (O_LOG_WARN, "Attempting to send a NULL string; sending empty string instead\n");
-		}
-
-      int len = strlen(str);
-      if (len > 254) {
-        o_log(O_LOG_ERROR, "Truncated string '%s'\n", str);
-        len = 254;
-      }
-
-	  p = marshall_check_resize (mbuf, (len+2));
-	  mbuf->buffer_remaining -= (len + 2);
-
-      *(p++) = STRING_T;
-      *(p++) = (char)(len & 0xff);
-      for (; len > 0; len--, str++) *(p++) = *str;
-      break;
-    }
-    default:
-    o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", val_type);
-    return 0;
+	if (result == -1)
+	  {
+		o_log (O_LOG_ERROR, "Failed to marshal OML_LONG_VALUE (mbuf_write())\n");
+		mbuf_reset_write (mbuf);
+		return 0;
+	  }
+	break;
   }
-  mbuf->curr_p = p;
+  case OML_DOUBLE_VALUE: {
+	uint8_t type = DOUBLE_T;
+	double v = val->doubleValue;
+	int exp;
+	double mant = frexp(v, &exp);
+	int8_t nexp = (int8_t)exp;
+	if (nexp != exp) {
+	  o_log(O_LOG_ERROR, "Double number '%lf' is out of bounds\n", v);
+	  type = DOUBLE_NAN;
+	  nexp = 0;
+   }
+   int32_t imant = (int32_t)(mant * (1 << BIG_L));
+   uint32_t nmant = htonl(imant);
+
+   uint8_t buf[6] = { type, 0, 0, 0, 0, nexp };
+
+   memcpy(&buf[1], &nmant, sizeof (nmant));
+
+   int result = mbuf_write (mbuf, buf, LENGTH (buf));
+
+   if (result == -1)
+	 {
+	   o_log (O_LOG_ERROR, "Failed to marshal OML_DOUBLE_VALUE (mbuf_write())\n");
+	   mbuf_reset_write (mbuf);
+	   return 0;
+	 }
+   break;
+ }
+ case OML_STRING_VALUE: {
+   char* str = val->stringValue.ptr;
+
+   if (str == NULL)
+	 {
+	   str = "";
+	   o_log (O_LOG_WARN, "Attempting to send a NULL string; sending empty string instead\n");
+	 }
+
+   size_t len = strlen(str);
+   if (len > 254) {
+	 o_log(O_LOG_ERROR, "Truncated string '%s'\n", str);
+	 len = 254;
+   }
+
+   uint8_t buf[2] = { STRING_T, (uint8_t)(len & 0xff) };
+   int result = mbuf_write (mbuf, buf, LENGTH (buf));
+
+   if (result == -1)
+	 {
+	   o_log (O_LOG_ERROR, "Failed to marshal OML_STRING_VALUE type and length (mbuf_write())\n");
+	   mbuf_reset_write (mbuf);
+	   return 0;
+	 }
+
+   result = mbuf_write (mbuf, (uint8_t*)str, len);
+
+   if (result == -1)
+	 {
+	   o_log (O_LOG_ERROR, "Failed to marshal OML_STRING_VALUE (mbuf_write())\n");
+	   mbuf_reset_write (mbuf);
+	   return 0;
+	 }
+   break;
+ }
+ default:
+   o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", val_type);
+   return 0;
+ }
+
   return 1;
 }
 
@@ -250,16 +264,24 @@ marshall_value(
  * \return 1 when finished
  */
 int
-marshall_finalize(
-  OmlMBuffer*  mbuf
-) {
-  unsigned char* p = mbuf->buffer + 3;  // beginning of length block
-  int len = mbuf->curr_p - mbuf->buffer - 5;  // 5 is the header
-  //o_log(O_LOG_DEBUG2, "Message content  size '%d'\n", len);
+marshall_finalize(OmlMBufferEx*  mbuf)
+{
+  uint8_t* buf = mbuf_message (mbuf);
 
+  size_t len = mbuf_message_length (mbuf);
+
+  if (len > UINT16_MAX)
+	{
+	  o_log (O_LOG_WARN, "Message length %d longer than maximum packet length (%d); packet will be truncated\n",
+			 len, UINT16_MAX);
+	  len = UINT16_MAX;
+	}
+  len -= 5;  // 5 is the length of the header... FIXME:  MAGIC NUMBER!
   uint16_t nlen = htons(len);  // pure data length
-  memcpy(p,&nlen,2);
-  p += 2;
+
+  // Store the length of the packet
+  memcpy(&buf[3], &nlen, sizeof (nlen));
+
   return 1;
 }
 
@@ -271,10 +293,8 @@ marshall_finalize(
  * \return the current ointer to the buffer
  */
 unsigned char*
-marshall_resize(
-  OmlMBuffer*  mbuf,
-  int new_size
-) {
+marshall_resize(OmlMBuffer*  mbuf, int new_size)
+{
   if (mbuf->resize != NULL) {
     return mbuf->resize(mbuf, new_size);
   }
