@@ -34,8 +34,8 @@
 #include "client.h"
 #include "oml2/oml_writer.h"
 #include "oml2/oml_filter.h"
-#include "marshall.h"
-#include "mbuf.h"
+#include <marshal.h>
+#include <mbuf.h>
 
 #define DEF_PROTOCOL "tcp"
 #define DEF_PORT 3003

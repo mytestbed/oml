@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "marshall.h"
+#include "marshal.h"
 #include "mbuf.h"
 
 #define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))

@@ -34,7 +34,7 @@
 #include <ocomm/o_eventloop.h>
 #include <oml2/oml_writer.h>
 
-#include <marshall.h>
+#include <marshal.h>
 #include <mbuf.h>
 #include "client_handler.h"
 #include "util.h"

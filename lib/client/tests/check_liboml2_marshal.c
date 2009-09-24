@@ -26,7 +26,7 @@
 #include <math.h>
 #include <arpa/inet.h>
 #include <check.h>
-#include <marshall.h>
+#include <marshal.h>
 
 #include "util.h"
 

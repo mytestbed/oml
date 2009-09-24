@@ -8,8 +8,8 @@ AM_CPPFLAGS = \
 noinst_LTLIBRARIES = libshared.la
 
 libshared_la_SOURCES = \
-	marshall.c \
-	marshall.h \
+	marshal.c \
+	marshal.h \
 	mbuf.c \
 	mbuf.h \
 	mstring.c \
