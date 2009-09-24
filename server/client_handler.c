@@ -232,7 +232,7 @@ process_meta(
  * \return 1 if successful, 0 otherwise
  */
 static int
-read_line(char** line_p, int* length_p, OmlMBufferEx* mbuf)
+read_line(char** line_p, int* length_p, MBuffer* mbuf)
 {
   uint8_t* line = mbuf_rdptr (mbuf);
   int length = mbuf_find (mbuf, '\n');
@@ -254,7 +254,7 @@ read_line(char** line_p, int* length_p, OmlMBufferEx* mbuf)
  * \return 1 if successful, 0 otherwise
  */
 static int
-process_header(ClientHandler* self, OmlMBufferEx* mbuf)
+process_header(ClientHandler* self, MBuffer* mbuf)
 {
   char* line;
   int len;
@@ -311,7 +311,7 @@ process_bin_data_message(
   ClientHandler* self,
   OmlBinaryHeader* header
 ) {
-  OmlMBufferEx* mbuf = self->mbuf;
+  MBuffer* mbuf = self->mbuf;
   int cnt = unmarshall_measurements(mbuf, header, self->values, self->value_count);
 
   /* Some error occurred in unmarshalling; can't continue */
@@ -355,7 +355,7 @@ process_bin_data_message(
 static int
 process_bin_message(
   ClientHandler* self,
-  OmlMBufferEx*    mbuf
+  MBuffer*    mbuf
 ) {
   OmlBinaryHeader header;
 
@@ -463,7 +463,7 @@ process_text_data_message(
 static int
 process_text_message(
   ClientHandler* self,
-  OmlMBufferEx*    mbuf
+  MBuffer*    mbuf
 ) {
   char* line;
   int len;
@@ -513,7 +513,7 @@ client_callback(
   int buf_size
 ) {
   ClientHandler* self = (ClientHandler*)handle;
-  OmlMBufferEx* mbuf = self->mbuf;
+  MBuffer* mbuf = self->mbuf;
 
   int result = mbuf_write (mbuf, buf, buf_size);
 

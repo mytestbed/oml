@@ -37,43 +37,43 @@ typedef struct
 	uint8_t* wrptr;            //! Pointer at which to write the next byte into the buffer
 	uint8_t* msgptr;           //! Begining of message if more than one in buffer
 
-} OmlMBufferEx;
+} MBuffer;
 
-OmlMBufferEx* mbuf_create (void);
-void mbuf_destroy (OmlMBufferEx* mbuf);
+MBuffer* mbuf_create (void);
+void mbuf_destroy (MBuffer* mbuf);
 
-uint8_t* mbuf_buffer (OmlMBufferEx* mbuf);
-uint8_t* mbuf_message (OmlMBufferEx* mbuf);
-uint8_t* mbuf_rdptr (OmlMBufferEx* mbuf);
-uint8_t* mbuf_wrptr (OmlMBufferEx* mbuf);
+uint8_t* mbuf_buffer (MBuffer* mbuf);
+uint8_t* mbuf_message (MBuffer* mbuf);
+uint8_t* mbuf_rdptr (MBuffer* mbuf);
+uint8_t* mbuf_wrptr (MBuffer* mbuf);
 
-size_t mbuf_length (OmlMBufferEx* mbuf);
-size_t mbuf_remaining (OmlMBufferEx* mbuf);
-size_t mbuf_fill (OmlMBufferEx* mbuf);
-size_t mbuf_read_offset (OmlMBufferEx* mbuf);
-size_t mbuf_write_offset (OmlMBufferEx* mbuf);
-size_t mbuf_message_offset (OmlMBufferEx* mbuf);
-size_t mbuf_message_length (OmlMBufferEx* mbuf);
+size_t mbuf_length (MBuffer* mbuf);
+size_t mbuf_remaining (MBuffer* mbuf);
+size_t mbuf_fill (MBuffer* mbuf);
+size_t mbuf_read_offset (MBuffer* mbuf);
+size_t mbuf_write_offset (MBuffer* mbuf);
+size_t mbuf_message_offset (MBuffer* mbuf);
+size_t mbuf_message_length (MBuffer* mbuf);
 
-int mbuf_resize (OmlMBufferEx* mbuf, size_t new_length);
-int mbuf_check_resize (OmlMBufferEx* mbuf, size_t bytes);
+int mbuf_resize (MBuffer* mbuf, size_t new_length);
+int mbuf_check_resize (MBuffer* mbuf, size_t bytes);
 
-int mbuf_begin_write (OmlMBufferEx* mbuf);
-int mbuf_reset_write (OmlMBufferEx* mbuf);
-int mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len);
+int mbuf_begin_write (MBuffer* mbuf);
+int mbuf_reset_write (MBuffer* mbuf);
+int mbuf_write (MBuffer* mbuf, const uint8_t* buf, size_t len);
 
-int mbuf_begin_read (OmlMBufferEx* mbuf);
-int mbuf_reset_read (OmlMBufferEx* mbuf);
-int mbuf_read (OmlMBufferEx* mbuf, uint8_t* buf, size_t len);
-int mbuf_read_skip (OmlMBufferEx* mbuf, size_t len);
-int mbuf_read_byte (OmlMBufferEx* mbuf);
-size_t mbuf_find (OmlMBufferEx* mbuf, uint8_t c);
-size_t mbuf_find_not (OmlMBufferEx* mbuf, uint8_t c);
+int mbuf_begin_read (MBuffer* mbuf);
+int mbuf_reset_read (MBuffer* mbuf);
+int mbuf_read (MBuffer* mbuf, uint8_t* buf, size_t len);
+int mbuf_read_skip (MBuffer* mbuf, size_t len);
+int mbuf_read_byte (MBuffer* mbuf);
+size_t mbuf_find (MBuffer* mbuf, uint8_t c);
+size_t mbuf_find_not (MBuffer* mbuf, uint8_t c);
 
-int mbuf_consume_message (OmlMBufferEx* mbuf);
-int mbuf_repack (OmlMBufferEx* mbuf);
-int mbuf_repack_message (OmlMBufferEx* mbuf);
-int mbuf_clear (OmlMBufferEx* mbuf);
+int mbuf_consume_message (MBuffer* mbuf);
+int mbuf_repack (MBuffer* mbuf);
+int mbuf_repack_message (MBuffer* mbuf);
+int mbuf_clear (MBuffer* mbuf);
 
 char* to_octets (unsigned char* buf, int len);
 

@@ -67,7 +67,7 @@ typedef struct _omlNetWriter {
   int        is_enabled;
   int        first_row;
   Socket*    socket;
-  OmlMBufferEx* mbuf;
+  MBuffer* mbuf;
 
   int        stream_count; // used to give each stream an ID
 

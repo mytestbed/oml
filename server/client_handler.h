@@ -48,7 +48,7 @@ typedef struct _clientHandler {
   CState      state;
   CState      content;
   Socket*     socket;
-  OmlMBufferEx* mbuf;
+  MBuffer* mbuf;
 
   OmlValue*   values;
   int         value_count;

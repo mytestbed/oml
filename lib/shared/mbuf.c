@@ -49,7 +49,7 @@
  */
 
 static void
-mbuf_check_invariant (OmlMBufferEx* mbuf)
+mbuf_check_invariant (MBuffer* mbuf)
 {
   assert (mbuf != NULL);
   assert (mbuf->base != NULL);
@@ -62,12 +62,12 @@ mbuf_check_invariant (OmlMBufferEx* mbuf)
   assert ((mbuf->msgptr <= mbuf->rdptr) || (mbuf->msgptr <= mbuf->wrptr));
 }
 
-OmlMBufferEx*
+MBuffer*
 mbuf_create (void)
 {
-  OmlMBufferEx* mbuf = (OmlMBufferEx*) malloc (sizeof (OmlMBufferEx));
+  MBuffer* mbuf = (MBuffer*) malloc (sizeof (MBuffer));
   if (mbuf == NULL) return NULL;
-  memset (mbuf, 0, sizeof (OmlMBufferEx));
+  memset (mbuf, 0, sizeof (MBuffer));
 
   mbuf->length = DEF_BUF_SIZE;
   mbuf->base = (uint8_t*) malloc (mbuf->length * sizeof (uint8_t));
@@ -92,80 +92,80 @@ mbuf_create (void)
 }
 
 void
-mbuf_destroy (OmlMBufferEx* mbuf)
+mbuf_destroy (MBuffer* mbuf)
 {
   free (mbuf->base);
   free (mbuf);
 }
 
 uint8_t*
-mbuf_buffer (OmlMBufferEx* mbuf)
+mbuf_buffer (MBuffer* mbuf)
 {
   return mbuf->base;
 }
 
 size_t
-mbuf_length (OmlMBufferEx* mbuf)
+mbuf_length (MBuffer* mbuf)
 {
   return mbuf->length;
 }
 
 size_t
-mbuf_remaining (OmlMBufferEx* mbuf)
+mbuf_remaining (MBuffer* mbuf)
 {
   return mbuf->wrptr - mbuf->rdptr;
 }
 
 size_t
-mbuf_fill (OmlMBufferEx* mbuf)
+mbuf_fill (MBuffer* mbuf)
 {
   return mbuf->fill;
 }
 
 size_t
-mbuf_read_offset (OmlMBufferEx* mbuf)
+mbuf_read_offset (MBuffer* mbuf)
 {
   return mbuf->rdptr - mbuf->base;
 }
 
 size_t
-mbuf_write_offset (OmlMBufferEx* mbuf)
+mbuf_write_offset (MBuffer* mbuf)
 {
   return mbuf->wrptr - mbuf->base;
 }
 
 size_t
-mbuf_message_offset (OmlMBufferEx* mbuf)
+mbuf_message_offset (MBuffer* mbuf)
 {
   return mbuf->msgptr - mbuf->base;
 }
 
 size_t
-mbuf_message_length (OmlMBufferEx* mbuf)
+mbuf_message_length (MBuffer* mbuf)
 {
   return mbuf->wrptr - mbuf->msgptr;
 }
 
 uint8_t*
-mbuf_message (OmlMBufferEx* mbuf)
+mbuf_message (MBuffer* mbuf)
 {
   return mbuf->msgptr;
 }
 
 uint8_t*
-mbuf_rdptr (OmlMBufferEx* mbuf)
+mbuf_rdptr (MBuffer* mbuf)
 {
   return mbuf->rdptr;
 }
 
 uint8_t*
-mbuf_wrptr (OmlMBufferEx* mbuf)
+mbuf_wrptr (MBuffer* mbuf)
 {
   return mbuf->wrptr;
 }
 
 int
-mbuf_resize (OmlMBufferEx* mbuf, size_t new_length)
+mbuf_resize (MBuffer* mbuf, size_t new_length)
 {
   mbuf_check_invariant (mbuf);
 
@@ -204,7 +204,7 @@ mbuf_resize (OmlMBufferEx* mbuf, size_t new_length)
 }
 
 int
-mbuf_check_resize (OmlMBufferEx* mbuf, size_t bytes)
+mbuf_check_resize (MBuffer* mbuf, size_t bytes)
 {
   if (mbuf->wr_remaining < bytes)
 	return mbuf_resize (mbuf, 2 * mbuf->length);
@@ -227,7 +227,7 @@ mbuf_check_resize (OmlMBufferEx* mbuf, size_t bytes)
  *
  */
 int
-mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len)
+mbuf_write (MBuffer* mbuf, const uint8_t* buf, size_t len)
 {
   if (mbuf == NULL || buf == NULL) return -1;
 
@@ -263,7 +263,7 @@ mbuf_write (OmlMBufferEx* mbuf, const uint8_t* buf, size_t len)
  *
  */
 int
-mbuf_read (OmlMBufferEx* mbuf, uint8_t* buf, size_t len)
+mbuf_read (MBuffer* mbuf, uint8_t* buf, size_t len)
 {
   if (mbuf == NULL || buf == NULL) return -1;
 
@@ -282,7 +282,7 @@ mbuf_read (OmlMBufferEx* mbuf, uint8_t* buf, size_t len)
 }
 
 int
-mbuf_read_skip (OmlMBufferEx* mbuf, size_t len)
+mbuf_read_skip (MBuffer* mbuf, size_t len)
 {
   if (mbuf == NULL) return -1;
 
@@ -299,7 +299,7 @@ mbuf_read_skip (OmlMBufferEx* mbuf, size_t len)
 }
 
 int
-mbuf_read_byte (OmlMBufferEx* mbuf)
+mbuf_read_byte (MBuffer* mbuf)
 {
   if (mbuf == NULL) return -1;
 
@@ -318,7 +318,7 @@ mbuf_read_byte (OmlMBufferEx* mbuf)
 }
 
 size_t
-mbuf_find (OmlMBufferEx* mbuf, uint8_t c)
+mbuf_find (MBuffer* mbuf, uint8_t c)
 {
   if (mbuf == NULL) return -1;
 
@@ -337,7 +337,7 @@ mbuf_find (OmlMBufferEx* mbuf, uint8_t c)
 }
 
 size_t
-mbuf_find_not (OmlMBufferEx* mbuf, uint8_t c)
+mbuf_find_not (MBuffer* mbuf, uint8_t c)
 {
   if (mbuf == NULL) return -1;
 
@@ -356,7 +356,7 @@ mbuf_find_not (OmlMBufferEx* mbuf, uint8_t c)
 }
 
 int
-mbuf_begin_read (OmlMBufferEx* mbuf)
+mbuf_begin_read (MBuffer* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
@@ -370,7 +370,7 @@ mbuf_begin_read (OmlMBufferEx* mbuf)
 }
 
 int
-mbuf_begin_write (OmlMBufferEx* mbuf)
+mbuf_begin_write (MBuffer* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
@@ -384,7 +384,7 @@ mbuf_begin_write (OmlMBufferEx* mbuf)
 }
 
 int
-mbuf_clear (OmlMBufferEx* mbuf)
+mbuf_clear (MBuffer* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
@@ -402,7 +402,7 @@ mbuf_clear (OmlMBufferEx* mbuf)
 }
 
 int
-mbuf_reset_write (OmlMBufferEx* mbuf)
+mbuf_reset_write (MBuffer* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
@@ -423,7 +423,7 @@ mbuf_reset_write (OmlMBufferEx* mbuf)
 }
 
 int
-mbuf_reset_read (OmlMBufferEx* mbuf)
+mbuf_reset_read (MBuffer* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
@@ -441,7 +441,7 @@ mbuf_reset_read (OmlMBufferEx* mbuf)
 }
 
 int
-mbuf_consume_message (OmlMBufferEx* mbuf)
+mbuf_consume_message (MBuffer* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
@@ -458,7 +458,7 @@ mbuf_consume_message (OmlMBufferEx* mbuf)
 }
 
 int
-mbuf_repack (OmlMBufferEx* mbuf)
+mbuf_repack (MBuffer* mbuf)
 {
   mbuf_check_invariant (mbuf);
 
@@ -477,7 +477,7 @@ mbuf_repack (OmlMBufferEx* mbuf)
 
 // Preserve the rdptr relative to the msgptr
 int
-mbuf_repack_message (OmlMBufferEx* mbuf)
+mbuf_repack_message (MBuffer* mbuf)
 {
   mbuf_check_invariant (mbuf);
 

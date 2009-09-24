@@ -37,7 +37,7 @@ START_TEST (test_mbuf_create)
 
   free (buf);
 
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
 
   fail_if (mbuf == NULL);
   fail_if (mbuf->base == NULL);
@@ -55,21 +55,21 @@ END_TEST
 
 START_TEST (test_mbuf_buffer)
 {
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   fail_if (mbuf_buffer (mbuf) != mbuf->base);
 }
 END_TEST
 
 START_TEST (test_mbuf_length)
 {
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   fail_if (mbuf_length (mbuf) != mbuf->length);
 }
 END_TEST
 
 START_TEST (test_mbuf_resize)
 {
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   size_t length_1 = mbuf_length (mbuf);
 
@@ -100,7 +100,7 @@ END_TEST
 START_TEST (test_mbuf_resize_contents)
 {
   uint8_t s[8192];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   size_t length_1 = mbuf_length (mbuf);
 
@@ -152,7 +152,7 @@ static const char* test_strings [] =
 START_TEST (test_mbuf_write)
 {
   char s[8192];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   unsigned int i = 0;
   size_t n = 0;
@@ -226,7 +226,7 @@ END_TEST
 START_TEST (test_mbuf_write_null)
 {
   char s[] = "abc";
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   memset (s, 0, sizeof (s));
 
@@ -244,7 +244,7 @@ END_TEST
 START_TEST (test_mbuf_read)
 {
   char s[8192];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   unsigned int i = 0;
   size_t n = 0;
@@ -301,7 +301,7 @@ END_TEST
 START_TEST (test_mbuf_read_null)
 {
   char s[8192];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   unsigned int i = 0;
   size_t length = mbuf_length (mbuf);
@@ -327,7 +327,7 @@ END_TEST
 START_TEST (test_mbuf_begin_read)
 {
   char s[8192];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   unsigned int i = 0;
   memset (s, 0, sizeof (s));
@@ -355,7 +355,7 @@ END_TEST
 START_TEST (test_mbuf_begin_write)
 {
   char s[8192];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   unsigned int i = 0;
   memset (s, 0, sizeof (s));
@@ -376,7 +376,7 @@ START_TEST (test_mbuf_reset_read)
 {
   char s[4096];
   char t[4096];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   unsigned int i = 0;
   size_t n = 0;
@@ -424,7 +424,7 @@ END_TEST
 START_TEST (test_mbuf_reset_write)
 {
   char s[4096];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   unsigned int i = 0;
   memset (s, 0, sizeof (s));
@@ -453,7 +453,7 @@ START_TEST (test_mbuf_consume_message)
 {
   char s[4096];
   char t[4096];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   unsigned int i = 0;
   memset (s, 0, sizeof (s));
@@ -501,7 +501,7 @@ START_TEST (test_mbuf_repack)
 {
   char s[4096];
   char t[4096];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   unsigned int i = 0;
   size_t n = 0;
@@ -554,7 +554,7 @@ START_TEST (test_mbuf_repack_message)
 {
   char s[4096];
   char t[4096];
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   int result = 0;
   unsigned int i = 0;
   size_t n = 0;

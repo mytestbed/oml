@@ -78,8 +78,8 @@ find_sync (unsigned char* buf, int len)
  * \param packet_type
  * \return
  */
-OmlMBufferEx*
-marshall_init(OmlMBufferEx*  mbuf, OmlMsgType  packet_type)
+MBuffer*
+marshall_init(MBuffer*  mbuf, OmlMsgType  packet_type)
 {
   uint8_t buf[PACKET_HEADER_SIZE] = { SYNC_BYTE, SYNC_BYTE, packet_type, 0, 0 };
   int result;
@@ -112,7 +112,7 @@ marshall_init(OmlMBufferEx*  mbuf, OmlMsgType  packet_type)
  * \return 1 if successful
  */
 int
-marshall_measurements(OmlMBufferEx* mbuf, int stream, int seqno, double now)
+marshall_measurements(MBuffer* mbuf, int stream, int seqno, double now)
 {
   OmlValueU v;
   uint8_t s[2] = { 0, (uint8_t)stream };
@@ -143,7 +143,7 @@ marshall_measurements(OmlMBufferEx* mbuf, int stream, int seqno, double now)
  * \return 1 when finished
  */
 int
-marshall_values(OmlMBufferEx* mbuf, OmlValue* values, int value_count)
+marshall_values(MBuffer* mbuf, OmlValue* values, int value_count)
 {
   OmlValue* val = values;
   int i;
@@ -165,7 +165,7 @@ marshall_values(OmlMBufferEx* mbuf, OmlValue* values, int value_count)
  * \return 1 if successful, 0 otherwise
  */
 inline int
-marshall_value(OmlMBufferEx* mbuf, OmlValueT val_type, OmlValueU* val)
+marshall_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 {
   switch (val_type) {
   case OML_LONG_VALUE: {
@@ -264,7 +264,7 @@ marshall_value(OmlMBufferEx* mbuf, OmlValueT val_type, OmlValueU* val)
  * \return 1 when finished
  */
 int
-marshall_finalize(OmlMBufferEx*  mbuf)
+marshall_finalize(MBuffer*  mbuf)
 {
   uint8_t* buf = mbuf_message (mbuf);
 
@@ -292,7 +292,7 @@ marshall_finalize(OmlMBufferEx*  mbuf)
  * \return It returns 1 if everything is fine. If the buffer is too short it returns the size of the missing section as a negative number.
  */
 int
-unmarshall_init(OmlMBufferEx* mbuf, OmlBinaryHeader* header)
+unmarshall_init(MBuffer* mbuf, OmlBinaryHeader* header)
 {
   uint8_t header_str[PACKET_HEADER_SIZE];
   uint8_t stream_header_str[STREAM_HEADER_SIZE];
@@ -362,7 +362,7 @@ unmarshall_init(OmlMBufferEx* mbuf, OmlBinaryHeader* header)
  */
 int
 unmarshall_measurements(
-  OmlMBufferEx* mbuf,
+  MBuffer* mbuf,
   OmlBinaryHeader* header,
   OmlValue*   values,
   int         max_value_count
@@ -379,7 +379,7 @@ unmarshall_measurements(
  */
 int
 unmarshall_values(
-  OmlMBufferEx*  mbuf,
+  MBuffer*  mbuf,
   OmlBinaryHeader* header,
   OmlValue*    values,
   int          max_value_count
@@ -420,7 +420,7 @@ unmarshall_values(
  */
 int
 unmarshall_value(
-  OmlMBufferEx*  mbuf,
+  MBuffer*  mbuf,
   OmlValue*    value
 ) {
   if (mbuf_remaining(mbuf) == 0)
@@ -508,7 +508,7 @@ unmarshall_value(
 }
 
 int
-unmarshal_typed_value (OmlMBufferEx* mbuf, const char* name, OmlValueT type, OmlValue* value)
+unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue* value)
 {
   if (unmarshall_value (mbuf, value) != 1)
 	{

@@ -164,8 +164,8 @@ static char* string_values [] =
 
 START_TEST (test_marshall_init)
 {
-  OmlMBufferEx* mbuf = mbuf_create ();
-  OmlMBufferEx* result = marshall_init (mbuf, OMB_DATA_P);
+  MBuffer* mbuf = mbuf_create ();
+  MBuffer* result = marshall_init (mbuf, OMB_DATA_P);
 
   fail_if (mbuf != result);
   fail_unless (mbuf->base[0] == 0xAA);
@@ -176,8 +176,8 @@ END_TEST
 
 START_TEST (test_marshall_value_long)
 {
-  OmlMBufferEx* mbuf = mbuf_create ();
-  OmlMBufferEx* pmbuf = marshall_init (mbuf, OMB_DATA_P);
+  MBuffer* mbuf = mbuf_create ();
+  MBuffer* pmbuf = marshall_init (mbuf, OMB_DATA_P);
 
   fail_if (mbuf != pmbuf);
   fail_if (mbuf->base == NULL);
@@ -199,8 +199,8 @@ END_TEST
 
 START_TEST (test_marshall_value_double)
 {
-  OmlMBufferEx* mbuf = mbuf_create ();
-  OmlMBufferEx* pmbuf = marshall_init (mbuf, OMB_DATA_P);
+  MBuffer* mbuf = mbuf_create ();
+  MBuffer* pmbuf = marshall_init (mbuf, OMB_DATA_P);
 
   fail_if (mbuf != pmbuf);
   fail_if (mbuf->base == NULL);
@@ -234,8 +234,8 @@ unsigned char string_buf[MAX_MARSHALLED_STRING_LENGTH * 2];
 
 START_TEST (test_marshall_value_string)
 {
-  OmlMBufferEx* mbuf = mbuf_create ();
-  OmlMBufferEx* pmbuf = marshall_init (mbuf, OMB_DATA_P);
+  MBuffer* mbuf = mbuf_create ();
+  MBuffer* pmbuf = marshall_init (mbuf, OMB_DATA_P);
 
   fail_if (mbuf != pmbuf);
   fail_if (mbuf->base == NULL);
@@ -282,7 +282,7 @@ START_TEST (test_marshall_unmarshall_long)
   const int UINT32_SIZE = sizeof (uint32_t);
   int result;
 
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   result = marshall_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
@@ -345,7 +345,7 @@ START_TEST (test_marshall_unmarshall_double)
   const int DOUBLE_MANT_SIZE = sizeof (int32_t);
   int result;
 
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   result = marshall_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
@@ -412,7 +412,7 @@ START_TEST (test_marshall_unmarshall_string)
   int result;
   char string[MAX_MARSHALLED_STRING_LENGTH + 16];
 
-  OmlMBufferEx* mbuf = mbuf_create ();
+  MBuffer* mbuf = mbuf_create ();
   result = marshall_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);

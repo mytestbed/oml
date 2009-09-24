@@ -46,41 +46,41 @@ struct _omlBinaryHeader
 
 int
 marshall_measurements(
-  OmlMBufferEx* mbuf,
+  MBuffer* mbuf,
   int         stream,
   int         seqno,
   double      now
 );
 
-OmlMBufferEx*
+MBuffer*
 marshall_init(
-  OmlMBufferEx* mbuf,
+  MBuffer* mbuf,
   OmlMsgType packet_type
 );
 
 int
 marshall_values(
-  OmlMBufferEx*    mbuffer,
+  MBuffer*    mbuffer,
   OmlValue*      values,       //! type of sample
   int            value_count  //! size of above array
 );
 
-inline int marshall_value(OmlMBufferEx* mbuf, OmlValueT val_type,  OmlValueU* val);
+inline int marshall_value(MBuffer* mbuf, OmlValueT val_type,  OmlValueU* val);
 
 int
 marshall_finalize(
-  OmlMBufferEx*  mbuf
+  MBuffer*  mbuf
 );
 
 int
 unmarshall_init(
-  OmlMBufferEx*  mbuf,
+  MBuffer*  mbuf,
   OmlBinaryHeader* header
 );
 
 int
 unmarshall_measurements(
-  OmlMBufferEx* mbuf,
+  MBuffer* mbuf,
   OmlBinaryHeader* header,
   OmlValue*   values,          //! measurement values
   int         max_value_count  //! max. length of above array
@@ -88,7 +88,7 @@ unmarshall_measurements(
 
 int
 unmarshall_values(
-    OmlMBufferEx*  mbuffer,
+    MBuffer*  mbuffer,
 	OmlBinaryHeader* header,
     OmlValue*    values,       //! type of sample
     int          max_value_count  //! max. length of above array
@@ -96,12 +96,12 @@ unmarshall_values(
 
 int
 unmarshall_value(
-  OmlMBufferEx*  mbuffer,
+  MBuffer*  mbuffer,
   OmlValue*    value
 );
 
 int
-unmarshal_typed_value (OmlMBufferEx* mbuf, const char* name, OmlValueT type, OmlValue* value);
+unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue* value);
 
 unsigned char*
 find_sync (unsigned char* buf, int len);
