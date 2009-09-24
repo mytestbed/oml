@@ -34,9 +34,9 @@
 
 #define MAX_MARSHALLED_STRING_LENGTH 254
 
-static const int LONG_T = 0x1;  // marshall.c LONG_T
-static const int DOUBLE_T = 0x2;  // marshall.c DOUBLE_T
-static const int STRING_T = 0x4;  // marshall.c STRING_T
+static const int LONG_T = 0x1;  // marshal.c LONG_T
+static const int DOUBLE_T = 0x2;  // marshal.c DOUBLE_T
+static const int STRING_T = 0x4;  // marshal.c STRING_T
 
 static double double_values [] =
   {
@@ -162,10 +162,10 @@ static char* string_values [] =
   return fabs ((a - b) / a);
 }
 
-START_TEST (test_marshall_init)
+START_TEST (test_marshal_init)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* result = marshall_init (mbuf, OMB_DATA_P);
+  MBuffer* result = marshal_init (mbuf, OMB_DATA_P);
 
   fail_if (mbuf != result);
   fail_unless (mbuf->base[0] == 0xAA);
@@ -174,17 +174,17 @@ START_TEST (test_marshall_init)
 }
 END_TEST
 
-START_TEST (test_marshall_value_long)
+START_TEST (test_marshal_value_long)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* pmbuf = marshall_init (mbuf, OMB_DATA_P);
+  MBuffer* pmbuf = marshal_init (mbuf, OMB_DATA_P);
 
   fail_if (mbuf != pmbuf);
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
   v.longValue = long_values[_i];
-  int result = marshall_value (mbuf, OML_LONG_VALUE, &v);
+  int result = marshal_value (mbuf, OML_LONG_VALUE, &v);
 
   uint32_t nv = 0;
   memcpy (&nv, mbuf->base + 6, 4);
@@ -197,10 +197,10 @@ START_TEST (test_marshall_value_long)
 }
 END_TEST
 
-START_TEST (test_marshall_value_double)
+START_TEST (test_marshal_value_double)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* pmbuf = marshall_init (mbuf, OMB_DATA_P);
+  MBuffer* pmbuf = marshal_init (mbuf, OMB_DATA_P);
 
   fail_if (mbuf != pmbuf);
   fail_if (mbuf->base == NULL);
@@ -211,7 +211,7 @@ START_TEST (test_marshall_value_double)
   double dmant = frexp (v.doubleValue, &iexp) * (1 << 30);
   int32_t imant = (int32_t)dmant;
 
-  int result = marshall_value (mbuf, OML_DOUBLE_VALUE, &v);
+  int result = marshal_value (mbuf, OML_DOUBLE_VALUE, &v);
 
   uint8_t type = mbuf->base[5];
   uint32_t nv = 0;
@@ -232,10 +232,10 @@ END_TEST
 
 unsigned char string_buf[MAX_MARSHALLED_STRING_LENGTH * 2];
 
-START_TEST (test_marshall_value_string)
+START_TEST (test_marshal_value_string)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* pmbuf = marshall_init (mbuf, OMB_DATA_P);
+  MBuffer* pmbuf = marshal_init (mbuf, OMB_DATA_P);
 
   fail_if (mbuf != pmbuf);
   fail_if (mbuf->base == NULL);
@@ -248,7 +248,7 @@ START_TEST (test_marshall_value_string)
   v.stringValue.size = len;
   v.stringValue.length = len + 1; // Underlying storage.
 
-  int result = marshall_value (mbuf, OML_STRING_VALUE, &v);
+  int result = marshal_value (mbuf, OML_STRING_VALUE, &v);
 
   fail_if (result != 1);
   fail_if (mbuf->base[5] != 0x4); // STRING_T
@@ -273,7 +273,7 @@ START_TEST (test_marshall_value_string)
 }
 END_TEST
 
-START_TEST (test_marshall_unmarshall_long)
+START_TEST (test_marshal_unmarshal_long)
 {
   int VALUES_OFFSET = 5;
   const int UINT32_LENGTH = 5;
@@ -283,7 +283,7 @@ START_TEST (test_marshall_unmarshall_long)
   int result;
 
   MBuffer* mbuf = mbuf_create ();
-  result = marshall_measurements (mbuf, 42, 43, 42.0);
+  result = marshal_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
   fail_if (result == -1);
@@ -295,7 +295,7 @@ START_TEST (test_marshall_unmarshall_long)
 	{
 	  OmlValueU v;
 	  v.longValue = long_values[i];
-	  int result = marshall_value (mbuf, OML_LONG_VALUE, &v);
+	  int result = marshal_value (mbuf, OML_LONG_VALUE, &v);
 
 	  uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * UINT32_LENGTH];
 	  int type =  buf[UINT32_TYPE_OFFSET];
@@ -311,10 +311,10 @@ START_TEST (test_marshall_unmarshall_long)
 	  fail_if (val != v.longValue);
 	}
 
-  marshall_finalize (mbuf);
+  marshal_finalize (mbuf);
 
   OmlBinaryHeader header;
-  result = unmarshall_init (mbuf, &header);
+  result = unmarshal_init (mbuf, &header);
   fail_if (result == -1);
 
   //  mbuf->rdptr = mbuf->base + VALUES_OFFSET; // Kludge!
@@ -325,7 +325,7 @@ START_TEST (test_marshall_unmarshall_long)
 	{
 	  OmlValue value;
 
-	  unmarshall_value (mbuf, &value);
+	  unmarshal_value (mbuf, &value);
 
 	  fail_unless (value.type == OML_LONG_VALUE);
 	  fail_unless (value.value.longValue == long_values[i],
@@ -335,7 +335,7 @@ START_TEST (test_marshall_unmarshall_long)
 }
 END_TEST
 
-START_TEST (test_marshall_unmarshall_double)
+START_TEST (test_marshal_unmarshal_double)
 {
   int VALUES_OFFSET = 5;
   const int DOUBLE_LENGTH = 6;
@@ -346,7 +346,7 @@ START_TEST (test_marshall_unmarshall_double)
   int result;
 
   MBuffer* mbuf = mbuf_create ();
-  result = marshall_measurements (mbuf, 42, 43, 42.0);
+  result = marshal_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
   fail_if (result == -1);
@@ -358,7 +358,7 @@ START_TEST (test_marshall_unmarshall_double)
 	{
 	  OmlValueU v;
 	  v.doubleValue = double_values[i];
-	  result = marshall_value (mbuf, OML_DOUBLE_VALUE, &v);
+	  result = marshal_value (mbuf, OML_DOUBLE_VALUE, &v);
 
 	  uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * DOUBLE_LENGTH];
 	  int type =  buf[DOUBLE_TYPE_OFFSET];
@@ -380,10 +380,10 @@ START_TEST (test_marshall_unmarshall_double)
 			   val, v.doubleValue);
 	}
 
-  marshall_finalize (mbuf);
+  marshal_finalize (mbuf);
 
   OmlBinaryHeader header;
-  unmarshall_init (mbuf, &header);
+  unmarshal_init (mbuf, &header);
 
   //  umbuf.curr_p = umbuf.buffer + VALUES_OFFSET; // Kludge!
 
@@ -393,7 +393,7 @@ START_TEST (test_marshall_unmarshall_double)
 	{
 	  OmlValue value;
 
-	  unmarshall_value (mbuf, &value);
+	  unmarshal_value (mbuf, &value);
 
 	  fail_unless (value.type == OML_DOUBLE_VALUE);
 	  fail_unless (relative_error (value.value.doubleValue, double_values[i]) < EPSILON,
@@ -403,7 +403,7 @@ START_TEST (test_marshall_unmarshall_double)
 }
 END_TEST
 
-START_TEST (test_marshall_unmarshall_string)
+START_TEST (test_marshal_unmarshal_string)
 {
   int VALUES_OFFSET = 5;
   const int STRING_TYPE_OFFSET = 0;
@@ -413,7 +413,7 @@ START_TEST (test_marshall_unmarshall_string)
   char string[MAX_MARSHALLED_STRING_LENGTH + 16];
 
   MBuffer* mbuf = mbuf_create ();
-  result = marshall_measurements (mbuf, 42, 43, 42.0);
+  result = marshal_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
   fail_if (result == -1);
@@ -431,7 +431,7 @@ START_TEST (test_marshall_unmarshall_string)
 	  v.stringValue.size = strlen (string_values[i]);
 	  v.stringValue.length = v.stringValue.size + 1; // Underlying storage.
 
-	  result = marshall_value (mbuf, OML_STRING_VALUE, &v);
+	  result = marshal_value (mbuf, OML_STRING_VALUE, &v);
 
 	  uint8_t* buf = &mbuf->base[current_index];
 	  int type =  buf[STRING_TYPE_OFFSET];
@@ -462,10 +462,10 @@ START_TEST (test_marshall_unmarshall_string)
 	  current_index += len + 2;
 	}
 
-  marshall_finalize (mbuf);
+  marshal_finalize (mbuf);
 
   OmlBinaryHeader header;
-  unmarshall_init (mbuf, &header);
+  unmarshal_init (mbuf, &header);
 
   //  umbuf.curr_p = umbuf.buffer + VALUES_OFFSET; // Kludge!
 
@@ -475,7 +475,7 @@ START_TEST (test_marshall_unmarshall_string)
 	{
 	  OmlValue value;
 
-	  unmarshall_value (mbuf, &value);
+	  unmarshal_value (mbuf, &value);
 
 	  fail_unless (value.type == OML_STRING_VALUE);
 
@@ -501,24 +501,24 @@ END_TEST
 
 
 Suite*
-marshall_suite (void)
+marshal_suite (void)
 {
-  Suite* s = suite_create ("Marshall");
+  Suite* s = suite_create ("Marshal");
 
   /* Marshalling test cases */
-  TCase* tc_marshall = tcase_create ("Marshall");
+  TCase* tc_marshal = tcase_create ("Marshal");
 
-  /* Add tests to "Marshall" */
-  tcase_add_test (tc_marshall, test_marshall_init);
-  tcase_add_loop_test (tc_marshall, test_marshall_value_long,   0, LENGTH (long_values));
-  tcase_add_loop_test (tc_marshall, test_marshall_value_double, 0, LENGTH (double_values));
-  tcase_add_loop_test (tc_marshall, test_marshall_value_string, 0, LENGTH (string_values));
+  /* Add tests to "Marshal" */
+  tcase_add_test (tc_marshal, test_marshal_init);
+  tcase_add_loop_test (tc_marshal, test_marshal_value_long,   0, LENGTH (long_values));
+  tcase_add_loop_test (tc_marshal, test_marshal_value_double, 0, LENGTH (double_values));
+  tcase_add_loop_test (tc_marshal, test_marshal_value_string, 0, LENGTH (string_values));
 
-  tcase_add_test (tc_marshall, test_marshall_unmarshall_long);
-  tcase_add_test (tc_marshall, test_marshall_unmarshall_double);
-  tcase_add_test (tc_marshall, test_marshall_unmarshall_string);
+  tcase_add_test (tc_marshal, test_marshal_unmarshal_long);
+  tcase_add_test (tc_marshal, test_marshal_unmarshal_double);
+  tcase_add_test (tc_marshal, test_marshal_unmarshal_string);
 
-  suite_add_tcase (s, tc_marshall);
+  suite_add_tcase (s, tc_marshal);
 
   return s;
 }

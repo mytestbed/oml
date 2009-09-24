@@ -28,7 +28,7 @@
 extern Suite* filters_suite (void);
 extern Suite* api_suite (void);
 extern Suite* parser_suite (void);
-extern Suite* marshall_suite (void);
+extern Suite* marshal_suite (void);
 extern Suite* mbuf_suite (void);
 
 #endif /* CHECK_LIBOML2_SUITES_H__ */

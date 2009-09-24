@@ -207,7 +207,7 @@ header_done(
 
 /**
  * \fn static int out(OmlWriter* writer, OmlValue*  values, int value_count)
- * \brief marshallize and then transfer the values
+ * \brief marshal and then transfer the values
  * \param writer pointer to writer instance
  * \param values type of sample
  * \param value_count size of above array
@@ -223,7 +223,7 @@ out(
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
 
-  int cnt = marshall_values(self->mbuf, values, value_count);
+  int cnt = marshal_values(self->mbuf, values, value_count);
   return cnt == value_count;
 }
 
@@ -245,7 +245,7 @@ row_start(
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
 
-  marshall_measurements(self->mbuf, ms->index, ms->seq_no, now);
+  marshal_measurements(self->mbuf, ms->index, ms->seq_no, now);
   return 1;
 }
 
@@ -266,7 +266,7 @@ row_end(
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
 
-  marshall_finalize(self->mbuf);
+  marshal_finalize(self->mbuf);
   int len = mbuf_message_length (self->mbuf);
   o_log(O_LOG_DEBUG, "Sending message of size '%d'\n", len);
   int result = socket_sendto(self->socket, (char*)mbuf_buffer (self->mbuf), len);

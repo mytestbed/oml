@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  *
  */
-/*!\file marshall.c
+/*!\file marshal.c
   \brief Implements marhsalling and unmarshalling of basic types for transmission across the network.
 
 */
@@ -79,7 +79,7 @@ find_sync (unsigned char* buf, int len)
  * \return
  */
 MBuffer*
-marshall_init(MBuffer*  mbuf, OmlMsgType  packet_type)
+marshal_init(MBuffer*  mbuf, OmlMsgType  packet_type)
 {
   uint8_t buf[PACKET_HEADER_SIZE] = { SYNC_BYTE, SYNC_BYTE, packet_type, 0, 0 };
   int result;
@@ -112,11 +112,11 @@ marshall_init(MBuffer*  mbuf, OmlMsgType  packet_type)
  * \return 1 if successful
  */
 int
-marshall_measurements(MBuffer* mbuf, int stream, int seqno, double now)
+marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
 {
   OmlValueU v;
   uint8_t s[2] = { 0, (uint8_t)stream };
-  mbuf = marshall_init(mbuf, OMB_DATA_P);
+  mbuf = marshal_init(mbuf, OMB_DATA_P);
   int result = mbuf_write (mbuf, s, LENGTH (s));
 
   if (result == -1)
@@ -127,29 +127,29 @@ marshall_measurements(MBuffer* mbuf, int stream, int seqno, double now)
 	}
 
   v.longValue = seqno;
-  marshall_value(mbuf, OML_LONG_VALUE, &v);
+  marshal_value(mbuf, OML_LONG_VALUE, &v);
 
   v.doubleValue = now;
-  marshall_value(mbuf, OML_DOUBLE_VALUE, &v);
+  marshal_value(mbuf, OML_DOUBLE_VALUE, &v);
 
-  return marshall_finalize(mbuf);
+  return marshal_finalize(mbuf);
 }
 
 /**
- * \brief Marshall the array of +values+ into +buffer+ and return the size of the buffer used. If the returned number is negative marshalling didn't finish as the provided buffer was short of the number of bytes returned (when multiplied by -1).
+ * \brief Marshal the array of +values+ into +buffer+ and return the size of the buffer used. If the returned number is negative marshalling didn't finish as the provided buffer was short of the number of bytes returned (when multiplied by -1).
  * \param mbuf
  * \param values
  * \param value_count
  * \return 1 when finished
  */
 int
-marshall_values(MBuffer* mbuf, OmlValue* values, int value_count)
+marshal_values(MBuffer* mbuf, OmlValue* values, int value_count)
 {
   OmlValue* val = values;
   int i;
 
   for (i = 0; i < value_count; i++, val++) {
-    marshall_value(mbuf, val->type, &val->value);
+    marshal_value(mbuf, val->type, &val->value);
   }
 
   uint8_t* buf = mbuf_message (mbuf);
@@ -165,7 +165,7 @@ marshall_values(MBuffer* mbuf, OmlValue* values, int value_count)
  * \return 1 if successful, 0 otherwise
  */
 inline int
-marshall_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
+marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 {
   switch (val_type) {
   case OML_LONG_VALUE: {
@@ -264,7 +264,7 @@ marshall_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
  * \return 1 when finished
  */
 int
-marshall_finalize(MBuffer*  mbuf)
+marshal_finalize(MBuffer*  mbuf)
 {
   uint8_t* buf = mbuf_message (mbuf);
 
@@ -292,7 +292,7 @@ marshall_finalize(MBuffer*  mbuf)
  * \return It returns 1 if everything is fine. If the buffer is too short it returns the size of the missing section as a negative number.
  */
 int
-unmarshall_init(MBuffer* mbuf, OmlBinaryHeader* header)
+unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
 {
   uint8_t header_str[PACKET_HEADER_SIZE];
   uint8_t stream_header_str[STREAM_HEADER_SIZE];
@@ -361,24 +361,24 @@ unmarshall_init(MBuffer* mbuf, OmlBinaryHeader* header)
  * \return 1 if successful, 0 otherwise
  */
 int
-unmarshall_measurements(
+unmarshal_measurements(
   MBuffer* mbuf,
   OmlBinaryHeader* header,
   OmlValue*   values,
   int         max_value_count
 ) {
-  return unmarshall_values(mbuf, header, values, max_value_count);
+  return unmarshal_values(mbuf, header, values, max_value_count);
 }
 
 /**
- * \brief Unmarshalls the content of +buffer+ into an array of +values+ whose max. allocated size is +value_count+.
+ * \brief Unmarshals the content of +buffer+ into an array of +values+ whose max. allocated size is +value_count+.
  * \param mbuffer
  * \param values type of sample
  * \param max_value_count max. length of above array
  * \return the number of values found. If the returned number is negative, there were more values in the buffer. The number (when multiplied by -1) indicates  by how much the +values+ array should be extended. If the number is less then -100, it indicates an error.
  */
 int
-unmarshall_values(
+unmarshal_values(
   MBuffer*  mbuf,
   OmlBinaryHeader* header,
   OmlValue*    values,
@@ -404,8 +404,8 @@ unmarshall_values(
   OmlValue* val = values;
    //o_log(O_LOG_DEBUG, "value to analyse'%d'\n", value_count);
   for (i = 0; i < value_count; i++, val++) {
-    if (unmarshall_value(mbuf, val) == 0) {
-	  o_log (O_LOG_WARN, "Some kind of ERROR in unmarshall_value() call\n");
+    if (unmarshal_value(mbuf, val) == 0) {
+	  o_log (O_LOG_WARN, "Some kind of ERROR in unmarshal_value() call\n");
       return -1;
     }
   }
@@ -419,13 +419,13 @@ unmarshall_values(
  * \return 1 if successful, 0 otherwise
  */
 int
-unmarshall_value(
+unmarshal_value(
   MBuffer*  mbuf,
   OmlValue*    value
 ) {
   if (mbuf_remaining(mbuf) == 0)
 	{
-	  o_log(O_LOG_ERROR, "Tried to unmarshall a value from the buffer, but didn't receive enough data to do that\n");
+	  o_log(O_LOG_ERROR, "Tried to unmarshal a value from the buffer, but didn't receive enough data to do that\n");
 	  return 0;
 	}
 
@@ -510,7 +510,7 @@ unmarshall_value(
 int
 unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue* value)
 {
-  if (unmarshall_value (mbuf, value) != 1)
+  if (unmarshal_value (mbuf, value) != 1)
 	{
 	  o_log (O_LOG_ERROR, "Error reading %s from binary packet\n", name);
 	  return -1;
@@ -529,12 +529,12 @@ unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue
 
 
 ///**
-// * \fn int oml_marshall_test()
+// * \fn int oml_marshal_test()
 // * \brief Test function of the marshalling library
 // * \return 1 when finished
 // */
 //int
-//oml_marshall_test()
+//oml_marshal_test()
 
 //{
 //  OmlValue in_values[5];
@@ -559,22 +559,22 @@ unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue
 //  in.value.longValue = -123456789;
 //  memset((void*)&buf, 0, sizeof(OmlMBuffer));
 //  buf.curr_p = buf.buffer;
-//  marshall_value(&buf, in.type, &in.value);
+//  marshal_value(&buf, in.type, &in.value);
 //  memset((void*)&out, 0, sizeof(OmlValue));
 //  buf.curr_p = buf.buffer;
-//  int res = unmarshall_value(&buf, &out);
+//  int res = unmarshal_value(&buf, &out);
 //  if (out.type != in.type || in.value.longValue != out.value.longValue) {
-//    printf("Failed marshall long value %d\n", in.value.longValue);
+//    printf("Failed marshal long value %d\n", in.value.longValue);
 //  }
 //  in.value.longValue = 123456789;
 //  memset((void*)&buf, 0, sizeof(OmlMBuffer));
 //  buf.curr_p = buf.buffer;
-//  marshall_value(&buf, in.type, &in.value);
+//  marshal_value(&buf, in.type, &in.value);
 //  memset((void*)&out, 0, sizeof(OmlValue));
 //  buf.curr_p = buf.buffer;
-//  res = unmarshall_value(&buf, &out);
+//  res = unmarshal_value(&buf, &out);
 //  if (out.type != in.type || in.value.longValue != out.value.longValue) {
-//    printf("Failed marshall long value %d\n", in.value.longValue);
+//    printf("Failed marshal long value %d\n", in.value.longValue);
 //  }
 //
 //  // DOUBLE
@@ -582,45 +582,45 @@ unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue
 //  in.value.doubleValue = -0.12345e12;
 //  memset((void*)&buf, 0, sizeof(OmlMBuffer));
 //  buf.curr_p = buf.buffer;
-//  marshall_value(&buf, in.type, &in.value);
+//  marshal_value(&buf, in.type, &in.value);
 //  memset((void*)&out, 0, sizeof(OmlValue));
 //  buf.curr_p = buf.buffer;
-//  res = unmarshall_value(&buf, &out);
+//  res = unmarshal_value(&buf, &out);
 //  double err = (in.value.doubleValue - out.value.doubleValue) /  out.value.doubleValue;
 //  if (out.type != in.type || !(err < 0.0001 && err > -0.0001)) {
-//    printf("Failed marshall double value %f\n", in.value.doubleValue);
+//    printf("Failed marshal double value %f\n", in.value.doubleValue);
 //  }
 //
 //  in.value.doubleValue = 1.0e-34;
 //  memset((void*)&buf, 0, sizeof(OmlMBuffer));
 //  buf.curr_p = buf.buffer;
-//  marshall_value(&buf, in.type, &in.value);
+//  marshal_value(&buf, in.type, &in.value);
 //  memset((void*)&out, 0, sizeof(OmlValue));
 //  buf.curr_p = buf.buffer;
-//  res = unmarshall_value(&buf, &out);
+//  res = unmarshal_value(&buf, &out);
 //  err = (in.value.doubleValue - out.value.doubleValue) /  out.value.doubleValue;
 //  if (out.type != in.type || !(err < 0.0001 && err > -0.0001)) {
-//    printf("Failed marshall double value %f\n", in.value.doubleValue);
+//    printf("Failed marshal double value %f\n", in.value.doubleValue);
 //  }
 //
 //  in.value.doubleValue = 1.2345;
 //  memset((void*)&buf, 0, sizeof(OmlMBuffer));
 //  buf.curr_p = buf.buffer;
-//  marshall_value(&buf, in.type, &in.value);
+//  marshal_value(&buf, in.type, &in.value);
 //  memset((void*)&out, 0, sizeof(OmlValue));
 //  buf.curr_p = buf.buffer;
-//  res = unmarshall_value(&buf, &out);
+//  res = unmarshal_value(&buf, &out);
 //  err = (in.value.doubleValue - out.value.doubleValue) /  out.value.doubleValue;
 //  if (out.type != in.type || !(err < 0.0001 && err > -0.0001)) {
-//    printf("Failed marshall double value %f\n", in.value.doubleValue);
+//    printf("Failed marshal double value %f\n", in.value.doubleValue);
 //  }
 //
-//  //  int res1 = marshall_values(&buf, in_values, 3);
+//  //  int res1 = marshal_values(&buf, in_values, 3);
 ////  o_log(O_LOG_INFO, "Result: %d\n", res1);
 ////
 ////  OmlValue out_values[5];
 ////  buf.curr_p = buf.message_start = buf.buffer; buf.buffer_remaining = buf.buffer_length;
-////  int res2 = unmarshall_values(&buf, out_values, 5);
+////  int res2 = unmarshal_values(&buf, out_values, 5);
 ////  o_log(O_LOG_INFO, "Result: %d\n", res2);
 //
 //  buf.curr_p = buf.buffer; buf.buffer_remaining = buf.buffer_length;
@@ -628,22 +628,22 @@ unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue
 //  OmlMP mp;
 //  ms.mp = &mp;
 //  ms.index = 1; ms.seq_no = 99; mp.param_count = 3;
-//  marshall_measurements(&buf, &ms, 2.3);
-//  int res3 = marshall_values(&buf, in_values, 3);
-//  marshall_finalize(&buf);
+//  marshal_measurements(&buf, &ms, 2.3);
+//  int res3 = marshal_values(&buf, in_values, 3);
+//  marshal_finalize(&buf);
 //  o_log(O_LOG_INFO, "Result: %d\n", res3);
 //
 //  buf.buffer_fill = (buf.curr_p - buf.buffer);
 //  buf.curr_p = buf.buffer; buf.buffer_remaining = buf.buffer_length;
 //
 //  OmlMsgType type;
-//  unmarshall_init(&buf, &type);
+//  unmarshal_init(&buf, &type);
 //
 //  OmlValue out_values2[5];
 //  int      index;
 //  int      seq_no;
 //  double   ts;
-//  int res4 = unmarshall_measurements(&buf, &index, &seq_no, &ts, out_values2, 5);
+//  int res4 = unmarshal_measurements(&buf, &index, &seq_no, &ts, out_values2, 5);
 //  o_log(O_LOG_INFO, "Result: %d\n", res4);
 //
 //
@@ -657,18 +657,18 @@ unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue
 // * \param
 // * \return
 // */
-//#ifdef MARSHALL_TEST
+//#ifdef MARSHAL_TEST
 //void
 //main(
 //  char** argv,
 //  int argc
 //) {
-//  oml_marshall_test();
+//  oml_marshal_test();
 //}
 //#endif
 //  OmlValue out_values[5];
 //  buf.curr_p = buf.message_start = buf.buffer; buf.buffer_remaining = buf.buffer_length;
-//  int res2 = unmarshall_values(&buf, out_values, 5);
+//  int res2 = unmarshal_values(&buf, out_values, 5);
 //  o_log(O_LOG_INFO, "Result: %d\n", res2);
 
 /*

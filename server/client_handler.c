@@ -312,9 +312,9 @@ process_bin_data_message(
   OmlBinaryHeader* header
 ) {
   MBuffer* mbuf = self->mbuf;
-  int cnt = unmarshall_measurements(mbuf, header, self->values, self->value_count);
+  int cnt = unmarshal_measurements(mbuf, header, self->values, self->value_count);
 
-  /* Some error occurred in unmarshalling; can't continue */
+  /* Some error occurred in unmarshaling; can't continue */
   if (cnt < 0)
 	return;
 
@@ -370,7 +370,7 @@ process_bin_message(
   o_log (O_LOG_DEBUG, "Received %d octets (sync at %d)\n", mbuf->fill, sync_pos);
   free (octets_str);
 
-  int res = unmarshall_init(mbuf, &header);
+  int res = unmarshal_init(mbuf, &header);
   //  int res = -1;
   if (res == 0) {
     o_log(O_LOG_ERROR, "An error occurred while reading binary message header\n");

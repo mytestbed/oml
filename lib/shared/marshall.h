@@ -20,8 +20,8 @@
  * THE SOFTWARE.
  *
  */
-#ifndef MARSHALL_H_
-#define MARSHALL_H_
+#ifndef MARSHAL_H_
+#define MARSHAL_H_
 
 #include <oml2/omlc.h>
 #include "mbuf.h"
@@ -45,23 +45,23 @@ struct _omlBinaryHeader
 	double timestamp;
 };
 
-int marshall_measurements(MBuffer* mbuf, int stream, int seqno, double now);
-MBuffer* marshall_init(MBuffer* mbuf, OmlMsgType packet_type);
-int marshall_values(MBuffer* mbuffer, OmlValue* values, int value_count);
-inline int marshall_value(MBuffer* mbuf, OmlValueT val_type,  OmlValueU* val);
-int marshall_finalize(MBuffer*  mbuf);
+int marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now);
+MBuffer* marshal_init(MBuffer* mbuf, OmlMsgType packet_type);
+int marshal_values(MBuffer* mbuffer, OmlValue* values, int value_count);
+inline int marshal_value(MBuffer* mbuf, OmlValueT val_type,  OmlValueU* val);
+int marshal_finalize(MBuffer*  mbuf);
 
-int unmarshall_init(MBuffer*  mbuf, OmlBinaryHeader* header);
-int unmarshall_measurements(MBuffer* mbuf, OmlBinaryHeader* header,
+int unmarshal_init(MBuffer*  mbuf, OmlBinaryHeader* header);
+int unmarshal_measurements(MBuffer* mbuf, OmlBinaryHeader* header,
 							OmlValue*  values, int max_value_count);
-int unmarshall_values(MBuffer*  mbuffer, OmlBinaryHeader* header,
+int unmarshal_values(MBuffer*  mbuffer, OmlBinaryHeader* header,
 					  OmlValue* values, int max_value_count);
-int unmarshall_value(MBuffer* mbuffer, OmlValue* value);
+int unmarshal_value(MBuffer* mbuffer, OmlValue* value);
 int unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue* value);
 
 unsigned char* find_sync (unsigned char* buf, int len);
 
-#endif /*MARSHALL_H_*/
+#endif /*MARSHAL_H_*/
 
 /*
  Local Variables:
