@@ -26,8 +26,9 @@
 #include <oml2/omlc.h>
 #include "mbuf.h"
 
-typedef enum _omPktType {
-  OMB_DATA_P = 0x1
+typedef enum _omPktType
+{
+	OMB_DATA_P = 0x1
 } OmlMsgType;
 
 struct _omBuffer;
@@ -44,67 +45,21 @@ struct _omlBinaryHeader
 	double timestamp;
 };
 
-int
-marshall_measurements(
-  MBuffer* mbuf,
-  int         stream,
-  int         seqno,
-  double      now
-);
-
-MBuffer*
-marshall_init(
-  MBuffer* mbuf,
-  OmlMsgType packet_type
-);
-
-int
-marshall_values(
-  MBuffer*    mbuffer,
-  OmlValue*      values,       //! type of sample
-  int            value_count  //! size of above array
-);
-
+int marshall_measurements(MBuffer* mbuf, int stream, int seqno, double now);
+MBuffer* marshall_init(MBuffer* mbuf, OmlMsgType packet_type);
+int marshall_values(MBuffer* mbuffer, OmlValue* values, int value_count);
 inline int marshall_value(MBuffer* mbuf, OmlValueT val_type,  OmlValueU* val);
+int marshall_finalize(MBuffer*  mbuf);
 
-int
-marshall_finalize(
-  MBuffer*  mbuf
-);
+int unmarshall_init(MBuffer*  mbuf, OmlBinaryHeader* header);
+int unmarshall_measurements(MBuffer* mbuf, OmlBinaryHeader* header,
+							OmlValue*  values, int max_value_count);
+int unmarshall_values(MBuffer*  mbuffer, OmlBinaryHeader* header,
+					  OmlValue* values, int max_value_count);
+int unmarshall_value(MBuffer* mbuffer, OmlValue* value);
+int unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue* value);
 
-int
-unmarshall_init(
-  MBuffer*  mbuf,
-  OmlBinaryHeader* header
-);
-
-int
-unmarshall_measurements(
-  MBuffer* mbuf,
-  OmlBinaryHeader* header,
-  OmlValue*   values,          //! measurement values
-  int         max_value_count  //! max. length of above array
-);
-
-int
-unmarshall_values(
-    MBuffer*  mbuffer,
-	OmlBinaryHeader* header,
-    OmlValue*    values,       //! type of sample
-    int          max_value_count  //! max. length of above array
-);
-
-int
-unmarshall_value(
-  MBuffer*  mbuffer,
-  OmlValue*    value
-);
-
-int
-unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue* value);
-
-unsigned char*
-find_sync (unsigned char* buf, int len);
+unsigned char* find_sync (unsigned char* buf, int len);
 
 #endif /*MARSHALL_H_*/
 
