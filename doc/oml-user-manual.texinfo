@@ -15,7 +15,7 @@ AUSTRALIA @*
 @titlepage
 @title OML User Manual
 @subtitle OML -- The OMF Measurement Library
-@subtitle For version 2.3.0, 20 July 2009
+@subtitle For version 2.4.0, 1 October 2009
 @author Jolyon White
 
 @c The following two commands start the copyright page
@@ -23,6 +23,8 @@ AUSTRALIA @*
 @vskip 0pt plus 1filll
 @insertcopying
 @end titlepage
+
+
 
 @c Output the table of contents at the beginning
 @contents
@@ -52,11 +54,13 @@ database on the machine hosting the server.  It is even possible to
 run experiments on network hosts that are sometimes disconnected,
 using the OML proxy server.
 
+
+
 @end ifnottex
 @menu
 * Introduction::                Introduction to OML.
-* Tutorial::                    A quickstart tutorial for getting up and running with OML.
-* Client::                      Using the client library.
+* Basic concepts of OML::
+* Client applications::
 * Server::                      Using the OML server and the OML proxy server.
 * Custom Filters::              How to design custom filters for use with OML.
 * Non-instrumented Applications::  How to use OML with third party programs when you don't have source code.
@@ -64,12 +68,18 @@ using the OML proxy server.
 * Measurement Database::        Querying the measurement database.
 
 
+* Server protocol::
 * Index::                       Index.
 
 @detailmenu
  --- The Detailed Node Listing ---
 
-Client
+Introduction
+
+* What is OML?::
+* Organization of this manual::
+
+Client application
 
 * Client configuration::        How to configure an OML client application
 
@@ -100,7 +110,7 @@ XML configuration
 * Data collectors::
 * Definining measurement points::  How to define what measurements to collect.
 * Defining filters::            How to create filters on each MP.
-* Example XML configuration::   An example XML configuration file.
+* Example XML configuration::
 
 Custom Filters
 
@@ -118,17 +128,114 @@ Bindings for other languages
 * Ruby::                        Bindings for Ruby
 * Python::                      Bindings for Python
 
+Server protocol
+
+* Protocol headers::
+* Binary measurement data::
+* Text measurement data::
+
+Protocol headers
+
+* Protocol::
+* app-name::
+* sender-id::
+* experiment-id::
+* start_time::
+* start-time::
+* content::
+* schema::
+
+Binary measurement data
+
+* LONG_T type::
+* DOUBLE_T type::
+* DOUBLE_NAN type::
+* STRING_T type::
+
 @end detailmenu
 @end menu
 
 @node Introduction
 @chapter Introduction
 
-OML is the OMF Measurement Library.  
-@node Tutorial
-@chapter Tutorial
-@node Client
-@chapter Client
+OML is the OMF Measurement Library.  It was created from a need to
+filter, collect, store, retrieve, and analyze measurements produced in
+the course of running experiments on large testbed networks, and
+thence comes its name: OMF is the cOntrol and Management Framework
+that provides mechanisms for defining and executing experiments on a
+testbed network, and we wrote OML to collect measurements from OMF
+experiments.
+
+Why is a measurement library like OML necessary?  An experiment or a
+simulation running on a single computer can generate a large
+amount of measurement data, but this does not pose a significant
+challenge to the experimenter because she can organize it using the
+local filesystem.  An experiment that is run on the nodes of a
+network, such as a simulation cluster or a testbed network, generates
+even more data but distributes it over many nodes.  It then becomes a
+challenge to collect, organize, and store the measurement data in a
+central location.  Ad-hoc approaches to this problem tend to be
+arduous and error-prone.  OML provides tools to solve the problem
+systematically and conveniently.
+
+@menu
+* What is OML?::
+* Organization of this manual::
+@end menu
+
+@node What is OML?
+@section What is OML?
+
+OML is a suite of software components that cooperate to collect and
+store measurement data.  The two main components are the client
+library, @code{liboml2}, and the server, @command{oml2-server}.
+
+An experimenter writes a @dfn{client application} that performs some
+measurements, and uses functions provided by @code{liboml2} to send
+the measurements to either a file on the local filesystem, an OML
+server running on another network host, or both.  It is also possible
+to configure @code{liboml2} to do some filtering of the measurements
+before they are sent to the file or server.
+
+The @command{oml2-server} application is a network application that
+listens for connections (either UDP or TCP) from client applications
+running on other network hosts.  The client applications connect to
+the server and transmit measurements to it via the network.  The
+server then stores the measurements in a database.
+
+Both @command{oml2-server} and @code{liboml2} are written in C, and
+they were originally written for the Linux operating system on x86
+machines, although they should be portable to other UNIX-like
+operating systems.@footnote{Currently we don't have any plans to
+actively port OML to other operating systems or architectures,
+although we know of people who are using OML on ARM CPU's, and we know
+OML compiles and runs on MacOS X.  We gladly accept patches, though!}
+
+@node Organization of this manual
+@section Organization of this manual
+
+This manual begins with a tour of OML in @ref{Basic concepts of OML},
+which describes the overall architecture, how the client library works,
+and how the server works, conceptually.  Then in @ref{Client
+applications}, we show how to write your experiment application to take
+advantage of OML and how to configure the OML client library's sampling,
+filtering, and measurement output at run time.  @ref{Server}, discusses
+both the OML server, which stores measurements in a database for later
+retrieval, and the OML proxy server, which can used to collect
+measurements on network nodes that might sometimes be disconnected from
+the network, such as mobile nodes.
+
+The @code{liboml2} library uses a general filtering architecture to
+filter measurements before sending them to a file or to an OML server.
+This architecture is extensible: you can write your own
+custom filters.  @ref{Custom Filters} expands on the concepts in
+@ref{Client applications} to show you how to do this, and provides a
+detailed reference for the filter writing API.
+
+@node Basic concepts of OML
+@chapter Basic concepts of OML
+@node Client applications
+@chapter Client application
 
 @menu
 * Client configuration::        How to configure an OML client application
@@ -1260,7 +1367,7 @@ format for the headers:
 
 @item @var{oml-header} @tab : @tab  @var{header-key} `@code{:}' @var{header-value}
 
-@item @var{header-key} @tab : @tab    @code{protocol} | @* 
+@item @var{header-key} @tab : @tab    @code{protocol} | @*
                        @code{app-name} | @*
                        @code{sender-id} | @*
                        @code{experiment-id} | @*
@@ -1279,6 +1386,12 @@ names and the header values from the delimiter colon (`@code{:}').
 The acceptable values for the headers are shown in the next section,
 followed by the formats for the text and binary measurement data.
 
+@menu
+* Protocol headers::
+* Binary measurement data::
+* Text measurement data::
+@end menu
+
 @node Protocol headers
 @section Protocol headers
 
@@ -1292,6 +1405,17 @@ cause improper behaviour of the server.  Omission of any header except
 @code{sender-id} header must follow the @code{experiment-id} header,
 otherwise the server will report an error and drop the connection to
 the client.
+
+@menu
+* Protocol::
+* app-name::
+* sender-id::
+* experiment-id::
+* start_time::
+* start-time::
+* content::
+* schema::
+@end menu
 
 @node Protocol
 @subsection @code{protocol}
@@ -1419,7 +1543,7 @@ Octet#   Datum
 5      |  num-measurements
 6      |  ms-index
 -----------------------------
-7      | 
+7      |
 8      |   Typed Binary Values
 9      |
 ...    |      ...
@@ -1502,6 +1626,13 @@ There are four supported @code{typed-binary-value} types:
 @item
 @code{STRING_T}:  A type representing character string values.
 @end enumerate
+
+@menu
+* LONG_T type::
+* DOUBLE_T type::
+* DOUBLE_NAN type::
+* STRING_T type::
+@end menu
 
 @node LONG_T type
 @subsection @code{LONG_T}
