@@ -342,7 +342,7 @@ void Settings::Interpret( char option, const char *optarg ) {
 	case 'g': // set base coordinates
 	    {
 		char latitude[10];
-		char *longitude;
+		const char *longitude;
 
 		longitude = index(optarg,',');
 		if(longitude == NULL) {
