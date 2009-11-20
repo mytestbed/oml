@@ -25,7 +25,7 @@ Description: Orbit Traffic Generator
 
 Package: liboml-dev
 Section: libdevel
-Architecture: any
+Architecture: all
 Depends: liboml (= ${Source-Version})
 Description: OML measurement library headers
  A measurement library developed in the context of the OMF Testbed Management Framework. This library allows experimenter to define customizable measurement points inside applications or passive traffic listener using the pcap library.
