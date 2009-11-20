@@ -1,3 +1,10 @@
+oml-2.3 (2.3.1-1ubuntu1) stable; urgency=low
+
+  * renamed all packages to contain "-2.3" extension
+  * now building for i386 and amd64
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Fri, 20 Nov 2009 13:03:44 +1100
+
 oml (2.3.1-1) stable; urgency=low
 
   * Fix bug when marshalling NULL strings.

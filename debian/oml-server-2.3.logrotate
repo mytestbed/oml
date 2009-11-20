@@ -1,9 +1,9 @@
-/var/log/oml-server.log {
+/var/log/oml-server-2.3.log {
 	weekly
 	rotate 4
 	missingok
 	notifempty
 	compress
-	nocreate
+	copytruncate
 }
 

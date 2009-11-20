@@ -14,12 +14,12 @@
 # Description:       Enable service provided by daemon.
 ### END INIT INFO
 
-NAME=oml2-server
+NAME=oml-server-2.3
 
 test -x /usr/bin/$NAME || exit 0
 
-if [ -f /etc/default/oml-server ]; then
-    . /etc/default/oml-server
+if [ -f /etc/default/$NAME ]; then
+    . /etc/default/$NAME
 fi
 
 start(){
