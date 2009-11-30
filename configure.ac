@@ -31,19 +31,33 @@ if test "x$HAVE_XML2CFG" != "x"; then
    AC_MSG_RESULT([$LIBXML2_LIBS])
 fi
 
+# Make a shell variable for checking Mac OS X
+if test x`uname` = xDarwin; then
+   DARWIN=yes
+fi
+# Create a Makefile variable for checking Mac OS X
 AM_CONDITIONAL([DARWIN], [test x`uname` = xDarwin])
 
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
 
-AC_CHECK_LIB(sqlite3, sqlite3_initialize, [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])])
-AC_CHECK_LIB([pcap], [pcap_open_live], [AC_DEFINE([HAVE_LIBPCAP], [1], [Define if libpcap is installed.])])
-AC_CHECK_LIB([popt], [poptGetContext], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])])
-AC_CHECK_LIB([pthread], [pthread_create], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])])
+missing_libs=""
+
+# Check for missing libraries
+AC_CHECK_LIB(sqlite3, sqlite3_initialize, [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
+AC_CHECK_LIB([pcap], [pcap_open_live], [AC_DEFINE([HAVE_LIBPCAP], [1], [Define if libpcap is installed.])], [missing_libs+=" libpcap"])
+AC_CHECK_LIB([popt], [poptGetContext], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])], [missing_libs+=" libpopt"])
+AC_CHECK_LIB([pthread], [pthread_create], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])], [missing_libs+=" libpthread"])
+AC_CHECK_LIB([trace], [trace_create], [AC_DEFINE([HAVE_LIBTRACE], [1], [Define if libtrace is installed.])], [missing_libs+=" libtrace"])
+
+# Only check for libsigar if this isn't Mac OS X, because libsigar doesn't work there.
+if test "x$DARWIN" != "xyes"; then
+   AC_CHECK_LIB([sigar], [sigar_open], [AC_DEFINE([HAVE_LIBSIGAR], [1], [Define if libsigar is installed.])], [missing_libs+=" libsigar"])
+else
+   AC_MSG_WARN([not building omf_nmetrics, because libsigar is not available on Mac OS X or Darwin])
+fi
 
 # FIXME: Replace `main' with a function in `-lm':
 #AC_CHECK_LIB([m], [main])
-# FIXME: Replace `main' with a function in `-ltrace':
-#AC_CHECK_LIB([trace], [main])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
@@ -86,5 +100,16 @@ AC_CONFIG_FILES([Makefile
 		 app/otg/src/cpp/generator/Makefile
 		 ])
 
-#AC_CONFIG_SUBDIRS([libsigar])
+# Let the user know we're missing required libraries, and don't generate the build system.
+if test "x$missing_libs" != "x"; then
+   for lib in $missing_libs; do
+      AC_MSG_WARN([could not find required library $lib])
+   done
+   AC_MSG_ERROR([missing libraries, could not continue.
+Please install all of the following libraries and then re-run configure
+(you might need the development header packages (-dev) as well if you are
+using your system's package manager to install them):
+$missing_libs])
+fi
+
 AC_OUTPUT
