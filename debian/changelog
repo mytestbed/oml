@@ -1,3 +1,9 @@
+oml (2.4.pre0-0) stable; urgency=low
+
+  * Beta (pre-release) leading to 2.4.0 release.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Tue, 01 Dec 2009 21:26:56 +1100
+
 oml (2.3.1-1) stable; urgency=low
 
   * Fix bug when marshalling NULL strings.
