@@ -87,6 +87,8 @@ AC_CONFIG_FILES([Makefile
 		 lib/ocomm/Makefile
 		 server/Makefile
 		 proxy_server/Makefile
+		 doc/Makefile
+		 doc/oml2-server.1
 		 app/Makefile
 		 app/simple/Makefile
 		 app/omf_nmetrics/Makefile
