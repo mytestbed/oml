@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
+if HAVE_CHECK
 TESTS = check_liboml2
-
 check_PROGRAMS = check_liboml2
 check_liboml2_SOURCES = \
 	util.c \
@@ -15,15 +15,16 @@ check_liboml2_SOURCES = \
 	check_liboml2_suites.h \
 	$(top_srcdir)/lib/client/oml2/omlc.h \
 	$(top_srcdir)/lib/client/oml2/oml_filter.h
+check_liboml2_CFLAGS = @CHECK_CFLAGS@
+
+check_liboml2_LDADD = $(top_builddir)/lib/client/liboml2.la @CHECK_LIBS@
+endif
+
 
 AM_CPPFLAGS = \
 	-I  $(top_srcdir)/lib/client \
 	-I  $(top_srcdir)/lib/ocomm \
 	-I  $(top_srcdir)/lib/shared
-
-check_liboml2_CFLAGS = @CHECK_CFLAGS@
-
-check_liboml2_LDADD = $(top_builddir)/lib/client/liboml2.la @CHECK_LIBS@
 
 BUILT_SOURCES = \
 	stddev_0.c \

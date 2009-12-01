@@ -14,10 +14,22 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
+# Make a shell variable for checking Mac OS X
+if test x`uname` = xDarwin; then
+   DARWIN=yes
+fi
+# Create a Makefile variable for checking Mac OS X
+AM_CONDITIONAL([DARWIN], [test x`uname` = xDarwin])
+
+missing_check=""
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [], [missing_check="yes"])
+AM_CONDITIONAL([HAVE_CHECK], [test x"${missing_check}" != xyes])
+
 # Checks for libraries.
+missing_libs=""
 
 # Check that libxml2 is installed, and work out how to compile/link against it
-AC_CHECK_LIB([xml2], [xmlParseFile], [AC_DEFINE([HAVE_LIBXML2], [1], [Define if libxml2 is installed.])])
+AC_CHECK_LIB([xml2], [xmlParseFile], [AC_DEFINE([HAVE_LIBXML2], [1], [Define if libxml2 is installed.])], [missing_libs+=" libxml2"])
 AC_PATH_PROG([HAVE_XML2CFG], [xml2-config])
 
 if test "x$HAVE_XML2CFG" != "x"; then
@@ -31,19 +43,7 @@ if test "x$HAVE_XML2CFG" != "x"; then
    AC_MSG_RESULT([$LIBXML2_LIBS])
 fi
 
-# Make a shell variable for checking Mac OS X
-if test x`uname` = xDarwin; then
-   DARWIN=yes
-fi
-# Create a Makefile variable for checking Mac OS X
-AM_CONDITIONAL([DARWIN], [test x`uname` = xDarwin])
-
-PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
-
-missing_libs=""
-
-# Check for missing libraries
-AC_CHECK_LIB(sqlite3, sqlite3_initialize, [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
+AC_CHECK_LIB([sqlite3], [sqlite3_initialize], [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
 AC_CHECK_LIB([pcap], [pcap_open_live], [AC_DEFINE([HAVE_LIBPCAP], [1], [Define if libpcap is installed.])], [missing_libs+=" libpcap"])
 AC_CHECK_LIB([popt], [poptGetContext], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])], [missing_libs+=" libpopt"])
 AC_CHECK_LIB([pthread], [pthread_create], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])], [missing_libs+=" libpthread"])
@@ -102,6 +102,14 @@ AC_CONFIG_FILES([Makefile
 		 app/otg/src/cpp/generator/Makefile
 		 ])
 
+if test "x$missing_check" != "x"; then
+   AC_MSG_WARN([could not find the `check' package, required
+for running unit tests. This will not stop OML from building,
+but it will cause `make check' to do nothing. Install the `check'
+package (http://check.sourceforge.net) if you wish to run the
+unit tests.])
+fi
+
 # Let the user know we're missing required libraries, and don't generate the build system.
 if test "x$missing_libs" != "x"; then
    for lib in $missing_libs; do
@@ -113,5 +121,7 @@ Please install all of the following libraries and then re-run configure
 using your system's package manager to install them):
 $missing_libs])
 fi
+
+
 
 AC_OUTPUT
