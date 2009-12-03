@@ -930,7 +930,6 @@ sq3_get_key_value (Database* database, const char* table, const char* key_column
 
   if (ncols == 0 || nrows == 0)
 	{
-	  o_log (O_LOG_INFO, "Key-value lookup on table %s:  result set is empty.\n", table);
 	  sqlite3_free_table (result);
 	  return NULL;
 	}
