@@ -56,6 +56,7 @@ database_find(
       db->ref_count++;
       return db;
     }
+	db = db->next;
   }
 
   // need to create a new one
