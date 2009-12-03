@@ -45,13 +45,17 @@ extern "C" {
 #define omlc_set_double(var, val) \
     (var).doubleValue = (val);
 
-#define omlc_set_string(var, val) \
+#define omlc_set_string(var, val)				\
+	do {														   \
     (var).stringValue.ptr = (val); (var).stringValue.is_const = 0; \
-    (var).stringValue.size = (var).stringValue.length = 0;
+    (var).stringValue.size = (var).stringValue.length = 0;		   \
+	} while (0);
 
-#define omlc_set_const_string(var, val) \
+#define omlc_set_const_string(var, val)			\
+	do {														   \
     (var).stringValue.ptr = (val); (var).stringValue.is_const = 1; \
-    (var).stringValue.size = (var).stringValue.length = 0;
+    (var).stringValue.size = (var).stringValue.length = 0;		   \
+	} while (0);
 
 struct _omlFilter;   // can't include oml_filter.h yet
 struct _omlWriter;   // forward declaration
