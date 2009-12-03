@@ -73,7 +73,7 @@ next_filter_name(void)
 static OmlValue*
 create_filter_result_vector (OmlFilterDef* def, OmlValueT type, int count)
 {
-  OmlValue* result = (OmlValue*)malloc(count * sizeof(OmlValueU));
+  OmlValue* result = (OmlValue*)malloc(count * sizeof(OmlValue));
 
   if (!result) {
     o_log (O_LOG_ERROR, "Failed to allocate memory for filter result vector.\n");
