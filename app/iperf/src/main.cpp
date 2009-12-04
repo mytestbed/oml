@@ -151,8 +151,6 @@ int main( int argc,  char *argv[] ) {
     omlc_init("iperf", &argc,  (const char**) argv, NULL);
     
     printf("ADD MP \n");
-    tcp_measure = omlc_add_mp("TCP_received", tcp_receiverport);
-    udp_measure = omlc_add_mp("UDP_received", udp_receiverport);
     peer_information = omlc_add_mp("Peer_Info", peer_info);
     
     Listener *theListener = NULL;
@@ -189,7 +187,12 @@ int main( int argc,  char *argv[] ) {
         // start up a listener
         theListener = new Listener( ext_gSettings );
         theListener->DeleteSelfAfterRun();
-        
+        if ( gSettings->GetProtocolMode() == false){//UDP 
+          udp_measure = omlc_add_mp("UDP_Rich_Info", udp_receiverport);
+	}
+	else{
+	  tcp_measure = omlc_add_mp("TCP_Info", tcp_receiverport);
+        }
 
         // Start the server as a daemon
         if ( gSettings->GetDaemonMode() == true ) {
@@ -248,6 +251,13 @@ int main( int argc,  char *argv[] ) {
         theSpeaker = new Speaker(ext_gSettings);
         theSpeaker->OwnSettings();
         theSpeaker->DeleteSelfAfterRun();
+        if ( gSettings->GetProtocolMode() == false){//UDP
+	  tcp_measure = omlc_add_mp("UDP_Periodic_Info", tcp_receiverport);
+          udp_measure = omlc_add_mp("UDP_Rich_Info", udp_receiverport);
+	}
+	else{//TCP
+	  tcp_measure = omlc_add_mp("TCP_Info", tcp_receiverport);
+	}
         omlc_start();
         theSpeaker->Start();
 #else
