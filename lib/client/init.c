@@ -823,7 +823,6 @@ validate_mp_name (const char* name)
   return ++p;
 }
 
-
 /*
  Local Variables:
  mode: C
