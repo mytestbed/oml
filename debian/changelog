@@ -1,9 +1,8 @@
-oml-2.3 (2.3.1-1ubuntu1) stable; urgency=low
+oml (2.3.3-1) stable; urgency=low
 
-  * renamed all packages to contain "-2.3" extension
-  * now building for i386 and amd64
+  * new upstream release 2.3.3
 
- -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Fri, 20 Nov 2009 13:03:44 +1100
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Mon, 07 Dec 2009 17:01:05 +1100
 
 oml (2.3.1-1) stable; urgency=low
 

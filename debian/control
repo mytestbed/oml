@@ -1,38 +1,38 @@
-Source: oml-2.3
+Source: oml
 Section: unknown
 Priority: extra
 Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Build-Depends: debhelper (>= 5), libxml2-dev, libpcap0.8-dev, libpopt-dev, libsqlite3-dev, autoconf, check, libtrace3-dev, automake, libtool, ruby, libsigar, libsigar-dev
 Standards-Version: 3.7.2
 
-Package: oml-client-2.3
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libsigar, libxml2, libpcap0.8, libpopt0, liboml-2.3 (= ${Source-Version}), libtrace3, ruby
+Package: oml-client
+Architecture: i386
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsigar, libxml2, libpcap0.8, libpopt0, liboml (= ${Source-Version}), libtrace3, ruby
 Description: OML measurement client
  The OML client component is integrated in the application to collect measurements taken or produced by that applications. Dynamically configurable filters analyze the various measurement streams before they are forwarded to the OML Server.
 
-Package: oml-server-2.3
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libsqlite3-0, libpopt0, liboml-2.3 (= ${Source-Version})
+Package: oml-server
+Architecture: i386
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsqlite3-0, libpopt0, liboml (= ${Source-Version})
 Description: OML measurement server
  The OML server component is responsible to collect and store the measurements inside a database. Currently, the sqlite3 library is supported.
 
-Package: otg-2.3
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libpopt0, liboml-2.3 (= ${Source-Version})
+Package: otg
+Architecture: i386
+Depends: ${shlibs:Depends}, ${misc:Depends}, libpopt0, liboml (= ${Source-Version})
 Description: Orbit Traffic Generator
  Orbit Traffic Generator 
 
-Package: liboml-dev-2.3
+Package: liboml-dev
 Section: libdevel
-Architecture: all
+Architecture: any
 Depends: liboml (= ${Source-Version})
 Description: OML measurement library headers
  A measurement library developed in the context of the OMF Testbed Management Framework. This library allows experimenter to define customizable measurement points inside applications or passive traffic listener using the pcap library.
 
-Package: liboml-2.3
+Package: liboml
 Section: libs
-Architecture: any
+Architecture: i386
 Depends: ${shlibs:Depends}, ${misc:Depends}, libxml2
 Description: OML measurement library
  A measurement library developed in the context of the OMF Testbed Management Framework. This library allows experimenter to define customizable measurement points inside applications or passive traffic listener using the pcap library.

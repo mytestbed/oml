@@ -1,1 +1,0 @@
-OPTS="-l 3023 --logfile=/var/log/oml-server-2.3.log --data-dir=/tmp/"

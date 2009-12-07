@@ -9,7 +9,8 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-VER=2.3
+
+
 
 configure: configure-stamp
 configure-stamp:
@@ -48,30 +49,19 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/oml.
-	$(MAKE) DESTDIR=$(CURDIR)/debian/oml-client-$(VER) install
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/bin/gps_oml2 $(CURDIR)/debian/oml-client-$(VER)/usr/bin/gps_oml-$(VER)
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/bin/iperf_oml2 $(CURDIR)/debian/oml-client-$(VER)/usr/bin/iperf_oml-$(VER)
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/bin/nmetrics_oml2 $(CURDIR)/debian/oml-client-$(VER)/usr/bin/nmetrics_oml-$(VER)
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/bin/oml2_scaffold $(CURDIR)/debian/oml-client-$(VER)/usr/bin/oml$(VER)_scaffold
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/bin/trace_oml2 $(CURDIR)/debian/oml-client-$(VER)/usr/bin/trace_oml-$(VER)
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/bin/wlanconfig_oml2 $(CURDIR)/debian/oml-client-$(VER)/usr/bin/wlanconfig_oml-$(VER)
-	mkdir -p $(CURDIR)/debian/oml-server-$(VER)/usr/bin
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/bin/oml2-server $(CURDIR)/debian/oml-server-$(VER)/usr/bin/oml-server-$(VER)
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/bin/oml2-proxy-server $(CURDIR)/debian/oml-server-$(VER)/usr/bin/oml-proxy-server-$(VER)
-	mkdir -p $(CURDIR)/debian/liboml-dev-$(VER)/usr/include
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/include/ocomm $(CURDIR)/debian/liboml-dev-$(VER)/usr/include/ocomm-$(VER)
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/include/oml2 $(CURDIR)/debian/liboml-dev-$(VER)/usr/include/oml-$(VER)
-	for FILE in `ls $(CURDIR)/debian/oml-client-$(VER)/usr/lib/*`; do mv $$FILE `echo $$FILE | sed 's/lib/lib-$(VER)/g'`; done
-	mkdir -p $(CURDIR)/debian/liboml-$(VER)/usr/lib
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/lib/* $(CURDIR)/debian/liboml-$(VER)/usr/lib
-	mkdir -p $(CURDIR)/debian/otg-$(VER)/usr/bin
-	mkdir -p $(CURDIR)/debian/otg-$(VER)/usr/lib
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/bin/otg2 $(CURDIR)/debian/otg-$(VER)/usr/bin/otg-2.3
-	mv $(CURDIR)/debian/oml-client-$(VER)/usr/bin/otr2 $(CURDIR)/debian/otg-$(VER)/usr/bin/otr-2.3
-	for FILE in `ls $(CURDIR)/debian/liboml-$(VER)/usr/lib/libotg2*`; do mv $$FILE `echo $$FILE | sed 's/libotg2/libotg-$(VER)/g'`; done
-	mv $(CURDIR)/debian/liboml-$(VER)/usr/lib/libotg* $(CURDIR)/debian/otg-$(VER)/usr/lib
-	rm -rf $(CURDIR)/debian/oml-client-$(VER)/usr/include
-	rm -rf $(CURDIR)/debian/oml-client-$(VER)/usr/lib
+	$(MAKE) DESTDIR=$(CURDIR)/debian/oml-client install
+	mkdir -p $(CURDIR)/debian/oml-server/usr/bin
+	mv $(CURDIR)/debian/oml-client/usr/bin/oml2-server $(CURDIR)/debian/oml-server/usr/bin/
+	mv $(CURDIR)/debian/oml-client/usr/bin/oml2-proxy-server $(CURDIR)/debian/oml-server/usr/bin/
+	mkdir -p $(CURDIR)/debian/liboml-dev/usr/include
+	mv $(CURDIR)/debian/oml-client/usr/include/* $(CURDIR)/debian/liboml-dev/usr/include/
+	mkdir -p $(CURDIR)/debian/liboml/usr/lib
+	mv $(CURDIR)/debian/oml-client/usr/lib/* $(CURDIR)/debian/liboml/usr/lib/
+	mkdir -p $(CURDIR)/debian/otg/usr/bin
+	mkdir -p $(CURDIR)/debian/otg/usr/lib
+	mv $(CURDIR)/debian/oml-client/usr/bin/otg2 $(CURDIR)/debian/otg/usr/bin/
+	mv $(CURDIR)/debian/oml-client/usr/bin/otr2 $(CURDIR)/debian/otg/usr/bin/
+	mv $(CURDIR)/debian/liboml/usr/lib/libotg* $(CURDIR)/debian/otg/usr/lib/
 
 # Build architecture-independent files here.
 binary-indep: build install
