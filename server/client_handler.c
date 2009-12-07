@@ -590,6 +590,7 @@ status_callback(
 		/* Client closed the connection */
 		ClientHandler* self = (ClientHandler*)handle;
 		client_handler_free (self);
+		socket_close (source->socket);
 
 		o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
 		break;
