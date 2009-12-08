@@ -1,3 +1,9 @@
+oml (2.3.3-2) stable; urgency=low
+
+  * fixed logrotation
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Tue, 08 Dec 2009 14:50:40 +1100
+
 oml (2.3.3-1) stable; urgency=low
 
   * new upstream release 2.3.3
