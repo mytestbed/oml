@@ -43,9 +43,6 @@
 #include "client.h"
 
 static void* thread_start(void* handle);
-//static int process(OmlMStream* mp, OmlValue* values,  int max_value_count);
-//static void sample_based(OmlMStream* ms);
-//static void send(OmlValue* values, int value_count);
 
 extern OmlClient* omlc_instance;
 /**
@@ -71,21 +68,27 @@ thread_start(
   OmlMStream* ms = (OmlMStream*)handle;
   OmlMP* mp = ms->mp;
   useconds_t usec = (useconds_t)(1000000 * ms->sample_interval);
+  int status = 0;
 
-  while (1) {
-    usleep(usec);
+  while (1)
+    {
+      usleep(usec);
 
-    if (!mp_lock(mp)) {
-      if (!mp->active) {
-        mp_unlock(mp);
-        return NULL;  // we are done
-      }
+      if (!mp_lock(mp))
+        {
+          if (!mp->active)
+            {
+              mp_unlock(mp);
+              return NULL;  // we are done
+            }
 
-      //o_log(O_LOG_INFO, "Sample3 %d\n", usec);
-      filter_process(ms);
-      mp_unlock(mp);
+          status = filter_process(ms);
+          mp_unlock(mp);
+        }
+
+      if (status == -1)
+        return NULL; // Fatal error --> exit thread
     }
-  }
 }
 
 
@@ -93,13 +96,24 @@ thread_start(
  * \fn int filter_process( OmlMStream* ms )
  * \brief Run filters on all queues in MP.
  * \param ms the stream to filterise
- * \return 1 if success, 0 if not.
+ * \return 0 if success, -1 if not.
  */
 int
-filter_process(
-  OmlMStream* ms
-) {
+filter_process(OmlMStream* ms)
+{
+  if (ms == NULL || omlc_instance == NULL)
+    {
+      o_log (O_LOG_ERROR, "Could not process filters because of null measurement stream or instance\n");
+      return -1;
+    }
+
   OmlWriter* writer = ms->writer;
+
+  if (writer == NULL)
+    {
+      o_log (O_LOG_ERROR, "Could not process filters because of null writer\n");
+      return -1;
+    }
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -108,9 +122,10 @@ filter_process(
   ms->seq_no++;
   writer->row_start(writer, ms, now);
   OmlFilter* f = ms->firstFilter;
-  for (; f != NULL; f = f->next) {
-    f->output(f, writer);
-  }
+  for (; f != NULL; f = f->next)
+    {
+      f->output(f, writer);
+    }
   writer->row_end(writer, ms);
   ms->sample_size = 0;
   return 0;
