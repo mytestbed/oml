@@ -215,7 +215,6 @@ run(
 
   if (trace_start(trace)) {
     trace_perror(trace, "Starting trace");
-    trace_destroy(trace);
     return 1;
   }
 
@@ -270,9 +269,15 @@ main(
   // Initialize measurment points
   oml_register_mps();  // defined in xxx_oml.h
   omlc_start();
-
+  
   // Do some work
-  run(g_opts, g_oml_mps);
+ 
+	run(g_opts, g_oml_mps);
+
+	
+  
+	
+
 
   return(0);
 }

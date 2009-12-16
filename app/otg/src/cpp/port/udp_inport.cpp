@@ -19,8 +19,8 @@ static OmlMPDef oml_def[] = {
    {"flow_id", OML_LONG_VALUE},
    {"seq_no", OML_LONG_VALUE},
    {"pkt_length", OML_LONG_VALUE},
-   {"dst_host", OML_STRING_VALUE},
-   {"dst_port", OML_LONG_VALUE},
+   {"src_host", OML_STRING_VALUE},
+   {"src_port", OML_LONG_VALUE},
    {NULL, (OmlValueT)0},
 };
 static OmlMP* oml_mp = NULL;
@@ -119,7 +119,7 @@ UDPInPort::nextPacket(
   v[3].longValue = len;
   omlc_set_const_string(v[4], senderHost);
   v[5].longValue = senderPort;
-  omlc_process(oml_mp, v);   
+  omlc_inject(oml_mp, v);   
 #endif   
   
   return pkt;
