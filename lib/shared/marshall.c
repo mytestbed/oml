@@ -187,8 +187,8 @@ marshall_value(
         type = DOUBLE_NAN;
         nexp = 0;
       }
-      uint32_t umant = (uint32_t)(mant * (1 << BIG_L));
-      uint32_t nmant = htonl(umant);
+      int32_t imant = (int32_t)(mant * (1 << BIG_L));
+      uint32_t nmant = htonl(imant);
 
 	  p = marshall_check_resize (mbuf, 6);
 	  mbuf->buffer_remaining -= 6;
