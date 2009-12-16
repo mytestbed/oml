@@ -71,6 +71,8 @@ should be an integer from 1 to 4 (1=
 .BR INFO ,
 4 =
 .BR DEBUG ")."
+The default log verbosity is 3,
+.BR INFO "."
 .TP
 .I "\-\-logfile=file"
 Write log messages to
