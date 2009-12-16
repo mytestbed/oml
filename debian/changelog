@@ -1,3 +1,9 @@
+oml (2.3.4-1) stable; urgency=low
+
+  * new upstream release 2.3.4
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Wed, 16 Dec 2009 20:31:30 +1100
+
 oml (2.3.3-3) stable; urgency=low
 
   * fixed otg/otr libc6 issue
