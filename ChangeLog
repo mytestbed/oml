@@ -1,13 +1,52 @@
+2009-12-16  Jolyon White  <jolyon.white@nicta.com.au>
+
+	* OML: New version 2.3.4.
+
+	* OML: Fix bugs:  #171 (backported from trunk), #225
+
+	* OML: Open bug list: #172, #168, #149, #90, #24.
+
+	* liboml2: Fix bug in marshalling doubles on Mac OS X (backported
+	from trunk).
+
+	* oml2-server: Added a man page.
+
+	* otr2:  Change name of a measurement point to be clearer.
+
+2009-12-07  Jolyon White  <jolyon.white@nicta.com.au>
+
+	* OML: New version 2.3.3.
+
+	* OML: Fix bugs:  #196, #223
+
+	* liboml2: Fix a memory allocation bug in client filters; fix
+	definitions of omlc_set_string() and omlc_set_const_string()
+	macros.
+
+	* oml2-server: Fix a bug that prevented clients from multiple
+	different experiments from connecting to the server at the same
+	time.  This caused the server to hang in an infinite loop.  Fix
+	the server to close the socket when a client disconnects, to
+	prevent lots of sockets stuck in CLOSE_WAIT on the server host
+	machine.  Removed a meaningless log message from the server log
+	output.
+
+	* iperf_oml2: Change names of MP's to be more understandable; fix
+	a portability issue.
+
 2009-09-18    <jolyon.white@nicta.com.au>
 
-	* liboml2: Fix segfault when attempting to marshall NULL strings.
+	* OML: New version 2.3.1.
+
+	* liboml2: Fix bug #177, segfault when attempting to marshall NULL
+	strings.
 
 2009-09-09    <jolyon.white@nicta.com.au>
 
 	* OML: Release version 2.3.0.
-	
+
 	* OML: Package is now autoconfiscated.
-	
+
 	* OML: Package now builds under Mac OS X (but is not well tested
 	on that platform).
 
@@ -31,7 +70,7 @@
 	metadata.  Currently the OML server uses this to store the
 	experiment's start-time, which is the time reference against which
 	all of the client data timestamps are calculated.
-	
+
 	* oml2-server: New text-based protocol added.
 	lib/client/ruby/oml.rb implements a client for this protocol.
 
@@ -73,7 +112,7 @@
 	overridden by an XML configuration file or the --oml-server
 	command line option, if present.  The file:// protocol is
 	understood by this environment variable.
-	
+
 	* liboml2: Added --oml-list-filters client command line option.
 
 	* liboml2: Added new standard deviation filter (stddev).
@@ -97,5 +136,3 @@
 	* apps: Added radiotap support to trace_oml2 (app/omf_trace).
 
 	* apps: Added application iperf under app/iperf.
-
-	

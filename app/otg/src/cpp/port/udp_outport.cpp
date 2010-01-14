@@ -6,7 +6,7 @@
 using namespace std;
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <fcntl.h>
+//#include <fcntl.h>
 #include <ocomm/o_log.h>
 #include <sys/time.h>
 #include <time.h>

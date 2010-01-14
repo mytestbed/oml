@@ -215,7 +215,6 @@ run(
 
   if (trace_start(trace)) {
     trace_perror(trace, "Starting trace");
-    trace_destroy(trace);
     return 1;
   }
 
@@ -272,7 +271,13 @@ main(
   omlc_start();
 
   // Do some work
-  run(g_opts, g_oml_mps);
+
+	run(g_opts, g_oml_mps);
+
+
+
+
+
 
   return(0);
 }

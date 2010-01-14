@@ -71,21 +71,21 @@ thread_start(
   int status = 0;
 
   while (1)
-	{
-	  usleep(usec);
-	  if (!mp_lock(mp))
-		{
-		  if (!mp->active)
-			{
-			  mp_unlock(mp);
-			  return NULL;  // we are done
-			}
-		  status = filter_process(ms);
-		  mp_unlock(mp);
-		}
-	  if (status == -1)
-		return NULL; // Fatal error --> exit thread
-	}
+    {
+      usleep(usec);
+      if (!mp_lock(mp))
+        {
+          if (!mp->active)
+            {
+              mp_unlock(mp);
+              return NULL;  // we are done
+            }
+          status = filter_process(ms);
+          mp_unlock(mp);
+        }
+      if (status == -1)
+        return NULL; // Fatal error --> exit thread
+    }
 }
 
 
@@ -99,18 +99,18 @@ int
 filter_process(OmlMStream* ms)
 {
   if (ms == NULL || omlc_instance == NULL)
-	{
-	  o_log (O_LOG_ERROR, "Could not process filters because of null measurement stream or instance\n");
-	  return -1;
-	}
+    {
+      o_log (O_LOG_ERROR, "Could not process filters because of null measurement stream or instance\n");
+      return -1;
+    }
 
   OmlWriter* writer = ms->writer;
 
   if (writer == NULL)
-	{
-	  o_log (O_LOG_ERROR, "Could not process filters because of null writer\n");
-	  return -1;
-	}
+    {
+      o_log (O_LOG_ERROR, "Could not process filters because of null writer\n");
+      return -1;
+    }
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -120,9 +120,9 @@ filter_process(OmlMStream* ms)
   writer->row_start(writer, ms, now);
   OmlFilter* f = ms->firstFilter;
   for (; f != NULL; f = f->next)
-	{
-	  f->output(f, writer);
-	}
+    {
+      f->output(f, writer);
+    }
   writer->row_end(writer, ms);
   ms->sample_size = 0;
   return 0;
@@ -133,4 +133,5 @@ filter_process(OmlMStream* ms)
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */
