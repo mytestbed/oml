@@ -1,3 +1,9 @@
+oml (2.3.4-2) stable; urgency=low
+
+  * Add oml2-server.1 man page to Debian package.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Thu, 21 Jan 2010 16:36:03 +1100
+
 oml (2.3.4-1) stable; urgency=low
 
   * new upstream release 2.3.4
