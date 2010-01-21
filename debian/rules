@@ -16,6 +16,7 @@ configure: configure-stamp
 configure-stamp:
 	dh_testdir
 	# Add here commands to configure the package.
+	debian/fetch-source-tree.rb
 	autoreconf --install
 	./configure --prefix /usr
 	touch configure-stamp
