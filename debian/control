@@ -1,5 +1,5 @@
 Source: oml
-Section: unknown
+Section: science
 Priority: extra
 Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Build-Depends: debhelper (>= 5), libxml2-dev, libpcap0.8-dev, libpopt-dev, libsqlite3-dev, autoconf, check, libtrace3-dev, automake, libtool, ruby, libsigar, libsigar-dev, pkg-config
@@ -8,32 +8,41 @@ Standards-Version: 3.7.2
 Package: oml-client
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libsigar, libxml2, libpcap0.8, libpopt0, liboml (= ${Source-Version}), libtrace3, ruby, libc6
-Description: OML measurement client
- The OML client component is integrated in the application to collect measurements taken or produced by that applications. Dynamically configurable filters analyze the various measurement streams before they are forwarded to the OML Server.
+Description: OML Client Applications
+ A selection of client applications that use the OML library to
+ collect measurements.
 
 Package: oml-server
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libsqlite3-0, libpopt0, liboml (= ${Source-Version}), libc6
 Description: OML measurement server
- The OML server component is responsible to collect and store the measurements inside a database. Currently, the sqlite3 library is supported.
+ The OML server component is responsible to collect and store the
+ measurements inside a database. Currently, the sqlite3 library is
+ supported.
 
 Package: otg
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libpopt0, liboml (= ${Source-Version}), libc6
 Description: Orbit Traffic Generator
- Orbit Traffic Generator. Can be used to generate IP traffic in OMF testbeds.
+ Orbit Traffic Generator. Can be used to generate IP traffic in OMF
+ testbeds.
 
 Package: liboml-dev
 Section: libdevel
 Architecture: all
 Depends: liboml (= ${Source-Version})
+Recommends: ruby
 Description: OML measurement library headers
- A measurement library developed in the context of the OMF Testbed Management Framework. This library allows experimenter to define customizable measurement points inside applications or passive traffic listener using the pcap library.
+ Development headers for developing applications that make
+ measurements using the liboml, the client library for the OML
+ measurement framework.
 
 Package: liboml
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libxml2, libc6
-Description: OML measurement library
- A measurement library developed in the context of the OMF Testbed Management Framework. This library allows experimenter to define customizable measurement points inside applications or passive traffic listener using the pcap library.
-
+Description: OML: The Orbit Measurement Library
+ This library allows application writers to define customizable
+ measurement points in their applications to record measurements
+ either to file, or to an OML server over the network (see the
+ oml-server package).
