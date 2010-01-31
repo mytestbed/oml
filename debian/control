@@ -1,5 +1,5 @@
 Source: oml
-Section: science
+Section: net
 Priority: extra
 Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Build-Depends: debhelper (>= 5), libxml2-dev, libpcap0.8-dev, libpopt-dev, libsqlite3-dev, autoconf, check, libtrace3-dev, automake, libtool, ruby, libsigar, libsigar-dev, pkg-config

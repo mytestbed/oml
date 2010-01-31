@@ -1,8 +1,8 @@
-oml (2.4.pre0-0) testing; urgency=low
+oml (2.4.pre0-1) testing; urgency=low
 
   * Beta (pre-release) leading to 2.4.0 release.
 
- -- Jolyon White <jolyon.white@nicta.com.au>  Tue, 01 Dec 2009 21:26:56 +1100
+ -- Jolyon White <jolyon.white@nicta.com.au>  Sat, 30 Jan 2010 14:23:52 +1100
 
 oml (2.3.1-1) stable; urgency=low
 
