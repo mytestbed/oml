@@ -14,13 +14,6 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
-# Make a shell variable for checking Mac OS X
-if test x`uname` = xDarwin; then
-   DARWIN=yes
-fi
-# Create a Makefile variable for checking Mac OS X
-AM_CONDITIONAL([DARWIN], [test x`uname` = xDarwin])
-
 missing_check=""
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [], [missing_check="yes"])
 AM_CONDITIONAL([HAVE_CHECK], [test x"${missing_check}" != xyes])
@@ -43,21 +36,11 @@ if test "x$HAVE_XML2CFG" != "x"; then
    AC_MSG_RESULT([$LIBXML2_LIBS])
 fi
 
+# Check for presence of other libraries.
 AC_CHECK_LIB([sqlite3], [sqlite3_initialize], [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
-AC_CHECK_LIB([pcap], [pcap_open_live], [AC_DEFINE([HAVE_LIBPCAP], [1], [Define if libpcap is installed.])], [missing_libs+=" libpcap"])
 AC_CHECK_LIB([popt], [poptGetContext], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])], [missing_libs+=" libpopt"])
 AC_CHECK_LIB([pthread], [pthread_create], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])], [missing_libs+=" libpthread"])
-AC_CHECK_LIB([trace], [trace_create], [AC_DEFINE([HAVE_LIBTRACE], [1], [Define if libtrace is installed.])], [missing_libs+=" libtrace"])
-
-# Only check for libsigar if this isn't Mac OS X, because libsigar doesn't work there.
-if test "x$DARWIN" != "xyes"; then
-   AC_CHECK_LIB([sigar], [sigar_open], [AC_DEFINE([HAVE_LIBSIGAR], [1], [Define if libsigar is installed.])], [missing_libs+=" libsigar"])
-else
-   AC_MSG_WARN([not building omf_nmetrics, because libsigar is not available on Mac OS X or Darwin])
-fi
-
-# FIXME: Replace `main' with a function in `-lm':
-#AC_CHECK_LIB([m], [main])
+AC_CHECK_LIB([m], [sqrt], [AC_DEFINE([HAVE_LIBM], [1], [Define if libm is installed (It should be!)])], [missing_libs+=" libm"])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
@@ -89,17 +72,7 @@ AC_CONFIG_FILES([Makefile
 		 proxy_server/Makefile
 		 doc/Makefile
 		 doc/oml2-server.1
-		 app/Makefile
-		 app/simple/Makefile
-		 app/omf_nmetrics/Makefile
-		 app/omf_trace/Makefile
-		 app/iperf/Makefile
-		 app/gps/Makefile
-		 app/wlanconfig/Makefile
-		 app/otg/Makefile
-		 app/otg/src/cpp/core/Makefile
-		 app/otg/src/cpp/port/Makefile
-		 app/otg/src/cpp/generator/Makefile
+		 example/Makefile
 		 ])
 
 if test "x$missing_check" != "x"; then
@@ -121,7 +94,5 @@ Please install all of the following libraries and then re-run configure
 using your system's package manager to install them):
 $missing_libs])
 fi
-
-
 
 AC_OUTPUT
