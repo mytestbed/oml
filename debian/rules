@@ -49,43 +49,21 @@ install: build
 	dh_clean -k 
 	dh_installdirs
 
-	# Add here commands to install the package into debian/oml.
-	$(MAKE) DESTDIR=$(CURDIR)/debian/oml-client install
-
-	# Build the oml-server package
-	mkdir -p $(CURDIR)/debian/oml-server/usr/bin
-	mkdir -p $(CURDIR)/debian/oml-server/usr/share/man/man1
-	mv $(CURDIR)/debian/oml-client/usr/bin/oml2-server $(CURDIR)/debian/oml-server/usr/bin/
-	mv $(CURDIR)/debian/oml-client/usr/bin/oml2-proxy-server $(CURDIR)/debian/oml-server/usr/bin/
-	mv $(CURDIR)/debian/oml-client/usr/share/man/man1/oml2-server.1 $(CURDIR)/debian/oml-server/usr/share/man/man1/
+	# Install the binaries into debian/om-server
+	$(MAKE) DESTDIR=$(CURDIR)/debian/oml-server install
 
 	# Build the liboml-dev package
 	mkdir -p $(CURDIR)/debian/liboml-dev/usr/include
 	mkdir -p $(CURDIR)/debian/liboml-dev/usr/bin
 	mkdir -p $(CURDIR)/debian/liboml-dev/usr/lib
-	mv $(CURDIR)/debian/oml-client/usr/include/* $(CURDIR)/debian/liboml-dev/usr/include/
-	mv $(CURDIR)/debian/oml-client/usr/bin/oml2_scaffold $(CURDIR)/debian/liboml-dev/usr/bin
-	mv $(CURDIR)/debian/oml-client/usr/lib/liboml2.so $(CURDIR)/debian/liboml-dev/usr/lib
-	mv $(CURDIR)/debian/oml-client/usr/lib/libocomm.so $(CURDIR)/debian/liboml-dev/usr/lib
-
+	mv $(CURDIR)/debian/oml-server/usr/include/* $(CURDIR)/debian/liboml-dev/usr/include/
+	mv $(CURDIR)/debian/oml-server/usr/bin/oml2_scaffold $(CURDIR)/debian/liboml-dev/usr/bin
+	mv $(CURDIR)/debian/oml-server/usr/lib/liboml2.so $(CURDIR)/debian/liboml-dev/usr/lib
+	mv $(CURDIR)/debian/oml-server/usr/lib/libocomm.so $(CURDIR)/debian/liboml-dev/usr/lib
 
 	# Build the liboml package
 	mkdir -p $(CURDIR)/debian/liboml/usr/lib
-	mv $(CURDIR)/debian/oml-client/usr/lib/* $(CURDIR)/debian/liboml/usr/lib/
-
-	# Build the otg package
-	mkdir -p $(CURDIR)/debian/otg/usr/bin
-	mkdir -p $(CURDIR)/debian/otg/usr/lib
-	mv $(CURDIR)/debian/oml-client/usr/bin/otg2 $(CURDIR)/debian/otg/usr/bin/
-	mv $(CURDIR)/debian/oml-client/usr/bin/otr2 $(CURDIR)/debian/otg/usr/bin/
-	mv $(CURDIR)/debian/liboml/usr/lib/libotg* $(CURDIR)/debian/otg/usr/lib/
-	rm -f $(CURDIR)/debian/otg/usr/lib/libotg2.so
-
-	# Clean up the oml-client package
-	rmdir $(CURDIR)/debian/oml-client/usr/share/man/man1
-	rmdir $(CURDIR)/debian/oml-client/usr/share/man
-	rmdir $(CURDIR)/debian/oml-client/usr/include
-	rmdir $(CURDIR)/debian/oml-client/usr/lib
+	mv $(CURDIR)/debian/oml-server/usr/lib/* $(CURDIR)/debian/liboml/usr/lib/
 
 # Build architecture-independent files here.
 binary-indep: build install
