@@ -1,3 +1,11 @@
+oml (2.3.4-3) stable; urgency=low
+
+  * Fix packaging of oml2_scaffold (should be in liboml-dev).
+  * Fix -dev symlinks for .so's (should be in liboml-dev).
+  * Fix some lintian warnings.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Mon, 01 Feb 2010 18:13:06 +1100
+
 oml (2.3.4-2) stable; urgency=low
 
   * Add oml2-server.1 man page to Debian package.
