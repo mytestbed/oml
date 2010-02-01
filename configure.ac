@@ -62,6 +62,13 @@ AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memmove memset socket sqrt 
 
 AC_C_BIGENDIAN
 
+# Check for asciidoc (for generating manpages).
+AC_PATH_PROG(A2X, a2x, no)
+AM_CONDITIONAL([HAVE_A2X], [test "x$A2X" != "xno"])
+if test x"$A2X" = x"no"; then
+   AC_MSG_WARN([Test for asciidoc failed.  Not generating documentation (but OML build should still complete ok).])
+fi
+
 AC_CONFIG_FILES([Makefile
 		 lib/Makefile
 		 lib/client/Makefile
@@ -71,7 +78,6 @@ AC_CONFIG_FILES([Makefile
 		 server/Makefile
 		 proxy_server/Makefile
 		 doc/Makefile
-		 doc/oml2-server.1
 		 example/Makefile
 		 ])
 
