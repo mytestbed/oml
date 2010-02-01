@@ -30,8 +30,7 @@ Description: Orbit Traffic Generator
 Package: liboml-dev
 Section: libdevel
 Architecture: all
-Depends: liboml (= ${Source-Version})
-Recommends: ruby
+Depends: liboml (= ${Source-Version}), ruby
 Description: OML measurement library headers
  Development headers for developing applications that make
  measurements using the liboml, the client library for the OML
