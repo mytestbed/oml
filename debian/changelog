@@ -1,3 +1,9 @@
+oml (2.3.4-ubuntu1) karmic; urgency=low
+
+  * Now building for Ubuntu karmic.
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Fri, 05 Feb 2010 16:25:25 +1100
+
 oml (2.3.4-3) stable; urgency=low
 
   * Fix packaging of oml2_scaffold (should be in liboml-dev).
