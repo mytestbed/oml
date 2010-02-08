@@ -1,0 +1,140 @@
+oml2-proxy-server(1)
+====================
+
+NAME
+----
+oml2-proxy-server - Buffer OML client measurements for later replay
+to an upstream server.
+
+SYNOPSIS
+--------
+[verse]
+'oml2-proxy-server' [-l port | --listen=port] [-r file | --resultfile=file]
+      [-s size| --size=size] [-a addr | --dstaddress=addr] [-p port | --dstport=port]
+	  [-d level | --debug-level=level] [--logfile=file] [-v | --version]
+	  [-? | --help]
+
+DESCRIPTION
+-----------
+
+'oml2-proxy-server' provides a buffered proxy for the 'oml2-server'(1)
+for use in situations where either the normal 'oml2-server' is not
+reachable, or where using a reachable 'oml2-server' to store
+measurements as they are made would disturb the phenomena being
+measured.
+
+The 'oml2-proxy-server' listens for OML client connections on the port
+given with the -l option, and buffers the subsequent measurement
+traffic in memory. When it receives an OML-RESUME command (see below),
+'oml2-proxy-server' connects to the upstream 'oml2-server' daemon
+(specified with the -a and -p options) and then sends all buffered
+measurements to the upstream server.
+
+The buffering scheme is very simple: the client measurement streams
+are stored in the buffer without translation, and then simply replayed
+to the upstream server when the proxy is resumed.  This allows the
+'oml2-proxy-server' implementation to be very simple.
+
+The 'oml2-proxy-server' listens for the OMLPROXY-PAUSE and
+OMLPROXY-RESUME commands on its stdin file descriptor.  The operator
+must therefore leave the process attached to an open terminal or pipe
+whilst it is running in order to control it.  The commands must be
+typed in upper case as listed here, followed by a carriage return
+(ENTER key).
+
+The OMLPROXY-PAUSE command pauses the transmission of measurements to
+the upstream server.  When 'oml2-proxy-server' starts, it is in this
+state.
+
+The OMLPROXY-RESUME command resumes transmission of measurements to
+the upstream server.
+
+A typical usage scenario is to start the 'oml2-proxy-server' and leave
+it in the paused state, then conduct measurements, and when
+measurement activities have finished, issue the OMLPROXY-RESUME
+command to order the proxy server to send measurements to the upstream
+OML server.
+
+As well as storing the measurement streams in memory, the
+'oml2-proxy-server' also saves them to a file on disk, whose name and
+location can be specified with the '-r' option.
+
+OPTIONS
+-------
+-l port::
+--listen=port::
+	Listen for connections from OML clients on port (default 3003).
+
+-d level::
+--debug-level=level::
+	Set the verbosity of the log output to level.  The level should be
+	an integer from 1 to 4 (1=ERROR, 2=WARNING, 3=INFO, 4=DEBUG).  The
+	default log verbosity is 3, INFO.
+
+--logfile=file::
+	Write log messages to the given file.  The default file is
+	oml_proxy_server.log.
+
+-r file::
+--resultfile=file::
+	Save results into the given disk file.  The default result file
+	name is oml_result_proxy.log.  If the result file already exists
+	then a new one will be created with a unique name based on file.
+
+-s bytes::
+--size=bytes::
+	Buffer page size in bytes.
+
+-p port::
+--dstport=port::
+	Upstream server port number (default port is 3003).
+
+-a address::
+--dstaddress=address::
+	Upstream server address (default is localhost).
+
+-v::
+--version::
+	Print the version number of 'oml2-proxy-server'.
+
+-?::
+--help::
+	Print a summary of available options.
+
+--usage::
+	Display a brief usage message.
+
+
+BUGS
+----
+
+The 'oml2-proxy-server' is still experimental software and under
+active development.  It may contain bugs, and its interfaces may
+change without warning from version to version, even within the 2.x
+major release series.  We will strive to keep the interface backwards
+compatible for patch-level releases within a minor release series
+(i.e. version 2.3.5 should be backwards compatible with 2.3.4), but we
+may change the interface between minor release series (e.g. version
+2.4.0 might not be backwards compatible with 2.3.5).
+
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+For outstanding known bugs, please consult
+http://omf.mytestbed.net/projects/oml/issues
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+'om2-server' (1), 'liboml' (3)
+
+OML User Manual
+~~~~~~~~~~~~~~~
+http://omf.mytestbed.net/wiki/oml/Documentation
