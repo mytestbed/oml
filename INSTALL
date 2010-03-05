@@ -53,9 +53,9 @@ For developers
 --------------
 
 If you want to modify or enhance OML, you probably checked out the
-sources from the OML svn repository at
+sources from the OML git repository at
 
-	http://svn.mytestbed.net/OML
+		git clone git://mytestbed.net/oml.git
 
 In that case, in order to build the package you first need to generate
 the configure script and Makefiles.  To do this you need the Autotools
