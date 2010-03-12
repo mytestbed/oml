@@ -1,3 +1,11 @@
+2010-03-12  Jolyon White  <jolyon.white@nicta.com.au>
+
+	* OML: New version 2.3.5.
+
+	* OML: Fix longstanding bug in averaging filter.  Filter now only
+	averages over all samples received since previous filter output
+	was generated.
+
 2009-12-16  Jolyon White  <jolyon.white@nicta.com.au>
 
 	* OML: New version 2.3.4.
