@@ -20,6 +20,11 @@ check_liboml2_CFLAGS = @CHECK_CFLAGS@
 check_liboml2_LDADD = $(top_builddir)/lib/client/liboml2.la @CHECK_LIBS@
 endif
 
+noinst_PROGRAMS = testclient
+
+testclient_SOURCES = testclient.c
+
+testclient_LDADD = $(top_builddir)/lib/client/liboml2.la
 
 AM_CPPFLAGS = \
 	-I  $(top_srcdir)/lib/client \
