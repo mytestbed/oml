@@ -54,18 +54,18 @@ omlf_average_new(
   InstanceData* self = (InstanceData *)malloc(sizeof(InstanceData));
 
   if (self) {
-	memset(self, 0, sizeof(InstanceData));
+    memset(self, 0, sizeof(InstanceData));
 
-	self->sample_sum = 0;
-	self->sample_count = 0;
-	self->sample_min = HUGE;
-	self->sample_max = -1 * HUGE;
-	self->result = result;
-	return self;
+    self->sample_sum = 0;
+    self->sample_count = 0;
+    self->sample_min = HUGE;
+    self->sample_max = -1 * HUGE;
+    self->result = result;
+    return self;
   } else {
-	o_log(O_LOG_ERROR, "Could not allocate %d bytes for avg filter instance data\n",
-		  sizeof(InstanceData));
-	return NULL;
+    o_log(O_LOG_ERROR, "Could not allocate %d bytes for avg filter instance data\n",
+          sizeof(InstanceData));
+    return NULL;
   }
 }
 
@@ -81,12 +81,12 @@ omlf_register_filter_average (void)
     };
 
   omlf_register_filter ("avg",
-						omlf_average_new,
-						NULL,
-						sample,
-						process,
-						NULL,
-						def);
+                        omlf_average_new,
+                        NULL,
+                        sample,
+                        process,
+                        NULL,
+                        def);
 }
 
 static int
@@ -135,6 +135,11 @@ process(
   }
 
   writer->out(writer, self->result, f->output_count);
+
+  self->sample_max = -1 * HUGE;
+  self->sample_min = HUGE;
+  self->sample_sum = 0;
+  self->sample_count = 0;
 
   return 0;
 }

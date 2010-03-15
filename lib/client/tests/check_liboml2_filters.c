@@ -134,6 +134,41 @@ START_TEST (test_filter_avg_create)
 }
 END_TEST
 
+START_TEST (test_filter_avg_output)
+{
+  /*
+   * Create an averaging filter and check that it was correctly initialized.
+   */
+  OmlFilter* f = NULL;
+  AvgInstanceData* instdata = NULL;
+
+  f = create_filter ("avg", "inst", OML_LONG_VALUE, 2);
+
+  instdata = (AvgInstanceData*)f->instance_data;
+
+  long input [] = { 1, 2, 3, 4, 5, 6 };
+  double output [] = { 3.5, 1, 6 };
+
+  TestVector** v_input = (TestVector**)malloc(1 * sizeof(TestVector));
+  TestVector** v_output = (TestVector**)malloc(1 * sizeof(TestVector));
+
+  v_input[0] = make_test_vector (input, OML_LONG_VALUE, 6);
+  v_output[0] = make_test_vector (output, OML_DOUBLE_VALUE, 3);
+
+  TestData* data = (TestData*) malloc (sizeof(TestData));
+  data->count = 1;
+  data->inputs = v_input;
+  data->outputs = v_output;
+
+  run_filter_test (data, f);
+
+  // Sample count and accumulator should be 0; min and max should be v. -ve and v. +ve respectively.
+  fail_unless (instdata->sample_sum == 0);
+  fail_unless (instdata->sample_count == 0);
+  fail_unless (instdata->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, instdata->sample_min);
+  fail_unless (instdata->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, instdata->sample_max);
+}
+END_TEST
 /********************************************************************************/
 /*                         'FIRST' FILTER TESTS                                 */
 /********************************************************************************/
@@ -290,6 +325,7 @@ filters_suite (void)
 
   /* Add tests to test case "FilterAverage" */
   tcase_add_test (tc_filter_avg, test_filter_avg_create);
+  tcase_add_test (tc_filter_avg, test_filter_avg_output);
 
   /* Add tests to test case "FilterFirst" */
   tcase_add_test (tc_filter_first, test_filter_first_create);
