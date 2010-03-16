@@ -33,7 +33,6 @@
 
 #include "client.h"
 /**
- * \fn int mp_lock(OmlMP* mp)
  * \brief lock of the measurement point mutex
  * \param mp the measurement point
  * \return 0 if successful, -1 otherwise
@@ -52,7 +51,6 @@ mp_lock(
   return 0;
 }
 /**
- * \fn void mp_unlock(OmlMP* mp)
  * \brief unlock of the measurement point mutex
  * \param mp the measurement point
  */
@@ -69,20 +67,38 @@ mp_unlock(
 }
 
 /**
- * \fn int oml_value_copy(OmlValueU* value, OmlValueT  type, OmlValue*  to)
- * \brief copy the value +value+ inside +to+
- * \param value the unique value
- * \param type the type of +value+
- * \param to the receiving enum of the value
- * \return 0 if successful, -1 otherwise
+ * @brief Copy an OmlValueU into an OmlValueT.
+ *
+ * This function copies +value+, which must be of the given +type+,
+ * into the OmlValue pointed to by +to+.  The +to+ object is set to
+ * have the given +type+.  If +type+ is a simple numeric type, the
+ * copy simply copies the value.
+ *
+ * If +type+ is OML_STRING_VALUE, then the string contents are copied
+ * into new storage in +to+.  If +to+ was previously set to be a
+ * "is_const" string, then the "is_const" flag is cleared and a new
+ * block of memory is allocated to store the copy, sized to the exact
+ * number of bytes required to store the string and its terminating
+ * null character.  If +to+ did not previously have the "is_const"
+ * flag set, and its string pointer was null, then a new block of
+ * memory is also allocated.  If the string pointer was not null, then
+ * the string is copied into the previously allocated memory block if
+ * it is large enough to fit; otherwize the block is freed and a new
+ * one allocated large enough to hold the string (and its terminator).
+ *
+ * If the source string pointer is NULL then an error is returned and
+ * a warning message is sent to the log.
+ *
+ * @param value the original value
+ * @param type the type of +value+
+ * @param to OmlValue into which the value should be copied
+ * @return 0 if successful, -1 otherwise
  */
 int
-oml_value_copy(
-  OmlValueU* value,
-  OmlValueT  type,
-  OmlValue*  to
-) {
-  switch (type) {
+oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to)
+{
+  switch (type)
+    {
     case OML_LONG_VALUE:
       to->value.longValue = value->longValue;
       to->type = OML_LONG_VALUE;
@@ -92,60 +108,69 @@ oml_value_copy(
       to->type = OML_DOUBLE_VALUE;
       break;
     case OML_STRING_VALUE:
-	  {
-		to->type = OML_STRING_VALUE;
-		OmlString* str = &to->value.stringValue;
-		str->is_const = value->stringValue.is_const;
-		if (str->is_const) {
-		  str->ptr = value->stringValue.ptr;
-		} else {
-		  char* fstr = value->stringValue.ptr;
-		  if (!fstr)
-			{
-			  o_log (O_LOG_WARN, "Trying to copy OML_STRING_VALUE from a NULL source\n");
-			  return -1;
-			}
-		  int size = strlen(fstr);
+      {
+        char* fstr = value->stringValue.ptr;
+        if (!fstr)
+          {
+            o_log (O_LOG_WARN, "Trying to copy OML_STRING_VALUE from a NULL source\n");
+            return -1;
+          }
+        int length = strlen(fstr);
 
-		  /*
-		   * Reallocate the string if either:
-		   *
-		   *   1. The dest string value has some memory allocated and
-		   *   that memory is not enough to hold the new string; or
-		   *
-		   *   2. The dest string value does not have any memory
-		   *   allocated (ptr is NULL).
-		   */
-		  if (str->ptr == NULL || str->length < size + 1)
-			{
-			  if (str->ptr && str->length > 0)
-				{
-				  free(str->ptr);
-				}
-			  str->ptr = malloc(size + 1);
-			  str->length = size + 1;
-			}
-		  if (str->ptr)
-			{
-			  strncpy(str->ptr, fstr, size + 1);
-			}
-		  else
-			{
-			  o_log (O_LOG_WARN, "Trying to copy OML_STRING_VALUE '%s' to NULL destination\n", fstr);
-			  return -1;
-			}
-		  str->size = size;
-		}
-		break;
-	  }
+        if (to->type == OML_STRING_VALUE)
+          {
+            if (to->value.stringValue.is_const)
+              {
+                to->value.stringValue.is_const = 0;
+                to->value.stringValue.ptr = NULL;
+              }
+            else if (to->value.stringValue.size < length + 1)
+              {
+                if (to->value.stringValue.ptr != NULL)
+                  {
+                    free (to->value.stringValue.ptr);
+                    to->value.stringValue.ptr = NULL;
+                  }
+                to->value.stringValue.length = 0;
+                to->value.stringValue.size = 0;
+              }
+          }
+        else
+          {
+            to->type = OML_STRING_VALUE;
+            to->value.stringValue.ptr = NULL;
+            to->value.stringValue.length = 0;
+            to->value.stringValue.size = 0;
+            to->value.stringValue.is_const = 0;
+          }
+
+        /*
+         * At this point, if the dest string value's pointer is NULL,
+         * we should allocate the right amount of memory for it.  If
+         * not, then it should already have enough memory to store the
+         * string correctly.
+         *
+         * This assumes correct accounting of to.value.stringValue.{length,size}
+         */
+        if (to->value.stringValue.ptr == NULL)
+          {
+            to->value.stringValue.ptr = (char*)malloc(length + 1);
+            memset(to->value.stringValue.ptr, 0, length + 1);
+            to->value.stringValue.size = length + 1;
+          }
+
+        strncpy (to->value.stringValue.ptr, fstr, length);
+        to->value.stringValue.length = length;
+        break;
+      }
     default:
       o_log(O_LOG_ERROR, "Copy for type '%d' not implemented'\n", type);
       return -1;
-  }
+    }
   return 0;
 }
+
 /**
- * \fn int oml_value_reset(OmlValue* v)
  * \brief reset the set of values in +v+
  * \param v the +OmlValue+ to reset
  * \return 0 if successful, -1 otherwise
@@ -167,7 +192,7 @@ oml_value_reset(
     } else {
       v->value.stringValue.size = 0;
       if (v->value.stringValue.length > 0) {
-	*v->value.stringValue.ptr = '\0';
+    *v->value.stringValue.ptr = '\0';
       }
     }
     break;
@@ -179,7 +204,6 @@ oml_value_reset(
   return 0;
 }
 /**
- * \fn char* oml_type_to_s(OmlValueT type)
  * \brief give the type of the value
  * \param type the type to return
  * \return a string that represent the type +type+
