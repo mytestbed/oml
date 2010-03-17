@@ -1,5 +1,9 @@
 2010-03-17    <jolyon.white@nicta.com.au>
 
+	* lib/client/misc.c (oml_value_copy): Make oml_value_copy() always
+	copy strings into memory that is owned by the destination OmlValue
+	object.  Fixes bug #259.
+
 	* configure.ac: Don't generate the build system for the
 	applications anymore, and don't build them (as they are removed on
 	the master branch, and they now have their own separate
