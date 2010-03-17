@@ -1,3 +1,10 @@
+2010-03-17    <jolyon.white@nicta.com.au>
+
+	* configure.ac: Don't generate the build system for the
+	applications anymore, and don't build them (as they are removed on
+	the master branch, and they now have their own separate
+	repository, git://mytestbed.net/oml-apps.git).
+
 2010-03-12  Jolyon White  <jolyon.white@nicta.com.au>
 
 	* OML: New version 2.3.5.
