@@ -73,18 +73,6 @@ AC_CONFIG_FILES([Makefile
 		 proxy_server/Makefile
 		 doc/Makefile
 		 doc/oml2-server.1
-		 app/Makefile
-		 app/simple/Makefile
-		 app/omf_nmetrics/Makefile
-		 app/omf_trace/Makefile
-		 app/iperf/Makefile
-		 app/gps/Makefile
-		 app/wlanconfig/Makefile
-		 app/otg/Makefile
-		 app/otg/src/cpp/core/Makefile
-		 app/otg/src/cpp/port/Makefile
-		 app/otg/src/cpp/generator/Makefile
 		 ])
 
-#AC_CONFIG_SUBDIRS([libsigar])
 AC_OUTPUT
