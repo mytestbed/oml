@@ -35,15 +35,10 @@ AM_CONDITIONAL([DARWIN], [test x`uname` = xDarwin])
 
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
 
-AC_CHECK_LIB(sqlite3, sqlite3_initialize, [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])])
+AC_CHECK_LIB([sqlite3], [sqlite3_open], [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])])
 AC_CHECK_LIB([pcap], [pcap_open_live], [AC_DEFINE([HAVE_LIBPCAP], [1], [Define if libpcap is installed.])])
 AC_CHECK_LIB([popt], [poptGetContext], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])])
 AC_CHECK_LIB([pthread], [pthread_create], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])])
-
-# FIXME: Replace `main' with a function in `-lm':
-#AC_CHECK_LIB([m], [main])
-# FIXME: Replace `main' with a function in `-ltrace':
-#AC_CHECK_LIB([trace], [main])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
