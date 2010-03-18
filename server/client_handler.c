@@ -59,6 +59,8 @@ status_callback(SockEvtSource* source,
 /**
  * \brief Create a client handler and associates it with the socket
  * \param newSock the socket from which the client is connected
+ * \param hostname
+ * \param user
  */
 void*
 client_handler_new(
