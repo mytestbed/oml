@@ -62,7 +62,9 @@ status_callback(SockEvtSource* source,
  */
 void*
 client_handler_new(
-    Socket* newSock
+		   Socket* newSock,
+		   char* hostname,
+		   char* user
 ) {
   ClientHandler* self = (ClientHandler *)malloc(sizeof(ClientHandler));
   if (!self) return NULL;
@@ -79,6 +81,8 @@ client_handler_new(
   self->content = C_TEXT_DATA;
   self->mbuf = mbuf_create ();
   self->socket = newSock;
+  self->DbHostname = hostname;
+  self->DbUser = user;
   eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
   return self;
 }
@@ -189,7 +193,7 @@ process_meta(
 		return;
 	  }
   } else if (strcmp(key, "experiment-id") == 0) {
-    self->database = database_find(value);
+    self->database = database_find(value,self->DbHostname,self->DbUser);
   } else if (strcmp(key, "content") == 0) {
     if (strcmp(value, "binary") == 0) {
       self->content = C_BINARY_DATA;

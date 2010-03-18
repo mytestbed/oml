@@ -47,12 +47,15 @@ static Database* firstDB = NULL;
  */
 Database*
 database_find(
-    char* name
+	      char* name,
+	      char* hostname,
++	      char* user
 ) {
   Database* db = firstDB;
   while (db != NULL) {
-    if (strcmp(name, db->name) == 0) {
+      if (strcmp(name, db->name) == 0 && strcmp(hostname, db->hostname) == 0 && strcmp(user, db->user) == 0) {
       db->ref_count++;
+      o_log(O_LOG_DEBUG, "Database %s at %s with %s found (%d clients)\n", name, hostname, user,db->ref_count);
       return db;
     }
 	db = db->next;
@@ -61,11 +64,14 @@ database_find(
   // need to create a new one
   Database* self = (Database *)malloc(sizeof(Database));
   memset(self, 0, sizeof(Database));
-  o_log(O_LOG_DEBUG, "Creating new database %s\n", name);
+  o_log(O_LOG_DEBUG, "Creation new database %s at %s with %s\n", name, hostname, user);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
+  strncpy(self->hostname, hostname, MAX_DB_NAME_SIZE);
+  strncpy(self->user, user, MAX_DB_NAME_SIZE);
   self->ref_count = 1;
 
-  if (sq3_create_database(self)) {
+  /* if (sq3_create_database(self)) { */
+  if (psql_create_database(self)) {
     free(self);
     return NULL;
   }
@@ -127,7 +133,8 @@ database_release(
     prev_p->next = self->next;
   }
   o_log(O_LOG_INFO, "Closing database '%s'\n", self->name);
-  sq3_release(self);
+  /* sq3_release(self); */
+  psql_release(self);
 
   // no longer needed
   DbTable* t_p = self->first_table;
@@ -198,7 +205,8 @@ database_get_table(
     index++;
   }
   if (!check_only) {
-    if (sq3_create_table(database, table)) {
+    /* if (sq3_create_table(database, table)) { */
+    if (psql_create_table(database, table)) {
       free(table);
       return NULL;
     }

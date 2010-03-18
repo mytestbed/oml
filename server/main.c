@@ -39,18 +39,25 @@
 #define DEF_PORT 3003
 #define DEF_PORT_STR "3003"
 #define DEFAULT_LOG_FILE "oml_server.log"
+#define DEFAULT_DB_HOST "localhost"
+#define DEFAULT_DB_USER "dbuser"
 
 static int listen_port = DEF_PORT;
 char* g_database_data_dir = ".";
 
 static int log_level = O_LOG_INFO;
 static char* logfile_name = DEFAULT_LOG_FILE;
+static char* hostname = DEFAULT_DB_HOST;
+static char* user = DEFAULT_DB_USER;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
   { "listen", 'l', POPT_ARG_INT, &listen_port, 0,
         "Port to listen for TCP based clients", DEF_PORT_STR},
-
+  { "hostname", 'h', POPT_ARG_STRING, &hostname, 0, 
+    "Database server hostname", DEFAULT_DB_HOST},
+  { "user", 'u', POPT_ARG_STRING, &user, 0, 
+    "Database server username", DEFAULT_DB_USER},
   { "data-dir", '\0', POPT_ARG_STRING, &g_database_data_dir, 0,
         "Directory to store dtabase files" },
   { "debug-level", 'd', POPT_ARG_INT, &log_level, 0,
@@ -73,7 +80,7 @@ on_connect(
 //  Socket* outSock = (Socket*)handle;
 
   o_log(O_LOG_DEBUG, "New client connected\n");
-  client_handler_new(newSock);
+  client_handler_new(newSock,hostname,user);
 }
 
 /**
@@ -117,6 +124,8 @@ main(
   o_log(O_LOG_INFO, V_STRING, VERSION);
   o_log(O_LOG_INFO, "OML Protocol V%d\n", OML_PROTOCOL_VERSION);
   o_log(O_LOG_INFO, COPYRIGHT);
+
+  o_log(O_LOG_INFO, "Database server: %s with %s\n",hostname,user);
 
   eventloop_init();
 

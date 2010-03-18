@@ -40,6 +40,8 @@ typedef struct _clientHandler {
   char name[MAX_STRING_SIZE];
 
   Database*   database;
+  char*       DbHostname;
+  char*       DbUser;
   DbTable**   tables;
   int*        seq_no_offset;
   int         table_size;    // size of tables array and seq_no_offset array

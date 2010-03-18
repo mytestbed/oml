@@ -85,6 +85,8 @@ typedef struct _dbTable {
 
 typedef struct _database{
   char       name[MAX_DB_NAME_SIZE];
+  char       hostname[MAX_DB_NAME_SIZE];
+  char       user[MAX_DB_NAME_SIZE];
 
   int        ref_count;   // count number of clients using this DB
 
@@ -114,7 +116,9 @@ typedef struct _database{
  */
 Database*
 database_find(
-    char* name
+	      char* name,
+	      char* hostname,
+	      char* user
 );
 
 /**
