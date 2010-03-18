@@ -49,7 +49,7 @@ Database*
 database_find(
 	      char* name,
 	      char* hostname,
-+	      char* user
+	      char* user
 ) {
   Database* db = firstDB;
   while (db != NULL) {

@@ -27,7 +27,9 @@
 
 void*
 client_handler_new(
-    Socket* newSock
+		   Socket* newSock,
+		   char* hostname,
+		   char* user
 );
 
 #endif /*SERVER_H_*/
