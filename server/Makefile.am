@@ -16,6 +16,8 @@ oml2_server_SOURCES = \
 	server.h \
 	sqlite_adapter.c \
 	sqlite_adapter.h \
+	psql_adapter.c \
+	psql_adapter.h \
 	util.c \
 	util.h \
 	table_descr.c \
@@ -25,6 +27,6 @@ oml2_server_SOURCES = \
 oml2_server_LDADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \
 	$(top_builddir)/lib/shared/libshared.la \
-	-lpopt -lsqlite3
+	-lpopt -lsqlite3 -lpq
 
 
