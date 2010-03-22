@@ -142,7 +142,10 @@ type_to_s (OmlValueT type)
     case OML_UNKNOWN_VALUE: return "OML_UNKNOWN_VALUE";
     case OML_DOUBLE_VALUE: return "OML_DOUBLE_VALUE";
     case OML_LONG_VALUE: return "OML_LONG_VALUE";
-    case OML_STRING_PTR_VALUE: return "OML_STRING_PTR_VALUE";
+    case OML_INT32_VALUE: return "OML_INT32_VALUE";
+    case OML_UINT32_VALUE: return "OML_UINT32_VALUE";
+    case OML_INT64_VALUE: return "OML_INT64_VALUE";
+    case OML_UINT64_VALUE: return "OML_UINT64_VALUE";
     case OML_STRING_VALUE: return "OML_STRING_VALUE";
     default: return "OML_BAD_TYPE";
     }
@@ -151,8 +154,12 @@ type_to_s (OmlValueT type)
 OmlValueT
 type_from_s (const char *s)
 {
-  if (strncmp (s, "integer", MAX_WORD) == 0) return OML_LONG_VALUE;
-  if (strncmp (s, "int32", MAX_WORD) == 0) return OML_LONG_VALUE;
+  if (strncmp (s, "long", MAX_WORD) == 0) return OML_LONG_VALUE;
+  if (strncmp (s, "integer", MAX_WORD) == 0) return OML_INT32_VALUE;
+  if (strncmp (s, "int32", MAX_WORD) == 0) return OML_INT32_VALUE;
+  if (strncmp (s, "uint32", MAX_WORD) == 0) return OML_UINT32_VALUE;
+  if (strncmp (s, "int64", MAX_WORD) == 0) return OML_INT64_VALUE;
+  if (strncmp (s, "uint64", MAX_WORD) == 0) return OML_UINT64_VALUE;
   if (strncmp (s, "double", MAX_WORD) == 0) return OML_DOUBLE_VALUE;
   if (strncmp (s, "string", MAX_WORD) == 0) return OML_STRING_VALUE;
   return OML_UNKNOWN_VALUE;
@@ -185,7 +192,11 @@ set_value (OmlMPDef *def, OmlValueU *v, int value)
 {
   switch (def->param_types)
     {
-    case OML_LONG_VALUE:    v->longValue = value; break;
+    case OML_LONG_VALUE:    v->longValue   = value; break;
+    case OML_INT32_VALUE:   v->int32Value  = value; break;
+    case OML_UINT32_VALUE:  v->uint32Value = value; break;
+    case OML_INT64_VALUE:   v->int64Value  = value; break;
+    case OML_UINT64_VALUE:  v->uint64Value = value; break;
     case OML_DOUBLE_VALUE:  v->doubleValue = value; break;
     case OML_STRING_VALUE:
       {

@@ -34,6 +34,7 @@ main (void)
   SRunner* sr = srunner_create (filters_suite ());
   srunner_add_suite (sr, api_suite ());
   srunner_add_suite (sr, parser_suite ());
+  srunner_add_suite (sr, bswap_suite ());
   srunner_add_suite (sr, marshal_suite ());
   srunner_add_suite (sr, mbuf_suite ());
 

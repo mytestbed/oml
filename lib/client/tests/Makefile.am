@@ -10,6 +10,7 @@ check_liboml2_SOURCES = \
 	check_liboml2_api.c \
 	check_liboml2_filters.c \
 	check_liboml2_parser.c \
+	check_liboml2_bswap.c \
 	check_liboml2_marshal.c \
 	check_liboml2_mbuf.c \
 	check_liboml2_suites.h \
@@ -17,7 +18,9 @@ check_liboml2_SOURCES = \
 	$(top_srcdir)/lib/client/oml2/oml_filter.h
 check_liboml2_CFLAGS = @CHECK_CFLAGS@
 
-check_liboml2_LDADD = $(top_builddir)/lib/client/liboml2.la @CHECK_LIBS@
+check_liboml2_LDADD = \
+	$(top_builddir)/lib/client/liboml2.la \
+	@CHECK_LIBS@
 endif
 
 noinst_PROGRAMS = testclient
