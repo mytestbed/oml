@@ -42,10 +42,8 @@ static int
 sample(OmlFilter* f, OmlValue* value);
 
 void*
-omlf_average_new(
-  OmlValueT type,
-  OmlValue* result
-) {
+omlf_average_new(OmlValueT type, OmlValue* result)
+{
   if (! omlc_is_numeric_type (type)) {
     o_log(O_LOG_ERROR, "Can only handle numeric parameters\n");
     return NULL;
@@ -90,10 +88,8 @@ omlf_register_filter_average (void)
 }
 
 static int
-sample(
-    OmlFilter* f,
-    OmlValue*  value  //! value of this sample
-) {
+sample(OmlFilter* f, OmlValue* value)
+{
   InstanceData* self = (InstanceData*)f->instance_data;
   OmlValueU* v = &value->value;
   OmlValueT type = value->type;
@@ -118,10 +114,8 @@ sample(
 }
 
 static int
-process(
-  OmlFilter* f,
-  OmlWriter* writer //! Write results of filter to this function
-) {
+process(OmlFilter* f, OmlWriter* writer)
+{
   InstanceData* self = (InstanceData*)f->instance_data;
 
   if (self->sample_count > 0) {

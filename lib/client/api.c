@@ -36,7 +36,6 @@
 extern OmlClient* omlc_instance;
 
 /**
- * \fn static void omlc_ms_process( OmlMStream* ms)
  * \brief Called when the particular MStream has been filled.
  * \param ms the oml stream to process
  */
@@ -46,7 +45,6 @@ omlc_ms_process(
 );
 
 /**
- * \fn void omlc_process( OmlMP* mp, OmlValueU*  values)
  * \brief DEPRECIATED
  */
 void
@@ -59,7 +57,6 @@ omlc_process(
 }
 
 /**
- * \fn void omlc_inject( OmlMP* mp, OmlValueU*  values)
  * \brief Called when a measure has to be treated
  * \param mp the measurement point in the application
  * \param values the new values to analyse
@@ -92,18 +89,7 @@ omlc_inject(
   mp_unlock(mp);
 }
 
-////! Called at the start of every MP wrapper function.
-//OmlMStream*
-//omlc_mp_start(
-//  int index
-//) {
-//  if (omlc_instance == NULL) return NULL;
-//  OmlMStream* mp = omlc_instance->mpoints[index];
-//  return mp_lock(mp) ? mp : NULL;
-//}
-
 /**
- * \fn static void omlc_ms_process( OmlMStream* ms)
  * \brief Called when the particular MStream has been filled.
  * \param ms the oml stream to process
  */
@@ -123,17 +109,6 @@ omlc_ms_process(
     ms->sample_size = 0;
   }
 }
-
-////! Called at the end of every MP wrapper function.
-//void
-//omlc_mp_end(
-//  int index
-//) {
-//  if (omlc_instance == NULL) return;
-//  OmlMStream* ms = omlc_instance->mpoints[index];
-//  mp_unlock(ms);
-//}
-
 
 /*
  Local Variables:
