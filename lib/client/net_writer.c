@@ -126,7 +126,7 @@ net_writer_new(char* protocol, char* location)
   socket_set_non_blocking_mode(0);
   if (protocol == NULL || strcmp(protocol, "tcp") == 0) {
     if ((self->socket = socket_tcp_out_new("sock", host, port)) == NULL) {
-	  free (self);
+      free (self);
       return NULL;
     }
   }

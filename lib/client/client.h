@@ -33,8 +33,6 @@
 #include "oml2/oml_filter.h"
 #include "oml2/oml_writer.h"
 
-
-
 #define CONFIG_ROOT_NAME "omlc"
 #define NODE_ID_ATTR "id"
 #define EXP_ID_ATTR "exp_id"
@@ -135,9 +133,6 @@ net_writer_new(char* protocol, char* location);
 
 extern int
 filter_process(OmlMStream* mp);
-
-extern char*
-oml_type_to_s(OmlValueT type);
 
 const char*
 validate_app_name (const char* name);

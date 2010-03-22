@@ -28,11 +28,12 @@
 #include <ocomm/o_log.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdlib.h>
+#include <errno.h>
 #include <libxml/tree.h>
 //#include <libxml/parser.h>
 #include "filter/factory.h"
 #include "client.h"
+#include "oml_value.h"
 
 static char*
 getAttr(
@@ -89,7 +90,7 @@ parse_config(
 
   if ((doc = xmlParseFile(configFile)) == NULL) {
     o_log(O_LOG_ERROR, "Config file '%s' not parsed successfully.\n",
-	  configFile);
+      configFile);
     return -1;
   }
 
@@ -101,7 +102,7 @@ parse_config(
 
   if (xmlStrcmp(cur->name, (const xmlChar *)CONFIG_ROOT_NAME)) {
     o_log(O_LOG_ERROR, "Config file has wrong root, should be '%s'.\n",
-	  CONFIG_ROOT_NAME);
+      CONFIG_ROOT_NAME);
     xmlFreeDoc(doc);
     return -3;
   }
@@ -251,7 +252,7 @@ parse_filter(
     xmlChar* multi = xmlGetProp(el, (const xmlChar*)FILTER_MULTI_PARAM_ATTR);
     if (multi == NULL) {
       o_log(O_LOG_WARN, "No '%s' or '%s' found.\n",
-	    FILTER_PARAM_NAME_ATTR, FILTER_MULTI_PARAM_ATTR);
+        FILTER_PARAM_NAME_ATTR, FILTER_MULTI_PARAM_ATTR);
       return NULL;
     }
   } else {
@@ -260,12 +261,12 @@ parse_filter(
     int i = 0;
     for (; dp->name != NULL; i++, dp++) {
       if (strcmp((char*)pname, dp->name) == 0) {
-	if (i >= mp->param_count) {
-	  o_log(O_LOG_ERROR, "Index '%i' out of bounds.\n", i);
-	  return NULL;
-	}
-	index = i;
-	break;
+    if (i >= mp->param_count) {
+      o_log(O_LOG_ERROR, "Index '%i' out of bounds.\n", i);
+      return NULL;
+    }
+    index = i;
+    break;
       }
     }
   }
@@ -277,7 +278,7 @@ parse_filter(
     // pick default one
     if (def == NULL) {
       o_log(O_LOG_ERROR, "Can't create default filter without '%s' declaration.\n",
-	    FILTER_PARAM_NAME_ATTR);
+        FILTER_PARAM_NAME_ATTR);
       return NULL;
     }
     f = createDefaultFilter(def, ms, index);
@@ -287,9 +288,9 @@ parse_filter(
       f = create_filter((const char*)fname, name, def->param_types, index);
     } else {
       if (sname == NULL) {
-	o_log(O_LOG_ERROR, "Require '%s' attribute for multi_pname filter '%s'.\n",
-	      FILTER_STREAM_NAME_ATTR, fname);
-	return NULL;
+    o_log(O_LOG_ERROR, "Require '%s' attribute for multi_pname filter '%s'.\n",
+          FILTER_STREAM_NAME_ATTR, fname);
+    return NULL;
       }
       f = create_filter((const char*)fname, (const char*)sname, 0, -1);
     }
@@ -322,17 +323,17 @@ parse_filter_properties(
   for (; el2 != NULL; el2 = el2->next) {
     if (!xmlStrcmp(el2->name, (const xmlChar *)FILTER_PROPERTY_EL)) {
       if (f->set == NULL) {
-	xmlChar* fname = xmlGetProp(el, (const xmlChar*)FILTER_NAME_ATTR);
-	o_log(O_LOG_ERROR, "Filter '%s' doesn't support setting properties.\n",
-	      fname);
-	return NULL;
+    xmlChar* fname = xmlGetProp(el, (const xmlChar*)FILTER_NAME_ATTR);
+    o_log(O_LOG_ERROR, "Filter '%s' doesn't support setting properties.\n",
+          fname);
+    return NULL;
       }
 
       xmlChar* pname = xmlGetProp(el2, (const xmlChar*)FILTER_PROPERTY_NAME_ATTR);
       if (pname == NULL) {
-	o_log(O_LOG_ERROR, "Can't find property name in filter ('%s') property declaration.\n",
-	      f->name);
-	return NULL;
+    o_log(O_LOG_ERROR, "Can't find property name in filter ('%s') property declaration.\n",
+          f->name);
+    return NULL;
       }
       xmlChar* ptype = xmlGetProp(el2, (const xmlChar*)FILTER_PROPERTY_TYPE_ATTR);
       if (ptype == NULL) ptype = (xmlChar*)"string";
@@ -340,19 +341,19 @@ parse_filter_properties(
       xmlNodePtr vel = el2->children;
       xmlChar* value = NULL;
       for (; vel != NULL; vel = vel->next) {
-	if (vel->type == XML_TEXT_NODE) {
-	  value = vel->content;
-	  break;
-	}
+    if (vel->type == XML_TEXT_NODE) {
+      value = vel->content;
+      break;
+    }
       }
       if (value == NULL) {
-	o_log(O_LOG_ERROR, "Missing property ('%s') value in filter '%s'.\n",
-	      pname, f->name);
-	return NULL;
+    o_log(O_LOG_ERROR, "Missing property ('%s') value in filter '%s'.\n",
+          pname, f->name);
+    return NULL;
       }
       o_log(O_LOG_DEBUG, "Found filter property: %s:%s = '%s'.\n",
-	    pname, ptype, value);
-      set_filter_property(f, pname, ptype, value);
+        pname, ptype, value);
+      set_filter_property(f, (char*)pname, (char*)ptype, (char*)value);
     }
   }
   return f;
@@ -378,20 +379,12 @@ set_filter_property(
 ) {
   OmlValue v;
 
-  if (strcmp(ptype, "string") == 0) {
-    v.type = OML_STRING_VALUE;
-    omlc_set_string(v.value, (char*)pvalue);
-  } else if (strcmp(ptype, "long") == 0) {
-    v.type = OML_LONG_VALUE;
-    v.value.longValue = atol(pvalue);
-  } else if (strcmp(ptype, "double") == 0) {
-    v.type = OML_DOUBLE_VALUE;
-    v.value.doubleValue = atof(pvalue);
-  } else {
-    o_log(O_LOG_ERROR, "Unknown type '%s' for filter property '%s'.\n",
-	  ptype, pname);
-    return 0;
-  }
+  if (oml_value_from_s (&v, pvalue) == -1)
+    {
+      o_log (O_LOG_ERROR, "Error converting property '%s' value from string '%s'\n",
+             pname, pvalue);
+      return 0;
+    }
 
   return f->set(f, pname, &v);
 }
@@ -413,13 +406,13 @@ getAttr(
   char* val = NULL;
   attrVal = xmlGetProp(el, (const xmlChar*)attrName);
   if (attrVal != NULL)
-	{
-	  size_t len = strlen (attrVal) + 1;
-	  val = (char*)malloc(len * sizeof (char));
-	  memset (val, 0, len);
-	  strncpy(val, (char*)attrVal, len);
-	  xmlFree(attrVal);
-	}
+    {
+      size_t len = strlen ((char*)attrVal) + 1;
+      val = (char*)malloc(len * sizeof (char));
+      memset (val, 0, len);
+      strncpy(val, (char*)attrVal, len);
+      xmlFree(attrVal);
+    }
 
   return val;
 }

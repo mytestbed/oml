@@ -32,6 +32,7 @@
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
 #include "average_filter.h"
+#include "oml_value.h"
 
 typedef struct _omlAvgFilterInstanceData InstanceData;
 
@@ -91,25 +92,18 @@ static int
 sample(OmlFilter* f, OmlValue* value)
 {
   InstanceData* self = (InstanceData*)f->instance_data;
-  OmlValueU* v = &value->value;
-  OmlValueT type = value->type;
   double val;
 
-  switch (type) {
-  case OML_LONG_VALUE:
-    val = v->longValue;
-    break;
-  case OML_DOUBLE_VALUE:
-    val = v->doubleValue;
-    break;
-  default:
-    // raise error;
+  if (! omlc_is_numeric_type (value->type))
     return -1;
-  }
+
+  val = oml_value_to_double (value);
+
   self->sample_sum += val;
   if (val < self->sample_min) self->sample_min = val;
   if (val > self->sample_max) self->sample_max = val;
   self->sample_count++;
+
   return 0;
 }
 

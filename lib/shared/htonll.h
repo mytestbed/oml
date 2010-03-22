@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,51 +20,33 @@
  * THE SOFTWARE.
  *
  */
-/*!\file misc.c
-  \brief Implements various common utility functions
-*/
+#ifndef HTONLL_H__
+#define HTONLL_H__
 
-#include <stdlib.h>
-#include <pthread.h>
-#include <ocomm/o_log.h>
-#include <errno.h>
-#include <string.h>
-#include <oml2/omlc.h>
-#include "client.h"
+#include <config.h>
+#include <arpa/inet.h>
 
-/**
- * \brief lock of the measurement point mutex
- * \param mp the measurement point
- * \return 0 if successful, -1 otherwise
- */
-int
-mp_lock(
-  OmlMP* mp
-) {
-  if (mp->mutexP) {
-    if (pthread_mutex_lock(mp->mutexP)) {
-      o_log(O_LOG_WARN, "%s: Couldn't get mutex lock (%s)\n",
-          mp->name, strerror(errno));
-      return -1;
-    }
-  }
-  return 0;
-}
-/**
- * \brief unlock of the measurement point mutex
- * \param mp the measurement point
- */
-void
-mp_unlock(
-  OmlMP* mp
-) {
-  if (mp->mutexP) {
-    if (pthread_mutex_unlock(mp->mutexP)) {
-      o_log(O_LOG_WARN, "%s: Couldn't unlock mutex (%s)\n",
-          mp->name, strerror(errno));
-    }
-  }
-}
+#if HAVE_BYTESWAP_H
+#include <byteswap.h>
+#else
+#define bswap_16(value) ((((value) & 0xFF) << 8) | ((value) >> 8))
+#define bswap_32(value)                                         \
+  (((uint32_t)(bswap_16((uint16_t)((value) & 0xFFFF))) << 16) | \
+   ((uint32_t)(bswap_16((uint16_t)((value) >> 16)))))
+#define bswap_64(value)                                             \
+  (((uint64_t)(bswap_32((uint32_t)((value) & 0xFFFFFFFF))) << 32) |  \
+   ((uint64_t)(bswap_32((uint32_t)((value) >> 32)))))
+#endif
+
+#ifdef WORDS_BIGENDIAN
+#define htonll(value) (value)
+#define ntohll(value) (value)
+#else
+#define htonll(value) (bswap_64(value))
+#define ntohll(value) (bswap_64(value))
+#endif
+
+#endif /* HTONLL_H__ */
 
 /*
  Local Variables:

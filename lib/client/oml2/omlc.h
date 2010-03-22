@@ -28,6 +28,7 @@
 #ifndef OML_OMLC_H_
 #define OML_OMLC_H_
 
+#include <stdint.h>
 #include <pthread.h>
 #include <ocomm/o_log.h>
 
@@ -36,26 +37,38 @@
 extern "C" {
 #endif
 
-#define omlc_is_numeric_type(t)								\
-	(((t) == OML_LONG_VALUE) || ((t) == OML_DOUBLE_VALUE))
+#define omlc_is_integer_type(t)                             \
+  (((t) == OML_LONG_VALUE) ||                               \
+   ((t) == OML_INT32_VALUE) ||                              \
+   ((t) == OML_UINT32_VALUE) ||                             \
+   ((t) == OML_INT64_VALUE) ||                              \
+   ((t) == OML_UINT64_VALUE))
 
-#define omlc_set_long(var, val) \
-    (var).longValue = (val);
+#define omlc_is_numeric_type(t)                             \
+  ((omlc_is_integer_type(t)) ||                             \
+  ((t) == OML_DOUBLE_VALUE))
 
-#define omlc_set_double(var, val) \
-    (var).doubleValue = (val);
+#define omlc_is_integer(v) omlc_is_integer_type((v).type)
+#define omlc_is_numeric(v) omlc_is_numeric_type((v).type)
 
-#define omlc_set_string(var, val)				\
-	do {														   \
+#define omlc_set_long(var, val) ((var).longValue = (val))
+#define omlc_set_int32(var, val) ((var).int32Value = (val))
+#define omlc_set_uint32(var, val) ((var).uint32Value = (val))
+#define omlc_set_int64(var, val) ((var).int64Value = (val))
+#define omlc_set_uint64(var, val) ((var).uint64Value = (val))
+#define omlc_set_double(var, val) ((var).doubleValue = (val))
+
+#define omlc_set_string(var, val)                                  \
+  do {                                                             \
     (var).stringValue.ptr = (val); (var).stringValue.is_const = 0; \
-    (var).stringValue.size = (var).stringValue.length = 0;		   \
-	} while (0);
+    (var).stringValue.size = (var).stringValue.length = 0;         \
+  } while (0);
 
-#define omlc_set_const_string(var, val)			\
-	do {														   \
+#define omlc_set_const_string(var, val)                            \
+  do {                                                             \
     (var).stringValue.ptr = (val); (var).stringValue.is_const = 1; \
-    (var).stringValue.size = (var).stringValue.length = 0;		   \
-	} while (0);
+    (var).stringValue.size = (var).stringValue.length = 0;         \
+  } while (0);
 
 struct _omlFilter;   // can't include oml_filter.h yet
 struct _omlWriter;   // forward declaration
@@ -71,9 +84,13 @@ typedef struct _omlString {
 } OmlString;
 
 typedef union _omlValueU {
-  long longValue;
-  double doubleValue;
+  long      longValue;
+  double    doubleValue;
   OmlString stringValue;
+  int32_t   int32Value;
+  uint32_t  uint32Value;
+  int64_t   int64Value;
+  uint64_t  uint64Value;
 } OmlValueU;
 
 typedef enum _omlValueE {
@@ -83,9 +100,12 @@ typedef enum _omlValueE {
   /* Concrete value types */
   OML_DOUBLE_VALUE = 0,
   OML_LONG_VALUE,
-  OML_STRING_PTR_VALUE,
-  OML_STRING_VALUE
-  //OML_STRING32_VALUE
+  OML_PADDING1_VALUE,
+  OML_STRING_VALUE,
+  OML_INT32_VALUE,
+  OML_UINT32_VALUE,
+  OML_INT64_VALUE,
+  OML_UINT64_VALUE
 } OmlValueT;
 
 /**
@@ -108,8 +128,8 @@ extern int oml_value_reset(OmlValue* v);
  */
 typedef struct _omlMPDef
 {
-	const char* name;       ///< Name of MP
-	OmlValueT  param_types; ///< Types of paramters
+    const char* name;       ///< Name of MP
+    OmlValueT  param_types; ///< Types of paramters
 } OmlMPDef;
 
 struct _omlMP;
@@ -119,31 +139,31 @@ struct _omlMP;
  */
 typedef struct _omlMStream
 {
-	char table_name[64]; ///< Name of database table this stream is stored in
+    char table_name[64]; ///< Name of database table this stream is stored in
 
-	struct _omlMP* mp; ///< Encompasing MP
+    struct _omlMP* mp; ///< Encompasing MP
 
-	OmlValue** values;
+    OmlValue** values;
 
-	struct _omlFilter* firstFilter; ///< Linked list of filters on this MS.
+    struct _omlFilter* firstFilter; ///< Linked list of filters on this MS.
 
-	int index; ///< Index to identify this stream
+    int index; ///< Index to identify this stream
 
-	int sample_size; ///< Counts number of samples produced.
+    int sample_size; ///< Counts number of samples produced.
 
-	int sample_thres; ///< Number of samples to collect before creating next measurment.
+    int sample_thres; ///< Number of samples to collect before creating next measurment.
 
-	double sample_interval; ///< Interval between measurements in seconds
+    double sample_interval; ///< Interval between measurements in seconds
 
-	long seq_no; ///< Counting the number of samples produced
+    long seq_no; ///< Counting the number of samples produced
 
-	pthread_cond_t  condVar; ///< CondVar for filter in sample mode
+    pthread_cond_t  condVar; ///< CondVar for filter in sample mode
 
-	pthread_t  filter_thread; ///< Thread for filter on this stream
+    pthread_t  filter_thread; ///< Thread for filter on this stream
 
-	struct _omlWriter* writer; ///< Associated writer
+    struct _omlWriter* writer; ///< Associated writer
 
-	struct _omlMStream* next; ///< Next MP structure for same measurement point.
+    struct _omlMStream* next; ///< Next MP structure for same measurement point.
 } OmlMStream;
 
 /**
@@ -151,24 +171,24 @@ typedef struct _omlMStream
  */
 typedef struct _omlMP
 {
-	const char* name;
-	OmlMPDef*   param_defs;
-	int         param_count;
+    const char* name;
+    OmlMPDef*   param_defs;
+    int         param_count;
 
-	//! Count how many MS are associated with this MP.
-	//! Used for creating unique table names
-	int         table_count;
+    //! Count how many MS are associated with this MP.
+    //! Used for creating unique table names
+    int         table_count;
 
-	//! Link to first stream.
-	//! If NULL then nobody is interested in this MP.
-	OmlMStream* firstStream;
+    //! Link to first stream.
+    //! If NULL then nobody is interested in this MP.
+    OmlMStream* firstStream;
 
-	int         active;  ///< Set to 1 if MP is active
+    int         active;  ///< Set to 1 if MP is active
 
-	pthread_mutex_t* mutexP; ///< Mutex for entire group of streams.
-	pthread_mutex_t  mutex;  ///< STORAGE
+    pthread_mutex_t* mutexP; ///< Mutex for entire group of streams.
+    pthread_mutex_t  mutex;  ///< STORAGE
 
-	struct _omlMP*   next; ///< Next MP structure for same measurement point.
+    struct _omlMP*   next; ///< Next MP structure for same measurement point.
 } OmlMP;
 
 /**

@@ -147,15 +147,13 @@ out(OmlWriter* writer, OmlValue* values, int value_count)
 
   for (i = 0; i < value_count; i++, v++) {
     switch (v->type) {
-    case OML_LONG_VALUE:
-      fprintf(f, "\t%ld", v->value.longValue);
-      break;
-    case OML_DOUBLE_VALUE:
-      fprintf(f, "\t%f", v->value.doubleValue);
-      break;
-    case OML_STRING_VALUE:
-      fprintf(f, "\t%s", v->value.stringValue.ptr);
-      break;
+    case OML_LONG_VALUE:   fprintf(f, "\t%ld", v->value.longValue);   break;
+    case OML_INT32_VALUE:  fprintf(f, "\t%d",  v->value.int32Value);  break;
+    case OML_UINT32_VALUE: fprintf(f, "\t%u",  v->value.uint32Value); break;
+    case OML_INT64_VALUE:  fprintf(f, "\t%ld", v->value.int64Value);  break;
+    case OML_UINT64_VALUE: fprintf(f, "\t%lu", v->value.uint64Value); break;
+    case OML_DOUBLE_VALUE: fprintf(f, "\t%f",  v->value.doubleValue); break;
+    case OML_STRING_VALUE: fprintf(f, "\t%s",  v->value.stringValue.ptr); break;
     default:
       o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", v->type);
       return 0;

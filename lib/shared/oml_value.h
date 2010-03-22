@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,51 +20,27 @@
  * THE SOFTWARE.
  *
  */
-/*!\file misc.c
-  \brief Implements various common utility functions
-*/
+#ifndef OML_VALUE_H__
+#define OML_VALUE_H__
 
-#include <stdlib.h>
-#include <pthread.h>
-#include <ocomm/o_log.h>
-#include <errno.h>
-#include <string.h>
 #include <oml2/omlc.h>
-#include "client.h"
 
-/**
- * \brief lock of the measurement point mutex
- * \param mp the measurement point
- * \return 0 if successful, -1 otherwise
- */
+extern char*
+oml_type_to_s(OmlValueT type);
+
+extern OmlValueT
+oml_type_from_s (const char *s);
+
 int
-mp_lock(
-  OmlMP* mp
-) {
-  if (mp->mutexP) {
-    if (pthread_mutex_lock(mp->mutexP)) {
-      o_log(O_LOG_WARN, "%s: Couldn't get mutex lock (%s)\n",
-          mp->name, strerror(errno));
-      return -1;
-    }
-  }
-  return 0;
-}
-/**
- * \brief unlock of the measurement point mutex
- * \param mp the measurement point
- */
-void
-mp_unlock(
-  OmlMP* mp
-) {
-  if (mp->mutexP) {
-    if (pthread_mutex_unlock(mp->mutexP)) {
-      o_log(O_LOG_WARN, "%s: Couldn't unlock mutex (%s)\n",
-          mp->name, strerror(errno));
-    }
-  }
-}
+oml_value_from_s (OmlValue *value, const char *value_s);
+int
+
+oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *value_s);
+
+double
+oml_value_to_double (OmlValue *value);
+
+#endif // OML_VALUE_H__
 
 /*
  Local Variables:

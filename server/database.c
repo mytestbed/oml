@@ -32,6 +32,7 @@
 #include "sqlite_adapter.h"
 #include "database.h"
 #include "util.h"
+#include "oml_value.h"
 
 #define DEF_COLUMN_COUNT 1
 #define DEF_TABLE_COUNT 1
@@ -55,7 +56,7 @@ database_find(
       db->ref_count++;
       return db;
     }
-	db = db->next;
+    db = db->next;
   }
 
   // need to create a new one
@@ -73,21 +74,21 @@ database_find(
   char* start_time_str = self->get_metadata (self, "start_time");
 
   if (start_time_str == NULL)
-	{
-	  struct timeval tv;
-	  gettimeofday(&tv, NULL);
-	  self->start_time = tv.tv_sec;
-	  char s[64];
-	  snprintf (s, LENGTH(s), "%lu", self->start_time);
-	  self->set_metadata (self, "start_time", s);
-	  o_log (O_LOG_DEBUG, "Set DB start-time = %lu\n", self->start_time);
-	}
+    {
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      self->start_time = tv.tv_sec;
+      char s[64];
+      snprintf (s, LENGTH(s), "%lu", self->start_time);
+      self->set_metadata (self, "start_time", s);
+      o_log (O_LOG_DEBUG, "Set DB start-time = %lu\n", self->start_time);
+    }
   else
-	{
-	  self->start_time = atoi (start_time_str);
-	  free (start_time_str);
-	  o_log (O_LOG_DEBUG, "Retrieved DB start-time = %lu\n", self->start_time);
-	}
+    {
+      self->start_time = atoi (start_time_str);
+      free (start_time_str);
+      o_log (O_LOG_DEBUG, "Retrieved DB start-time = %lu\n", self->start_time);
+    }
 
   // hook this one into the list of active databases
   self->next = firstDB;
@@ -132,11 +133,11 @@ database_release(
   // no longer needed
   DbTable* t_p = self->first_table;
   while (t_p != NULL)
-	{
-	  DbTable* t = t_p->next;
-	  database_table_free(t_p);
-	  t_p = t;
-	}
+    {
+      DbTable* t = t_p->next;
+      database_table_free(t_p);
+      t_p = t;
+    }
   free(self);
 }
 
@@ -171,7 +172,7 @@ database_get_table(
     table = table->next;
   }
   if (table == NULL) {
-	assert (check_only == 0);
+    assert (check_only == 0);
     table = (DbTable*)malloc(sizeof(DbTable));
     memset(table, 0, sizeof(DbTable));
     strncpy(table->name, tname, MAX_TABLE_NAME_SIZE);
@@ -184,16 +185,16 @@ database_get_table(
     while (*p != ' ' && *p != '\0') p++;
     if (*p != '\0') *(p++) = '\0';
     if (!parse_col_decl(table, col, index, check_only))
-	  {
-		o_log(O_LOG_WARN, "A bad column specification was found in schema for table %s\n", table->name);
-		if (!check_only)
-		  {
-			o_log(O_LOG_ERROR, "This table will not be registered now\n");
-			o_log(O_LOG_ERROR, "(but another client can register it with a valid schema later on)\n");
-			database_table_free (table);
-		  }
-		return NULL;
-	  }
+      {
+        o_log(O_LOG_WARN, "A bad column specification was found in schema for table %s\n", table->name);
+        if (!check_only)
+          {
+            o_log(O_LOG_ERROR, "This table will not be registered now\n");
+            o_log(O_LOG_ERROR, "(but another client can register it with a valid schema later on)\n");
+            database_table_free (table);
+          }
+        return NULL;
+      }
     o_log(O_LOG_DEBUG, "Column name '%s'\n", col);
     index++;
   }
@@ -217,52 +218,45 @@ database_get_table(
  * \return 1 if successful 0 otherwise
  */
 static int
-parse_col_decl(
-  DbTable* self,
-  char*    col_decl,
-  int      index,
-  int      check_only
-) {
+parse_col_decl(DbTable* self, char* col_decl, int index, int check_only)
+{
   char* name = col_decl;
   char* p = name;
 
   while (*p != ':' && *p != '\0') p++;
 
   if (*p == '\0')
-	{
-	  o_log(O_LOG_ERROR, "Malformed column schema '%s'\n", name);
-	  return 0;
-	}
+    {
+      o_log(O_LOG_ERROR, "Malformed column schema '%s'\n", name);
+      return 0;
+    }
   *(p++) = '\0';
 
-  char* typeS = p;
-  OmlValueT type;
-  if      (strcmp(typeS, "string") == 0) type = OML_STRING_VALUE;
-  else if (strcmp(typeS, "long")   == 0) type = OML_LONG_VALUE;
-  else if (strcmp(typeS, "double") == 0) type = OML_DOUBLE_VALUE;
-  else
-	{
-	  o_log(O_LOG_ERROR, "Unknown column type '%s'\n", typeS);
-	  return 0;
-	}
+  char* type_s = p;
+  OmlValueT type = oml_type_from_s (type_s);
+  if (type == OML_UNKNOWN_VALUE)
+    {
+      o_log(O_LOG_ERROR, "Unknown column type '%s'\n", type_s);
+      return 0;
+    }
 
   if (check_only)
-	{
-	  if (index < self->col_size)
-		{
-		  DbColumn* col = self->columns[index];
-		  if (col == NULL || strcmp(col->name, name) != 0 || col->type != type)
-			{
-			  o_log(O_LOG_WARN, "Column '%s' of table '%s' different to previous declarations'\n",
-					name, self->name);
-			  return 0;
-			}
-		}
-	  else
-		return 0; // This column is out of range for the previous schema... error!
-	}
+    {
+      if (index < self->col_size)
+        {
+          DbColumn* col = self->columns[index];
+          if (col == NULL || strcmp(col->name, name) != 0 || col->type != type)
+            {
+              o_log(O_LOG_WARN, "Column '%s' of table '%s' different to previous declarations'\n",
+                    name, self->name);
+              return 0;
+            }
+        }
+      else
+        return 0; // This column is out of range for the previous schema... error!
+    }
   else
-	database_table_add_col (self, name, type, index);
+    database_table_add_col (self, name, type, index);
 
   return 1;
 }
@@ -301,7 +295,7 @@ database_table_store_col(
       table->columns[i] = old[i];
     }
 
-	free (old);
+    free (old);
   }
   table->columns[index] = col;
 }
@@ -313,24 +307,24 @@ void
 database_table_free(DbTable* table)
 {
   if (table)
-	{
-	  o_log(O_LOG_DEBUG, "Freeing table %s\n", table->name);
-	  if (table->columns != NULL)
-		{
-		  int i;
-		  for (i = 0; i < table->col_size; i++)
-			{
-			  if (table->columns[i] == NULL)
-				break; // reached end
-			  free(table->columns[i]);
-			}
-		  free(table->columns);
-		}
-	  sq3_table_free (table);
-	  free(table);
-	}
+    {
+      o_log(O_LOG_DEBUG, "Freeing table %s\n", table->name);
+      if (table->columns != NULL)
+        {
+          int i;
+          for (i = 0; i < table->col_size; i++)
+            {
+              if (table->columns[i] == NULL)
+                break; // reached end
+              free(table->columns[i]);
+            }
+          free(table->columns);
+        }
+      sq3_table_free (table);
+      free(table);
+    }
   else
-	o_log(O_LOG_WARN, "Tried to free a NULL table\n");
+    o_log(O_LOG_WARN, "Tried to free a NULL table\n");
 }
 
 
