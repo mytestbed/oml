@@ -43,4 +43,5 @@ oml_to_sql_type (OmlValueT type);
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

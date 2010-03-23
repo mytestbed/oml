@@ -1061,4 +1061,5 @@ sq3_get_max_value (Database* database, const char* table, const char* column_nam
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

@@ -165,4 +165,5 @@ omlf_register_filter(const char* filter_name,
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

@@ -192,4 +192,5 @@ run_filter_test (TestData* test_data, OmlFilter* f)
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

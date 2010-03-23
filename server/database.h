@@ -148,4 +148,5 @@ database_table_store_col(DbTable* table, DbColumn* col, int index);
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

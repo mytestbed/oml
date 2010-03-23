@@ -43,4 +43,5 @@ int  table_descr_have_table (TableDescr* tables, const char* table_name);
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

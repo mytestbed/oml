@@ -108,4 +108,5 @@ table_descr_list_free (TableDescr* tables)
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

@@ -44,4 +44,5 @@ sq3_create_table(Database* database, DbTable* table);
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

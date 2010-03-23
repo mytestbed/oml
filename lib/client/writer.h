@@ -60,4 +60,5 @@ net_writer_new(char* protocol, char* location);
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */
