@@ -29,10 +29,10 @@
 #include <string.h>
 
 #include <ocomm/o_log.h>
-#include "oml2/omlc.h"
-#include "client.h"
-#include "oml2/oml_filter.h"
-#include "oml2/oml_writer.h"
+#include <oml2/omlc.h>
+#include <oml2/oml_filter.h>
+#include <oml2/oml_writer.h>
+#include <oml_value.h>
 
 typedef struct _omlFileWriter {
 
@@ -147,7 +147,11 @@ out(OmlWriter* writer, OmlValue* values, int value_count)
 
   for (i = 0; i < value_count; i++, v++) {
     switch (v->type) {
-    case OML_LONG_VALUE:   fprintf(f, "\t%ld", v->value.longValue);   break;
+    case OML_LONG_VALUE: {
+      oml_value_clamp_long (&v->value);
+      fprintf(f, "\t%ld", oml_value_clamp_long (v->value.longValue));
+      break;
+    }
     case OML_INT32_VALUE:  fprintf(f, "\t%d",  v->value.int32Value);  break;
     case OML_UINT32_VALUE: fprintf(f, "\t%u",  v->value.uint32Value); break;
     case OML_INT64_VALUE:  fprintf(f, "\t%ld", v->value.int64Value);  break;

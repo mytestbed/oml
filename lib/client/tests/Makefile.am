@@ -20,6 +20,7 @@ check_liboml2_CFLAGS = @CHECK_CFLAGS@
 
 check_liboml2_LDADD = \
 	$(top_builddir)/lib/client/liboml2.la \
+	$(top_builddir)/lib/ocomm/libocomm.la \
 	@CHECK_LIBS@
 endif
 

@@ -250,7 +250,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
   switch (val_type) {
     /* Treat OML_LONG_VALUE separately because size differs between 32-bit/64-bit */
   case OML_LONG_VALUE: {
-    long v = val->longValue;
+    long v = oml_value_clamp_long (val->longValue);
     uint32_t uv = (uint32_t)v;
     uint32_t nv = htonl(uv);
     uint8_t buf[LONG_T_SIZE+1];
@@ -563,7 +563,7 @@ unmarshal_value(
       }
 
     uint32_t hv = ntohl(*((uint32_t*)buf));
-    long v = (long)(hv);
+    long v = (int32_t)(hv);
     value->value.longValue = v;
     value->type = oml_type;
     break;

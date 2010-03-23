@@ -28,9 +28,11 @@
 #include <arpa/inet.h>
 #include <check.h>
 #include <marshal.h>
+#include <oml_value.h>
 #include <htonll.h>
 
 #include "util.h"
+
 
 #define EPSILON 1e-8
 
@@ -84,7 +86,7 @@ static int32_t int32_values [] =
     -123456789,
   };
 
-static int32_t long_values [] =
+static long long_values [] =
   {
     0,
     1,
@@ -95,12 +97,22 @@ static int32_t long_values [] =
     -3,
     4,
     -4,
-    0x7FFFFFFD,
-    0x7FFFFFFE,
-    0x7FFFFFFF,
-    0x80000000,
-    0x80000001,
-    0x80000002,
+    2147483645LL,
+    2147483646LL,
+    2147483647LL,
+#if LONG_MAX > INT_MAX
+    2147483648LL,
+    2147483649LL,
+    2147483650LL,
+#endif
+    -2147483645LL,
+    -2147483646LL,
+    -2147483647LL,
+    -2147483648LL,
+#if LONG_MAX > INT_MAX
+    -2147483649LL,
+    -2147483650LL,
+#endif
     42,
     123456789,
     -123456789,
@@ -117,12 +129,18 @@ static int64_t int64_values [] =
     -3,
     4,
     -4,
-    0x7FFFFFFD,
-    0x7FFFFFFE,
-    0x7FFFFFFF,
-    0x80000000,
-    0x80000001,
-    0x80000002,
+    2147483645LL,
+    2147483646LL,
+    2147483647LL,
+    2147483648LL,
+    2147483649LL,
+    2147483650LL,
+    -2147483645LL,
+    -2147483646LL,
+    -2147483647LL,
+    -2147483648LL,
+    -2147483649LL,
+    -2147483650LL,
     42,
     123456789,
     -123456789,
@@ -248,11 +266,11 @@ START_TEST (test_marshal_value_long)
   uint32_t nv = 0;
   memcpy (&nv, mbuf->base + 6, 4);
   uint32_t hv = ntohl (nv);
-  int val = (int)hv;
+  long val = (int32_t)hv;
 
   fail_if (result != 1);
   fail_if ((int)*(mbuf->base + 5) != LONG_T); // LONG_T
-  fail_if (val != v.longValue);
+  fail_if (val != oml_value_clamp_long (v.longValue));
 }
 END_TEST
 
@@ -455,11 +473,11 @@ START_TEST (test_marshal_unmarshal_long)
       uint32_t nv = 0;
       memcpy (&nv, valptr, UINT32_SIZE);
       uint32_t hv = ntohl (nv);
-      int val = (int)hv;
+      long val = (int32_t)hv;
 
       fail_if (result != 1);
       fail_if (type != LONG_T); // LONG_T
-      fail_if (val != v.longValue);
+      fail_if (val != oml_value_clamp_long (v.longValue));
     }
 
   marshal_finalize (mbuf);
@@ -479,9 +497,9 @@ START_TEST (test_marshal_unmarshal_long)
       unmarshal_value (mbuf, &value);
 
       fail_unless (value.type == OML_LONG_VALUE);
-      fail_unless (value.value.longValue == long_values[i],
+      fail_unless (value.value.longValue == oml_value_clamp_long(long_values[i]),
                    "Unmarshalled value %ld, expected %ld\n",
-                   value.value.longValue, long_values[i]);
+                   value.value.longValue, oml_value_clamp_long(long_values[i]));
     }
 }
 END_TEST
@@ -909,7 +927,7 @@ marshal_suite (void)
 
   /* Add tests to "Marshal" */
   tcase_add_test (tc_marshal, test_marshal_init);
-  tcase_add_loop_test (tc_marshal, test_marshal_value_long,   0, LENGTH (int32_values));
+  tcase_add_loop_test (tc_marshal, test_marshal_value_long,   0, LENGTH (long_values));
   tcase_add_loop_test (tc_marshal, test_marshal_value_int32,  0, LENGTH (int32_values));
   tcase_add_loop_test (tc_marshal, test_marshal_value_uint32, 0, LENGTH (int32_values));
   tcase_add_loop_test (tc_marshal, test_marshal_value_int64,  0, LENGTH (int64_values));

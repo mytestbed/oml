@@ -24,6 +24,20 @@
 #define OML_VALUE_H__
 
 #include <oml2/omlc.h>
+#include <stdint.h>
+#include <limits.h>
+
+static inline int32_t oml_value_clamp_long (long value)
+{
+#if LONG_MAX > INT_MAX
+  if (value > INT_MAX)
+    return INT_MAX;
+  if (value < INT_MIN)
+    return INT_MIN;
+#endif
+  return value;
+}
+
 
 extern char*
 oml_type_to_s(OmlValueT type);
