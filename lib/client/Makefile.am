@@ -23,6 +23,7 @@ liboml2_la_SOURCES = \
 	init.c \
 	misc.c \
 	net_writer.c \
+	buffered_socket.c \
 	parse_config.c \
 	version.h \
 	writer.h \

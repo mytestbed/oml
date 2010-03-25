@@ -110,6 +110,20 @@ mp_unlock(
   OmlMP* mp
 );
 
+int
+oml_lock(
+  pthread_mutex_t* mutexP,
+  const char* mutexName
+);
+
+void
+oml_unlock(
+  pthread_mutex_t* mutexP,
+  const char* mutexName
+);
+
+
+
 extern OmlWriter*
 file_writer_new(char* file);
 
