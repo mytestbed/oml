@@ -57,14 +57,13 @@ OmlValueT sql_to_oml_type (const char *s)
   OmlValueT type = OML_UNKNOWN_VALUE;
 
   for (i = 0; i < n; i++)
-    if (strcmp (s, type_list[i].name) == 0)
-      {
+    if (strcmp (s, type_list[i].name) == 0) {
         type = type_list[i].type;
         break;
-      }
+    }
 
-  if (type = OML_UNKNOWN_VALUE)
-    o_log (O_LOG_WARN, "Unknown SQL type %s --> OML_UNKNOWN_VALUE\n", type);
+  if (type == OML_UNKNOWN_VALUE)
+    o_log (O_LOG_WARN, "Unknown SQL type '%s' --> OML_UNKNOWN_VALUE\n", s);
 
   return type;
 }
