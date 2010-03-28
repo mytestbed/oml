@@ -36,6 +36,7 @@
 typedef struct _sq3DB {
   sqlite3*  db_hdl;
   int       sender_cnt;
+  time_t    last_commit;
 } Sq3DB;
 
 typedef struct _sq3Table {
@@ -80,6 +81,27 @@ sq3_get_max_sender_id (Database* database);
 long
 sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id);
 
+static int
+begin_transaction (Sq3DB *db)
+{
+  const char *sql = "BEGIN TRANSACTION;";
+  return sql_stmt (db, sql);
+}
+
+static int
+end_transaction (Sq3DB *db)
+{
+  const char *sql = "END TRANSACTION";
+  return sql_stmt (db, sql);
+}
+
+static int
+reopen_transaction (Sq3DB *db)
+{
+  if (end_transaction (db) == -1) return -1;
+  if (begin_transaction (db) == -1) return -1;
+}
+
 int
 sq3_build_table_from_schema (DbTable* table, char* schema);
 
@@ -99,6 +121,7 @@ void
 sq3_release(Database* db)
 {
   Sq3DB* self = (Sq3DB*)db->adapter_hdl;
+  end_transaction (self);
   sqlite3_close(self->db_hdl);
   // TODO: Release table specific data
 
@@ -363,19 +386,22 @@ sq3_create_table(Database* db, DbTable* table)
  * \return 0 if successful, -1 otherwise
  */
 static int
-sq3_insert(Database* db,
-           DbTable*  table,
-           int       sender_id,
-           int       seq_no,
-           double    time_stamp,
-           OmlValue* values,
-           int       value_count)
+sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
+           double time_stamp, OmlValue *values, int value_count)
 {
   Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
   Sq3Table* sq3table = (Sq3Table*)table->adapter_hdl;
   int i;
   double time_stamp_server;
   sqlite3_stmt* stmt = sq3table->insert_stmt;
+  time_t now = time (NULL);
+
+  if (now > sq3db->last_commit) {
+    if (reopen_transaction (sq3db) == -1)
+      return -1;
+    sq3db->last_commit = now;
+  }
+
   o_log(O_LOG_DEBUG2, "sq3_insert(%s): insert row %d \n",
     table->name, seq_no);
 
@@ -522,10 +548,8 @@ select_stmt(
  * \return 0 if successfull, -1 otherwise
  */
 static int
-sql_stmt(
-  Sq3DB* self,
-  const char* stmt
-) {
+sql_stmt(Sq3DB* self, const char* stmt)
+{
   char *errmsg;
   int   ret;
   logdebug("prepare to exec %s \n", stmt);
@@ -964,6 +988,7 @@ sq3_create_database(Database* db)
   Sq3DB* self = (Sq3DB*)malloc(sizeof(Sq3DB));
   memset(self, 0, sizeof(Sq3DB));
   self->db_hdl = db_hdl;
+  self->last_commit = time (NULL);
   db->create_table = sq3_create_table;
   db->release = sq3_release;
   db->insert = sq3_insert;
@@ -1044,6 +1069,7 @@ sq3_create_database(Database* db)
     }
 
   table_descr_list_free (tables);
+  begin_transaction (self);
   return 0;
 }
 
