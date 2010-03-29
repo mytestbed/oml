@@ -820,13 +820,13 @@ sq3_build_table_from_schema (DbTable* table, char* schema)
               if (strcmp (name, "oml_sender_id") == 0)
                 {
                   metadata++;
-                  if (oml_type != OML_LONG_VALUE)
+                  if (oml_type != OML_INT32_VALUE)
                     return -1;
                 }
               else if (strcmp (name, "oml_seq") == 0)
                 {
                   metadata++;
-                  if (oml_type != OML_LONG_VALUE)
+                  if (oml_type != OML_INT32_VALUE)
                     return -1;
                 }
               else if (strcmp (name, "oml_ts_client") == 0)

@@ -234,6 +234,8 @@ parse_col_decl(DbTable* self, char* col_decl, int index, int check_only)
 
   char* type_s = p;
   OmlValueT type = oml_type_from_s (type_s);
+  // OML_LONG_VALUE is deprecated, and converted to INT32 internally in server.
+  type = (type == OML_LONG_VALUE) ? OML_INT32_VALUE : type;
   if (type == OML_UNKNOWN_VALUE)
     {
       o_log(O_LOG_ERROR, "Unknown column type '%s'\n", type_s);

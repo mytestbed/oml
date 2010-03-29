@@ -455,13 +455,13 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   OmlValue seqno;
   OmlValue timestamp;
 
-  if (unmarshal_typed_value (mbuf, "seq-no", OML_LONG_VALUE, &seqno) == -1)
+  if (unmarshal_typed_value (mbuf, "seq-no", OML_INT32_VALUE, &seqno) == -1)
     return 0;
 
   if (unmarshal_typed_value (mbuf, "timestamp", OML_DOUBLE_VALUE, &timestamp) == -1)
     return 0;
 
-  header->seqno = seqno.value.longValue;
+  header->seqno = seqno.value.int32Value;
   header->timestamp = timestamp.value.doubleValue;
 
   return 1;
@@ -563,9 +563,16 @@ unmarshal_value(
       }
 
     uint32_t hv = ntohl(*((uint32_t*)buf));
-    long v = (int32_t)(hv);
-    value->value.longValue = v;
-    value->type = oml_type;
+    int32_t v = (int32_t)(hv);
+
+    /*
+     * The server no longer needs to know about OML_LONG_VALUE, as the
+     * marshalling process now maps OML_LONG_VALUE into OML_INT32_VALUE
+     * (by truncating to [INT_MIN, INT_MAX].  Therefore, unmarshall a
+     * LONG_T value into an OML_INT32_VALUE object.
+     */
+    value->value.int32Value = v;
+    value->type = OML_INT32_VALUE;
     break;
   }
   case INT32_T:

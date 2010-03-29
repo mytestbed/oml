@@ -496,10 +496,15 @@ START_TEST (test_marshal_unmarshal_long)
 
       unmarshal_value (mbuf, &value);
 
-      fail_unless (value.type == OML_LONG_VALUE);
-      fail_unless (value.value.longValue == oml_value_clamp_long(long_values[i]),
+      /*
+       * Since OML_LONG_VALUE is deprecated, server now unmarshals it
+       * to OML_INT32_VALUE; the marshalling process clamps the
+       * OML_LONG_VALUE to an INT32 anyway.
+       */
+      fail_unless (value.type == OML_INT32_VALUE);
+      fail_unless (value.value.int32Value == oml_value_clamp_long(long_values[i]),
                    "Unmarshalled value %ld, expected %ld\n",
-                   value.value.longValue, oml_value_clamp_long(long_values[i]));
+                   value.value.int32Value, oml_value_clamp_long(long_values[i]));
     }
 }
 END_TEST
