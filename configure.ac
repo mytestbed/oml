@@ -42,6 +42,24 @@ AC_CHECK_LIB([popt], [poptGetContext], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define i
 AC_CHECK_LIB([pthread], [pthread_create], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])], [missing_libs+=" libpthread"])
 AC_CHECK_LIB([m], [sqrt], [AC_DEFINE([HAVE_LIBM], [1], [Define if libm is installed (It should be!)])], [missing_libs+=" libm"])
 
+# Check that the PostgreSQL development libraries are installed, and work out how to compile/link against them.
+AC_PATH_PROG([HAVE_PGCFG], [pg_config])
+
+if test "x$HAVE_PGCFG" != "x"; then
+   xxCFLAGS=-I`$HAVE_PGCFG --includedir`
+   xxLDFLAGS=-L`$HAVE_PGCFG --libdir`
+   AC_SUBST([LIBPQ_CFLAGS], [$xxCFLAGS])
+   AC_SUBST([LIBPQ_LDFLAGS], [$xxLDFLAGS])
+   AC_SUBST([LIBPQ_LIBS], [-lpq])
+   AC_MSG_CHECKING([how to include PostgreSQL headers])
+   AC_MSG_RESULT([$LIBPQ_CFLAGS])
+   AC_MSG_CHECKING([location of libpq])
+   AC_MSG_RESULT([$LIBPQ_LDFLAGS])
+else
+   missing_libs+=" libpq"
+fi
+
+
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
 

@@ -24,9 +24,13 @@ oml2_server_SOURCES = \
 	table_descr.h \
 	version.h
 
+oml2_server_CFLAGS = @LIBPQ_CFLAGS@
+
+oml2_server_LDFLAGS = @LIBPQ_LDFLAGS@
+
 oml2_server_LDADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \
 	$(top_builddir)/lib/shared/libshared.la \
-	-lpopt -lsqlite3 -lpq
+	-lpopt -lsqlite3 @LIBPQ_LIBS@
 
 

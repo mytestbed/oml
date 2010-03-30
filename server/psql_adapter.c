@@ -1,8 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 #include <ocomm/o_log.h>
 #include <time.h>
 #include <sys/time.h>
