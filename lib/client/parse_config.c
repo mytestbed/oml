@@ -219,7 +219,7 @@ parse_mp(
   }
   if (ms->firstFilter == NULL) {
     // no filters specified - use default
-    createDefaultFilters(mp, ms);
+    create_default_filters(mp, ms);
   }
   ms->next = mp->firstStream;
   mp->firstStream = ms;
@@ -281,7 +281,7 @@ parse_filter(
         FILTER_PARAM_NAME_ATTR);
       return NULL;
     }
-    f = createDefaultFilter(def, ms, index);
+    f = create_default_filter(def, ms, index);
   } else {
     if (def) {
       const char* name = (sname != NULL) ? (char*)sname : def->name;

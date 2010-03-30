@@ -37,20 +37,16 @@
 #define DEF_COLUMN_COUNT 1
 #define DEF_TABLE_COUNT 1
 
-static int
-parse_col_decl(DbTable* self, char* col_decl, int index, int check_only);
-
-static Database* firstDB = NULL;
+static Database *first_db = NULL;
 /**
  * \brief create a date with the name +name+
  * \param name the name of the database
  * \return a new database
  */
 Database*
-database_find(
-    char* name
-) {
-  Database* db = firstDB;
+database_find(char *name)
+{
+  Database* db = first_db;
   while (db != NULL) {
     if (strcmp(name, db->name) == 0) {
       db->ref_count++;
@@ -60,7 +56,7 @@ database_find(
   }
 
   // need to create a new one
-  Database* self = (Database *)malloc(sizeof(Database));
+  Database *self = (Database*)malloc(sizeof(Database));
   memset(self, 0, sizeof(Database));
   o_log(O_LOG_DEBUG, "Creating new database %s\n", name);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
@@ -85,14 +81,14 @@ database_find(
     }
   else
     {
-      self->start_time = atoi (start_time_str);
+      self->start_time = strtol (start_time_str, NULL, 0);
       free (start_time_str);
       o_log (O_LOG_DEBUG, "Retrieved DB start-time = %lu\n", self->start_time);
     }
 
   // hook this one into the list of active databases
-  self->next = firstDB;
-  firstDB = self;
+  self->next = first_db;
+  first_db = self;
 
   return self;
 }
@@ -101,9 +97,8 @@ database_find(
  * \param self the database to release
  */
 void
-database_release(
-  Database* self
-) {
+database_release(Database* self)
+{
   // FIXME:  This is currently being tripped by an upstream bug that needs to be investigated.
   if (self == NULL) {
     o_log (O_LOG_ERROR, "Tried to do database_release() on a NULL database.\n");
@@ -112,7 +107,7 @@ database_release(
   if (--self->ref_count > 0) return; // still in use
 
   // unlink DB
-  Database* db_p = firstDB;
+  Database* db_p = first_db;
   Database* prev_p = NULL;
   while (db_p != NULL && db_p != self) {
     prev_p = db_p;
@@ -123,7 +118,7 @@ database_release(
     return;
   }
   if (prev_p == NULL) {
-    firstDB = self->next; // was first
+    first_db = self->next; // was first
   } else {
     prev_p->next = self->next;
   }
@@ -142,16 +137,68 @@ database_release(
 }
 
 /**
+ * \brief Create a column in the database
+ * \param self the database where we create the column
+ * \param col_decl the name of the column
+ * \param index the index of the column
+ * \param check_only don't create col, just check it
+ * \return 1 if successful 0 otherwise
+ */
+static int
+parse_col_decl(DbTable* self, char* col_decl, int index, int check_only)
+{
+  char* name = col_decl;
+  char* p = name;
+
+  while (*p != ':' && *p != '\0') p++;
+
+  if (*p == '\0')
+    {
+      o_log(O_LOG_ERROR, "Malformed column schema '%s'\n", name);
+      return 0;
+    }
+  *(p++) = '\0';
+
+  char* type_s = p;
+  OmlValueT type = oml_type_from_s (type_s);
+  // OML_LONG_VALUE is deprecated, and converted to INT32 internally in server.
+  type = (type == OML_LONG_VALUE) ? OML_INT32_VALUE : type;
+  if (type == OML_UNKNOWN_VALUE)
+    {
+      o_log(O_LOG_ERROR, "Unknown column type '%s'\n", type_s);
+      return 0;
+    }
+
+  if (check_only)
+    {
+      if (index < self->col_size)
+        {
+          DbColumn* col = self->columns[index];
+          if (col == NULL || strcmp(col->name, name) != 0 || col->type != type)
+            {
+              o_log(O_LOG_WARN, "Column '%s' of table '%s' different to previous declarations'\n",
+                    name, self->name);
+              return 0;
+            }
+        }
+      else
+        return 0; // This column is out of range for the previous schema... error!
+    }
+  else
+    database_table_add_col (self, name, type, index);
+
+  return 1;
+}
+
+/**
  * \brief get a table from the database
  * \param database the database to extract the table
  * \param schema name of the table
  * \return the table of or NULL if not successful
  */
 DbTable*
-database_get_table(
-    Database* database,
-    char* schema
-) {
+database_get_table(Database* database, char* schema)
+{
   if (database == NULL) return NULL;
   // table name
   char* p = schema;
@@ -207,60 +254,6 @@ database_get_table(
     database->first_table = table;
   }
   return table;
-}
-
-/**
- * \brief Create a column in the database
- * \param self the database where we create the column
- * \param col_decl the name of the column
- * \param index the index of the column
- * \param check_only don't create col, just check it
- * \return 1 if successful 0 otherwise
- */
-static int
-parse_col_decl(DbTable* self, char* col_decl, int index, int check_only)
-{
-  char* name = col_decl;
-  char* p = name;
-
-  while (*p != ':' && *p != '\0') p++;
-
-  if (*p == '\0')
-    {
-      o_log(O_LOG_ERROR, "Malformed column schema '%s'\n", name);
-      return 0;
-    }
-  *(p++) = '\0';
-
-  char* type_s = p;
-  OmlValueT type = oml_type_from_s (type_s);
-  // OML_LONG_VALUE is deprecated, and converted to INT32 internally in server.
-  type = (type == OML_LONG_VALUE) ? OML_INT32_VALUE : type;
-  if (type == OML_UNKNOWN_VALUE)
-    {
-      o_log(O_LOG_ERROR, "Unknown column type '%s'\n", type_s);
-      return 0;
-    }
-
-  if (check_only)
-    {
-      if (index < self->col_size)
-        {
-          DbColumn* col = self->columns[index];
-          if (col == NULL || strcmp(col->name, name) != 0 || col->type != type)
-            {
-              o_log(O_LOG_WARN, "Column '%s' of table '%s' different to previous declarations'\n",
-                    name, self->name);
-              return 0;
-            }
-        }
-      else
-        return 0; // This column is out of range for the previous schema... error!
-    }
-  else
-    database_table_add_col (self, name, type, index);
-
-  return 1;
 }
 
 void

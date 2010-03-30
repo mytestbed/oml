@@ -51,27 +51,17 @@
 #define SERVER_URI_MAX_LENGTH 64
 
 typedef struct _omlClient {
-
   const char* app_name;
   const char* experiment_id;
   const char* node_name;
 
-
-  //  int      mp_count;
-  //  OmlMPDef** mp_definitions;
-
-  // Array of linked list of measurement streams, where
-  // the array index is the index of the MP
-  //OmlMStream** mpoints;
-
-  // Pointer to head of linked list of measurement points.
   OmlMP*       mpoints;
 
-  char serverUri[SERVER_URI_MAX_LENGTH + 1];
+  char server_uri[SERVER_URI_MAX_LENGTH + 1];
 
-  OmlWriter*  firstWriter;
+  OmlWriter*  first_writer;
 
-  const char* configFile;
+  const char* config_file;
 
   time_t      start_time;    // unix epoch when started
 
@@ -94,13 +84,13 @@ create_mstream(
 );
 
 void
-createDefaultFilters(
+create_default_filters(
     OmlMP*      mp,
     OmlMStream* ms
 );
 
 OmlFilter*
-createDefaultFilter(
+create_default_filter(
     OmlMPDef*   def,
     OmlMStream* ms,
     int         index
@@ -126,7 +116,7 @@ mp_unlock(
 );
 
 extern OmlWriter*
-file_writer_new(char* fileName);
+file_writer_new(char* file);
 
 extern OmlWriter*
 net_writer_new(char* protocol, char* location);
@@ -139,8 +129,6 @@ validate_app_name (const char* name);
 
 const char*
 validate_mp_name (const char* name);
-
-
 
 #endif /*CLIENT_H_*/
 

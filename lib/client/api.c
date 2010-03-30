@@ -20,10 +20,6 @@
  * THE SOFTWARE.
  *
  */
-/*!\file api.c
-  \brief Implements most of OML's client side exposed API.
-
-*/
 
 #include <ocomm/o_log.h>
 #include <string.h>
@@ -33,25 +29,19 @@
 #include <oml2/oml_filter.h>
 #include "client.h"
 
-extern OmlClient* omlc_instance;
-
 /**
  * \brief Called when the particular MStream has been filled.
  * \param ms the oml stream to process
  */
 static void
-omlc_ms_process(
-  OmlMStream* ms
-);
+omlc_ms_process(OmlMStream* ms);
 
 /**
- * \brief DEPRECIATED
+ * \brief DEPRECATED
  */
 void
-omlc_process(
-  OmlMP*      mp,
-  OmlValueU*  values
-) {
+omlc_process(OmlMP *mp, OmlValueU *values)
+{
   o_log(O_LOG_WARN, "'omlc_process' is deprecated, use 'omlc_inject' instead\n");
   omlc_inject(mp, values);
 }
@@ -63,10 +53,8 @@ omlc_process(
  * \return
  */
 void
-omlc_inject(
-  OmlMP*      mp,
-  OmlValueU*  values
-) {
+omlc_inject(OmlMP *mp, OmlValueU *values)
+{
   if (omlc_instance == NULL) return;
   if (mp == NULL) return;
   if (mp_lock(mp)) return;
@@ -94,18 +82,13 @@ omlc_inject(
  * \param ms the oml stream to process
  */
 static void
-omlc_ms_process(
-  OmlMStream* ms
-) {
+omlc_ms_process(OmlMStream *ms)
+{
   if (ms == NULL) return;
 
   if (ms->sample_thres > 0 && ++ms->sample_size >= ms->sample_thres) {
     // sample based filters fire
     filter_process(ms);
-    if (pthread_cond_signal(&ms->condVar)) {
-      o_log(O_LOG_WARN, "%s: Couldn't signal condVar (%s)\n",
-        ms->table_name, strerror(errno));
-    }
     ms->sample_size = 0;
   }
 }

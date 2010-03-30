@@ -20,9 +20,6 @@
  * THE SOFTWARE.
  *
  */
-/*!\file init.c
-  \brief Implements OML's client side initialization
-*/
 
 #include <config.h>
 #include <ocomm/o_log.h>
@@ -34,6 +31,7 @@
 #include <signal.h>
 #include <sys/time.h>
 
+#include <oml_value.h>
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
 #include "filter/factory.h"
@@ -54,178 +52,165 @@ static int  write_schema(OmlMStream* ms, int index);
 static void termination_handler(int signum);
 static void install_close_handler(void);
 
-extern int parse_config(char* configFile);
+extern int parse_config(char* config_file);
 
 /**
- * \fn int omlc_init( const char* appName, int* argcPtr, const char** argv, o_log_fn custom_oml_log)
- * \brief function called by the application to initialise the oml measurements
- * \param appName the name of the application
- * \param argcPtr the argc of the command line of the application
- * \param agrv the argv of the command line of the application
- * \param custom_oml_log the reference to the log file of oml
- * \return 0 on success, -1 on failure.
+ * @brief function called by the application to initialise the oml measurements
+ * @param name the name of the application
+ * @param pargc the argc of the command line of the application
+ * @param argv the argv of the command line of the application
+ * @param custom_oml_log the reference to the log file of oml
+ * @return 0 on success, -1 on failure.
  */
 int
-omlc_init(
-  const char* appName,
-  int* argcPtr,
-  const char** argv,
-  o_log_fn custom_oml_log
-) {
-  o_set_log((o_log_fn)custom_oml_log);
-  //  o_set_log_level(DEF_LOG_LEVEL);
-  o_set_log_level(3);
+omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custom_oml_log)
+{
+  const char *app_name = validate_app_name (application);
+  const char* name = NULL;
+  const char* experimentId = NULL;
+  const char* config_file = NULL;
+  const char* local_data_file = NULL;
+  const char* server_uri = NULL;
+  int sample_count = 0;
+  double sample_interval = 0.0;
+  const char** arg = argv;
 
-  const char* appliName = validate_app_name (appName);
-
-  if (!appliName)
+  if (!app_name)
     {
-      o_log (O_LOG_ERROR, "Found illegal whitespace in application name '%s'\n", appName);
+      o_log (O_LOG_ERROR, "Found illegal whitespace in application name '%s'\n", application);
       return -1;
     }
 
   omlc_instance = NULL;
-  const char* name = NULL;
-  const char* experimentId = NULL;
-  const char* configFile = NULL;
-  const char* localDataFile = NULL;
-  const char* serverUri = NULL;
-  int sample_count = 0;
-  double sample_interval = 0.0;
-  const char** argvPtr = argv;
 
-  if (argcPtr && argvPtr) {
+  o_set_log((o_log_fn)custom_oml_log);
+  o_set_log_level(3);
+
+  if (pargc && arg) {
     int i;
-    for (i = *argcPtr; i > 0; i--, argvPtr++) {
-      if (strcmp(*argvPtr, "--oml-id") == 0) {
+    for (i = *pargc; i > 0; i--, arg++) {
+      if (strcmp(*arg, "--oml-id") == 0) {
         if (--i <= 0) {
           o_log(O_LOG_ERROR, "Missing argument for '--oml-id'\n");
           return -1;
         }
-        name = *++argvPtr;
-        *argcPtr -= 2;
-      } else if (strcmp(*argvPtr, "--oml-exp-id") == 0) {
+        name = *++arg;
+        *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-exp-id") == 0) {
         if (--i <= 0) {
           o_log(O_LOG_ERROR, "Missing argument for '--oml-exp-id'\n");
           return -1;
         }
-        experimentId = *++argvPtr;
-        *argcPtr -= 2;
-      } else if (strcmp(*argvPtr, "--oml-file") == 0) {
+        experimentId = *++arg;
+        *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-file") == 0) {
         if (--i <= 0) {
           o_log(O_LOG_ERROR, "Missing argument for '--oml-file'\n");
           return -1;
         }
-        localDataFile = *++argvPtr;
-        *argcPtr -= 2;
-      } else if (strcmp(*argvPtr, "--oml-config") == 0) {
+        local_data_file = *++arg;
+        *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-config") == 0) {
         if (--i <= 0) {
           o_log(O_LOG_ERROR, "Missing argument for '--oml-config'\n");
           return -1;
         }
-        configFile = *++argvPtr;
-        *argcPtr -= 2;
-      } else if (strcmp(*argvPtr, "--oml-samples") == 0) {
+        config_file = *++arg;
+        *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-samples") == 0) {
         if (--i <= 0) {
           o_log(O_LOG_ERROR, "Missing argument to '--oml-samples'\n");
           return -1;
         }
-        sample_count = atoi(*++argvPtr);
-        *argcPtr -= 2;
-      } else if (strcmp(*argvPtr, "--oml-interval") == 0) {
+        sample_count = atoi(*++arg);
+        *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-interval") == 0) {
         if (--i <= 0) {
           o_log(O_LOG_ERROR, "Missing argument to '--oml-interval'\n");
           return -1;
         }
-        sample_interval = atof(*++argvPtr);
-        *argcPtr -= 2;
-      } else if (strcmp(*argvPtr, "--oml-log-file") == 0) {
+        sample_interval = atof(*++arg);
+        *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-log-file") == 0) {
         if (--i <= 0) {
           o_log(O_LOG_ERROR, "Missing argument to '--oml-log-file'\n");
           return -1;
         }
-        o_set_log_file((char*)*++argvPtr);
-        *argcPtr -= 2;
-      } else if (strcmp(*argvPtr, "--oml-log-level") == 0) {
+        o_set_log_file((char*)*++arg);
+        *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-log-level") == 0) {
         if (--i <= 0) {
           o_log(O_LOG_ERROR, "Missing argument to '--oml-log-level'\n");
           return -1;
         }
-        o_set_log_level(atoi(*++argvPtr));
-        *argcPtr -= 2;
-      } else if (strcmp(*argvPtr, "--oml-server") == 0) {
+        o_set_log_level(atoi(*++arg));
+        *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-server") == 0) {
         if (--i <= 0) {
           o_log(O_LOG_ERROR, "Missing argument for '--oml-server'\n");
           return -1;
         }
-        serverUri = (char*)*++argvPtr;
-        *argcPtr -= 2;
-      } else if (strcmp(*argvPtr, "--oml-noop") == 0) {
-        *argcPtr -= 1;
+        server_uri = (char*)*++arg;
+        *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-noop") == 0) {
+        *pargc -= 1;
         omlc_instance = NULL;
         return 1;
-      } else if (strcmp(*argvPtr, "--oml-help") == 0) {
+      } else if (strcmp(*arg, "--oml-help") == 0) {
         usage();
-        *argcPtr -= 1;
+        *pargc -= 1;
         exit(0);
-      } else if (strcmp(*argvPtr, "--oml-list-filters") == 0) {
+      } else if (strcmp(*arg, "--oml-list-filters") == 0) {
         print_filters();
-        *argcPtr -= 1;
+        *pargc -= 1;
         exit(0);
       } else {
-        *argv++ = *argvPtr;
+        *argv++ = *arg;
       }
     }
   }
-
-  o_log(O_LOG_INFO, "OML Client V%s %s\n", VERSION, OMLC_COPYRIGHT);
-  o_log(O_LOG_INFO, "OML Protocol V%d\n", OML_PROTOCOL_VERSION);
 
   if (name == NULL)
     name = getenv("OML_NAME");
   if (experimentId == NULL)
     experimentId = getenv("OML_EXP_ID");
-  if (configFile == NULL)
-    configFile = getenv("OML_CONFIG");
-  if (localDataFile == NULL && serverUri == NULL)
-    serverUri = getenv("OML_SERVER");
-
-//  if ((name == NULL) && (configFile == NULL) && (localDataFile == NULL)) {
-//    o_log(O_LOG_ERROR,
-//    "Could not get either OML_NAME or OML_CONFIG from env\n");
-//    return 0;
-//  }
+  if (config_file == NULL)
+    config_file = getenv("OML_CONFIG");
+  if (local_data_file == NULL && server_uri == NULL)
+    server_uri = getenv("OML_SERVER");
 
   omlc_instance = &instance_storage;
   memset(omlc_instance, 0, sizeof(OmlClient));
 
-  omlc_instance->app_name = appliName;
+  omlc_instance->app_name = app_name;
   omlc_instance->node_name = name;
   omlc_instance->experiment_id = experimentId;
   omlc_instance->sample_count = sample_count;
   omlc_instance->sample_interval = sample_interval;
 
-  if (localDataFile != NULL) {
-    // dump every sample into localDataFile
-    if (localDataFile[0] == '-')
-      localDataFile = "stdout";
-    snprintf(omlc_instance->serverUri, SERVER_URI_MAX_LENGTH, "file:%s", localDataFile);
-  } else if (serverUri != NULL) {
-    strncpy(omlc_instance->serverUri, serverUri, SERVER_URI_MAX_LENGTH);
+  if (local_data_file != NULL) {
+    // dump every sample into local_data_file
+    if (local_data_file[0] == '-')
+      local_data_file = "stdout";
+    snprintf(omlc_instance->server_uri, SERVER_URI_MAX_LENGTH, "file:%s", local_data_file);
+  } else if (server_uri != NULL) {
+    strncpy(omlc_instance->server_uri, server_uri, SERVER_URI_MAX_LENGTH);
   }
-  omlc_instance->configFile = configFile;
+  omlc_instance->config_file = config_file;
 
   register_builtin_filters ();
+
+  o_log(O_LOG_INFO, "OML Client V%s %s\n", VERSION, OMLC_COPYRIGHT);
+  o_log(O_LOG_INFO, "OML Protocol V%d\n", OML_PROTOCOL_VERSION);
 
   return 0;
 }
 
 /**
- * \fn OmlMP* omlc_add_mp(const char* mp_name, OmlMPDef*   mp_def)
- * \brief Register a measurement point. Needs to be called for every measurment point AFTER +omlc_init+ and before a final +omlc_start+.
- * \param  mp_name the name of the measurement point
- * \param mp_def the definition of the set of measurements in this measurement point
- * \return a new measurement point
+ * @brief Register a measurement point. Needs to be called for every measurment point AFTER +omlc_init+ and before a final +omlc_start+.
+ * @param  mp_name the name of the measurement point
+ * @param mp_def the definition of the set of measurements in this measurement point
+ * @return a new measurement point
  */
 OmlMP*
 omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
@@ -257,8 +242,7 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
       dp++;
     }
   mp->param_count = pc;
-  mp->active = 1;  // should most likely only be set if there is an
-                    // attached MStream
+  mp->active = 1;  // True if there is an attached MS.
   mp->next = omlc_instance->mpoints;
   omlc_instance->mpoints = mp;
 
@@ -266,13 +250,11 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 }
 
 /**
- * \fn int omlc_start()
- * \brief Finalizes inital configurations and get ready for consecutive +omlc_process+ calls
- * \return 0 if successful, <0 otherwise
+ * @brief Finalizes inital configurations and get ready for consecutive +omlc_process+ calls
+ * @return 0 if successful, <0 otherwise
  */
 int
 omlc_start()
-
 {
   if (omlc_instance == NULL) return -1;
 
@@ -280,19 +262,15 @@ omlc_start()
   gettimeofday(&tv, NULL);
   omlc_instance->start_time = tv.tv_sec;
 
-//  omlc_instance->mp_count = mp_count;
-//  omlc_instance->mp_definitions = mp_definitions;
-
-
-  const char* configFile = omlc_instance->configFile;
-  if (configFile) {
-    if (parse_config((char*)configFile)) {
-      o_log(O_LOG_ERROR, "Error while parsing configuration '%s'\n", configFile);
+  const char* config_file = omlc_instance->config_file;
+  if (config_file) {
+    if (parse_config((char*)config_file)) {
+      o_log(O_LOG_ERROR, "Error while parsing configuration '%s'\n", config_file);
       omlc_instance = NULL;
       return -1;
     }
   } else {
-    if (omlc_instance->serverUri == NULL) {
+    if (omlc_instance->server_uri == NULL) {
       o_log(O_LOG_ERROR, "Missing either --oml-file or --oml-server declaration.\n");
       omlc_instance = NULL;
       return -2;
@@ -309,14 +287,12 @@ omlc_start()
 }
 
 /**
- * \fn static void termination_handler( int signum)
- * \brief Close the oml process
- * \param signum the signal number
+ * @brief Close the oml process
+ * @param signum the signal number
  */
 static void
-termination_handler(
-  int signum
-) {
+termination_handler(int signum)
+{
   // SIGPIPE is handled by disabling the writer that caused it.
   if (signum != SIGPIPE)
     {
@@ -327,12 +303,10 @@ termination_handler(
 }
 
 /**
- * \fn static void install_close_handler()
- * \brief start the signal handler
+ * @brief start the signal handler
  */
 static void
 install_close_handler(void)
-
 {
   struct sigaction new_action, old_action;
 
@@ -359,16 +333,15 @@ install_close_handler(void)
 }
 
 /**
- * \fn int omlc_close()
- * \brief Finalizes all open connections. Any futher calls to +omlc_process+ are being ignored
- * \return -1 if fails
+ * @brief Finalizes all open connections. Any futher calls to +omlc_process+ are being ignored
+ * @return -1 if fails
  */
 int
 omlc_close()
 {
   if (omlc_instance == NULL) return -1;
 
-  OmlWriter* w = omlc_instance->firstWriter;
+  OmlWriter* w = omlc_instance->first_writer;
   OmlMP* mp = omlc_instance->mpoints;
   omlc_instance = NULL;
 
@@ -386,8 +359,7 @@ omlc_close()
 }
 
 /**
- * \fn static void usage()
- * \brief print the possible OML parameters
+ * @brief print the possible OML parameters
  */
 static void
 usage(void)
@@ -449,22 +421,20 @@ print_filters(void)
 }
 
 /**
- * \fn OmlWriter* create_writer( char* serverUri)
- * \brief Creates either a file writer or a network writer
- * \param serverUri the option file or server and the output
- * \return a writer
+ * @brief Creates either a file writer or a network writer
+ * @param server_uri the option file or server and the output
+ * @return a writer
  */
 OmlWriter*
-create_writer(
-  char* serverUri
-) {
+create_writer(char* server_uri)
+{
   if (omlc_instance == NULL){
     o_log(O_LOG_ERROR,"No omlc_instance:  OML client was not initialized properly.\n");
     return NULL;
   }
 
   OmlWriter* writer = NULL;
-  char* p = serverUri;
+  char* p = server_uri;
   if (p == NULL) {
     o_log(O_LOG_ERROR, "Missing server definition (e.g. --oml-server)\n");
     return 0;
@@ -487,29 +457,27 @@ create_writer(
     writer = net_writer_new(proto, p);
   }
   if (writer != NULL) {
-    writer->next = omlc_instance->firstWriter;
-    omlc_instance->firstWriter = writer;
+    writer->next = omlc_instance->first_writer;
+    omlc_instance->first_writer = writer;
   } else {
-    o_log (O_LOG_WARN, "Failed to create writer for URI %s\n", serverUri);
+    o_log (O_LOG_WARN, "Failed to create writer for URI %s\n", server_uri);
   }
   return writer;
 }
 /**
- * \fn OmlMStream* create_mstream(double sample_interval, int    sample_thres, OmlMP* mp, OmlWriter* writer)
- * \brief Function called when creating a new stream of measurement
- * \param sample_interval the sample interval for the filter
- * \param sample_thres the threshold for the filter
- * \param mp the measurement point
- * \param writer the oml writer
- * \return the new measurement stream
+ * @brief Function called when creating a new stream of measurement
+ * @param sample_interval the sample interval for the filter
+ * @param sample_thres the threshold for the filter
+ * @param mp the measurement point
+ * @param writer the oml writer
+ * @return the new measurement stream
  */
 OmlMStream*
-create_mstream(
-    double sample_interval,
-    int    sample_thres,
-    OmlMP* mp,
-    OmlWriter* writer
-) {
+create_mstream(double sample_interval,
+               int    sample_thres,
+               OmlMP* mp,
+               OmlWriter* writer)
+{
   OmlMStream* ms = (OmlMStream*)malloc(sizeof(OmlMStream));
   memset(ms, 0, sizeof(OmlMStream));
 
@@ -530,29 +498,25 @@ create_mstream(
       mp->mutexP = &mp->mutex;
       pthread_mutex_init(mp->mutexP, NULL);
     }
-    pthread_cond_init(&ms->condVar, NULL);
     ms->sample_interval = sample_interval;
     ms->sample_thres = 0;
-    //filter_engine_start(ms);
   } else {
     ms->sample_thres = sample_thres;
   }
   return ms;
 }
 /**
- * \fn static int default_configuration()
  *
- * \brief Loop through registered measurment points and define sample
+ * @brief Loop through registered measurment points and define sample
  * based filters with sampling rate '1' and 'FIRST' filters
  *
- * \return 0 if successful -1 otherwise
+ * @return 0 if successful -1 otherwise
  */
 static int
 default_configuration(void)
-
 {
   OmlWriter* writer;
-  if ((writer = create_writer(omlc_instance->serverUri)) == NULL) {
+  if ((writer = create_writer(omlc_instance->server_uri)) == NULL) {
     return -1;
   }
 
@@ -564,42 +528,35 @@ default_configuration(void)
 
   OmlMP* mp = omlc_instance->mpoints;
   while (mp != NULL) {
-    //OmlMPDef* dp = omlc_instance->mp_definitions[i];
     OmlMStream* ms = create_mstream(sample_interval, sample_count, mp, writer);
     mp->firstStream = ms;
     ms->mp = mp;
 
-    createDefaultFilters(mp, ms);
+    create_default_filters(mp, ms);
 
     if (sample_interval > 0) {
       filter_engine_start(ms);
     }
 
     mp = mp->next;
-    // Create thread to write measurements to file
-    //pthread_create(&thread, NULL, slow_producer, (void*)ms);
-
   }
   return 0;
 }
 /**
- * \fn void createDefaultFilters(OmlMP*      mp, OmlMStream* ms)
- * \brief create the default filters
- * \param mp the associated measurement point
- * \param ns the associated measurement stream
+ * @brief create the default filters
+ * @param mp the associated measurement point
+ * @param ns the associated measurement stream
  */
 void
-createDefaultFilters(
-    OmlMP*      mp,
-    OmlMStream* ms
-) {
+create_default_filters(OmlMP *mp, OmlMStream *ms)
+{
   int param_count = mp->param_count;
 
   int j;
   OmlFilter* prev = NULL;
   for (j = 0; j < param_count; j++) {
     OmlMPDef def = mp->param_defs[j];
-    OmlFilter* f = createDefaultFilter(&def, ms, j);
+    OmlFilter* f = create_default_filter(&def, ms, j);
     if (f) {
       if (prev == NULL) {
     ms->firstFilter = f;
@@ -613,26 +570,21 @@ createDefaultFilters(
   }
 }
 /**
- * \fn OmlFilter* createDefaultFilter(OmlMPDef*   def, OmlMStream* ms, int index)
- * \brief Create a new filter for the measurement associated with the stream
- * \param def the oml definition
- * \param ms the stream to filter
- * \param index the index in the measurement point
- * \return a new filter
+ * @brief Create a new filter for the measurement associated with the stream
+ * @param def the oml definition
+ * @param ms the stream to filter
+ * @param index the index in the measurement point
+ * @return a new filter
  */
 OmlFilter*
-createDefaultFilter(
-    OmlMPDef*   def,
-    OmlMStream* ms,
-    int         index
-) {
+create_default_filter(OmlMPDef *def, OmlMStream *ms, int index)
+{
   const char* name = def->name;
   OmlValueT type = def->param_types;
   int multiple_samples = ms->sample_thres > 1 || ms->sample_interval > 0;
 
   char* fname;
-  if (multiple_samples && (type == OML_LONG_VALUE || type == OML_DOUBLE_VALUE)) {
-  //if (type == OML_LONG_VALUE || type == OML_DOUBLE_VALUE) {
+  if (multiple_samples && omlc_is_numeric_type (type)) {
     fname = "avg";
   } else {
     fname = "first";
@@ -641,15 +593,13 @@ createDefaultFilter(
   return f;
 }
 /**
- * \fn static int write_meta()
- * \brief write the meta data for the application
- * \return 0 if successful
+ * @brief write the meta data for the application
+ * @return 0 if successful
  */
 static int
 write_meta(void)
-
 {
-  OmlWriter* writer = omlc_instance->firstWriter;
+  OmlWriter* writer = omlc_instance->first_writer;
   for (; writer != NULL; writer = writer->next) {
     char s[128];
     sprintf(s, "protocol: %d", OML_PROTOCOL_VERSION);
@@ -674,7 +624,7 @@ write_meta(void)
     mp = mp->next;
   }
 
-  writer = omlc_instance->firstWriter;
+  writer = omlc_instance->first_writer;
   for (; writer != NULL; writer = writer->next) {
     writer->header_done(writer);   // end of header
   }
@@ -683,18 +633,15 @@ write_meta(void)
 
 
 /**
- * \fn static int write_schema(OmlMStream* ms, int index)
- * \brief Write the different schemas of the application
- * \param ms the stream definition
- * \param index the index in the measurement points
- * \return 0 if successful
+ * @brief Write the different schemas of the application
+ * @param ms the stream definition
+ * @param index the index in the measurement points
+ * @return 0 if successful
  */
 #define DEFAULT_SCHEMA_LENGTH 512
 static int
-write_schema(
-  OmlMStream* ms,
-  int index
-) {
+write_schema(OmlMStream *ms, int index)
+{
   char s[DEFAULT_SCHEMA_LENGTH];
   const size_t bufsize = sizeof (s) / sizeof (s[0]);
   size_t schema_size = DEFAULT_SCHEMA_LENGTH;
@@ -725,7 +672,7 @@ write_schema(
       char* name;
       OmlValueT type;
       if (filter->meta(filter, j, &name, &type) != -1) {
-        char* type_s = oml_type_to_s(type);
+        char *type_s = oml_type_to_s(type);
         if (name == NULL) {
           n = snprintf(s, bufsize, "%s:%s ", prefix, type_s);
         } else {
