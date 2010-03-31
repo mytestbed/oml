@@ -29,7 +29,6 @@
 #include <sys/time.h>
 #include <log.h>
 #include <assert.h>
-#include "sqlite_adapter.h"
 #include "database.h"
 #include "util.h"
 #include "oml_value.h"
@@ -38,6 +37,13 @@
 #define DEF_TABLE_COUNT 1
 
 static Database *first_db = NULL;
+
+db_adapter_create
+database_create_function ();
+
+static int
+parse_col_decl(DbTable* self, char* col_decl, int index, int check_only);
+
 /**
  * \brief create a date with the name +name+
  * \param name the name of the database
@@ -64,9 +70,9 @@ database_find(char* name, char* hostname, char* user)
   strncpy(self->hostname, hostname, MAX_DB_NAME_SIZE);
   strncpy(self->user, user, MAX_DB_NAME_SIZE);
   self->ref_count = 1;
+  self->create = database_create_function ();
 
-  /* if (sq3_create_database(self)) { */
-  if (psql_create_database(self)) {
+  if (self->create (self)) {
     free(self);
     return NULL;
   }
@@ -128,8 +134,8 @@ database_release(Database* self)
   }
 
   loginfo ("Closing database '%s'\n", self->name);
-  /* sq3_release(self); */
-  psql_release(self);
+
+  self->release (self);
 
   // no longer needed
   DbTable* t_p = self->first_table;
@@ -252,8 +258,7 @@ database_get_table(Database* database, char* schema)
     index++;
   }
   if (!check_only) {
-    /* if (sq3_create_table(database, table)) { */
-    if (psql_create_table(database, table)) {
+    if (database->create_table (database, table)) {
       free(table);
       return NULL;
     }
@@ -279,11 +284,8 @@ database_table_add_col (DbTable* table, const char* name, OmlValueT type, int in
  * \param index the index of the column
  */
 void
-database_table_store_col(
-  DbTable*  table,
-  DbColumn* col,
-  int       index
-) {
+database_table_store_col(DbTable*  table, DbColumn* col, int index)
+{
   assert (table != NULL && col != NULL);
   assert (index >= 0);
   if (index >= table->col_size) {

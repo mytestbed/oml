@@ -33,38 +33,16 @@ struct _database;
 struct _dbTable;
 extern char* g_database_data_dir;
 
-    /*! Called to calculate the final measurements, send the results to
- * a stream and reset the internal state for a new sampling period.
- *
- * Return 0 on success, -1 otherwise
- */
-typedef int (*db_adapter_insert)(
-    struct _database* db,
-    struct _dbTable*  table,
-    int               sender_id,
-    int               seq_no,
-    double            time_stamp,
-    OmlValue*         values,
-    int               value_count
-);
-
+typedef int (*db_adapter_create)(struct _database *db);
+typedef void (*db_adapter_release)(struct _database *db);
+typedef int (*db_adapter_create_table)(struct _database *db, struct _dbTable *table);
+typedef int (*db_adapter_insert)(struct _database* db, struct _dbTable* table,
+                                 int sender_id, int seq_no, double time_stamp,
+                                 OmlValue* values, int value_count);
 typedef char* (*db_adapter_get_metadata) (struct _database* db, const char* key);
 typedef int   (*db_adapter_set_metadata) (struct _database* db, const char* key, const char* value);
-
-/*! Add the name of a sender to the 'sender' table
- * and return its id for refernce in the respective
- * measurement table.
- */
-typedef int (*db_add_sender_id)(
-    struct _database* db,
-    char*             sender_id
-);
-
-typedef long (*db_get_time_offset)(
-    struct _database* db,
-    long              start_time
-);
-
+typedef int (*db_add_sender_id)(struct _database* db, char* sender_id);
+typedef long (*db_get_time_offset)(struct _database* db, long start_time);
 typedef long (*db_adapter_get_max_seq_no) (struct _database* db, struct _dbTable* table, int sender_id);
 
 typedef struct _dbColumn {
@@ -93,6 +71,9 @@ typedef struct _database{
   DbTable*   first_table;
 
   void*      adapter_hdl;
+  db_adapter_create create;
+  db_adapter_create_table create_table;
+  db_adapter_release release;
   db_adapter_insert  insert;
   db_adapter_get_metadata get_metadata;
   db_adapter_set_metadata set_metadata;
@@ -101,13 +82,8 @@ typedef struct _database{
 
   long               start_time;
 
-
   struct _database* next;
 } Database;
-
-
-
-
 
 /*
  *  Return the database instance for +name+.
@@ -115,26 +91,17 @@ typedef struct _database{
  * one is created;
  */
 Database*
-database_find(
-	      char* name,
-	      char* hostname,
-	      char* user
-);
+database_find(char* name, char* hostname, char* user);
 
 /**
  * Client no longer uses this database. If this
  * was the last client checking out, close database.
  */
 void
-database_release(
-  Database* database
-);
+database_release(Database* database);
 
 DbTable*
-database_get_table(
-    Database* database,
-    char* schema
-);
+database_get_table(Database* database, char* schema);
 
 void
 database_table_free(DbTable* table);
