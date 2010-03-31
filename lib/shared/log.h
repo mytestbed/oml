@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,41 +20,15 @@
  * THE SOFTWARE.
  *
  */
+/* Convenience wrappers for o_log */
+#ifndef LOG_H__
+#define LOG_H__
 
-#ifndef MSTRING_H__
-#define MSTRING_H__
+#include <ocomm/o_log.h>
 
-typedef struct
-{
-  size_t size;   ///< Current allocated size
-  size_t length; ///< Current data length (excluding '\0')
-  char*  buf;    ///< Underlying storage
-} MString;
+void logerror (const char *fmt, ...);
+void logwarn (const char *fmt, ...);
+void loginfo (const char *fmt, ...);
+void logdebug (const char *fmt, ...);
 
-MString*
-mstring_create (void);
-
-int
-mstring_set (MString* mstr, const char* str);
-
-int
-mstring_cat (MString* mstr, const char* str);
-
-size_t
-mstring_len (MString* mstr);
-
-char*
-mstring_buf (MString* mstr);
-
-void
-mstring_delete (MString* mstr);
-
-#endif // MSTRING_H__
-
-/*
- Local Variables:
- mode: C
- tab-width: 4
- indent-tabs-mode: nil
- End:
-*/
+#endif LOG_H__

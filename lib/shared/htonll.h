@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,36 +20,33 @@
  * THE SOFTWARE.
  *
  */
+#ifndef HTONLL_H__
+#define HTONLL_H__
 
-#ifndef MSTRING_H__
-#define MSTRING_H__
+#include <config.h>
+#include <arpa/inet.h>
 
-typedef struct
-{
-  size_t size;   ///< Current allocated size
-  size_t length; ///< Current data length (excluding '\0')
-  char*  buf;    ///< Underlying storage
-} MString;
+#if HAVE_BYTESWAP_H
+#include <byteswap.h>
+#else
+#define bswap_16(value) ((((value) & 0xFF) << 8) | ((value) >> 8))
+#define bswap_32(value)                                         \
+  (((uint32_t)(bswap_16((uint16_t)((value) & 0xFFFF))) << 16) | \
+   ((uint32_t)(bswap_16((uint16_t)((value) >> 16)))))
+#define bswap_64(value)                                             \
+  (((uint64_t)(bswap_32((uint32_t)((value) & 0xFFFFFFFF))) << 32) |  \
+   ((uint64_t)(bswap_32((uint32_t)((value) >> 32)))))
+#endif
 
-MString*
-mstring_create (void);
+#ifdef WORDS_BIGENDIAN
+#define htonll(value) (value)
+#define ntohll(value) (value)
+#else
+#define htonll(value) (bswap_64(value))
+#define ntohll(value) (bswap_64(value))
+#endif
 
-int
-mstring_set (MString* mstr, const char* str);
-
-int
-mstring_cat (MString* mstr, const char* str);
-
-size_t
-mstring_len (MString* mstr);
-
-char*
-mstring_buf (MString* mstr);
-
-void
-mstring_delete (MString* mstr);
-
-#endif // MSTRING_H__
+#endif /* HTONLL_H__ */
 
 /*
  Local Variables:

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -163,4 +163,5 @@ int main(int argc,char **argv)
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

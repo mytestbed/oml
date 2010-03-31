@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 #include <popt.h>
 #include <string.h>
 
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 
@@ -80,7 +80,7 @@ on_connect(
   char integer_string[32];
   sprintf(integer_string, "%d", numberSocket);
   strcat(resultfile_name, integer_string);
-  o_log(O_LOG_DEBUG, "New client connected\n");
+  logdebug("New client connected\n");
   numberSocket++;
   ProxyClientHandler* proxy = proxy_client_handler_new(newSock, page_size, resultfile_name, dstport, address_server);
   //store in the proxy
@@ -107,27 +107,27 @@ static void* thread_stdinstart(void* handle) {
 //    ProxyClientHandler* tmp = proxy->current;
     if (strcmp(command, "OMLPROXY-RESUME") == 0){
 //      while(tmp =! NULL){
-//      	setCommand( tmp,  command );
-//      	tmp = tmp->next;
+//          setCommand( tmp,  command );
+//          tmp = tmp->next;
 //      }
-  	  printf(" command %s \n", command);
-  	  proxy->cmdSocket = command;
-  	}else if (strcmp(command, "OMLPROXY-STOP") == 0){
-//  	  while(tmp =! NULL){
-//      	setCommand( tmp,  command );
-//      	tmp = tmp->next;
+      printf(" command %s \n", command);
+      proxy->cmdSocket = command;
+    }else if (strcmp(command, "OMLPROXY-STOP") == 0){
+//        while(tmp =! NULL){
+//          setCommand( tmp,  command );
+//          tmp = tmp->next;
 //      }
-  	  printf(" command %s \n", command);
-  	  proxy->cmdSocket = command;
-  	}else if (strcmp(command, "OMLPROXY-PAUSE") == 0){
-//  	  while(tmp =! NULL){
-//      	setCommand( tmp,  command );
-//      	tmp = tmp->next;
+      printf(" command %s \n", command);
+      proxy->cmdSocket = command;
+    }else if (strcmp(command, "OMLPROXY-PAUSE") == 0){
+//        while(tmp =! NULL){
+//          setCommand( tmp,  command );
+//          tmp = tmp->next;
 //      }
-  	  printf(" command %s \n", command);
-  	  proxy->cmdSocket = command;
+      printf(" command %s \n", command);
+      proxy->cmdSocket = command;
 
-  	}
+    }
   }
 
 }
@@ -168,8 +168,8 @@ main(
     return -1;
   }
 
-  o_log(O_LOG_INFO, V_STRING, VERSION);
-  o_log(O_LOG_INFO, COPYRIGHT);
+  loginfo (V_STRING, VERSION);
+  loginfo (COPYRIGHT);
 
   eventloop_init();
    proxyServer = (ProxyServer*) malloc(sizeof(ProxyServer));
@@ -192,4 +192,5 @@ main(
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

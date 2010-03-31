@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@
 #include <popt.h>
 
 #include <oml2/oml_writer.h>
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 
@@ -54,9 +54,9 @@ struct poptOption options[] = {
   POPT_AUTOHELP
   { "listen", 'l', POPT_ARG_INT, &listen_port, 0,
         "Port to listen for TCP based clients", DEF_PORT_STR},
-  { "hostname", 'h', POPT_ARG_STRING, &hostname, 0, 
+  { "hostname", 'h', POPT_ARG_STRING, &hostname, 0,
     "Database server hostname", DEFAULT_DB_HOST},
-  { "user", 'u', POPT_ARG_STRING, &user, 0, 
+  { "user", 'u', POPT_ARG_STRING, &user, 0,
     "Database server username", DEFAULT_DB_USER},
   { "data-dir", '\0', POPT_ARG_STRING, &g_database_data_dir, 0,
         "Directory to store dtabase files" },
@@ -79,7 +79,7 @@ on_connect(
   (void)handle; // FIXME:  why is this not used?
 //  Socket* outSock = (Socket*)handle;
 
-  o_log(O_LOG_DEBUG, "New client connected\n");
+  logdebug("New client connected\n");
   client_handler_new(newSock,hostname,user);
 }
 
@@ -105,8 +105,8 @@ main(
     switch (c) {
     case 'v':
       printf(V_STRING, VERSION);
-	  printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
-	  printf(COPYRIGHT);
+      printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
+      printf(COPYRIGHT);
       return 0;
     }
   }
@@ -121,9 +121,9 @@ main(
     return -1;
   }
 
-  o_log(O_LOG_INFO, V_STRING, VERSION);
-  o_log(O_LOG_INFO, "OML Protocol V%d\n", OML_PROTOCOL_VERSION);
-  o_log(O_LOG_INFO, COPYRIGHT);
+  loginfo(V_STRING, VERSION);
+  loginfo("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
+  loginfo(COPYRIGHT);
 
   o_log(O_LOG_INFO, "Database server: %s with %s\n",hostname,user);
 
@@ -133,10 +133,10 @@ main(
   serverSock = socket_server_new("server", listen_port, on_connect, NULL);
 
   if (serverSock)
-	eventloop_run();
+    eventloop_run();
   else {
-	o_log (O_LOG_ERROR, "SERVER QUIT:  failed to create socket for client connections.\n");
-	return -2;
+    logerror("SERVER QUIT:  failed to create socket for client connections.\n");
+    return -2;
   }
 
   return(0);
@@ -147,4 +147,5 @@ main(
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

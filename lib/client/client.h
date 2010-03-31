@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,8 +33,6 @@
 #include "oml2/oml_filter.h"
 #include "oml2/oml_writer.h"
 
-
-
 #define CONFIG_ROOT_NAME "omlc"
 #define NODE_ID_ATTR "id"
 #define EXP_ID_ATTR "exp_id"
@@ -53,27 +51,17 @@
 #define SERVER_URI_MAX_LENGTH 64
 
 typedef struct _omlClient {
-
   const char* app_name;
   const char* experiment_id;
   const char* node_name;
 
-
-  //  int      mp_count;
-  //  OmlMPDef** mp_definitions;
-
-  // Array of linked list of measurement streams, where
-  // the array index is the index of the MP
-  //OmlMStream** mpoints;
-
-  // Pointer to head of linked list of measurement points.
   OmlMP*       mpoints;
 
-  char serverUri[SERVER_URI_MAX_LENGTH + 1];
+  char server_uri[SERVER_URI_MAX_LENGTH + 1];
 
-  OmlWriter*  firstWriter;
+  OmlWriter*  first_writer;
 
-  const char* configFile;
+  const char* config_file;
 
   time_t      start_time;    // unix epoch when started
 
@@ -96,13 +84,13 @@ create_mstream(
 );
 
 void
-createDefaultFilters(
+create_default_filters(
     OmlMP*      mp,
     OmlMStream* ms
 );
 
 OmlFilter*
-createDefaultFilter(
+create_default_filter(
     OmlMPDef*   def,
     OmlMStream* ms,
     int         index
@@ -128,7 +116,7 @@ mp_unlock(
 );
 
 extern OmlWriter*
-file_writer_new(char* fileName);
+file_writer_new(char* file);
 
 extern OmlWriter*
 net_writer_new(char* protocol, char* location);
@@ -136,16 +124,11 @@ net_writer_new(char* protocol, char* location);
 extern int
 filter_process(OmlMStream* mp);
 
-extern char*
-oml_type_to_s(OmlValueT type);
-
 const char*
 validate_app_name (const char* name);
 
 const char*
 validate_mp_name (const char* name);
-
-
 
 #endif /*CLIENT_H_*/
 
@@ -154,4 +137,5 @@ validate_mp_name (const char* name);
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

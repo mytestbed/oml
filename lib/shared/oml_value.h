@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,36 +20,41 @@
  * THE SOFTWARE.
  *
  */
+#ifndef OML_VALUE_H__
+#define OML_VALUE_H__
 
-#ifndef MSTRING_H__
-#define MSTRING_H__
+#include <oml2/omlc.h>
+#include <stdint.h>
+#include <limits.h>
 
-typedef struct
+static inline int32_t oml_value_clamp_long (long value)
 {
-  size_t size;   ///< Current allocated size
-  size_t length; ///< Current data length (excluding '\0')
-  char*  buf;    ///< Underlying storage
-} MString;
+#if LONG_MAX > INT_MAX
+  if (value > INT_MAX)
+    return INT_MAX;
+  if (value < INT_MIN)
+    return INT_MIN;
+#endif
+  return value;
+}
 
-MString*
-mstring_create (void);
+
+extern char*
+oml_type_to_s(OmlValueT type);
+
+extern OmlValueT
+oml_type_from_s (const char *s);
 
 int
-mstring_set (MString* mstr, const char* str);
-
+oml_value_from_s (OmlValue *value, const char *value_s);
 int
-mstring_cat (MString* mstr, const char* str);
 
-size_t
-mstring_len (MString* mstr);
+oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *value_s);
 
-char*
-mstring_buf (MString* mstr);
+double
+oml_value_to_double (OmlValue *value);
 
-void
-mstring_delete (MString* mstr);
-
-#endif // MSTRING_H__
+#endif // OML_VALUE_H__
 
 /*
  Local Variables:

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,8 @@
 #ifndef O_LOG_H
 #define O_LOG_H
 
+#include <stdarg.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,7 +44,9 @@ extern "C" {
 #define O_LOG_DEBUG4 4
 
 typedef void (*o_log_fn)(int log_level, const char* format, ...);
+typedef void (*o_vlog_fn)(int log_level, const char* format, va_list va);
 extern o_log_fn o_log;
+extern o_vlog_fn o_vlog;
 
 /*! \fn o_log_fn o_set_log(o_log_fn log_fn)
   \brief Set the log function, or if NULL return the default function.
@@ -76,4 +80,5 @@ o_set_log_level(int level);
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

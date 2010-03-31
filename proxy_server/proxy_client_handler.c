@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 
@@ -99,8 +99,8 @@ static void* thread_proxystart(void* handle) {
   //ProxyClientBuffer* buffer = proxy->currentBuffertoSend;
   while(1){
     ProxyClientBuffer* buffer = proxy->currentBuffertoSend;
-  	if (strcmp(proxyServer->cmdSocket, "OMLPROXY-RESUME") == 0){
-  	  //printf(" change %s\n",proxyServer->cmdSocket);
+    if (strcmp(proxyServer->cmdSocket, "OMLPROXY-RESUME") == 0){
+      //printf(" change %s\n",proxyServer->cmdSocket);
       //socket_sendto(proxy->socket_to_server,proxy->buffer->buff,proxy->buffer->currentSize);
       if((buffer->currentSize - buffer->byteAlreadySent)>0){
 
@@ -125,13 +125,13 @@ static void* thread_proxystart(void* handle) {
        }
       //sleep(1);
 
-  	}else if (strcmp(proxyServer->cmdSocket, "OMLPROXY-STOP") == 0){
-  		//printf(" change %s\n",proxyServer->cmdSocket);
+    }else if (strcmp(proxyServer->cmdSocket, "OMLPROXY-STOP") == 0){
+        //printf(" change %s\n",proxyServer->cmdSocket);
 
-  	}else if (strcmp(proxyServer->cmdSocket, "OMLPROXY-PAUSE") == 0){
-  	  //printf(" change %s\n",proxyServer->cmdSocket);
-  	  sleep(1);
-  	}
+    }else if (strcmp(proxyServer->cmdSocket, "OMLPROXY-PAUSE") == 0){
+      //printf(" change %s\n",proxyServer->cmdSocket);
+      sleep(1);
+    }
 
   }
 
@@ -210,7 +210,7 @@ client_callback(
   int available = self->buffer->max_length - self->buffer->currentSize ;
 
   if(self->file == NULL)
-	  ;
+      ;
   else{
     if(available < buf_size){
         fwrite(self->buffer->buff,sizeof(char), self->buffer->currentSize, self->file);
@@ -263,7 +263,7 @@ status_callback(
       self->socketClosed = 1;
       while(strcmp(self->cmdSocket, "OMLPROXY-STOP") != 0)
         sleep(1);
-      o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
+      logdebug("socket '%s' closed\n", source->name);
       break;
     default:
       break;
@@ -276,4 +276,5 @@ status_callback(
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,9 +31,7 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
-
 
 struct _proxyClientBuffer;
 
@@ -153,4 +151,5 @@ int startConnection();
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
   \brief Implements a writer which sends results over the network
 */
 
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <ocomm/o_socket.h>
 #include <stdlib.h>
 #include <stdlib.h>
@@ -80,26 +80,20 @@ typedef struct _omlNetWriter {
 static int write_meta(OmlWriter* writer, char* str);
 static int header_done(OmlWriter* writer);
 
-// FIXME:  write_schema() not required for net_writer??
-//static int write_schema(OmlWriter* writer, OmlMStream* ms);
-
 static int row_start(OmlWriter* writer, OmlMStream* ms, double now);
 static int out(OmlWriter* writer, OmlValue* values, int value_count);
 static int row_end(OmlWriter* writer, OmlMStream* ms);
 static int close(OmlWriter* writer);
 
 /**
- * \fn OmlWriter* net_writer_new(char* protocol, char* location)
  * \brief Create a new +OmlWriter+
  * \param protocol the transport protocol
  * \param location the host and the port number of the server
  * \return a new +OmlWriter+
  */
 OmlWriter*
-net_writer_new(
-  char* protocol,
-  char* location
-) {
+net_writer_new(char* protocol, char* location)
+{
   OmlNetWriter* self = (OmlNetWriter *)malloc(sizeof(OmlNetWriter));
   memset(self, 0, sizeof(OmlNetWriter));
 
@@ -127,12 +121,12 @@ net_writer_new(
   self->port = port;
   self->host = host;
 
-  o_log(O_LOG_INFO, "Net proto: <%s> host: <%s> port: <%d>\n", protocol, host, port);
+  loginfo ("Net proto: <%s> host: <%s> port: <%d>\n", protocol, host, port);
 
   socket_set_non_blocking_mode(0);
   if (protocol == NULL || strcmp(protocol, "tcp") == 0) {
     if ((self->socket = socket_tcp_out_new("sock", host, port)) == NULL) {
-	  free (self);
+      free (self);
       return NULL;
     }
   }
@@ -151,17 +145,14 @@ net_writer_new(
 }
 
 /**
- * \fn static int write_meta(OmlWriter* writer, char* str)
  * \brief Definition of the write_meta function of the oml net writer
  * \param writer the net writer that will send the data to the server
  * \param str the string to send
  * \return 1 if the socket is not open, 0 if successful
  */
 static int
-write_meta(
-  OmlWriter* writer,
-  char* str
-) {
+write_meta(OmlWriter* writer, char* str)
+{
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
@@ -179,26 +170,24 @@ write_meta(
   int result = socket_sendto(self->socket, s, len);
 
   if (result == -1 && socket_is_disconnected (self->socket))
-	{
-	  o_log (O_LOG_WARN, "Connection to server at %s://%s:%d was lost\n",
-			 self->protocol, self->host, self->port);
-	  self->is_enabled = 0;  	  // Server closed the connection
-	}
+    {
+      logwarn("Connection to server at %s://%s:%d was lost\n",
+             self->protocol, self->host, self->port);
+      self->is_enabled = 0;       // Server closed the connection
+    }
 
   free (s);
   return (result == len);
 }
 
 /**
- * \fn static int header_done(OmlWriter* writer)
  * \brief finish the writing of the first information
  * \param writer the writer that write this information
  * \return
  */
 static int
-header_done(
-  OmlWriter* writer
-) {
+header_done(OmlWriter* writer)
+{
   write_meta(writer, "content: binary");
   write_meta(writer, "");
 
@@ -206,7 +195,6 @@ header_done(
 }
 
 /**
- * \fn static int out(OmlWriter* writer, OmlValue*  values, int value_count)
  * \brief marshal and then transfer the values
  * \param writer pointer to writer instance
  * \param values type of sample
@@ -214,11 +202,8 @@ header_done(
  * \return 0 if sucessful 1 otherwise
  */
 static int
-out(
-  OmlWriter* writer,
-  OmlValue*  values,
-  int        value_count
-) {
+out(OmlWriter* writer, OmlValue* values, int value_count)
+{
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
@@ -228,7 +213,6 @@ out(
 }
 
 /**
- * \fn int row_start(OmlWriter* writer, OmlMStream* ms, double now)
  * \brief before sending datastore information about the time and the stream
  * \param writer the netwriter to send data
  * \param ms the stream to store the measruement from
@@ -236,11 +220,8 @@ out(
  * \return 1
  */
 int
-row_start(
-  OmlWriter* writer,
-  OmlMStream* ms,
-  double now
-) {
+row_start(OmlWriter* writer, OmlMStream* ms, double now)
+{
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
@@ -250,48 +231,43 @@ row_start(
 }
 
 /**
- * \fn int row_end(OmlWriter* writer, OmlMStream* ms)
  * \brief send the data after finalysing the data structure
  * \param writer the net writer that send the measurements
  * \param ms the stream of measurmenent
  * \return 1
  */
 int
-row_end(
-  OmlWriter* writer,
-  OmlMStream* ms
-) {
-  (void)ms; // FIXME:  Is this needed?  not used in file_writer either
+row_end(OmlWriter* writer, OmlMStream* ms)
+{
+  (void)ms;
   OmlNetWriter* self = (OmlNetWriter*)writer;
   if (self->socket == NULL) return 1;
   if (!self->is_enabled) return 1;
 
   marshal_finalize(self->mbuf);
   int len = mbuf_message_length (self->mbuf);
-  o_log(O_LOG_DEBUG, "Sending message of size '%d'\n", len);
+  logdebug("Sending message of size '%d'\n", len);
   int result = socket_sendto(self->socket, (char*)mbuf_buffer (self->mbuf), len);
 
   if (result == -1 && socket_is_disconnected (self->socket))
-	{
-	  o_log (O_LOG_WARN, "Connection to server at %s://%s:%d was lost\n",
-			 self->protocol, self->host, self->port);
-	  self->is_enabled = 0;  	  // Server closed the connection
-	}
+    {
+      logwarn("Connection to server at %s://%s:%d was lost\n",
+             self->protocol, self->host, self->port);
+      self->is_enabled = 0;       // Server closed the connection
+    }
 
   mbuf_clear (self->mbuf);
   return 1;
 }
 
 /**
- * \fn static int close(OmlWriter* writer)
  * \brief Called to close the socket
  * \param writer the netwriter to close the socket in
  * \return 0
  */
 static int
-close(
-  OmlWriter* writer
-) {
+close(OmlWriter* writer)
+{
   OmlNetWriter* self = (OmlNetWriter*)writer;
 
   if (self->socket != 0) {
@@ -306,4 +282,5 @@ close(
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

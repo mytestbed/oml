@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
 #include "average_filter.h"
+#include "oml_value.h"
 
 typedef struct _omlAvgFilterInstanceData InstanceData;
 
@@ -42,12 +43,10 @@ static int
 sample(OmlFilter* f, OmlValue* value);
 
 void*
-omlf_average_new(
-  OmlValueT type,
-  OmlValue* result
-) {
+omlf_average_new(OmlValueT type, OmlValue* result)
+{
   if (! omlc_is_numeric_type (type)) {
-    o_log(O_LOG_ERROR, "Can only handle numeric parameters\n");
+    logerror ("Can only handle numeric parameters\n");
     return NULL;
   }
 
@@ -63,7 +62,7 @@ omlf_average_new(
     self->result = result;
     return self;
   } else {
-    o_log(O_LOG_ERROR, "Could not allocate %d bytes for avg filter instance data\n",
+    logerror ("Could not allocate %d bytes for avg filter instance data\n",
           sizeof(InstanceData));
     return NULL;
   }
@@ -90,38 +89,27 @@ omlf_register_filter_average (void)
 }
 
 static int
-sample(
-    OmlFilter* f,
-    OmlValue*  value  //! value of this sample
-) {
+sample(OmlFilter* f, OmlValue* value)
+{
   InstanceData* self = (InstanceData*)f->instance_data;
-  OmlValueU* v = &value->value;
-  OmlValueT type = value->type;
   double val;
 
-  switch (type) {
-  case OML_LONG_VALUE:
-    val = v->longValue;
-    break;
-  case OML_DOUBLE_VALUE:
-    val = v->doubleValue;
-    break;
-  default:
-    // raise error;
+  if (! omlc_is_numeric_type (value->type))
     return -1;
-  }
+
+  val = oml_value_to_double (value);
+
   self->sample_sum += val;
   if (val < self->sample_min) self->sample_min = val;
   if (val > self->sample_max) self->sample_max = val;
   self->sample_count++;
+
   return 0;
 }
 
 static int
-process(
-  OmlFilter* f,
-  OmlWriter* writer //! Write results of filter to this function
-) {
+process(OmlFilter* f, OmlWriter* writer)
+{
   InstanceData* self = (InstanceData*)f->instance_data;
 
   if (self->sample_count > 0) {
@@ -150,4 +138,5 @@ process(
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

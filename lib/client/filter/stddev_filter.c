@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,10 +46,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
 #include "stddev_filter.h"
+#include "oml_value.h"
 
 typedef struct _omlStddevFilterInstanceData InstanceData;
 
@@ -65,25 +66,25 @@ omlf_stddev_new(
   OmlValue* result
   ) {
   if (! omlc_is_numeric_type (type)) {
-	o_log (O_LOG_ERROR, "Can only handle numeric parameters\n");
-	return NULL;
+    logerror("Can only handle numeric parameters\n");
+    return NULL;
   }
 
   InstanceData* self = (InstanceData*)malloc(sizeof(InstanceData));
 
   if (self) {
-	memset(self, 0, sizeof(InstanceData));
+    memset(self, 0, sizeof(InstanceData));
 
-	self->m = 0;
-	self->s = 0;
-	self->sample_count = 0;
-	self->result = result;
+    self->m = 0;
+    self->s = 0;
+    self->sample_count = 0;
+    self->result = result;
 
-	return self;
+    return self;
   } else {
-	o_log (O_LOG_ERROR, "Could not allocate %d bytes for stddev filter instance data\n",
-		   sizeof(InstanceData));
-	return NULL;
+    logerror("Could not allocate %d bytes for stddev filter instance data\n",
+           sizeof(InstanceData));
+    return NULL;
   }
 }
 
@@ -91,19 +92,19 @@ void
 omlf_register_filter_stddev (void)
 {
   OmlFilterDef def [] =
-	{
-	  { "stddev", OML_DOUBLE_VALUE },
-	  { "variance", OML_DOUBLE_VALUE },
-	  { NULL, 0 }
-	};
+    {
+      { "stddev", OML_DOUBLE_VALUE },
+      { "variance", OML_DOUBLE_VALUE },
+      { NULL, 0 }
+    };
 
   omlf_register_filter ("stddev",
-						omlf_stddev_new,
-						NULL,
-						input,
-						output,
-						NULL,
-						def);
+                        omlf_stddev_new,
+                        NULL,
+                        input,
+                        output,
+                        NULL,
+                        def);
 }
 
 static int
@@ -112,33 +113,24 @@ input (
   OmlValue* value
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
-  OmlValueU* v = &value->value;
-  OmlValueT type = value->type;
   double m = self->m;
   double s = self->s;
   double new_m;
   double new_s;
   double val;
 
-  switch (type)	{
-  case OML_LONG_VALUE:
-	val = v->longValue;
-	break;
-  case OML_DOUBLE_VALUE:
-	val = v->doubleValue;
-	break;
-  default:
-	// raise error
-	return -1;
-  }
+  if (! omlc_is_numeric_type (value->type))
+    return -1;
+
+  val = oml_value_to_double (value);
 
   self->sample_count++;
   if (self->sample_count == 1) {
-	new_m = val;
-	new_s = 0;
+    new_m = val;
+    new_s = 0;
   } else {
-	new_m = m + (val - m) / self->sample_count;
-	new_s = s + (val - m) * (val - new_m);
+    new_m = m + (val - m) / self->sample_count;
+    new_s = s + (val - m) * (val - new_m);
   }
   self->m = new_m;
   self->s = new_s;
@@ -153,11 +145,11 @@ output (
   InstanceData* self = (InstanceData*)f->instance_data;
 
   if (self->sample_count > 0) {
-	self->result[1].value.doubleValue = 1.0 * self->s / (self->sample_count - 1);
-	self->result[0].value.doubleValue = sqrt (self->result[1].value.doubleValue);
+    self->result[1].value.doubleValue = 1.0 * self->s / (self->sample_count - 1);
+    self->result[0].value.doubleValue = sqrt (self->result[1].value.doubleValue);
   } else {
-	self->result[0].value.doubleValue = 0;
-	self->result[1].value.doubleValue = 0;
+    self->result[0].value.doubleValue = 0;
+    self->result[1].value.doubleValue = 0;
   }
 
   writer->out (writer, self->result, f->output_count);
@@ -169,4 +161,5 @@ output (
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,12 +20,8 @@
  * THE SOFTWARE.
  *
  */
-/*!\file api.c
-  \brief Implements most of OML's client side exposed API.
 
-*/
-
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -33,43 +29,32 @@
 #include <oml2/oml_filter.h>
 #include "client.h"
 
-extern OmlClient* omlc_instance;
-
 /**
- * \fn static void omlc_ms_process( OmlMStream* ms)
  * \brief Called when the particular MStream has been filled.
  * \param ms the oml stream to process
  */
 static void
-omlc_ms_process(
-  OmlMStream* ms
-);
+omlc_ms_process(OmlMStream* ms);
 
 /**
- * \fn void omlc_process( OmlMP* mp, OmlValueU*  values)
- * \brief DEPRECIATED
+ * \brief DEPRECATED
  */
 void
-omlc_process(
-  OmlMP*      mp,
-  OmlValueU*  values
-) {
-  o_log(O_LOG_WARN, "'omlc_process' is deprecated, use 'omlc_inject' instead\n");
+omlc_process(OmlMP *mp, OmlValueU *values)
+{
+  logwarn("'omlc_process' is deprecated, use 'omlc_inject' instead\n");
   omlc_inject(mp, values);
 }
 
 /**
- * \fn void omlc_inject( OmlMP* mp, OmlValueU*  values)
  * \brief Called when a measure has to be treated
  * \param mp the measurement point in the application
  * \param values the new values to analyse
  * \return
  */
 void
-omlc_inject(
-  OmlMP*      mp,
-  OmlValueU*  values
-) {
+omlc_inject(OmlMP *mp, OmlValueU *values)
+{
   if (omlc_instance == NULL) return;
   if (mp == NULL) return;
   if (mp_lock(mp)) return;
@@ -92,52 +77,26 @@ omlc_inject(
   mp_unlock(mp);
 }
 
-////! Called at the start of every MP wrapper function.
-//OmlMStream*
-//omlc_mp_start(
-//  int index
-//) {
-//  if (omlc_instance == NULL) return NULL;
-//  OmlMStream* mp = omlc_instance->mpoints[index];
-//  return mp_lock(mp) ? mp : NULL;
-//}
-
 /**
- * \fn static void omlc_ms_process( OmlMStream* ms)
  * \brief Called when the particular MStream has been filled.
  * \param ms the oml stream to process
  */
 static void
-omlc_ms_process(
-  OmlMStream* ms
-) {
+omlc_ms_process(OmlMStream *ms)
+{
   if (ms == NULL) return;
 
   if (ms->sample_thres > 0 && ++ms->sample_size >= ms->sample_thres) {
     // sample based filters fire
     filter_process(ms);
-    if (pthread_cond_signal(&ms->condVar)) {
-      o_log(O_LOG_WARN, "%s: Couldn't signal condVar (%s)\n",
-        ms->table_name, strerror(errno));
-    }
     ms->sample_size = 0;
   }
 }
-
-////! Called at the end of every MP wrapper function.
-//void
-//omlc_mp_end(
-//  int index
-//) {
-//  if (omlc_instance == NULL) return;
-//  OmlMStream* ms = omlc_instance->mpoints[index];
-//  mp_unlock(ms);
-//}
-
 
 /*
  Local Variables:
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

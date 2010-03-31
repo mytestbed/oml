@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ extern Suite* api_suite (void);
 extern Suite* parser_suite (void);
 extern Suite* marshal_suite (void);
 extern Suite* mbuf_suite (void);
+extern Suite* bswap_suite (void);
 
 #endif /* CHECK_LIBOML2_SUITES_H__ */
 
@@ -38,4 +39,5 @@ extern Suite* mbuf_suite (void);
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

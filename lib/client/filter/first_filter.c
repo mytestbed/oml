@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
 #include "filter/first_filter.h"
@@ -55,7 +55,7 @@ omlf_first_new(
   self->result[0].type = type;  // FIXME:  Is this needed?
 
   if (type == OML_STRING_VALUE)
-	omlc_set_const_string (self->result[0].value, "");
+    omlc_set_const_string (self->result[0].value, "");
 
   return self;
 }
@@ -70,12 +70,12 @@ omlf_register_filter_first (void)
     };
 
   omlf_register_filter ("first",
-			omlf_first_new,
-			NULL,
-			sample,
-			process,
-			meta,
-			def);
+            omlf_first_new,
+            NULL,
+            sample,
+            process,
+            meta,
+            def);
 }
 
 static int
@@ -88,7 +88,7 @@ sample(
   OmlValueT type = value->type;
 
   if (type != self->result[0].type) {
-    o_log(O_LOG_ERROR, "Different type from initial definition\n");
+    logerror ("Different type from initial definition\n");
     return 0;
   }
   if (self->is_first) {
@@ -109,7 +109,7 @@ process(
   writer->out(writer, self->result, 1);
   oml_value_reset(&self->result[0]);
   if (self->result[0].type == OML_STRING_VALUE)
-	omlc_set_const_string (self->result[0].value, "");
+    omlc_set_const_string (self->result[0].value, "");
   return 0;
 }
 
@@ -134,4 +134,5 @@ meta(
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

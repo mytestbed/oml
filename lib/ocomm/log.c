@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,12 +34,14 @@
 
 extern int errno;
 
-static void o_log_default(int log_level, const char* format, ...);
+static void o_log_default(int level, const char* format, ...);
+static void o_vlog_default(int level, const char* format, va_list va);
 
 static FILE* logfile;
 int o_log_level = O_LOG_INFO;
 
 o_log_fn o_log = o_log_default;
+o_vlog_fn o_vlog = o_vlog_default;
 
 void
 o_set_log_file(
@@ -77,19 +79,12 @@ o_set_log(
 }
 
 void
-o_log_default(
-  int log_level,
-  const char* format,
-  ...
-) {
-
-  if (log_level > o_log_level) return;
-
-  va_list va;
-  va_start(va, format);
+o_vlog_default (int level, const char *format, va_list va)
+{
+  if (level > o_log_level) return;
 
   if (logfile == NULL) {
-    switch (log_level) {
+    switch (level) {
     case O_LOG_INFO:
       printf("# ");
       vprintf(format, va);
@@ -104,7 +99,7 @@ o_log_default(
       break;
     default:
       printf("# ");
-      for (; log_level > 0; log_level--) {
+      for (; level > 0; level--) {
         printf("..");
       }
       printf(" ");
@@ -121,15 +116,15 @@ o_log_default(
     char now[20];
     strftime(now, 20, "%b %d %H:%M:%S", ltime);
 
-    if (log_level > O_LOG_INFO) {
-      int dlevel = log_level - O_LOG_INFO;
+    if (level > O_LOG_INFO) {
+      int dlevel = level - O_LOG_INFO;
       if (dlevel > 1)
         fprintf(logfile, "%s  DEBUG%d ", now, dlevel);
       else
         fprintf(logfile, "%s  DEBUG  ", now);
       vfprintf(logfile, format, va);
     } else {
-      switch (log_level) {
+      switch (level) {
       case O_LOG_INFO:
         fprintf(logfile, "%s  INFO   ", now);
         vfprintf(logfile, format, va);
@@ -149,13 +144,25 @@ o_log_default(
       }
     }
   }
-  va_end(va);
 }
 
+void
+o_log_default(int level, const char* format, ...)
+{
+  if (level > o_log_level) return;
+
+  va_list va;
+  va_start(va, format);
+
+  o_vlog_default (level, format, va);
+
+  va_end(va);
+}
 
 /*
  Local Variables:
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */

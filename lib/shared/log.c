@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,41 +20,40 @@
  * THE SOFTWARE.
  *
  */
-
-#ifndef MSTRING_H__
-#define MSTRING_H__
-
-typedef struct
-{
-  size_t size;   ///< Current allocated size
-  size_t length; ///< Current data length (excluding '\0')
-  char*  buf;    ///< Underlying storage
-} MString;
-
-MString*
-mstring_create (void);
-
-int
-mstring_set (MString* mstr, const char* str);
-
-int
-mstring_cat (MString* mstr, const char* str);
-
-size_t
-mstring_len (MString* mstr);
-
-char*
-mstring_buf (MString* mstr);
+#include "log.h"
 
 void
-mstring_delete (MString* mstr);
+logerror (const char *fmt, ...)
+{
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_ERROR, fmt, va);
+  va_end (va);
+}
 
-#endif // MSTRING_H__
+void
+logwarn (const char *fmt, ...)
+{
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_WARN, fmt, va);
+  va_end (va);
+}
 
-/*
- Local Variables:
- mode: C
- tab-width: 4
- indent-tabs-mode: nil
- End:
-*/
+void
+loginfo (const char *fmt, ...)
+{
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_INFO, fmt, va);
+  va_end (va);
+}
+
+void
+logdebug (const char *fmt, ...)
+{
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_DEBUG, fmt, va);
+  va_end (va);
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,12 +27,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
-#include <ocomm/o_log.h>
-#include "oml2/omlc.h"
-#include "client.h"
-#include "oml2/oml_filter.h"
-#include "oml2/oml_writer.h"
+#include <log.h>
+#include <oml2/omlc.h>
+#include <oml2/oml_filter.h>
+#include <oml2/oml_writer.h>
+#include <oml_value.h>
 
 typedef struct _omlFileWriter {
 
@@ -54,7 +55,7 @@ typedef struct _omlFileWriter {
 
   //----------------------------
 
-  FILE* f;			/* File to write result to */
+  FILE* f;          /* File to write result to */
   int   first_row;
 
 } OmlFileWriter;
@@ -67,24 +68,22 @@ static int out(OmlWriter* writer, OmlValue* values, int value_count);
 static int row_end(OmlWriter* writer, OmlMStream* ms);
 static int close(OmlWriter* writer);
 /**
- * \fn OmlWriter* file_writer_new(char* fileName)
  * \brief Create a new +OmlWriter+
- * \param fileName the destination file
+ * \param file_name the destination file
  * \return a new +OmlWriter+
  */
 OmlWriter*
-file_writer_new(
-  char* fileName
-) {
+file_writer_new(char* file_name)
+{
   OmlFileWriter* self = (OmlFileWriter *)malloc(sizeof(OmlFileWriter));
   memset(self, 0, sizeof(OmlFileWriter));
   self->first_row = 1;
 
-  if (strcmp(fileName, "stdout") == 0 || strcmp(fileName, "-") == 0) {
+  if (strcmp(file_name, "stdout") == 0 || strcmp(file_name, "-") == 0) {
     self->f = stdout;
   } else {
-    if ((self->f = fopen(fileName, "a+")) == NULL) {
-      o_log(O_LOG_ERROR, "Can't open local storage file '%s'\n", fileName);
+    if ((self->f = fopen(file_name, "a+")) == NULL) {
+      logerror ("Can't open local storage file '%s'\n", file_name);
       return 0;
     }
   }
@@ -99,17 +98,14 @@ file_writer_new(
   return (OmlWriter*)self;
 }
 /**
- * \fn static int meta(OmlWriter* writer, char* str)
  * \brief Definition of the meta function of the oml net writer
  * \param writer the net writer that will send the data to the server
  * \param str the string to send
  * \return 1 if the socket is not open, 0 if successful
  */
 static int
-meta(
-  OmlWriter* writer,
-  char*      str
-) {
+meta(OmlWriter* writer, char* str)
+{
   OmlFileWriter* self = (OmlFileWriter*)writer;
   FILE* f = self->f;
   if (f == NULL) return 0;
@@ -119,15 +115,13 @@ meta(
 }
 
 /**
- * \fn static int header_done(OmlWriter* writer)
  * \brief finish the writing of the first information
  * \param writer the writer that write this information
  * \return
  */
 static int
-header_done(
-  OmlWriter* writer
-) {
+header_done(OmlWriter* writer)
+{
   meta(writer, "content: text");
   meta(writer, "");
 
@@ -136,7 +130,6 @@ header_done(
 
 
 /**
- * \fn static int out(OmlWriter* writer, OmlValue*  values, int value_count)
  * \brief write the result inside the file
  * \param writer pointer to writer instance
  * \param values type of sample
@@ -144,11 +137,8 @@ header_done(
  * \return 0 if sucessful 1 otherwise
  */
 static int
-out(
-  OmlWriter* writer,
-  OmlValue*  values,
-  int        value_count
-) {
+out(OmlWriter* writer, OmlValue* values, int value_count)
+{
   OmlFileWriter* self = (OmlFileWriter*)writer;
   FILE* f = self->f;
   if (f == NULL) return 1;
@@ -158,17 +148,18 @@ out(
 
   for (i = 0; i < value_count; i++, v++) {
     switch (v->type) {
-    case OML_LONG_VALUE:
-      fprintf(f, "\t%ld", v->value.longValue);
+    case OML_LONG_VALUE: {
+      fprintf(f, "\t%" PRId32, oml_value_clamp_long (v->value.longValue));
       break;
-    case OML_DOUBLE_VALUE:
-      fprintf(f, "\t%f", v->value.doubleValue);
-      break;
-    case OML_STRING_VALUE:
-      fprintf(f, "\t%s", v->value.stringValue.ptr);
-      break;
+    }
+    case OML_INT32_VALUE:  fprintf(f, "\t%" PRId32,  v->value.int32Value);  break;
+    case OML_UINT32_VALUE: fprintf(f, "\t%" PRIu32,  v->value.uint32Value); break;
+    case OML_INT64_VALUE:  fprintf(f, "\t%" PRId64,  v->value.int64Value);  break;
+    case OML_UINT64_VALUE: fprintf(f, "\t%" PRIu64,  v->value.uint64Value); break;
+    case OML_DOUBLE_VALUE: fprintf(f, "\t%f",  v->value.doubleValue); break;
+    case OML_STRING_VALUE: fprintf(f, "\t%s",  v->value.stringValue.ptr); break;
     default:
-      o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", v->type);
+      logerror ("Unsupported value type '%d'\n", v->type);
       return 0;
     }
   }
@@ -176,7 +167,6 @@ out(
 }
 
 /**
- * \fn int row_start(OmlWriter* writer, OmlMStream* ms, double now)
  * \brief before sending datastore information about the time and the stream
  * \param writer the netwriter to send data
  * \param ms the stream to store the measruement from
@@ -184,11 +174,8 @@ out(
  * \return 1
  */
 int
-row_start(
-  OmlWriter* writer,
-  OmlMStream* ms,
-  double now
-) {
+row_start(OmlWriter* writer, OmlMStream* ms, double now)
+{
   OmlFileWriter* self = (OmlFileWriter*)writer;
   FILE* f = self->f;
   if (f == NULL) return 1;
@@ -204,17 +191,14 @@ row_start(
 }
 
 /**
- * \fn int row_end(OmlWriter* writer, OmlMStream* ms)
  * \brief write the data after finalysing the data structure
  * \param writer the net writer that send the measurements
  * \param ms the stream of measurmenent
  * \return 1
  */
 int
-row_end(
-  OmlWriter* writer,
-  OmlMStream* ms
-) {
+row_end(OmlWriter* writer, OmlMStream* ms)
+{
   (void)ms;
   OmlFileWriter* self = (OmlFileWriter*)writer;
   FILE* f = self->f;
@@ -225,15 +209,13 @@ row_end(
 }
 
 /**
- * \fn static int close(OmlWriter* writer)
  * \brief Called to close the file
  * \param writer the file writer to close the socket in
  * \return 0
  */
 static int
-close(
-  OmlWriter* writer
-) {
+close(OmlWriter* writer)
+{
   OmlFileWriter* self = (OmlFileWriter*)writer;
 
   if (self->f != 0) {
@@ -248,4 +230,5 @@ close(
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
+ End:
 */
