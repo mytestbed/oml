@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,56 +20,40 @@
  * THE SOFTWARE.
  *
  */
-/*!\file misc.c
-  \brief Implements various common utility functions
-*/
+#include "log.h"
 
-#include <stdlib.h>
-#include <pthread.h>
-#include <log.h>
-#include <errno.h>
-#include <string.h>
-#include <oml2/omlc.h>
-#include "client.h"
-
-/**
- * \brief lock of the measurement point mutex
- * \param mp the measurement point
- * \return 0 if successful, -1 otherwise
- */
-int
-mp_lock(
-  OmlMP* mp
-) {
-  if (mp->mutexP) {
-    if (pthread_mutex_lock(mp->mutexP)) {
-      logwarn("%s: Couldn't get mutex lock (%s)\n",
-          mp->name, strerror(errno));
-      return -1;
-    }
-  }
-  return 0;
-}
-/**
- * \brief unlock of the measurement point mutex
- * \param mp the measurement point
- */
 void
-mp_unlock(
-  OmlMP* mp
-) {
-  if (mp->mutexP) {
-    if (pthread_mutex_unlock(mp->mutexP)) {
-      logwarn("%s: Couldn't unlock mutex (%s)\n",
-          mp->name, strerror(errno));
-    }
-  }
+logerror (const char *fmt, ...)
+{
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_ERROR, fmt, va);
+  va_end (va);
 }
 
-/*
- Local Variables:
- mode: C
- tab-width: 4
- indent-tabs-mode: nil
- End:
-*/
+void
+logwarn (const char *fmt, ...)
+{
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_WARN, fmt, va);
+  va_end (va);
+}
+
+void
+loginfo (const char *fmt, ...)
+{
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_INFO, fmt, va);
+  va_end (va);
+}
+
+void
+logdebug (const char *fmt, ...)
+{
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_DEBUG, fmt, va);
+  va_end (va);
+}

@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <log.h>
 #include "util.h"
 
 void
@@ -63,7 +64,7 @@ OmlValueT sql_to_oml_type (const char *s)
     }
 
   if (type == OML_UNKNOWN_VALUE)
-    o_log (O_LOG_WARN, "Unknown SQL type '%s' --> OML_UNKNOWN_VALUE\n", s);
+    logwarn("Unknown SQL type '%s' --> OML_UNKNOWN_VALUE\n", s);
 
   return type;
 }
@@ -80,7 +81,7 @@ oml_to_sql_type (OmlValueT type)
   case OML_INT64_VALUE:   return "BIGINT"; break;
   case OML_UINT64_VALUE:  return "UNSIGNED BIGINT"; break; // FIXME:  UBIGINT not supported without loss of precision
   default:
-    o_log(O_LOG_ERROR, "Unknown type %d\n", type);
+    logerror("Unknown type %d\n", type);
     return NULL;
   }
 }

@@ -29,7 +29,7 @@
 #include <popt.h>
 
 #include <oml2/oml_writer.h>
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 
@@ -72,7 +72,7 @@ on_connect(
   (void)handle; // FIXME:  why is this not used?
 //  Socket* outSock = (Socket*)handle;
 
-  o_log(O_LOG_DEBUG, "New client connected\n");
+  logdebug("New client connected\n");
   client_handler_new(newSock);
 }
 
@@ -98,8 +98,8 @@ main(
     switch (c) {
     case 'v':
       printf(V_STRING, VERSION);
-	  printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
-	  printf(COPYRIGHT);
+      printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
+      printf(COPYRIGHT);
       return 0;
     }
   }
@@ -114,9 +114,9 @@ main(
     return -1;
   }
 
-  o_log(O_LOG_INFO, V_STRING, VERSION);
-  o_log(O_LOG_INFO, "OML Protocol V%d\n", OML_PROTOCOL_VERSION);
-  o_log(O_LOG_INFO, COPYRIGHT);
+  loginfo(V_STRING, VERSION);
+  loginfo("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
+  loginfo(COPYRIGHT);
 
   eventloop_init();
 
@@ -124,10 +124,10 @@ main(
   serverSock = socket_server_new("server", listen_port, on_connect, NULL);
 
   if (serverSock)
-	eventloop_run();
+    eventloop_run();
   else {
-	o_log (O_LOG_ERROR, "SERVER QUIT:  failed to create socket for client connections.\n");
-	return -2;
+    logerror("SERVER QUIT:  failed to create socket for client connections.\n");
+    return -2;
   }
 
   return(0);

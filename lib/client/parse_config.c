@@ -25,7 +25,7 @@
 */
 
 
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -89,19 +89,19 @@ parse_config(
   xmlNodePtr cur;
 
   if ((doc = xmlParseFile(configFile)) == NULL) {
-    o_log(O_LOG_ERROR, "Config file '%s' not parsed successfully.\n",
+    logerror("Config file '%s' not parsed successfully.\n",
       configFile);
     return -1;
   }
 
   if ((cur = xmlDocGetRootElement(doc)) == NULL) {
-    o_log(O_LOG_ERROR, "Config file '%s' is empty.\n", configFile);
+    logerror("Config file '%s' is empty.\n", configFile);
     xmlFreeDoc(doc);
     return -2;
   }
 
   if (xmlStrcmp(cur->name, (const xmlChar *)CONFIG_ROOT_NAME)) {
-    o_log(O_LOG_ERROR, "Config file has wrong root, should be '%s'.\n",
+    logerror("Config file has wrong root, should be '%s'.\n",
       CONFIG_ROOT_NAME);
     xmlFreeDoc(doc);
     return -3;
@@ -141,7 +141,7 @@ parse_collector(
 ) {
   xmlChar* url = xmlGetProp(el, (const xmlChar*)"url");
   if (url == NULL) {
-    o_log(O_LOG_ERROR, "Missing 'url' attribute for '%s'.\n", el->name);
+    logerror("Missing 'url' attribute for '%s'.\n", el->name);
     return -1;
   }
   OmlWriter* writer;
@@ -174,17 +174,17 @@ parse_mp(
 ) {
   xmlChar* name = xmlGetProp(el, (const xmlChar*)"name");
   if (name == NULL) {
-    o_log(O_LOG_ERROR, "Missing 'name' attribute for '%s'.\n", el->name);
+    logerror("Missing 'name' attribute for '%s'.\n", el->name);
     return -1;
   }
   xmlChar* samplesS = xmlGetProp(el, (const xmlChar*)"samples");
   xmlChar* intervalS = xmlGetProp(el, (const xmlChar*)"interval");
   if (samplesS == NULL && intervalS == NULL) {
-    o_log(O_LOG_ERROR, "Missing 'samples' or 'interval' attribute for '%s'.\n", el->name);
+    logerror("Missing 'samples' or 'interval' attribute for '%s'.\n", el->name);
     return -2;
   }
   if (samplesS != NULL && intervalS != NULL) {
-    o_log(O_LOG_ERROR, "Only one of 'samples' or 'interval' attribute can be defined for '%s'.\n",
+    logerror("Only one of 'samples' or 'interval' attribute can be defined for '%s'.\n",
         el->name);
     return -3;
   }
@@ -195,7 +195,7 @@ parse_mp(
     }
   }
   if (mp == NULL) {
-    o_log(O_LOG_ERROR, "Unknown measurement point '%s'.\n", name);
+    logerror("Unknown measurement point '%s'.\n", name);
     return -4;
   }
 
@@ -251,7 +251,7 @@ parse_filter(
     // pname is optional, but issue warning if not declared 'multi_pnames'
     xmlChar* multi = xmlGetProp(el, (const xmlChar*)FILTER_MULTI_PARAM_ATTR);
     if (multi == NULL) {
-      o_log(O_LOG_WARN, "No '%s' or '%s' found.\n",
+      logwarn("No '%s' or '%s' found.\n",
         FILTER_PARAM_NAME_ATTR, FILTER_MULTI_PARAM_ATTR);
       return NULL;
     }
@@ -262,7 +262,7 @@ parse_filter(
     for (; dp->name != NULL; i++, dp++) {
       if (strcmp((char*)pname, dp->name) == 0) {
     if (i >= mp->param_count) {
-      o_log(O_LOG_ERROR, "Index '%i' out of bounds.\n", i);
+      logerror("Index '%i' out of bounds.\n", i);
       return NULL;
     }
     index = i;
@@ -277,7 +277,7 @@ parse_filter(
   if (fname == NULL) {
     // pick default one
     if (def == NULL) {
-      o_log(O_LOG_ERROR, "Can't create default filter without '%s' declaration.\n",
+      logerror("Can't create default filter without '%s' declaration.\n",
         FILTER_PARAM_NAME_ATTR);
       return NULL;
     }
@@ -288,7 +288,7 @@ parse_filter(
       f = create_filter((const char*)fname, name, def->param_types, index);
     } else {
       if (sname == NULL) {
-    o_log(O_LOG_ERROR, "Require '%s' attribute for multi_pname filter '%s'.\n",
+    logerror("Require '%s' attribute for multi_pname filter '%s'.\n",
           FILTER_STREAM_NAME_ATTR, fname);
     return NULL;
       }
@@ -324,14 +324,14 @@ parse_filter_properties(
     if (!xmlStrcmp(el2->name, (const xmlChar *)FILTER_PROPERTY_EL)) {
       if (f->set == NULL) {
     xmlChar* fname = xmlGetProp(el, (const xmlChar*)FILTER_NAME_ATTR);
-    o_log(O_LOG_ERROR, "Filter '%s' doesn't support setting properties.\n",
+    logerror("Filter '%s' doesn't support setting properties.\n",
           fname);
     return NULL;
       }
 
       xmlChar* pname = xmlGetProp(el2, (const xmlChar*)FILTER_PROPERTY_NAME_ATTR);
       if (pname == NULL) {
-    o_log(O_LOG_ERROR, "Can't find property name in filter ('%s') property declaration.\n",
+    logerror("Can't find property name in filter ('%s') property declaration.\n",
           f->name);
     return NULL;
       }
@@ -347,11 +347,11 @@ parse_filter_properties(
     }
       }
       if (value == NULL) {
-    o_log(O_LOG_ERROR, "Missing property ('%s') value in filter '%s'.\n",
+    logerror("Missing property ('%s') value in filter '%s'.\n",
           pname, f->name);
     return NULL;
       }
-      o_log(O_LOG_DEBUG, "Found filter property: %s:%s = '%s'.\n",
+      logdebug("Found filter property: %s:%s = '%s'.\n",
         pname, ptype, value);
       set_filter_property(f, (char*)pname, (char*)ptype, (char*)value);
     }
@@ -381,7 +381,7 @@ set_filter_property(
 
   if (oml_value_from_s (&v, pvalue) == -1)
     {
-      o_log (O_LOG_ERROR, "Error converting property '%s' value from string '%s'\n",
+      logerror("Error converting property '%s' value from string '%s'\n",
              pname, pvalue);
       return 0;
     }

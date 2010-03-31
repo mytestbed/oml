@@ -24,7 +24,7 @@
   \brief Implements a writer which sends results over the network
 */
 
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <ocomm/o_socket.h>
 #include <stdlib.h>
 #include <stdlib.h>
@@ -121,7 +121,7 @@ net_writer_new(char* protocol, char* location)
   self->port = port;
   self->host = host;
 
-  o_log(O_LOG_INFO, "Net proto: <%s> host: <%s> port: <%d>\n", protocol, host, port);
+  loginfo ("Net proto: <%s> host: <%s> port: <%d>\n", protocol, host, port);
 
   socket_set_non_blocking_mode(0);
   if (protocol == NULL || strcmp(protocol, "tcp") == 0) {
@@ -171,7 +171,7 @@ write_meta(OmlWriter* writer, char* str)
 
   if (result == -1 && socket_is_disconnected (self->socket))
     {
-      o_log (O_LOG_WARN, "Connection to server at %s://%s:%d was lost\n",
+      logwarn("Connection to server at %s://%s:%d was lost\n",
              self->protocol, self->host, self->port);
       self->is_enabled = 0;       // Server closed the connection
     }
@@ -246,12 +246,12 @@ row_end(OmlWriter* writer, OmlMStream* ms)
 
   marshal_finalize(self->mbuf);
   int len = mbuf_message_length (self->mbuf);
-  o_log(O_LOG_DEBUG, "Sending message of size '%d'\n", len);
+  logdebug("Sending message of size '%d'\n", len);
   int result = socket_sendto(self->socket, (char*)mbuf_buffer (self->mbuf), len);
 
   if (result == -1 && socket_is_disconnected (self->socket))
     {
-      o_log (O_LOG_WARN, "Connection to server at %s://%s:%d was lost\n",
+      logwarn("Connection to server at %s://%s:%d was lost\n",
              self->protocol, self->host, self->port);
       self->is_enabled = 0;       // Server closed the connection
     }

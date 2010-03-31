@@ -21,7 +21,7 @@
  *
  */
 
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -42,7 +42,7 @@ omlc_ms_process(OmlMStream* ms);
 void
 omlc_process(OmlMP *mp, OmlValueU *values)
 {
-  o_log(O_LOG_WARN, "'omlc_process' is deprecated, use 'omlc_inject' instead\n");
+  logwarn("'omlc_process' is deprecated, use 'omlc_inject' instead\n");
   omlc_inject(mp, values);
 }
 

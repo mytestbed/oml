@@ -29,7 +29,7 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 #include <oml2/oml_writer.h>
@@ -119,7 +119,7 @@ process_schema(
   char* p = value;
   while (!(*p == ' ' || *p == '\0')) p++;
   if (*p == '\0') {
-    o_log(O_LOG_ERROR, "While parsing 'schema'. Can't find index (%s)\n", value);
+    logerror("While parsing 'schema'. Can't find index (%s)\n", value);
     self->state = C_PROTOCOL_ERROR;
     return;
   }
@@ -128,7 +128,7 @@ process_schema(
   DbTable* t = database_get_table(self->database, p);
   if (t == NULL)
     {
-      o_log(O_LOG_ERROR, "While parsing schema '%s'.  Can't find table '%s' or the client declared a schema that doesn't match the previous declaration.\n", value, p);
+      logerror("While parsing schema '%s'.  Can't find table '%s' or the client declared a schema that doesn't match the previous declaration.\n", value, p);
       self->state = C_PROTOCOL_ERROR;
       return;   // error parsing schema
     }
@@ -160,7 +160,7 @@ process_schema(
       self->values = (OmlValue*) malloc (self->value_count * sizeof (OmlValue));
       if (self->values == NULL)
         {
-          o_log (O_LOG_WARN, "Could not allocate values vector with %d elements\n",
+          logwarn("Could not allocate values vector with %d elements\n",
                  self->value_count);
         }
     }
@@ -180,12 +180,12 @@ process_meta(
   char* value
 ) {
   chomp (value);
-  o_log(O_LOG_DEBUG, "Meta <%s>:<%s>\n", key, value);
+  logdebug("Meta <%s>:<%s>\n", key, value);
   if (strcmp(key, "protocol") == 0) {
     int protocol = atoi (value);
     if (protocol != OML_PROTOCOL_VERSION)
       {
-        o_log (O_LOG_ERROR, "Client connected with incorrect protocol version (%d), <%s>\n", protocol, value);
+        logerror("Client connected with incorrect protocol version (%d), <%s>\n", protocol, value);
         self->state = C_PROTOCOL_ERROR;
         return;
       }
@@ -197,14 +197,14 @@ process_meta(
     } else if (strcmp(value, "text") == 0) {
       self->content = C_TEXT_DATA;
     } else {
-      o_log(O_LOG_WARN, "Unknown content type '%s'\n", value);
+      logwarn("Unknown content type '%s'\n", value);
     }
   } else if (strcmp(key, "app-name") == 0) {
     // IGNORE
     //strncpy(self->app_name, value, MAX_STRING_SIZE - 1);
   } else if (strcmp(key, "sender-id") == 0) {
     if (self->database == NULL) {
-      o_log(O_LOG_WARN, "Meta 'sender-id' needs to come after 'experiment-id'.\n");
+      logwarn("Meta 'sender-id' needs to come after 'experiment-id'.\n");
     } else {
       self->sender_id = self->database->add_sender_id(self->database, value);
     }
@@ -212,7 +212,7 @@ process_meta(
     process_schema(self, value);
   } else if (strcmp(key, "start_time") == 0) {
     if (self->database == NULL) {
-      o_log(O_LOG_WARN, "Meta 'start-time' needs to come after 'experiment-id'.\n");
+      logwarn("Meta 'start-time' needs to come after 'experiment-id'.\n");
     } else {
       long start_time = atol(value);
       if (self->database->start_time == 0) {
@@ -222,7 +222,7 @@ process_meta(
       self->time_offset = start_time - self->database->start_time;
     }
   } else {
-    o_log(O_LOG_WARN, "Unknown meta info '%s' (%s) ignored\n", key, value);
+    logwarn("Unknown meta info '%s' (%s) ignored\n", key, value);
   }
 }
 
@@ -293,7 +293,7 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     }
   else
     {
-      o_log(O_LOG_ERROR, "Malformed meta line in header: <%s>\n", line);
+      logerror("Malformed meta line in header: <%s>\n", line);
       self->state = C_PROTOCOL_ERROR;
     }
 
@@ -324,17 +324,17 @@ process_bin_data_message(
   ts = self->time_offset + header->timestamp;
 
   if (header->stream >= self->table_size || header->stream < 0) {
-    o_log(O_LOG_ERROR, "Table index '%d' out of bounds\n", header->stream);
+    logerror("Table index '%d' out of bounds\n", header->stream);
     self->state = C_PROTOCOL_ERROR;
     return;
   }
   DbTable* table = self->tables[header->stream];
   if (table == NULL) {
-    o_log(O_LOG_ERROR, "Undefined table '%d'\n", header->stream);
+    logerror("Undefined table '%d'\n", header->stream);
     self->state = C_PROTOCOL_ERROR;
     return;
   }
-  o_log(O_LOG_DEBUG, "bin_data - CALLING insert for seq no: %d \n", header->seqno);
+  logdebug("bin_data - CALLING insert for seq no: %d \n", header->seqno);
   self->database->insert(self->database,
                          table,
                          self->sender_id,
@@ -344,7 +344,7 @@ process_bin_data_message(
                          cnt);
 
   mbuf_consume_message (mbuf);
-  //o_log(O_LOG_DEBUG, "Received %d values\n", cnt);
+  //logdebug("Received %d values\n", cnt);
 }
 
 /**
@@ -367,14 +367,14 @@ process_bin_message(
   else
     sync_pos = sync - mbuf->base;
   char* octets_str = to_octets (mbuf->base, mbuf->fill);
-  //o_log (O_LOG_DEBUG, "Received %d octets (sync at %d):\t%s\n", mbuf->fill, sync_pos, octets_str);
-  o_log (O_LOG_DEBUG, "Received %d octets (sync at %d)\n", mbuf->fill, sync_pos);
+  //logdebug("Received %d octets (sync at %d):\t%s\n", mbuf->fill, sync_pos, octets_str);
+  logdebug("Received %d octets (sync at %d)\n", mbuf->fill, sync_pos);
   free (octets_str);
 
   int res = unmarshal_init(mbuf, &header);
   //  int res = -1;
   if (res == 0) {
-    o_log(O_LOG_ERROR, "An error occurred while reading binary message header\n");
+    logerror("An error occurred while reading binary message header\n");
     mbuf_clear (mbuf);
     self->state = C_PROTOCOL_ERROR;
     return 0;
@@ -387,7 +387,7 @@ process_bin_message(
       process_bin_data_message(self, &header);
       break;
     default:
-      o_log(O_LOG_ERROR, "Unsupported message type '%d'\n", header.type);
+      logerror("Unsupported message type '%d'\n", header.type);
       self->state = C_PROTOCOL_ERROR;
       return 0;
   }
@@ -408,7 +408,7 @@ process_text_data_message(
   int    size
 ) {
   if (size < 3) {
-    o_log(O_LOG_ERROR, "Not enough parameters in text data message\n");
+    logerror("Not enough parameters in text data message\n");
     return;
   }
 
@@ -418,17 +418,17 @@ process_text_data_message(
 
   ts += self->time_offset;
   if (table_index >= self->table_size || table_index < 0) {
-    o_log(O_LOG_ERROR, "Table index '%d' out of bounds\n", table_index);
+    logerror("Table index '%d' out of bounds\n", table_index);
     return;
   }
   DbTable* table = self->tables[table_index];
   if (table == NULL) {
-    o_log(O_LOG_ERROR, "Undefined table '%d'\n", table_index);
+    logerror("Undefined table '%d'\n", table_index);
     return;
   }
 
   if (table->col_size != size - 3) {
-    o_log(O_LOG_ERROR, "Data item mismatch for table '%s'\n", table->name);
+    logerror("Data item mismatch for table '%s'\n", table->name);
     return;
   }
 
@@ -443,7 +443,7 @@ process_text_data_message(
     v->type = col->type;
     if (oml_value_from_s (v, val) == -1)
       {
-        o_log (O_LOG_ERROR, "Error converting value of type %d from string '%s'\n",
+        logerror("Error converting value of type %d from string '%s'\n",
                col->type, val);
       }
   }
@@ -488,7 +488,7 @@ process_text_message(
       }
       a[a_size++] = param;
       if (a_size >= DEF_NUM_VALUES) {
-    o_log(O_LOG_ERROR, "Too many parameters in data message <%s>\n", line);
+    logerror("Too many parameters in data message <%s>\n", line);
     return 0;
       }
     }
@@ -517,7 +517,7 @@ client_callback(
 
   if (result == -1)
     {
-      o_log (O_LOG_ERROR, "Failed to write message from client into message buffer (mbuf_write())\n");
+      logerror("Failed to write message from client into message buffer (mbuf_write())\n");
       return;
     }
 
@@ -551,7 +551,7 @@ client_callback(
        */
       return;
     default:
-      o_log(O_LOG_ERROR, "Client: %s: unknown client state '%d'\n", source->name, self->state);
+      logerror("Client: %s: unknown client state '%d'\n", source->name, self->state);
       mbuf_clear (mbuf);
       return;
     }
@@ -573,7 +573,7 @@ status_callback(
  int errno,
  void* handle
 ) {
-  o_log(O_LOG_DEBUG, "Socket status changed to %s(%d) on source '%s'; error code is %d\n",
+  logdebug("Socket status changed to %s(%d) on source '%s'; error code is %d\n",
         socket_status_string (status),
         status,
         source->name,
@@ -589,7 +589,7 @@ status_callback(
         client_handler_free (self);
         socket_close (source->socket);
 
-        o_log(O_LOG_DEBUG, "socket '%s' closed\n", source->name);
+        logdebug("socket '%s' closed\n", source->name);
         break;
       }
     case SOCKET_CONN_REFUSED:

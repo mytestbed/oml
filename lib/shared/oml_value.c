@@ -26,11 +26,11 @@
 
 #include <stdlib.h>
 #include <pthread.h>
-#include <ocomm/o_log.h>
 #include <errno.h>
 #include <string.h>
 #include <oml2/omlc.h>
 #include "oml_value.h"
+#include "log.h"
 
 /**
  * @brief Copy an OmlValueU into an OmlValueT.
@@ -81,7 +81,7 @@ oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to)
             char* fstr = value->stringValue.ptr;
             if (!fstr)
               {
-                o_log (O_LOG_WARN, "Trying to copy OML_STRING_VALUE from a NULL source\n");
+                logwarn("Trying to copy OML_STRING_VALUE from a NULL source\n");
                 return -1;
               }
             int length = strlen(fstr);
@@ -133,7 +133,7 @@ oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to)
             break;
           }
         default:
-          o_log(O_LOG_ERROR, "Copy for type '%d' not implemented'\n", type);
+          logerror("Copy for type '%d' not implemented'\n", type);
           return -1;
         }
     }
@@ -168,7 +168,7 @@ oml_value_reset(OmlValue* v)
       break;
     }
     default:
-      o_log(O_LOG_ERROR, "Copy for type '%d' not implemented'\n", v->type);
+      logerror("Copy for type '%d' not implemented'\n", v->type);
       return -1;
     }
   return 0;
@@ -246,13 +246,13 @@ oml_value_from_s (OmlValue *value, const char *value_s)
     case OML_DOUBLE_VALUE: omlc_set_double (value->value, strtod (value_s, NULL)); break;
     default:
       {
-        o_log(O_LOG_ERROR, "Unknown type for value converted from string '%s'.\n", value_s);
+        logerror("Unknown type for value converted from string '%s'.\n", value_s);
         return -1;
       }
     }
   if (errno == ERANGE)
     {
-      o_log (O_LOG_ERROR, "Underflow or overlow converting value from string '%s'\n", value_s);
+      logerror("Underflow or overlow converting value from string '%s'\n", value_s);
       return -1;
     }
   return 0;

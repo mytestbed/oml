@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
 #include "filter/histogram_filter.h"
@@ -51,7 +51,7 @@ omlf_histogram_new(
   OmlValue* result
 ) {
   if (! (type == OML_LONG_VALUE || type == OML_DOUBLE_VALUE)) {
-    o_log(O_LOG_ERROR, "Can only handle number parameters\n");
+    logerror("Can only handle number parameters\n");
     return NULL;
   }
 
@@ -79,12 +79,12 @@ omlf_register_filter_histogram (void)
     };
 
   omlf_register_filter ("histogram",
-			omlf_histogram_new,
-			NULL,
-			sample,
-			process,
-			NULL,
-			def);
+            omlf_histogram_new,
+            NULL,
+            sample,
+            process,
+            NULL,
+            def);
 }
 
 static int

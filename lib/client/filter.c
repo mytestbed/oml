@@ -24,7 +24,7 @@
   \brief Implements OML's client side filter engine
 */
 
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -100,7 +100,7 @@ filter_process(OmlMStream* ms)
 {
   if (ms == NULL || omlc_instance == NULL)
     {
-      o_log (O_LOG_ERROR, "Could not process filters because of null measurement stream or instance\n");
+      logerror("Could not process filters because of null measurement stream or instance\n");
       return -1;
     }
 
@@ -108,7 +108,7 @@ filter_process(OmlMStream* ms)
 
   if (writer == NULL)
     {
-      o_log (O_LOG_ERROR, "Could not process filters because of null writer\n");
+      logerror("Could not process filters because of null writer\n");
       return -1;
     }
 

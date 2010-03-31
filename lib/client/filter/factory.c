@@ -26,7 +26,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <ocomm/o_log.h>
+#include <log.h>
 #include "filter/factory.h"
 
 typedef struct _filterType {
@@ -53,15 +53,15 @@ next_filter_name(void)
   const char* name;
 
   if (ft == NULL && done)
-	{
-	  done = 0;
-	  ft = filter_types;
-	}
+    {
+      done = 0;
+      ft = filter_types;
+    }
   else if (ft == NULL)
-	{
-	  done = 1;
-	  return NULL;
-	}
+    {
+      done = 1;
+      return NULL;
+    }
 
   name = ft->name;
 
@@ -76,7 +76,7 @@ create_filter_result_vector (OmlFilterDef* def, OmlValueT type, int count)
   OmlValue* result = (OmlValue*)malloc(count * sizeof(OmlValue));
 
   if (!result) {
-    o_log (O_LOG_ERROR, "Failed to allocate memory for filter result vector.\n");
+    logerror ("Failed to allocate memory for filter result vector.\n");
     return NULL;
   }
 
@@ -89,18 +89,18 @@ create_filter_result_vector (OmlFilterDef* def, OmlValueT type, int count)
     if (result[i].type == OML_INPUT_VALUE)
       result[i].type = type;
 
-	if (result[i].type == OML_STRING_VALUE)
-	  {
-		// oml_value_reset() doesn't really do a hard reset for
-		// strings... it keeps existing memory hanging around, if any.
-		// so, we need to set up the string a bit more carefully.
-		result[i].value.stringValue.is_const = 0;
-		result[i].value.stringValue.ptr = NULL;
-		result[i].value.stringValue.size = 0;
-		result[i].value.stringValue.length = 0;
-	  }
-	else
-	  oml_value_reset(&result[i]);
+    if (result[i].type == OML_STRING_VALUE)
+      {
+        // oml_value_reset() doesn't really do a hard reset for
+        // strings... it keeps existing memory hanging around, if any.
+        // so, we need to set up the string a bit more carefully.
+        result[i].value.stringValue.is_const = 0;
+        result[i].value.stringValue.ptr = NULL;
+        result[i].value.stringValue.size = 0;
+        result[i].value.stringValue.length = 0;
+      }
+    else
+      oml_value_reset(&result[i]);
   }
 
   return result;
@@ -120,7 +120,7 @@ create_filter(
     if (strcmp (filter_type, ft->name) == 0) break;
   }
   if (ft == NULL) {
-    o_log(O_LOG_ERROR, "Unknown filter '%s'.\n", filter_type);
+    logerror ("Unknown filter '%s'.\n", filter_type);
     return NULL;  // nothing found
   }
 
@@ -144,8 +144,8 @@ create_filter(
 
 static int
 default_filter_set (OmlFilter* filter,
-		    const char* name,
-		    OmlValue* value)
+            const char* name,
+            OmlValue* value)
 {
   (void)filter;
   (void)name;
@@ -156,9 +156,9 @@ default_filter_set (OmlFilter* filter,
 
 static int
 default_filter_meta (OmlFilter* filter,
-		     int index_offset,
-		     char** name_ptr,
-		     OmlValueT* type_ptr)
+             int index_offset,
+             char** name_ptr,
+             OmlValueT* type_ptr)
 {
   if (!filter || (index_offset < 0) || (index_offset >= filter->output_count))
     return -1;
@@ -178,7 +178,7 @@ default_filter_meta (OmlFilter* filter,
 }
 
 static OmlFilterDef* copy_filter_definition (OmlFilterDef* def,
-					     int count)
+                         int count)
 {
   OmlFilterDef* copy = (OmlFilterDef*)malloc((count+1) * sizeof(OmlFilterDef));
 
@@ -191,20 +191,20 @@ static OmlFilterDef* copy_filter_definition (OmlFilterDef* def,
  */
 int
 omlf_register_filter(const char* filter_name,
-		     oml_filter_create create,
-		     oml_filter_set set,
-		     oml_filter_input input,
-		     oml_filter_output output,
-		     oml_filter_meta meta,
-		     OmlFilterDef* filter_def)
+             oml_filter_create create,
+             oml_filter_set set,
+             oml_filter_input input,
+             oml_filter_output output,
+             oml_filter_meta meta,
+             OmlFilterDef* filter_def)
 {
   if (create == NULL || input == NULL || output == NULL) {
-    o_log (O_LOG_ERROR, "Filter %s needs a create function, an input function, and an output function (one of them was null).\n", filter_name);
+    logerror ("Filter %s needs a create function, an input function, and an output function (one of them was null).\n", filter_name);
     return -1;
   }
 
   if (filter_def == NULL) {
-    o_log (O_LOG_ERROR, "Filter %s needs a filter definition (got a null definition).\n", filter_name);
+    logerror ("Filter %s needs a filter definition (got a null definition).\n", filter_name);
     return -1;
   }
 

@@ -15,5 +15,7 @@ libshared_la_SOURCES = \
 	mstring.c \
 	mstring.h \
 	oml_value.c \
-	oml_value.h
+	oml_value.h \
+	log.c \
+	log.h
 

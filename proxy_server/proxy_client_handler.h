@@ -31,9 +31,7 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
-
 
 struct _proxyClientBuffer;
 

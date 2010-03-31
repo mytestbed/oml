@@ -25,7 +25,7 @@
 
 */
 
-#include <ocomm/o_log.h>
+#include "log.h"
 #include <math.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -170,14 +170,14 @@ marshal_init(MBuffer*  mbuf, OmlMsgType  packet_type)
   result = mbuf_begin_write(mbuf);
   if (result == -1)
     {
-      o_log (O_LOG_ERROR, "Couldn't start marshalling packet (mbuf_begin_write())\n");
+      logerror("Couldn't start marshalling packet (mbuf_begin_write())\n");
       return NULL;
     }
 
   result = mbuf_write (mbuf, buf, LENGTH (buf));
   if (result == -1)
     {
-      o_log (O_LOG_ERROR, "Error when trying to marshal packet header (mbuf_write())\n");
+      logerror("Error when trying to marshal packet header (mbuf_write())\n");
       return NULL;
     }
 
@@ -201,7 +201,7 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
 
   if (result == -1)
     {
-      o_log (O_LOG_ERROR, "Unable to marshal table number and measurement count (mbuf_write())\n");
+      logerror("Unable to marshal table number and measurement count (mbuf_write())\n");
       mbuf_reset_write (mbuf);
       return -1;
     }
@@ -261,7 +261,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     int result = mbuf_write (mbuf, buf, LENGTH (buf));
     if (result == -1)
       {
-        o_log (O_LOG_ERROR, "Failed to marshal OML_LONG_VALUE (mbuf_write())\n");
+        logerror("Failed to marshal OML_LONG_VALUE (mbuf_write())\n");
         mbuf_reset_write (mbuf);
         return 0;
       }
@@ -297,7 +297,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     int result = mbuf_write (mbuf, buf, oml_size_map[val_type] + 1);
     if (result == -1)
       {
-        o_log (O_LOG_ERROR, "Failed to marshal %s value (mbuf_write())\n",
+        logerror("Failed to marshal %s value (mbuf_write())\n",
                oml_type_to_s (val_type));
         mbuf_reset_write (mbuf);
         return 0;
@@ -311,7 +311,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     double mant = frexp(v, &exp);
     int8_t nexp = (int8_t)exp;
     if (nexp != exp) {
-      o_log(O_LOG_ERROR, "Double number '%lf' is out of bounds\n", v);
+      logerror("Double number '%lf' is out of bounds\n", v);
       type = DOUBLE_NAN;
       nexp = 0;
    }
@@ -326,7 +326,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 
    if (result == -1)
      {
-       o_log (O_LOG_ERROR, "Failed to marshal OML_DOUBLE_VALUE (mbuf_write())\n");
+       logerror("Failed to marshal OML_DOUBLE_VALUE (mbuf_write())\n");
        mbuf_reset_write (mbuf);
        return 0;
      }
@@ -338,12 +338,12 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
    if (str == NULL)
      {
        str = "";
-       o_log (O_LOG_WARN, "Attempting to send a NULL string; sending empty string instead\n");
+       logwarn("Attempting to send a NULL string; sending empty string instead\n");
      }
 
    size_t len = strlen(str);
    if (len > STRING_T_MAX_SIZE) {
-     o_log(O_LOG_ERROR, "Truncated string '%s'\n", str);
+     logerror("Truncated string '%s'\n", str);
      len = STRING_T_MAX_SIZE;
    }
 
@@ -352,7 +352,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 
    if (result == -1)
      {
-       o_log (O_LOG_ERROR, "Failed to marshal OML_STRING_VALUE type and length (mbuf_write())\n");
+       logerror("Failed to marshal OML_STRING_VALUE type and length (mbuf_write())\n");
        mbuf_reset_write (mbuf);
        return 0;
      }
@@ -361,14 +361,14 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 
    if (result == -1)
      {
-       o_log (O_LOG_ERROR, "Failed to marshal OML_STRING_VALUE (mbuf_write())\n");
+       logerror("Failed to marshal OML_STRING_VALUE (mbuf_write())\n");
        mbuf_reset_write (mbuf);
        return 0;
      }
    break;
  }
  default:
-   o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", val_type);
+   logerror("Unsupported value type '%d'\n", val_type);
    return 0;
  }
 
@@ -389,7 +389,7 @@ marshal_finalize(MBuffer*  mbuf)
 
   if (len > UINT16_MAX)
     {
-      o_log (O_LOG_WARN, "Message length %d longer than maximum packet length (%d); packet will be truncated\n",
+      logwarn("Message length %d longer than maximum packet length (%d); packet will be truncated\n",
              len, UINT16_MAX);
       len = UINT16_MAX;
     }
@@ -420,11 +420,11 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   if (result == -1)
     return mbuf_remaining (mbuf) - PACKET_HEADER_SIZE;
 
-  o_log (O_LOG_DEBUG, "HEADER: %s\n", to_octets (header_str, LENGTH (header_str)));
+  logdebug("HEADER: %s\n", to_octets (header_str, LENGTH (header_str)));
 
   if (! (header_str[0] == SYNC_BYTE && header_str[1] == SYNC_BYTE))
     {
-      o_log(O_LOG_ERROR, "Out of sync. Don't know how to get back\n");
+      logerror("Out of sync. Don't know how to get back\n");
       return 0;
     }
 
@@ -437,7 +437,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   int extra = mbuf_remaining (mbuf) - header->length;
   if (extra < 0)
     {
-      o_log (O_LOG_DEBUG, "Didn't get a full message (%d octets short), so unwinding the message buffer\n", -extra);
+      logdebug("Didn't get a full message (%d octets short), so unwinding the message buffer\n", -extra);
       mbuf_reset_read (mbuf);
       return extra;
     }
@@ -445,7 +445,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   result = mbuf_read (mbuf, stream_header_str, LENGTH (stream_header_str));
   if (result == -1)
     {
-      o_log (O_LOG_ERROR, "Unable to read stream header\n");
+      logerror("Unable to read stream header\n");
       return 0;
     }
 
@@ -504,11 +504,11 @@ unmarshal_values(
   int value_count = header->values;
 
   if (value_count > max_value_count) {
-    o_log (O_LOG_WARN, "Measurement packet contained %d too many values for internal storage (max %d, actual %d); skipping packet\n",
+    logwarn("Measurement packet contained %d too many values for internal storage (max %d, actual %d); skipping packet\n",
            (value_count - max_value_count),
            max_value_count,
            value_count);
-    o_log (O_LOG_WARN, "Message length appears to be %d + 5\n", header->length);
+    logwarn("Message length appears to be %d + 5\n", header->length);
 
     mbuf_read_skip (mbuf, header->length + PACKET_HEADER_SIZE);
     mbuf_begin_read (mbuf);
@@ -519,10 +519,10 @@ unmarshal_values(
 
   int i;
   OmlValue* val = values;
-   //o_log(O_LOG_DEBUG, "value to analyse'%d'\n", value_count);
+   //logdebug("value to analyse'%d'\n", value_count);
   for (i = 0; i < value_count; i++, val++) {
     if (unmarshal_value(mbuf, val) == 0) {
-      o_log (O_LOG_WARN, "Some kind of ERROR in unmarshal_value() call\n");
+      logwarn("Some kind of ERROR in unmarshal_value() call\n");
       return -1;
     }
   }
@@ -558,7 +558,7 @@ unmarshal_value(
 
     if (mbuf_read (mbuf, buf, LENGTH (buf)) == -1)
       {
-        o_log(O_LOG_ERROR, "Failed to unmarshal OML_LONG_VALUE; not enough data?\n");
+        logerror("Failed to unmarshal OML_LONG_VALUE; not enough data?\n");
         return 0;
       }
 
@@ -583,7 +583,7 @@ unmarshal_value(
 
     if (mbuf_read (mbuf, buf, protocol_size_map[type]) == -1)
       {
-        o_log (O_LOG_ERROR, "Failed to unmarshall %d value; not enough data?\n",
+        logerror("Failed to unmarshall %d value; not enough data?\n",
                type);
         return 0;
       }
@@ -600,7 +600,7 @@ unmarshal_value(
 
       if (mbuf_read (mbuf, buf, LENGTH (buf)) == -1)
         {
-          o_log(O_LOG_ERROR, "Failed to unmarshal OML_DOUBLE_VALUE; not enough data?\n");
+          logerror("Failed to unmarshal OML_DOUBLE_VALUE; not enough data?\n");
           return 0;
         }
 
@@ -620,7 +620,7 @@ unmarshal_value(
 
       if (len == -1 || mbuf_read (mbuf, buf, len) == -1)
         {
-          o_log(O_LOG_ERROR, "Failed to unmarshal OML_STRING_VALUE; not enough data?\n");
+          logerror("Failed to unmarshal OML_STRING_VALUE; not enough data?\n");
           return 0;
         }
 
@@ -645,7 +645,7 @@ unmarshal_value(
       break;
     }
     default:
-      o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", type);
+      logerror("Unsupported value type '%d'\n", type);
       return 0;
   }
 
@@ -657,13 +657,13 @@ unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue
 {
   if (unmarshal_value (mbuf, value) != 1)
     {
-      o_log (O_LOG_ERROR, "Error reading %s from binary packet\n", name);
+      logerror("Error reading %s from binary packet\n", name);
       return -1;
     }
 
   if (value->type != type)
     {
-      o_log (O_LOG_ERROR, "Expected type '%s' for %s, but got type '%d' instead\n",
+      logerror("Expected type '%s' for %s, but got type '%d' instead\n",
              oml_type_to_s (type), name, oml_type_to_s (value->type));
       return -1;
     }

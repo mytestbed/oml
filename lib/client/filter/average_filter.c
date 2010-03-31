@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
 #include "average_filter.h"
@@ -46,7 +46,7 @@ void*
 omlf_average_new(OmlValueT type, OmlValue* result)
 {
   if (! omlc_is_numeric_type (type)) {
-    o_log(O_LOG_ERROR, "Can only handle numeric parameters\n");
+    logerror ("Can only handle numeric parameters\n");
     return NULL;
   }
 
@@ -62,7 +62,7 @@ omlf_average_new(OmlValueT type, OmlValue* result)
     self->result = result;
     return self;
   } else {
-    o_log(O_LOG_ERROR, "Could not allocate %d bytes for avg filter instance data\n",
+    logerror ("Could not allocate %d bytes for avg filter instance data\n",
           sizeof(InstanceData));
     return NULL;
   }

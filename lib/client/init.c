@@ -22,7 +22,7 @@
  */
 
 #include <config.h>
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -77,77 +77,77 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
   if (!app_name)
     {
-      o_log (O_LOG_ERROR, "Found illegal whitespace in application name '%s'\n", application);
+      logerror("Found illegal whitespace in application name '%s'\n", application);
       return -1;
     }
 
   omlc_instance = NULL;
 
   o_set_log((o_log_fn)custom_oml_log);
-  o_set_log_level(3);
+  o_set_log_level(O_LOG_INFO);
 
   if (pargc && arg) {
     int i;
     for (i = *pargc; i > 0; i--, arg++) {
       if (strcmp(*arg, "--oml-id") == 0) {
         if (--i <= 0) {
-          o_log(O_LOG_ERROR, "Missing argument for '--oml-id'\n");
+          logerror("Missing argument for '--oml-id'\n");
           return -1;
         }
         name = *++arg;
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-exp-id") == 0) {
         if (--i <= 0) {
-          o_log(O_LOG_ERROR, "Missing argument for '--oml-exp-id'\n");
+          logerror("Missing argument for '--oml-exp-id'\n");
           return -1;
         }
         experimentId = *++arg;
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-file") == 0) {
         if (--i <= 0) {
-          o_log(O_LOG_ERROR, "Missing argument for '--oml-file'\n");
+          logerror("Missing argument for '--oml-file'\n");
           return -1;
         }
         local_data_file = *++arg;
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-config") == 0) {
         if (--i <= 0) {
-          o_log(O_LOG_ERROR, "Missing argument for '--oml-config'\n");
+          logerror("Missing argument for '--oml-config'\n");
           return -1;
         }
         config_file = *++arg;
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-samples") == 0) {
         if (--i <= 0) {
-          o_log(O_LOG_ERROR, "Missing argument to '--oml-samples'\n");
+          logerror("Missing argument to '--oml-samples'\n");
           return -1;
         }
         sample_count = atoi(*++arg);
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-interval") == 0) {
         if (--i <= 0) {
-          o_log(O_LOG_ERROR, "Missing argument to '--oml-interval'\n");
+          logerror("Missing argument to '--oml-interval'\n");
           return -1;
         }
         sample_interval = atof(*++arg);
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-log-file") == 0) {
         if (--i <= 0) {
-          o_log(O_LOG_ERROR, "Missing argument to '--oml-log-file'\n");
+          logerror("Missing argument to '--oml-log-file'\n");
           return -1;
         }
         o_set_log_file((char*)*++arg);
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-log-level") == 0) {
         if (--i <= 0) {
-          o_log(O_LOG_ERROR, "Missing argument to '--oml-log-level'\n");
+          logerror("Missing argument to '--oml-log-level'\n");
           return -1;
         }
         o_set_log_level(atoi(*++arg));
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-server") == 0) {
         if (--i <= 0) {
-          o_log(O_LOG_ERROR, "Missing argument for '--oml-server'\n");
+          logerror("Missing argument for '--oml-server'\n");
           return -1;
         }
         server_uri = (char*)*++arg;
@@ -200,8 +200,8 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
   register_builtin_filters ();
 
-  o_log(O_LOG_INFO, "OML Client V%s %s\n", VERSION, OMLC_COPYRIGHT);
-  o_log(O_LOG_INFO, "OML Protocol V%d\n", OML_PROTOCOL_VERSION);
+  loginfo ("OML Client V%s %s\n", VERSION, OMLC_COPYRIGHT);
+  loginfo ("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
 
   return 0;
 }
@@ -219,7 +219,7 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
   const char* name = validate_mp_name (mp_name);
   if (!name)
     {
-      o_log (O_LOG_ERROR, "Found illegal whitespace in MP name '%s'.  MP will not be created\n", mp_name);
+      logerror("Found illegal whitespace in MP name '%s'.  MP will not be created\n", mp_name);
       return NULL;
     }
 
@@ -234,9 +234,9 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
     {
       if (dp->param_types == OML_LONG_VALUE)
         {
-          o_log (O_LOG_WARN, "Measurement Point '%s', field '%s':\n", mp->name, dp->name);
-          o_log (O_LOG_WARN, "--> OML_LONG_VALUE is deprecated and should not be used in new code\n");
-          o_log (O_LOG_WARN, "--> Values outside of [INT_MIN, INT_MAX] will be clamped!\n");
+          logwarn("Measurement Point '%s', field '%s':\n", mp->name, dp->name);
+          logwarn("--> OML_LONG_VALUE is deprecated and should not be used in new code\n");
+          logwarn("--> Values outside of [INT_MIN, INT_MAX] will be clamped!\n");
         }
       pc++;
       dp++;
@@ -265,13 +265,13 @@ omlc_start()
   const char* config_file = omlc_instance->config_file;
   if (config_file) {
     if (parse_config((char*)config_file)) {
-      o_log(O_LOG_ERROR, "Error while parsing configuration '%s'\n", config_file);
+      logerror("Error while parsing configuration '%s'\n", config_file);
       omlc_instance = NULL;
       return -1;
     }
   } else {
     if (omlc_instance->server_uri == NULL) {
-      o_log(O_LOG_ERROR, "Missing either --oml-file or --oml-server declaration.\n");
+      logerror("Missing either --oml-file or --oml-server declaration.\n");
       omlc_instance = NULL;
       return -2;
     }
@@ -296,7 +296,7 @@ termination_handler(int signum)
   // SIGPIPE is handled by disabling the writer that caused it.
   if (signum != SIGPIPE)
     {
-      o_log(O_LOG_DEBUG, "Closing OML (%d)\n", signum);
+      logdebug("Closing OML (%d)\n", signum);
       omlc_close();
       exit(-1 * signum);
     }
@@ -429,14 +429,14 @@ OmlWriter*
 create_writer(char* server_uri)
 {
   if (omlc_instance == NULL){
-    o_log(O_LOG_ERROR,"No omlc_instance:  OML client was not initialized properly.\n");
+    logerror("No omlc_instance:  OML client was not initialized properly.\n");
     return NULL;
   }
 
   OmlWriter* writer = NULL;
   char* p = server_uri;
   if (p == NULL) {
-    o_log(O_LOG_ERROR, "Missing server definition (e.g. --oml-server)\n");
+    logerror("Missing server definition (e.g. --oml-server)\n");
     return 0;
   }
   char* proto = p;
@@ -447,11 +447,11 @@ create_writer(char* server_uri)
   } else {
     // Net writer needs NAME and EXPERIMENT_ID
     if (omlc_instance->node_name == NULL) {
-      o_log(O_LOG_ERROR, "Missing '--oml-id' flag \n");
+      logerror("Missing '--oml-id' flag \n");
       return NULL;
     }
     if (omlc_instance->experiment_id == NULL) {
-      o_log(O_LOG_ERROR, "Missing '--oml-exp-id' flag \n");
+      logerror("Missing '--oml-exp-id' flag \n");
       return NULL;
     }
     writer = net_writer_new(proto, p);
@@ -460,7 +460,7 @@ create_writer(char* server_uri)
     writer->next = omlc_instance->first_writer;
     omlc_instance->first_writer = writer;
   } else {
-    o_log (O_LOG_WARN, "Failed to create writer for URI %s\n", server_uri);
+    logwarn("Failed to create writer for URI %s\n", server_uri);
   }
   return writer;
 }
@@ -565,7 +565,7 @@ create_default_filters(OmlMP *mp, OmlMStream *ms)
       }
       prev = f;
     } else {
-      o_log(O_LOG_ERROR, "Unable to create default filter for MP %s.\n", mp->name);
+      logerror("Unable to create default filter for MP %s.\n", mp->name);
     }
   }
 }
@@ -655,7 +655,7 @@ write_schema(OmlMStream *ms, int index)
 
   if (n >= bufsize)
     {
-      o_log (O_LOG_ERROR, "Schema generation failed because the following table name was too long: %s\n", ms->table_name);
+      logerror("Schema generation failed because the following table name was too long: %s\n", ms->table_name);
       free (schema);
       return -1;
     }
@@ -681,7 +681,7 @@ write_schema(OmlMStream *ms, int index)
 
         if (n >= bufsize)
           {
-            o_log (O_LOG_ERROR, "One of the schema entries for table %s was too long:\n\t%s\t%s\n",
+            logerror("One of the schema entries for table %s was too long:\n\t%s\t%s\n",
                    prefix, type_s);
             free (schema);
             return -1;
@@ -698,7 +698,7 @@ write_schema(OmlMStream *ms, int index)
         strncpy (&schema[count], s, n + 1);
         count += n;
       } else {
-        o_log(O_LOG_WARN, "Filter %s failed to provide meta information for index %d.\n",
+        logwarn("Filter %s failed to provide meta information for index %d.\n",
               filter->name,
               j);
       }

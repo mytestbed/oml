@@ -29,7 +29,7 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
 #include <oml2/oml_writer.h>
@@ -83,7 +83,7 @@ file_writer_new(char* file_name)
     self->f = stdout;
   } else {
     if ((self->f = fopen(file_name, "a+")) == NULL) {
-      o_log(O_LOG_ERROR, "Can't open local storage file '%s'\n", file_name);
+      logerror ("Can't open local storage file '%s'\n", file_name);
       return 0;
     }
   }
@@ -159,7 +159,7 @@ out(OmlWriter* writer, OmlValue* values, int value_count)
     case OML_DOUBLE_VALUE: fprintf(f, "\t%f",  v->value.doubleValue); break;
     case OML_STRING_VALUE: fprintf(f, "\t%s",  v->value.stringValue.ptr); break;
     default:
-      o_log(O_LOG_ERROR, "Unsupported value type '%d'\n", v->type);
+      logerror ("Unsupported value type '%d'\n", v->type);
       return 0;
     }
   }

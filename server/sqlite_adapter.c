@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
-#include <ocomm/o_log.h>
+#include <log.h>
 #include <time.h>
 #include <sys/time.h>
 #include <mstring.h>
@@ -115,7 +115,7 @@ sq3_create_database(
   snprintf(fname, LENGTH (fname) - 1, "%s/%s.sq3", g_database_data_dir, db->name);
   rc = sqlite3_open(fname, &db_hdl);
   if (rc) {
-    o_log(O_LOG_ERROR, "Can't open database: %s\n", sqlite3_errmsg(db_hdl));
+    logerror("Can't open database: %s\n", sqlite3_errmsg(db_hdl));
     sqlite3_close(db_hdl);
     return -1;
   }
@@ -135,7 +135,7 @@ sq3_create_database(
   TableDescr* tables = sq3_get_table_list (self, &num_tables);
   TableDescr* td = tables;
 
-  o_log (O_LOG_DEBUG, "Got table list with %d tables in it\n", num_tables);
+  logdebug("Got table list with %d tables in it\n", num_tables);
   int i = 0;
   for (i = 0; i < num_tables; i++)
     {
@@ -156,7 +156,7 @@ sq3_create_database(
           MString* insert = sq3_make_sql_insert (table);
           if (insert == NULL)
             {
-              o_log (O_LOG_WARN, "Failed to create prepared SQL insert statement string for table %s.\n", table->name);
+              logwarn("Failed to create prepared SQL insert statement string for table %s.\n", table->name);
               continue;
             }
 
@@ -165,7 +165,7 @@ sq3_create_database(
           table->adapter_hdl = sq3table;
           if (sqlite3_prepare_v2 (self->db_hdl, mstring_buf(insert), -1, &sq3table->insert_stmt, 0) != SQLITE_OK)
             {
-              o_log (O_LOG_ERROR, "Could not prepare INSERT statement for table %s (%s).\n",
+              logerror("Could not prepare INSERT statement for table %s (%s).\n",
                      table->name,
                      sqlite3_errmsg (self->db_hdl));
             }
@@ -176,7 +176,7 @@ sq3_create_database(
         }
       else
         {
-          o_log (O_LOG_WARN, "Unable to reconstruct table '%s' from schema... possibly not created by OML?\n",
+          logwarn("Unable to reconstruct table '%s' from schema... possibly not created by OML?\n",
                  table->name);
           free(table);
         }
@@ -224,7 +224,7 @@ sq3_table_free (DbTable* table)
 {
   Sq3Table* sq3table = (Sq3Table*)table->adapter_hdl;
   if (sqlite3_finalize (sq3table->insert_stmt) != SQLITE_OK)
-    o_log (O_LOG_WARN, "Error encountered trying to finalize SQLITE3 prepared statement\n");
+    logwarn("Error encountered trying to finalize SQLITE3 prepared statement\n");
   free (sq3table);
 }
 
@@ -255,7 +255,7 @@ sq3_add_sender_id(
           int max_sender_id = sq3_get_max_sender_id (database);
           if (max_sender_id < 0)
             {
-              o_log (O_LOG_ERROR, "Could not determing maximum sender id for database %s; starting at 0.\n",
+              logerror("Could not determing maximum sender id for database %s; starting at 0.\n",
                      database->name);
               max_sender_id = 0;
             }
@@ -266,7 +266,7 @@ sq3_add_sender_id(
       sq3_set_sender_id (database, sender_id, index);
     }
 
-  o_log (O_LOG_DEBUG, "Sender database id for sender '%s' is %d\n", sender_id, index);
+  logdebug("Sender database id for sender '%s' is %d\n", sender_id, index);
   return index;
 }
 
@@ -309,14 +309,14 @@ sq3_make_sql_create (DbTable* table)
 
   if (mstr == NULL)
     {
-      o_log (O_LOG_ERROR, "Failed to create managed string for preparing SQL CREATE statement\n");
+      logerror("Failed to create managed string for preparing SQL CREATE statement\n");
       goto fail_exit;
     }
 
   n = snprintf(workbuf, workbuf_size, "CREATE TABLE %s (oml_sender_id INTEGER, oml_seq INTEGER, oml_ts_client REAL, oml_ts_server REAL", table->name);
   if (n >= workbuf_size)
     {
-      o_log (O_LOG_ERROR, "Table name '%s' was too long; unable to create prepared SQL CREATE statement.\n", table->name);
+      logerror("Table name '%s' was too long; unable to create prepared SQL CREATE statement.\n", table->name);
       goto fail_exit;
     }
 
@@ -330,7 +330,7 @@ sq3_make_sql_create (DbTable* table)
     const char* t = oml_to_sql_type (col->type);
     if (!t)
       {
-        o_log(O_LOG_ERROR, "Unknown type %d in col '%s'\n", col->type, col->name);
+        logerror("Unknown type %d in col '%s'\n", col->type, col->name);
         goto fail_exit;
       }
     if (first) {
@@ -341,7 +341,7 @@ sq3_make_sql_create (DbTable* table)
 
     if (n >= workbuf_size)
       {
-        o_log (O_LOG_ERROR, "Column name '%s' is too long.\n", col->name);
+        logerror("Column name '%s' is too long.\n", col->name);
         goto fail_exit;
       }
     mstring_cat (mstr, workbuf);
@@ -369,14 +369,14 @@ sq3_make_sql_insert (DbTable* table)
 
   if (mstr == NULL)
     {
-      o_log (O_LOG_ERROR, "Failed to create managed string for preparing SQL INSERT statement\n");
+      logerror("Failed to create managed string for preparing SQL INSERT statement\n");
       goto fail_exit;
     }
 
   n = snprintf(workbuf, workbuf_size, "INSERT INTO %s VALUES (?, ?, ?, ?", table->name);
   if (n >= workbuf_size)
     {
-      o_log (O_LOG_ERROR, "Table name '%s' was too long; unable to create prepared SQL INSERT statement.\n", table->name);
+      logerror("Table name '%s' was too long; unable to create prepared SQL INSERT statement.\n", table->name);
       goto fail_exit;
     }
 
@@ -421,15 +421,15 @@ sq3_create_table(
   DbTable* table
 ) {
   if (table == NULL) {
-    o_log (O_LOG_WARN, "Tried to create a table from a NULL definition.\n");
+    logwarn("Tried to create a table from a NULL definition.\n");
     return -1;
   }
   if (db == NULL) {
-      o_log (O_LOG_WARN, "Tried to create a table in a NULL database.\n");
+      logwarn("Tried to create a table in a NULL database.\n");
       return -1;
   }
   if (table->columns == NULL) {
-    o_log(O_LOG_WARN, "No columns defined for table '%s'\n", table->name);
+    logwarn("No columns defined for table '%s'\n", table->name);
     return -1;
   }
 
@@ -438,7 +438,7 @@ sq3_create_table(
 
   if (create == NULL || insert == NULL)
     {
-      o_log (O_LOG_WARN, "Failed to create prepared SQL statement strings for table %s.\n", table->name);
+      logwarn("Failed to create prepared SQL statement strings for table %s.\n", table->name);
       if (create) mstring_delete (create);
       if (insert) mstring_delete (insert);
       return -1;
@@ -449,7 +449,7 @@ sq3_create_table(
   if (sql_stmt(sq3db, mstring_buf(create))) {
     mstring_delete (create);
     mstring_delete (insert);
-    o_log(O_LOG_ERROR, "Could not create table: (%s).\n", sqlite3_errmsg(sq3db->db_hdl));
+    logerror("Could not create table: (%s).\n", sqlite3_errmsg(sq3db->db_hdl));
     return -1;
   }
 
@@ -457,7 +457,7 @@ sq3_create_table(
   memset(sq3table, 0, sizeof(Sq3Table));
   table->adapter_hdl = sq3table;
   if (sqlite3_prepare_v2(sq3db->db_hdl, mstring_buf(insert), -1, &sq3table->insert_stmt, 0) != SQLITE_OK) {
-    o_log(O_LOG_ERROR, "Could not prepare statement (%s).\n", sqlite3_errmsg(sq3db->db_hdl));
+    logerror("Could not prepare statement (%s).\n", sqlite3_errmsg(sq3db->db_hdl));
     mstring_delete (create);
     mstring_delete (insert);
     return -1;
@@ -492,27 +492,27 @@ sq3_insert(Database* db,
   int i;
   double time_stamp_server;
   sqlite3_stmt* stmt = sq3table->insert_stmt;
-  //o_log(O_LOG_DEBUG, "insert");
+  //logdebug("insert");
   o_log(O_LOG_DEBUG2, "sq3_insert(%s): insert row %d \n",
     table->name, seq_no);
 
   if (sqlite3_bind_int(stmt, 1, sender_id) != SQLITE_OK) {
-    o_log(O_LOG_ERROR, "Could not bind 'oml_sender_id' (%s).\n",
+    logerror("Could not bind 'oml_sender_id' (%s).\n",
         sqlite3_errmsg(sq3db->db_hdl));
   }
   if (sqlite3_bind_int(stmt, 2, seq_no) != SQLITE_OK) {
-    o_log(O_LOG_ERROR, "Could not bind 'oml_seq' (%s).\n",
+    logerror("Could not bind 'oml_seq' (%s).\n",
         sqlite3_errmsg(sq3db->db_hdl));
   }
   if (sqlite3_bind_double(stmt, 3, time_stamp) != SQLITE_OK) {
-    o_log(O_LOG_ERROR, "Could not bind 'oml_ts_client' (%s).\n",
+    logerror("Could not bind 'oml_ts_client' (%s).\n",
         sqlite3_errmsg(sq3db->db_hdl));
   }
   struct timeval tv;
   gettimeofday(&tv, NULL);
   time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
   if (sqlite3_bind_double(stmt, 4, time_stamp_server) != SQLITE_OK) {
-    o_log(O_LOG_ERROR, "Could not bind 'oml_ts_server' (%s).\n",
+    logerror("Could not bind 'oml_ts_server' (%s).\n",
         sqlite3_errmsg(sq3db->db_hdl));
   }
 
@@ -520,11 +520,11 @@ sq3_insert(Database* db,
   for (i = 0; i < value_count; i++, v++) {
     DbColumn* col = table->columns[i];
     if (!col) {
-      o_log(O_LOG_ERROR, "Column %d of table '%s' is NULL.  Not inserting.\n", i, table->name);
+      logerror("Column %d of table '%s' is NULL.  Not inserting.\n", i, table->name);
       return -1;
     }
     if (v->type != col->type) {
-      o_log(O_LOG_ERROR, "Mismatch in %dth value type for table '%s'\n", i, table->name);
+      logerror("Mismatch in %dth value type for table '%s'\n", i, table->name);
       return -1;
     }
     int res;
@@ -544,16 +544,16 @@ sq3_insert(Database* db,
           break;
         }
       default:
-        o_log(O_LOG_ERROR, "Bug: Unknown type %d in col '%s'\n", col->type, col->name);
+        logerror("Bug: Unknown type %d in col '%s'\n", col->type, col->name);
         return -1;
     }
     if (res != SQLITE_OK) {
-      o_log(O_LOG_ERROR, "Could not bind column '%s' (%s).\n",
+      logerror("Could not bind column '%s' (%s).\n",
           col->name, sqlite3_errmsg(sq3db->db_hdl));
     }
   }
   if (sqlite3_step(stmt) != SQLITE_DONE) {
-    o_log(O_LOG_ERROR, "Could not step (execute) stmt.\n");
+    logerror("Could not step (execute) stmt.\n");
     return -1;
   }
   return sqlite3_reset(stmt);
@@ -620,13 +620,13 @@ select_stmt(
   char* errmsg;
   int   ret;
   int   nrecs = 0;
-  o_log(O_LOG_DEBUG, "prepare to exec 1 \n");
+  logdebug("prepare to exec 1 \n");
   first_row = 1;
 
   ret = sqlite3_exec(self->db_hdl, stmt, select_callback, &nrecs, &errmsg);
 
   if (ret != SQLITE_OK) {
-    o_log(O_LOG_ERROR, "Error in select statement %s [%s].\n", stmt, errmsg);
+    logerror("Error in select statement %s [%s].\n", stmt, errmsg);
     return -1;
   }
   return nrecs;
@@ -644,11 +644,11 @@ sql_stmt(
 ) {
   char *errmsg;
   int   ret;
-  o_log(O_LOG_DEBUG, "prepare to exec %s \n", stmt);
+  logdebug("prepare to exec %s \n", stmt);
   ret = sqlite3_exec(self->db_hdl, stmt, 0, 0, &errmsg);
 
   if (ret != SQLITE_OK) {
-    o_log(O_LOG_WARN, "Error(%d) in statement: %s [%s].\n", ret, stmt, errmsg);
+    logwarn("Error(%d) in statement: %s [%s].\n", ret, stmt, errmsg);
     return -1;
   }
   return 0;
@@ -666,14 +666,14 @@ sq3_get_table_list (Sq3DB* self, int *num_tables)
 
   if (ret != SQLITE_OK)
     {
-      o_log (O_LOG_ERROR, "Error in SELECT statement %s [%s].\n", stmt, errmsg);
+      logerror("Error in SELECT statement %s [%s].\n", stmt, errmsg);
       sqlite3_free (errmsg);
       return NULL;
     }
 
   if (ncols == 0 || nrows == 0)
     {
-      o_log (O_LOG_DEBUG, "Database table list seems empty; need to create tables.\n");
+      logdebug("Database table list seems empty; need to create tables.\n");
       sqlite3_free_table (result);
       *num_tables = 0;
       return NULL;
@@ -696,7 +696,7 @@ sq3_get_table_list (Sq3DB* self, int *num_tables)
 
   if (name_col == -1 || schema_col == -1)
     {
-      o_log (O_LOG_ERROR, "Couldn't get the 'name' or 'schema' column index from the SQLITE database list of tables\n");
+      logerror("Couldn't get the 'name' or 'schema' column index from the SQLITE database list of tables\n");
       sqlite3_free_table (result);
       *num_tables = 0;
       return NULL;
@@ -919,14 +919,14 @@ sq3_get_key_value (Database* database, const char* table, const char* key_column
   size_t n = snprintf (s, LENGTH(s), stmt_fmt, key_column, value_column, table, key_column, key);
 
   if (n >= LENGTH(s))
-    o_log (O_LOG_WARN, "Key-value lookup for key '%s' in %s(%s, %s): SELECT statement had to be truncated\n",
+    logwarn("Key-value lookup for key '%s' in %s(%s, %s): SELECT statement had to be truncated\n",
            key, table, key_column, value_column);
 
   int ret = sqlite3_get_table (sq3db->db_hdl, s, &result, &nrows, &ncols, &errmsg);
 
   if (ret != SQLITE_OK)
     {
-      o_log (O_LOG_ERROR, "Error in SELECT statement %s [%s].\n", stmt_fmt, errmsg);
+      logerror("Error in SELECT statement %s [%s].\n", stmt_fmt, errmsg);
       sqlite3_free (errmsg);
       return NULL;
     }
@@ -938,7 +938,7 @@ sq3_get_key_value (Database* database, const char* table, const char* key_column
     }
 
   if (nrows > 1)
-      o_log (O_LOG_WARN, "Key-value lookup for key '%s' in %s(%s, %s) returned more than one possible key.\n",
+      logwarn("Key-value lookup for key '%s' in %s(%s, %s) returned more than one possible key.\n",
              key, table, key_column, value_column);
 
   char* value = NULL;
@@ -979,14 +979,14 @@ sq3_set_key_value (Database* database, const char* table,
 
   if (n >= LENGTH (stmt))
     {
-      o_log (O_LOG_WARN, "SQL statement too long trying to update key-value pair %s='%s' in %s(%s, %s)\n",
+      logwarn("SQL statement too long trying to update key-value pair %s='%s' in %s(%s, %s)\n",
              key, value, table, key_column, value_column);
       return -1;
     }
 
   if (sql_stmt (sq3db, stmt))
     {
-      o_log (O_LOG_WARN, "Key-value update failed for %s='%s' in %s(%s, %s) (database error)\n",
+      logwarn("Key-value update failed for %s='%s' in %s(%s, %s) (database error)\n",
              key, value, table, key_column, value_column);
       return -1;
     }
@@ -1019,7 +1019,7 @@ sq3_get_max_value (Database* database, const char* table, const char* column_nam
 
   if (n >= LENGTH (stmt))
     {
-      o_log (O_LOG_WARN, "SQL statement too long trying to find MAX of column %s in table %s\n",
+      logwarn("SQL statement too long trying to find MAX of column %s in table %s\n",
              column_name, table);
       return -1;
     }
@@ -1028,25 +1028,25 @@ sq3_get_max_value (Database* database, const char* table, const char* column_nam
 
   if (ret != SQLITE_OK)
     {
-      o_log (O_LOG_ERROR, "Error in SELECT statement %s [%s].\n", stmt, errmsg);
+      logerror("Error in SELECT statement %s [%s].\n", stmt, errmsg);
       sqlite3_free (errmsg);
       return -1;
     }
 
   if (ncols == 0 || nrows == 0)
     {
-      o_log (O_LOG_INFO, "Max-value lookup on table %s:  result set seems to be empty.\n",
+      loginfo("Max-value lookup on table %s:  result set seems to be empty.\n",
              table);
       sqlite3_free_table (result);
       return 0;
     }
 
   if (nrows > 1)
-    o_log (O_LOG_WARN, "Max-value lookup for column '%s' in table %s returned more than one possible value.\n",
+    logwarn("Max-value lookup for column '%s' in table %s returned more than one possible value.\n",
            column_name, table);
 
   if (ncols > 1)
-    o_log (O_LOG_WARN, "Max-value lookup for column '%s' in table %s returned more than one possible column.\n",
+    logwarn("Max-value lookup for column '%s' in table %s returned more than one possible column.\n",
            column_name, table);
 
   int max = 0;
