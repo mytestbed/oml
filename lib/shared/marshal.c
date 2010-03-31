@@ -237,13 +237,6 @@ marshal_values(MBuffer* mbuf, OmlValue* values, int value_count)
   return 1;
 }
 
-/**
- * \brief
- * \param mbuf
- * \param val_type
- * \param val
- * \return 1 if successful, 0 otherwise
- */
 inline int
 marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 {
@@ -522,7 +515,7 @@ unmarshal_values(
    //logdebug("value to analyse'%d'\n", value_count);
   for (i = 0; i < value_count; i++, val++) {
     if (unmarshal_value(mbuf, val) == 0) {
-      logwarn("Some kind of ERROR in unmarshal_value() call\n");
+      logwarn("unmarshal_values():  Some kind of ERROR in unmarshal_value() call #%d of %d\n", i, value_count);
       return -1;
     }
   }

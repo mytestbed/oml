@@ -45,6 +45,9 @@ oml_type_to_s(OmlValueT type);
 extern OmlValueT
 oml_type_from_s (const char *s);
 
+void
+oml_value_to_s (OmlValueU *value, OmlValueT type, char *buf);
+
 int
 oml_value_from_s (OmlValue *value, const char *value_s);
 int

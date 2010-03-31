@@ -24,10 +24,13 @@
   \brief Support functions for manipulating OmlValue objects.
 */
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <pthread.h>
 #include <errno.h>
-#include <string.h>
 #include <oml2/omlc.h>
 #include "oml_value.h"
 #include "log.h"
@@ -223,6 +226,25 @@ oml_type_from_s (const char *s)
       }
 
   return type;
+}
+
+void
+oml_value_to_s (OmlValueU *value, OmlValueT type, char *buf)
+{
+  switch (type) {
+  case OML_LONG_VALUE: {
+    sprintf(buf, "\t%" PRId32, oml_value_clamp_long (value->longValue));
+    break;
+  }
+  case OML_INT32_VALUE:  sprintf(buf, "%" PRId32,  value->int32Value);  break;
+  case OML_UINT32_VALUE: sprintf(buf, "%" PRIu32,  value->uint32Value); break;
+  case OML_INT64_VALUE:  sprintf(buf, "%" PRId64,  value->int64Value);  break;
+  case OML_UINT64_VALUE: sprintf(buf, "%" PRIu64,  value->uint64Value); break;
+  case OML_DOUBLE_VALUE: sprintf(buf, "%f",  value->doubleValue); break;
+  case OML_STRING_VALUE: sprintf(buf, "%s",  value->stringValue.ptr); break;
+  default:
+    logerror ("Unsupported value type '%d'\n", type);
+  }
 }
 
 int

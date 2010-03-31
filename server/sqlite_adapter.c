@@ -28,6 +28,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <mstring.h>
+#include <htonll.h>
 #include "database.h"
 #include "util.h"
 #include "table_descr.h"
@@ -530,22 +531,27 @@ sq3_insert(Database* db,
     int res;
     int idx = i + 5;
     switch (col->type) {
-      case OML_LONG_VALUE:   res = sqlite3_bind_int(stmt, idx, (int)v->value.longValue); break;
-      case OML_INT32_VALUE:  res = sqlite3_bind_int(stmt, idx, (int)v->value.int32Value); break;
-      case OML_UINT32_VALUE: res = sqlite3_bind_int(stmt, idx, (int)v->value.uint32Value); break;
-      case OML_INT64_VALUE:  res = sqlite3_bind_int64(stmt, idx, (int)v->value.int64Value); break;
-        /* FIXME:  Unsigned 64-bit integer will lose precision in sqlite3 */
-      case OML_UINT64_VALUE: res = sqlite3_bind_int64(stmt, idx, (int)v->value.uint64Value); break;
-      case OML_DOUBLE_VALUE: res = sqlite3_bind_double(stmt, idx, v->value.doubleValue); break;
-      case OML_STRING_VALUE:
-        {
-          res = sqlite3_bind_text (stmt, idx, v->value.stringValue.ptr,
-                                   -1, SQLITE_TRANSIENT);
-          break;
-        }
-      default:
-        logerror("Bug: Unknown type %d in col '%s'\n", col->type, col->name);
-        return -1;
+    case OML_DOUBLE_VALUE: res = sqlite3_bind_double(stmt, idx, v->value.doubleValue); break;
+    case OML_LONG_VALUE:   res = sqlite3_bind_int(stmt, idx, (int)v->value.longValue); break;
+    case OML_INT32_VALUE:  res = sqlite3_bind_int(stmt, idx, (int)v->value.int32Value); break;
+    case OML_UINT32_VALUE: res = sqlite3_bind_int(stmt, idx, (int)v->value.uint32Value); break;
+    case OML_INT64_VALUE:  res = sqlite3_bind_int64(stmt, idx, (int)v->value.int64Value); break;
+      /* Unsigned 64-bit integer will lose precision in sqlite3, so use a BLOB instead */
+    case OML_UINT64_VALUE:
+      {
+        uint64_t blob = htonll (v->value.uint64Value);
+        res = sqlite3_bind_blob(stmt, idx, &blob, sizeof(uint64_t), SQLITE_TRANSIENT);
+        break;
+      }
+    case OML_STRING_VALUE:
+      {
+        res = sqlite3_bind_text (stmt, idx, v->value.stringValue.ptr,
+                                 -1, SQLITE_TRANSIENT);
+        break;
+      }
+    default:
+      logerror("Unknown type %d in col '%s'\n", col->type, col->name);
+      return -1;
     }
     if (res != SQLITE_OK) {
       logerror("Could not bind column '%s' (%s).\n",
