@@ -120,6 +120,7 @@ database_create_function ()
   for (i = 0; i < LENGTH (backends); i++)
     if (!strncmp (backend, backends[i].name, backends[i].len))
       return backends[i].fn;
+
   return NULL;
 }
 
@@ -165,7 +166,11 @@ main(int argc, const char **argv)
            backend, valid_backends ());
 
   loginfo ("Database backend: '%s'\n", backend);
-  if (strncmp (backend, "sqlite", 6))
+  const char *pg = "postgresql";
+  const char *sq = "sqlite";
+  if (!strcmp (backend, pg))
+    loginfo ("PostgreSQL backend is still experimental!\n");
+  if (strcmp (backend, sq))
     loginfo ("Database server: %s with %s\n", hostname, user);
 
   eventloop_init();
