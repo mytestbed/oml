@@ -29,11 +29,12 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include <log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 #include <oml2/oml_writer.h>
 
+#include <log.h>
+#include <mem.h>
 #include <marshal.h>
 #include <mbuf.h>
 #include <oml_value.h>
@@ -43,19 +44,10 @@
 #define DEF_TABLE_COUNT 10
 
 static void
-client_callback(SockEvtSource* source,
-  void* handle,
-  void* buf,
-  int buf_size
-);
+client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 
 static void
-status_callback(SockEvtSource* source,
-  SocketStatus status,
-  int errno,
-  void* handle
-);
-
+status_callback(SockEvtSource* source, SocketStatus status, int errno, void* handle);
 
 /**
  * \brief Create a client handler and associates it with the socket
@@ -64,29 +56,24 @@ status_callback(SockEvtSource* source,
  * \param user
  */
 void*
-client_handler_new(
-		   Socket* newSock,
-		   char* hostname,
-		   char* user
-) {
-  ClientHandler* self = (ClientHandler *)malloc(sizeof(ClientHandler));
+client_handler_new(Socket* new_sock, char* hostname, char* user)
+{
+  ClientHandler* self = xmalloc(sizeof(ClientHandler));
   if (!self) return NULL;
-  memset(self, 0, sizeof(ClientHandler));
   self->value_count = DEF_NUM_VALUES;
-  self->values = (OmlValue*)malloc (self->value_count * sizeof (OmlValue));
+  self->values = (OmlValue*)xcalloc (self->value_count, sizeof (OmlValue));
   if (!self->values)
     {
-      free (self);
+      xfree (self);
       return NULL;
     }
-  memset (self->values, 0, self->value_count * sizeof (OmlValue));
   self->state = C_HEADER;
   self->content = C_TEXT_DATA;
   self->mbuf = mbuf_create ();
-  self->socket = newSock;
+  self->socket = new_sock;
   self->DbHostname = hostname;
   self->DbUser = user;
-  eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
+  eventloop_on_read_in_channel(new_sock, client_callback, status_callback, (void*)self);
   return self;
 }
 
@@ -96,9 +83,9 @@ client_handler_free (ClientHandler* self)
   if (self->database)
     database_release (self->database);
   if (self->tables)
-    free (self->tables);
+    xfree (self->tables);
   if (self->seq_no_offset)
-    free (self->seq_no_offset);
+    xfree (self->seq_no_offset);
   mbuf_destroy (self->mbuf);
   int i = 0;
   for (i = 0; i < self->value_count; i++)
@@ -106,8 +93,8 @@ client_handler_free (ClientHandler* self)
       if (self->values[i].type == OML_STRING_VALUE)
         free (self->values[i].value.stringValue.ptr);
     }
-  free (self->values);
-  free (self);
+  xfree (self->values);
+  xfree (self);
 
   // FIXME:  What about destroying the socket data structure --> memory leak?
 }
@@ -145,8 +132,8 @@ process_schema(
     int old_count = self->table_size;
 
     self->table_size += DEF_TABLE_COUNT;
-    self->tables = (DbTable**)malloc(self->table_size * sizeof(DbTable*));
-    self->seq_no_offset = (int*)malloc(self->table_size * sizeof (int));
+    self->tables = xcalloc(self->table_size, sizeof(DbTable*));
+    self->seq_no_offset = xcalloc(self->table_size, sizeof (int));
     int i;
     for (i = old_count - 1; i >= 0; i--) {
       self->tables[i] = old[i];
@@ -161,14 +148,12 @@ process_schema(
   /* Reallocate the values vector if this schema has more columns than can fit already. */
   if (t->col_size > self->value_count)
     {
-      free (self->values);
+      xfree (self->values);
       self->value_count = t->col_size + DEF_NUM_VALUES;
-      self->values = (OmlValue*) malloc (self->value_count * sizeof (OmlValue));
+      self->values = xmalloc (self->value_count * sizeof (OmlValue));
       if (self->values == NULL)
-        {
           logwarn("Could not allocate values vector with %d elements\n",
                  self->value_count);
-        }
     }
 }
 
@@ -309,15 +294,10 @@ process_header(ClientHandler* self, MBuffer* mbuf)
   else
     return 1; // still in header
 }
-/**
- * \brief process a subset of the data
- * \param selfthe client handler
- */
+
 static void
-process_bin_data_message(
-  ClientHandler* self,
-  OmlBinaryHeader* header
-) {
+process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
+{
   MBuffer* mbuf = self->mbuf;
   int cnt = unmarshal_measurements(mbuf, header, self->values, self->value_count);
 
@@ -509,23 +489,19 @@ process_text_message(
  * \param buf data received from the socket
  * \param bufsize the size of the data set from the socket
  */
+#include <stdio.h>
 void
-client_callback(
-  SockEvtSource* source,
-  void* handle,
-  void* buf,
-  int buf_size
-) {
+client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
+{
   ClientHandler* self = (ClientHandler*)handle;
   MBuffer* mbuf = self->mbuf;
 
   int result = mbuf_write (mbuf, buf, buf_size);
 
-  if (result == -1)
-    {
-      logerror("Failed to write message from client into message buffer (mbuf_write())\n");
-      return;
-    }
+  if (result == -1) {
+    logerror("Failed to write message from client into message buffer (mbuf_write())\n");
+    return;
+  }
 
   process:
   switch (self->state)
@@ -573,17 +549,11 @@ client_callback(
  * \param handle the Client handler structure
  */
 void
-status_callback(
- SockEvtSource* source,
- SocketStatus status,
- int errno,
- void* handle
-) {
+status_callback(SockEvtSource* source, SocketStatus status, int errno, void* handle)
+{
   logdebug("Socket status changed to %s(%d) on source '%s'; error code is %d\n",
-        socket_status_string (status),
-        status,
-        source->name,
-        errno);
+           socket_status_string (status), status,
+           source->name, errno);
   switch (status)
     {
     case SOCKET_WRITEABLE:

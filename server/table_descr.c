@@ -22,40 +22,25 @@
  */
 #include <stdlib.h>
 #include <string.h>
+
+#include <mem.h>
 #include "table_descr.h"
 
 TableDescr*
 table_descr_new (const char* name, const char* schema)
 {
   if (name == NULL || schema == NULL)
-	return NULL;
+    return NULL;
 
-  size_t len = strlen (name) + 1;
-  char* new_name = (char*) malloc (len * sizeof (char));
-  if (new_name == NULL)
-	{
-	  return NULL;
-	}
-  strncpy (new_name, name, len);
+  char *new_name = xstrndup (name, strlen (name));
+  char *new_schema = xstrndup (schema, strlen (schema));
 
-  len = strlen (schema) + 1;
-  char* new_schema = (char*) malloc (len * sizeof (char));
-  if (new_schema == NULL)
-	{
-	  free (new_name);
-	  return NULL;
-	}
-  strncpy (new_schema, schema, len);
-
-  TableDescr* t = (TableDescr*) malloc (sizeof(TableDescr));
-  if (t == NULL)
-	{
-	  free (new_name);
-	  free (new_schema);
-	  return NULL;
-
-	}
-  memset (t, 0, sizeof (TableDescr));
+  TableDescr* t = xmalloc (sizeof(TableDescr));
+  if (t == NULL) {
+    xfree (new_name);
+    xfree (new_schema);
+    return NULL;
+  }
   t->name = new_name;
   t->schema = new_schema;
   t->next = NULL;
@@ -67,11 +52,11 @@ int
 table_descr_have_table (TableDescr* tables, const char* table_name)
 {
   while (tables)
-	{
-	  if (strcmp (tables->name, table_name) == 0)
-		return 1;
-	  tables = tables->next;
-	}
+    {
+      if (strcmp (tables->name, table_name) == 0)
+        return 1;
+      tables = tables->next;
+    }
   return 0;
 }
 
@@ -80,12 +65,12 @@ table_descr_array_free (TableDescr* tables, int n)
 {
   int i = 0;
   for (i = 0; i < n; i++)
-	{
-	  free (tables[i].name);
-	  free (tables[i].schema);
-	}
+    {
+      xfree (tables[i].name);
+      xfree (tables[i].schema);
+    }
 
-  free(tables);
+  xfree(tables);
 }
 
 void
@@ -94,13 +79,13 @@ table_descr_list_free (TableDescr* tables)
   TableDescr* t = tables;
 
   while (t)
-	{
-	  TableDescr* next = t->next;
-	  free (t->name);
-	  free (t->schema);
-	  free (t);
-	  t = next;
-	}
+    {
+      TableDescr* next = t->next;
+      xfree (t->name);
+      xfree (t->schema);
+      xfree (t);
+      t = next;
+    }
 }
 
 /*

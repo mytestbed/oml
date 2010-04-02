@@ -100,6 +100,7 @@ reopen_transaction (Sq3DB *db)
 {
   if (end_transaction (db) == -1) return -1;
   if (begin_transaction (db) == -1) return -1;
+  return 0;
 }
 
 int

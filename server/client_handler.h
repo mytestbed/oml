@@ -23,6 +23,7 @@
 #ifndef CLIENT_HANDLER_H_
 #define CLIENT_HANDLER_H_
 
+#include <time.h>
 #include "database.h"
 
 typedef enum _cstate {
@@ -54,13 +55,8 @@ typedef struct _clientHandler {
 
   OmlValue*   values;
   int         value_count;
-
-  OmlValue    table_name;
-
-  long        time_offset;  // value to add to remote ts to
+  time_t      time_offset;  // value to add to remote ts to
                             // sync time across all connections
-
-
 } ClientHandler;
 
 

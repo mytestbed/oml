@@ -29,6 +29,7 @@
 
 #include <oml2/oml_writer.h>
 #include <log.h>
+#include <mem.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 
@@ -143,6 +144,8 @@ main(int argc, const char **argv)
     die ("Failed to create socket (port %d) to listen for client connections.\n", listen_port);
 
   eventloop_run();
+
+  xmemreport();
 
   return 0;
 }
