@@ -395,12 +395,14 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
   int i;
   double time_stamp_server;
   sqlite3_stmt* stmt = sq3table->insert_stmt;
-  time_t now = time (NULL);
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
 
-  if (now > sq3db->last_commit) {
+  if (tv.tv_sec > sq3db->last_commit) {
     if (reopen_transaction (sq3db) == -1)
       return -1;
-    sq3db->last_commit = now;
+    sq3db->last_commit = tv.tv_sec;
   }
 
   o_log(O_LOG_DEBUG2, "sq3_insert(%s): insert row %d \n",
@@ -418,9 +420,6 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
     logerror("Could not bind 'oml_ts_client' (%s).\n",
         sqlite3_errmsg(sq3db->db_hdl));
   }
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
   if (sqlite3_bind_double(stmt, 4, time_stamp_server) != SQLITE_OK) {
     logerror("Could not bind 'oml_ts_server' (%s).\n",
         sqlite3_errmsg(sq3db->db_hdl));
