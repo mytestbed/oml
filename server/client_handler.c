@@ -372,10 +372,10 @@ process_bin_message(
     sync_pos = -1;
   else
     sync_pos = sync - mbuf->base;
-  char* octets_str = to_octets (mbuf->base, mbuf->fill);
+  //  char* octets_str = to_octets (mbuf->base, mbuf->fill);
   //logdebug("Received %d octets (sync at %d):\t%s\n", mbuf->fill, sync_pos, octets_str);
   logdebug("Received %d octets (sync at %d)\n", mbuf->fill, sync_pos);
-  free (octets_str);
+  //xfree (octets_str);
 
   int res = unmarshal_init(mbuf, &header);
   //  int res = -1;
