@@ -45,6 +45,8 @@ AC_CHECK_LIB([m], [sqrt], [AC_DEFINE([HAVE_LIBM], [1], [Define if libm is instal
 # Check that the PostgreSQL development libraries are installed, and work out how to compile/link against them.
 AC_PATH_PROG([HAVE_PGCFG], [pg_config])
 
+AM_CONDITIONAL([HAVE_PG], [test "x${HAVE_PGCFG}" != "x"])
+AC_SUBST([HAVE_PG], [$HAVE_PGCFG])
 if test "x$HAVE_PGCFG" != "x"; then
    xxCFLAGS=-I`$HAVE_PGCFG --includedir`
    xxLDFLAGS=-L`$HAVE_PGCFG --libdir`
@@ -55,8 +57,8 @@ if test "x$HAVE_PGCFG" != "x"; then
    AC_MSG_RESULT([$LIBPQ_CFLAGS])
    AC_MSG_CHECKING([location of libpq])
    AC_MSG_RESULT([$LIBPQ_LDFLAGS])
-else
-   missing_libs+=" libpq"
+#else
+#   missing_libs+=" libpq"
 fi
 
 

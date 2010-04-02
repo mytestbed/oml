@@ -20,13 +20,11 @@
  * THE SOFTWARE.
  *
  */
-/*!\file main.c
-  \brief This file is the starting point.
-*/
 
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <popt.h>
 
 #include <oml2/oml_writer.h>
@@ -37,7 +35,9 @@
 #include "version.h"
 #include "server.h"
 #include "sqlite_adapter.h"
+#ifdef HAVE_PG
 #include "psql_adapter.h"
+#endif
 
 void
 die (const char *fmt, ...)
@@ -83,21 +83,23 @@ database_create_function ()
 {
   if (!strncmp (backend, "sqlite", 5))
     return sq3_create_database;
+#if HAVE_PG
   if (!strncmp (backend, "postgresql", 8))
     return psql_create_database;
+#endif
   return NULL;
 }
 
 /**
  * \brief Called when a node connects via TCP
- * \param newSock
+ * \param new_sock
  */
 void
-on_connect(Socket* newSock, void* handle)
+on_connect(Socket* new_sock, void* handle)
 {
   (void)handle;
   logdebug("New client connected\n");
-  client_handler_new(newSock,hostname,user);
+  client_handler_new(new_sock,hostname,user);
 }
 
 int
@@ -127,7 +129,6 @@ main(int argc, const char **argv)
 
   if (!database_create_function ())
       die ("Unknown database backend '%s' (valid backends: sqlite, postgresql)\n", backend);
-
 
   loginfo ("Database backend: '%s'\n", backend);
   if (strncmp (backend, "sqlite", 6))

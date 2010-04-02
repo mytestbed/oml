@@ -16,13 +16,17 @@ oml2_server_SOURCES = \
 	server.h \
 	sqlite_adapter.c \
 	sqlite_adapter.h \
-	psql_adapter.c \
-	psql_adapter.h \
 	util.c \
 	util.h \
 	table_descr.c \
 	table_descr.h \
 	version.h
+
+if HAVE_PG
+oml2_server_SOURCES += psql_adapter.c psql_adapter.h
+else
+oml2_server_SOURCES +=
+endif
 
 oml2_server_CFLAGS = @LIBPQ_CFLAGS@
 
