@@ -14,7 +14,7 @@
 static float amplitude = 1.0;
 static float frequency = 0.1;
 static float sample_interval = 1;
-static float samples = -1;
+static int   samples = -1;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
@@ -71,7 +71,7 @@ run()
       OmlValueU v[3];
       omlc_set_const_string(v[0], label);
       omlc_set_double(v[1], angle);
-	  omlc_set_double(v[2], value);
+      omlc_set_double(v[2], value);
       omlc_inject(m_sin, v);
     }
 
@@ -83,10 +83,8 @@ run()
 }
 
 int
-main(
-  int argc,
-  const char *argv[]
-) {
+main(int argc, const char **argv)
+{
   char c;
 
   // registering OML measurement points
@@ -100,5 +98,8 @@ main(
   while ((c = poptGetNextOpt(optCon)) >= 0);
 
   run();
+
+  sleep (1); // Wait for measurements to be written.
+  omlc_close ();
   return(0);
 }
