@@ -522,10 +522,12 @@ sq3_insert(Database* db,
     DbColumn* col = table->columns[i];
     if (!col) {
       logerror("Column %d of table '%s' is NULL.  Not inserting.\n", i, table->name);
+      sqlite3_reset (stmt);
       return -1;
     }
     if (v->type != col->type) {
       logerror("Mismatch in %dth value type for table '%s'\n", i, table->name);
+      sqlite3_reset (stmt);
       return -1;
     }
     int res;
@@ -551,11 +553,14 @@ sq3_insert(Database* db,
       }
     default:
       logerror("Unknown type %d in col '%s'\n", col->type, col->name);
+      sqlite3_reset (stmt);
       return -1;
     }
     if (res != SQLITE_OK) {
       logerror("Could not bind column '%s' (%s).\n",
           col->name, sqlite3_errmsg(sq3db->db_hdl));
+      sqlite3_reset (stmt);
+      return -1;
     }
   }
   if (sqlite3_step(stmt) != SQLITE_DONE) {
