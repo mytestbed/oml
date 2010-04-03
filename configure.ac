@@ -46,8 +46,9 @@ AC_CHECK_LIB([m], [sqrt], [AC_DEFINE([HAVE_LIBM], [1], [Define if libm is instal
 AC_PATH_PROG([HAVE_PGCFG], [pg_config])
 
 AM_CONDITIONAL([HAVE_PG], [test "x${HAVE_PGCFG}" != "x"])
-AC_SUBST([HAVE_PG], [$HAVE_PGCFG])
+
 if test "x$HAVE_PGCFG" != "x"; then
+   AC_DEFINE([HAVE_PG], [1], [Define if libpq is installed])
    xxCFLAGS=-I`$HAVE_PGCFG --includedir`
    xxLDFLAGS=-L`$HAVE_PGCFG --libdir`
    AC_SUBST([LIBPQ_CFLAGS], [$xxCFLAGS])

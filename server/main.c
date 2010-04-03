@@ -33,6 +33,7 @@
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 
+#include "util.h"
 #include "version.h"
 #include "server.h"
 #include "sqlite_adapter.h"
@@ -79,15 +80,46 @@ struct poptOption options[] = {
   { NULL, 0, 0, NULL, 0 }
 };
 
+static struct db_backend
+{
+  const char * const name;
+  size_t len;
+  db_adapter_create fn;
+} backends [] =
+  {
+    { "sqlite", 6, sq3_create_database },
+#if HAVE_PG
+    { "postgresql", 10, psql_create_database },
+#endif
+  };
+
+const char *
+valid_backends ()
+{
+  static char s[256] = {0};
+  int i;
+  if (s[0] == '\0') {
+    char *p = s;
+    for (i = LENGTH (backends) - 1; i >= 0; i--) {
+      int n = sprintf(p, "%s", backends[i].name);
+      if (i) {
+        p[n++] = ',';
+        p[n++] = ' ';
+      }
+      p[n] = '\0';
+      p += n;
+    }
+  }
+  return s;
+}
+
 db_adapter_create
 database_create_function ()
 {
-  if (!strncmp (backend, "sqlite", 5))
-    return sq3_create_database;
-#if HAVE_PG
-  if (!strncmp (backend, "postgresql", 8))
-    return psql_create_database;
-#endif
+  size_t i = 0;
+  for (i = 0; i < LENGTH (backends); i++)
+    if (!strncmp (backend, backends[i].name, backends[i].len))
+      return backends[i].fn;
   return NULL;
 }
 
@@ -129,7 +161,8 @@ main(int argc, const char **argv)
   loginfo(COPYRIGHT);
 
   if (!database_create_function ())
-      die ("Unknown database backend '%s' (valid backends: sqlite, postgresql)\n", backend);
+      die ("Unknown database backend '%s' (valid backends: %s)\n",
+           backend, valid_backends ());
 
   loginfo ("Database backend: '%s'\n", backend);
   if (strncmp (backend, "sqlite", 6))
