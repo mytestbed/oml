@@ -83,13 +83,12 @@ struct poptOption options[] = {
 static struct db_backend
 {
   const char * const name;
-  size_t len;
   db_adapter_create fn;
 } backends [] =
   {
-    { "sqlite", 6, sq3_create_database },
+    { "sqlite", sq3_create_database },
 #if HAVE_PG
-    { "postgresql", 10, psql_create_database },
+    { "postgresql", psql_create_database },
 #endif
   };
 
@@ -118,7 +117,7 @@ database_create_function ()
 {
   size_t i = 0;
   for (i = 0; i < LENGTH (backends); i++)
-    if (!strncmp (backend, backends[i].name, backends[i].len))
+    if (!strncmp (backend, backends[i].name, strlen (backends[i].name)))
       return backends[i].fn;
 
   return NULL;

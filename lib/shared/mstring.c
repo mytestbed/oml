@@ -20,8 +20,10 @@
  * THE SOFTWARE.
  *
  */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <assert.h>
 #include "mem.h"
 #include "mstring.h"
@@ -105,6 +107,33 @@ mstring_cat (MString* mstr, const char* str)
 
   assert (mstr->length < mstr->size);
 
+  return 0;
+}
+
+int
+mstring_sprintf (MString *mstr, const char *fmt, ...)
+{
+  char *buf = mstr->buf + mstr->length;
+  size_t space = mstr->size - mstr->length;
+  size_t n;
+  va_list va;
+  va_start (va, fmt);
+  n = vsnprintf (buf, space, fmt, va);
+  if (n >= space) {
+    char *new = xrealloc (mstr->buf, mstr->length + n + 1);
+    if (!new)
+      return -1;
+    mstr->buf = new;
+    mstr->size = mstr->length + n + 1;
+    buf = mstr->buf + mstr->length;
+    space = n + 1;
+    va_start (va, fmt);
+    n = vsnprintf (buf, space, fmt, va);
+    if (n >= space)
+      return -1;
+  }
+  va_end (va);
+  mstr->length += n;
   return 0;
 }
 
