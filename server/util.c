@@ -49,7 +49,7 @@ OmlValueT sql_to_oml_type (const char *s)
       { OML_INT32_VALUE,  "INTEGER"  },
       { OML_UINT32_VALUE, "UNSIGNED INTEGER" },
       { OML_INT64_VALUE,  "BIGINT"  },
-      { OML_UINT64_VALUE, "UNSIGNED BIGINT" },
+      { OML_UINT64_VALUE, "BLOB" }, // FIXME:This is a temporary hack for SQLite3
       { OML_DOUBLE_VALUE, "REAL" },
       { OML_STRING_VALUE, "TEXT" }
     };
@@ -79,7 +79,7 @@ oml_to_sql_type (OmlValueT type)
   case OML_INT32_VALUE:   return "INTEGER"; break;
   case OML_UINT32_VALUE:  return "UNSIGNED INTEGER"; break;
   case OML_INT64_VALUE:   return "BIGINT"; break;
-  case OML_UINT64_VALUE:  return "UNSIGNED BIGINT"; break; // FIXME:  UBIGINT not supported without loss of precision
+  case OML_UINT64_VALUE:  return "BLOB"; break; // FIXME:This is a temporary hack for SQLite3
   default:
     logerror("Unknown type %d\n", type);
     return NULL;
