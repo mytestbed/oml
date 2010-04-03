@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  *
  */
-/*!\file file_writer.c
+/*!\file text_writer.c
   \brief Implements a writer which stores results in a local file.
 */
 
@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #include <log.h>
 #include <oml2/omlc.h>
@@ -35,7 +36,10 @@
 #include <oml2/oml_writer.h>
 #include <oml_value.h>
 
-typedef struct _omlFileWriter {
+#include "client.h"
+#include "buffered_writer.h"
+
+typedef struct {
 
   oml_writer_meta meta;
   oml_writer_header_done header_done;
@@ -47,7 +51,7 @@ typedef struct _omlFileWriter {
   oml_writer_row_end row_end;
 
   //! Writing a result.
-  oml_writer_out out;
+  oml_writer_cols out;
 
   oml_writer_close close;
 
@@ -55,46 +59,44 @@ typedef struct _omlFileWriter {
 
   //----------------------------
 
-  FILE* f;          /* File to write result to */
-  int   first_row;
-
-} OmlFileWriter;
+  BufferedWriterHdl bufferedWriter;
+  MBuffer* mbuf;        /* Pointer to active buffer from bufferedWriter */
+  OmlOutStream* out_stream;
+} OmlTextWriter;
 
 
 static int meta(OmlWriter* writer, char* str);
 static int header_done(OmlWriter* writer);
 static int row_start(OmlWriter* writer, OmlMStream* ms, double now);
-static int out(OmlWriter* writer, OmlValue* values, int value_count);
+static int row_cols(OmlWriter* writer, OmlValue* values, int value_count);
 static int row_end(OmlWriter* writer, OmlMStream* ms);
 static int close(OmlWriter* writer);
+
 /**
  * \brief Create a new +OmlWriter+
  * \param file_name the destination file
  * \return a new +OmlWriter+
  */
-/*@null@*/OmlWriter*
-file_writer_new(char* file_name)
-{
-  OmlFileWriter* self = (OmlFileWriter *)malloc(sizeof(OmlFileWriter));
-  if (self == NULL) return NULL;
-  memset(self, 0, sizeof(OmlFileWriter));
-  self->first_row = 1;
+OmlWriter*
+text_writer_new(
+  OmlOutStream* out_stream
+) {
+  assert(out_stream != NULL);
 
-  if (strcmp(file_name, "stdout") == 0 || strcmp(file_name, "-") == 0) {
-    self->f = stdout;
-  } else {
-    if ((self->f = fopen(file_name, "a+")) == NULL) {
-      logerror ("Can't open local storage file '%s'\n", file_name);
-      return 0;
-    }
-  }
+  OmlTextWriter* self = (OmlTextWriter *)malloc(sizeof(OmlTextWriter));
+  memset(self, 0, sizeof(OmlTextWriter));
+  //pthread_mutex_init(&self->lock, NULL);
+
+  self->bufferedWriter = bw_create(out_stream->write, out_stream, 0, 0);
+  self->out_stream = out_stream;
 
   self->meta = meta;
   self->header_done = header_done;
   self->row_start = row_start;
   self->row_end = row_end;
-  self->out = out;
+  self->out = row_cols;
   self->close = close;
+
 
   return (OmlWriter*)self;
 }
@@ -102,31 +104,29 @@ file_writer_new(char* file_name)
  * \brief Definition of the meta function of the oml net writer
  * \param writer the net writer that will send the data to the server
  * \param str the string to send
- * \return 1 if the socket is not open, 0 if successful
+ * \return 1 if successful, 0 otherwise
  */
 static int
 meta(OmlWriter* writer, char* str)
 {
-  OmlFileWriter* self = (OmlFileWriter*)writer;
-  FILE* f = self->f;
-  if (f == NULL) return 0;
+  OmlTextWriter* self = (OmlTextWriter*)writer;
+  if (self->bufferedWriter == NULL) return 0;
 
-  fprintf(f, "%s\n", str);
-  return 0;
+  char buf[256];
+  snprintf(buf, 256, "%s\n", str);
+  bw_push(self->bufferedWriter, buf, strlen(buf));
+  return 1;
 }
 
 /**
  * \brief finish the writing of the first information
  * \param writer the writer that write this information
- * \return
+ * \return 1 if successful, 0 otherwise
  */
 static int
 header_done(OmlWriter* writer)
 {
-  meta(writer, "content: text");
-  meta(writer, "");
-
-  return 0;
+  return (meta(writer, "content: text") && meta(writer, ""));
 }
 
 
@@ -135,43 +135,49 @@ header_done(OmlWriter* writer)
  * \param writer pointer to writer instance
  * \param values type of sample
  * \param value_count size of above array
- * \return 0 if sucessful 1 otherwise
+ * \return 1 if successful, 0 otherwise
  */
 static int
-out(OmlWriter* writer, OmlValue* values, int value_count)
+row_cols(OmlWriter* writer, OmlValue* values, int value_count)
 {
-  OmlFileWriter* self = (OmlFileWriter*)writer;
-  FILE* f = self->f;
-  if (f == NULL) return 1;
+  OmlTextWriter* self = (OmlTextWriter*)writer;
+  MBuffer* mbuf;
+  if ((mbuf = self->mbuf) == NULL) return 0; /* previous use of mbuf failed */
 
   int i;
   OmlValue* v = values;
-
   for (i = 0; i < value_count; i++, v++) {
+    int res;
     switch (v->type) {
     case OML_LONG_VALUE: {
-      fprintf(f, "\t%" PRId32, oml_value_clamp_long (v->value.longValue));
+      res = mbuf_print(mbuf, "\t%" PRId32, oml_value_clamp_long (v->value.longValue));
       break;
     }
-    case OML_INT32_VALUE:  fprintf(f, "\t%" PRId32,  v->value.int32Value);  break;
-    case OML_UINT32_VALUE: fprintf(f, "\t%" PRIu32,  v->value.uint32Value); break;
-    case OML_INT64_VALUE:  fprintf(f, "\t%" PRId64,  v->value.int64Value);  break;
-    case OML_UINT64_VALUE: fprintf(f, "\t%" PRIu64,  v->value.uint64Value); break;
-    case OML_DOUBLE_VALUE: fprintf(f, "\t%f",  v->value.doubleValue); break;
-    case OML_STRING_VALUE: fprintf(f, "\t%s",  v->value.stringValue.ptr); break;
+    case OML_INT32_VALUE:  res = mbuf_print(mbuf, "\t%" PRId32,  v->value.int32Value);  break;
+    case OML_UINT32_VALUE: res = mbuf_print(mbuf, "\t%" PRIu32,  v->value.uint32Value); break;
+    case OML_INT64_VALUE:  res = mbuf_print(mbuf, "\t%" PRId64,  v->value.int64Value);  break;
+    case OML_UINT64_VALUE: res = mbuf_print(mbuf, "\t%" PRIu64,  v->value.uint64Value); break;
+    case OML_DOUBLE_VALUE: res = mbuf_print(mbuf, "\t%f",  v->value.doubleValue); break;
+    case OML_STRING_VALUE: res = mbuf_print(mbuf, "\t%s",  v->value.stringValue.ptr); break;
     case OML_BLOB_VALUE: {
       const unsigned int max_bytes = 6;
       int bytes = v->value.blobValue.fill < max_bytes ? v->value.blobValue.fill : max_bytes;
       int i = 0;
-      fprintf (f, "blob ");
+      res = mbuf_print(mbuf, "blob ");
       for (i = 0; i < bytes; i++) {
-        fprintf(f, "%02x", ((uint8_t*)v->value.blobValue.data)[i]);
+        res = mbuf_print(mbuf, "%02x", ((uint8_t*)v->value.blobValue.data)[i]);
       }
-      fprintf (f, " ...");
+      res = mbuf_print (mbuf, " ...");
       break;
     }
     default:
-      logerror ("Unsupported value type '%d'\n", v->type);
+      res = -1;
+      logerror( "Unsupported value type '%d'\n", v->type);
+      return 0;
+    }
+    if (res < 0) {
+      mbuf_reset_write(mbuf);
+      self->mbuf = NULL;
       return 0;
     }
   }
@@ -183,22 +189,24 @@ out(OmlWriter* writer, OmlValue* values, int value_count)
  * \param writer the netwriter to send data
  * \param ms the stream to store the measruement from
  * \param now a timestamp that represensent the current time
- * \return 1
+ * \return 1 if succesfull, 0 otherwise
  */
 int
 row_start(OmlWriter* writer, OmlMStream* ms, double now)
 {
-  OmlFileWriter* self = (OmlFileWriter*)writer;
-  FILE* f = self->f;
-  if (f == NULL) return 1;
+  OmlTextWriter* self = (OmlTextWriter*)writer;
+  assert(self->bufferedWriter != NULL);
 
-  if (self->first_row) {
-    // need to add eoln to separate from header
-    fprintf(f, "\n");
-    self->first_row = 0;
+  MBuffer* mbuf;
+  if ((mbuf = self->mbuf = bw_get_write_buf(self->bufferedWriter, 1)) == NULL)
+    return 0;
+
+  mbuf_begin_write(mbuf);
+  if (mbuf_print(mbuf, "%f\t%d\t%ld", now, ms->index, ms->seq_no)) {
+    mbuf_reset_write(mbuf);
+    self->mbuf = NULL;
+    return 0;
   }
-
-  fprintf(f, "%f\t%d\t%ld", now, ms->index, ms->seq_no);
   return 1;
 }
 
@@ -206,18 +214,26 @@ row_start(OmlWriter* writer, OmlMStream* ms, double now)
  * \brief write the data after finalysing the data structure
  * \param writer the net writer that send the measurements
  * \param ms the stream of measurmenent
- * \return 1
+ * \return 1 if successful, 0 otherwise
  */
 int
 row_end(OmlWriter* writer, OmlMStream* ms)
 {
   (void)ms;
-  OmlFileWriter* self = (OmlFileWriter*)writer;
-  FILE* f = self->f;
-  if (f == NULL) return 1;
+  OmlTextWriter* self = (OmlTextWriter*)writer;
+  MBuffer* mbuf;
+  if ((mbuf = self->mbuf) == NULL) return 0; /* previous use of mbuf failed */
 
-  fprintf(f, "\n");
-  return 1;
+  int res;
+  if (res = mbuf_write(mbuf, "\n", 1)) {
+    mbuf_reset_write(mbuf);
+  } else {
+    // success, lock in message
+    mbuf_begin_write (mbuf);
+  }
+  self->mbuf = NULL;
+  bw_unlock_buf(self->bufferedWriter, mbuf);
+  return res == 0;
 }
 
 /**
@@ -228,14 +244,15 @@ row_end(OmlWriter* writer, OmlMStream* ms)
 static int
 close(OmlWriter* writer)
 {
-  OmlFileWriter* self = (OmlFileWriter*)writer;
+  OmlTextWriter* self = (OmlTextWriter*)writer;
 
-  if (self->f != 0) {
-    fclose(self->f);
-    self->f= NULL;
-  }
+/*   if (self->f != 0) { */
+/*     fclose(self->f); */
+/*     self->f= NULL; */
+/*   } */
   return 0;
 }
+
 
 /*
  Local Variables:

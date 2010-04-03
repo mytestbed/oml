@@ -25,6 +25,7 @@
 #define OML_WRITER_H_
 
 #include <oml2/omlc.h>
+#include <oml2/oml_out_stream.h>
 
 #define OML_PROTOCOL_VERSION 3
 
@@ -58,8 +59,8 @@ typedef int
   double now                 //! timestamp
 );
 
-/*! Called after calling 'out' for every result
- *  in this stream.
+/*! Called after all items in tuple have been sent (via +cols+).
+ *
  */
 typedef int
 (*oml_writer_row_end)(
@@ -67,15 +68,15 @@ typedef int
   OmlMStream* ms
 );
 
-/*! Called for every result value.
+/*! Called for every result value (column).
  *
  * Return 0 on success, -1 otherwise
  */
 typedef int
-(*oml_writer_out)(
+(*oml_writer_cols)(
   struct _omlWriter* writer, //! pointer to writer instance
-  OmlValue*  values,         //! type of sample
-  int        value_count     //! size of above array
+  OmlValue*  cols,         //! array of column values
+  int        col_count     //! size of above array
 );
 
 /*! Called to close the writer.
@@ -101,13 +102,14 @@ typedef struct _omlWriter {
   oml_writer_row_start row_start;
   oml_writer_row_end row_end;
 
-  //! Writing the results froma single filter.
-  oml_writer_out out;
+  //! Writing the results from a single filter.
+  oml_writer_cols out;
 
   oml_writer_close close;
 
   struct _omlWriter* next;
 } OmlWriter;
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -115,7 +117,8 @@ extern "C" {
 
 OmlWriter*
 create_writer(
-    char* serverUri
+    char* protocol,
+    char* serverURI
 );
 
 #ifdef __cplusplus

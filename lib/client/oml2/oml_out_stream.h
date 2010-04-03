@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2011 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,20 +20,52 @@
  * THE SOFTWARE.
  *
  */
-#ifndef SUM_FILTER_H__
-#define SUM_FILTER_H__
 
-#include <oml2/omlc.h>
+#ifndef OML_OUT_STREAM_H_
+#define OML_OUT_STREAM_H_
 
-struct _omlSumFilterInstanceData
-{
-    // Keep the sum and sample count to calculate average
-    double  sample_sum;
+#include <stdint.h>
 
-    OmlValue* result;
-};
+struct _omlOutStream;
 
-#endif /* SUM_FILTER_H__ */
+/*! Called to write a chunk to the lower level out stream
+ *
+ * Return number of sent bytes on success, -1 otherwise
+ */
+typedef size_t (*oml_outs_write_f)(
+  struct _omlOutStream* outs,
+  uint8_t* buffer,
+  size_t  length
+);
+
+/*! Called to close the stream.
+ *
+ * Return 0 on success, -1 otherwise
+ */
+typedef int
+(*oml_outs_close_f)(
+  struct _omlWriter* writer //! pointer to writer instance
+);
+
+typedef struct _omlOutStream {
+  oml_outs_write_f write;
+  oml_outs_close_f close;
+} OmlOutStream;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+OmlOutStream*
+create_stream(
+  char* serverUri
+);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* OML_OUT_STREAM_H */
 
 /*
  Local Variables:
@@ -42,3 +74,4 @@ struct _omlSumFilterInstanceData
  indent-tabs-mode: nil
  End:
 */
+

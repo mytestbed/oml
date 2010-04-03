@@ -25,22 +25,29 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
 
-typedef struct
+typedef struct _mbuffer
 {
-    uint8_t* base;             //! Underlying storage
-    size_t   length;           //! size of allocated buffer
-    size_t   wr_remaining;     //! Number of bytes unfilled.
-    size_t   rd_remaining;     //! Number of data bytes remaining to be read
-    size_t   fill;             //! number of bytes 'valid' data (number of bytes filled)
+  uint8_t* base;             //! Underlying storage
+  size_t   length;           //! size of allocated buffer
+  size_t   wr_remaining;     //! Number of bytes unfilled.
+  size_t   rd_remaining;     //! Number of data bytes remaining to be read
+  size_t   fill;             //! number of bytes 'valid' data (number of bytes filled)
 
-    uint8_t* rdptr;            //! Pointer at which to read the next byte from the buffer
-    uint8_t* wrptr;            //! Pointer at which to write the next byte into the buffer
-    uint8_t* msgptr;           //! Begining of message if more than one in buffer
+  uint8_t* rdptr;            //! Pointer at which to read the next byte from the buffer
+  uint8_t* wrptr;            //! Pointer at which to write the next byte into the buffer
+  uint8_t* msgptr;           //! Begining of message if more than one in buffer
 
+  size_t   min_resize;       //! Mnimum increase in buffer size on resize
+  uint8_t  resized;          //! Keeps track on how much initial buffer got extended
+  uint8_t  allow_resizing;   //! If true, allow resizing, otherwise fail
+
+  struct _mbuffer* next;     //! Supports chaining together of MBuffer instances
 } MBuffer;
 
 MBuffer* mbuf_create (void);
+MBuffer* mbuf_create2 (size_t buffer_length, size_t min_resize);
 void mbuf_destroy (MBuffer* mbuf);
 
 uint8_t* mbuf_buffer (MBuffer* mbuf);
@@ -51,6 +58,7 @@ uint8_t* mbuf_wrptr (MBuffer* mbuf);
 size_t mbuf_length (MBuffer* mbuf);
 size_t mbuf_remaining (MBuffer* mbuf);
 size_t mbuf_fill (MBuffer* mbuf);
+size_t mbuf_fill_excluding_msg (MBuffer* mbuf);
 size_t mbuf_read_offset (MBuffer* mbuf);
 size_t mbuf_write_offset (MBuffer* mbuf);
 size_t mbuf_message_offset (MBuffer* mbuf);
@@ -63,6 +71,7 @@ int mbuf_check_resize (MBuffer* mbuf, size_t bytes);
 int mbuf_begin_write (MBuffer* mbuf);
 int mbuf_reset_write (MBuffer* mbuf);
 int mbuf_write (MBuffer* mbuf, const uint8_t* buf, size_t len);
+int mbuf_print(MBuffer* mbuf, const char* format, ...);
 
 int mbuf_begin_read (MBuffer* mbuf);
 int mbuf_reset_read (MBuffer* mbuf);
@@ -72,11 +81,15 @@ int mbuf_read_byte (MBuffer* mbuf);
 size_t mbuf_find (MBuffer* mbuf, uint8_t c);
 size_t mbuf_find_not (MBuffer* mbuf, uint8_t c);
 
+
 int mbuf_consume_message (MBuffer* mbuf);
 void mbuf_message_start_advance (MBuffer *mbuf, size_t n);
 int mbuf_repack (MBuffer* mbuf);
 int mbuf_repack_message (MBuffer* mbuf);
+int mbuf_repack_message2 (MBuffer* mbuf);
 int mbuf_clear (MBuffer* mbuf);
+int mbuf_clear2 (MBuffer* mbuf, int zeroBuffer);
+
 
 #endif // MBUF_H__
 

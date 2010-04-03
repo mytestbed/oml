@@ -27,14 +27,14 @@
 
 struct _omlAvgFilterInstanceData
 {
-	// Keep the sum and sample count to calculate average
-	double  sample_sum;
-	int     sample_count;
+    // Keep the sum and sample count to calculate average
+    double  sample_sum;
+    int     sample_count;
 
-	double  sample_min;
-	double  sample_max;
+    double  sample_min;
+    double  sample_max;
 
-	OmlValue* result;
+    OmlValue* result;
 };
 
 #endif /* AVERAGE_FILTER_H__ */

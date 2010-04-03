@@ -62,7 +62,7 @@ omlf_delta_new(
 
   } else {
     logerror ("Could not allocate %d bytes for delta filter instance data\n",
-	sizeof(InstanceData));
+    sizeof(InstanceData));
     return NULL;
   }
 

@@ -35,29 +35,29 @@ make_vector (void* v, OmlValueT type, int n)
   OmlValueU* result = (OmlValueU*)malloc (n * sizeof (OmlValueU));
 
   if (result)
-	{
-	  int i = 0;
-	  memset (result, 0, n * sizeof (OmlValueU));
+    {
+      int i = 0;
+      memset (result, 0, n * sizeof (OmlValueU));
 
-	  switch (type)
-		{
-		case OML_LONG_VALUE:
-		  for (i = 0; i < n; i++)
-			result[i].longValue = ((long*)v)[i];
-		  break;
-		case OML_DOUBLE_VALUE:
-		  for (i = 0; i < n; i++)
-			result[i].doubleValue = ((double*)v)[i];
-		  break;
-		default:
-		  // Can't do non-numeric types yet
-		  return NULL;
-		}
+      switch (type)
+        {
+        case OML_LONG_VALUE:
+          for (i = 0; i < n; i++)
+            result[i].longValue = ((long*)v)[i];
+          break;
+        case OML_DOUBLE_VALUE:
+          for (i = 0; i < n; i++)
+            result[i].doubleValue = ((double*)v)[i];
+          break;
+        default:
+          // Can't do non-numeric types yet
+          return NULL;
+        }
 
-	  return result;
-	}
+      return result;
+    }
   else
-	return NULL;
+    return NULL;
 }
 
 TestVector*
@@ -65,25 +65,25 @@ make_test_vector (void* v, OmlValueT type, int n)
 {
   TestVector* result = (TestVector*)malloc (sizeof (TestVector));
   if (result)
-	{
-	  OmlValueU* oml_v = make_vector (v, type, n);
+    {
+      OmlValueU* oml_v = make_vector (v, type, n);
 
-	  if (oml_v)
-		{
-		  memset (result, 0, sizeof (TestVector));
-		  result->length = n;
-		  result->type = type;
-		  result->vector = oml_v;
-		  return result;
-		}
-	  else
-		{
-		  free (result);
-		  return NULL;
-		}
-	}
+      if (oml_v)
+        {
+          memset (result, 0, sizeof (TestVector));
+          result->length = n;
+          result->type = type;
+          result->vector = oml_v;
+          return result;
+        }
+      else
+        {
+          free (result);
+          return NULL;
+        }
+    }
   else
-	return NULL;
+    return NULL;
 }
 
 int
@@ -91,8 +91,8 @@ vector_type_check (OmlValue* values, OmlValueT type, int n)
 {
   int i = 0;
   for (i = 0; i < n; i++)
-	  if (values[i].type != type)
-		return 0;
+      if (values[i].type != type)
+        return 0;
   return 1;
 }
 
@@ -102,27 +102,27 @@ vector_values_check (OmlValue* values, OmlValueU* expected, OmlValueT type, int 
   double epsilon = 1e-9;
   int i = 0;
   for (i = 0; i < n; i++)
-	{
-	  switch (type)
-		{
-		case OML_LONG_VALUE:
-		  if (values[i].value.longValue != expected[i].longValue)
-			return 0;
-		  break;
-		case OML_DOUBLE_VALUE:
-		  if (fabs(values[i].value.doubleValue - expected[i].doubleValue) > epsilon)
-			return 0;
-		  break;
-		case OML_STRING_VALUE:
-		  if (values[i].value.stringValue.size != expected[i].stringValue.size)
-			return 0;
-		  if (strcmp (values[i].value.stringValue.ptr, expected[i].stringValue.ptr) != 0)
-			return 0;
-		  break;
-		default:
-		  return 0; // Fail on unknown value types
-		}
-	}
+    {
+      switch (type)
+        {
+        case OML_LONG_VALUE:
+          if (values[i].value.longValue != expected[i].longValue)
+            return 0;
+          break;
+        case OML_DOUBLE_VALUE:
+          if (fabs(values[i].value.doubleValue - expected[i].doubleValue) > epsilon)
+            return 0;
+          break;
+        case OML_STRING_VALUE:
+          if (values[i].value.stringValue.size != expected[i].stringValue.size)
+            return 0;
+          if (strcmp (values[i].value.stringValue.ptr, expected[i].stringValue.ptr) != 0)
+            return 0;
+          break;
+        default:
+          return 0; // Fail on unknown value types
+        }
+    }
   return 1;
 }
 
@@ -136,8 +136,8 @@ typedef struct _omlTestWriter
   oml_writer_row_start row_start;
   oml_writer_row_end row_end;
 
-  //! Writing the results froma single filter.
-  oml_writer_out out;
+  //! Writing the results from a single filter.
+  oml_writer_cols out;
 
   oml_writer_close close;
 
@@ -166,25 +166,25 @@ run_filter_test (TestData* test_data, OmlFilter* f)
   w.out = test_writer_out;
 
   for (i = 0; i < test_data->count; i++)
-	{
-	  TestVector* input = test_data->inputs[i];
-	  TestVector* output = test_data->outputs[i];
-	  OmlValue v;
-	  v.type = input->type;
-	  for (j = 0; j < input->length; j++, count++)
-		{
-		  int res;
-		  v.value = input->vector[j];
-		  res = f->input(f, &v);
-		  fail_unless (res == 0);
-		}
+    {
+      TestVector* input = test_data->inputs[i];
+      TestVector* output = test_data->outputs[i];
+      OmlValue v;
+      v.type = input->type;
+      for (j = 0; j < input->length; j++, count++)
+        {
+          int res;
+          v.value = input->vector[j];
+          res = f->input(f, &v);
+          fail_unless (res == 0);
+        }
 
-	  f->output (f, (OmlWriter*)&w);
+      f->output (f, (OmlWriter*)&w);
 
-	  fail_unless (w.count == output->length);
-	  fail_unless (vector_type_check (w.values, output->type, output->length));
-	  fail_unless (vector_values_check (w.values, output->vector, output->type, output->length));
-	}
+      fail_unless (w.count == output->length);
+      fail_unless (vector_type_check (w.values, output->type, output->length));
+      fail_unless (vector_values_check (w.values, output->vector, output->type, output->length));
+    }
 }
 
 /*

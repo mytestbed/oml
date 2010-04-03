@@ -24,8 +24,8 @@
   \brief Defines various structures and functions used by various parts.
 */
 
-#ifndef CLIENT_H_
-#define CLIENT_H_
+#ifndef OML_CLIENT_H_
+#define OML_CLIENT_H_
 
 #include <stdio.h>
 #include <time.h>
@@ -125,10 +125,16 @@ oml_unlock(
 
 
 extern OmlWriter*
-file_writer_new(char* file);
+text_writer_new(OmlOutStream* out_stream);
 
 extern OmlWriter*
-net_writer_new(char* protocol, char* location);
+bin_writer_new(OmlOutStream* out_stream);
+
+extern OmlOutStream*
+file_stream_new(char* fileName);
+
+extern OmlOutStream*
+net_stream_new(char* serverURI);
 
 extern int
 filter_process(OmlMStream* mp);

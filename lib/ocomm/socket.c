@@ -532,25 +532,24 @@ socket_sendto(
   int buf_size
 ) {
   SocketInt *self = (SocketInt*)socket;
+  int sent;
 
   // TODO: Catch SIGPIPE signal if other side is half broken
-  if(sendto(self->sockfd, buf, buf_size, 0,
-            (struct sockaddr *)&(self->servAddr),
-            sizeof(self->servAddr)) < 0)
-    {
-      if (errno == EPIPE || errno == ECONNRESET)
-        {
-          // The other end closed the connection.
-          self->is_disconnected = 1;
-          o_log(O_LOG_ERROR, "Socket(%s): the remote peer closed the connection\n\t%d: %s\n",
-                self->name, errno, strerror(errno));
-        }
-      else
-        o_log(O_LOG_ERROR, "Socket(%s): Sending to multicast channel failed\n\t%s\n",
-              self->name, strerror(errno));
-      return -1;
+  if ((sent = sendto(self->sockfd, buf, buf_size, 0,
+                    (struct sockaddr *)&(self->servAddr),
+                    sizeof(self->servAddr))) < 0) {
+    if (errno == EPIPE || errno == ECONNRESET) {
+      // The other end closed the connection.
+      self->is_disconnected = 1;
+      o_log(O_LOG_ERROR, "Socket(%s): the remote peer closed the connection\n\t%d: %s\n",
+            self->name, errno, strerror(errno));
+    } else {
+      o_log(O_LOG_ERROR, "Socket(%s): Sending to multicast channel failed\n\t%s\n",
+            self->name, strerror(errno));
     }
-  return 0;
+    return -1;
+  }
+  return sent;
 }
 
 

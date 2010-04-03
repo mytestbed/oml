@@ -24,7 +24,7 @@
 #define FIRST_FILTER_H__
 
 struct _omlFirstFilterInstanceData {
-  int is_first;			/* set to true if no value has been stored */
+  int is_first;         /* set to true if no value has been stored */
 
   OmlValue* result;
 };

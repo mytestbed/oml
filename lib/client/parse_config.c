@@ -297,7 +297,7 @@ parse_collector(xmlNodePtr el)
     return -1;
   }
   OmlWriter* writer;
-  if ((writer = create_writer((char*)url)) == NULL) return -2;
+  if ((writer = create_writer(NULL, (char*)url)) == NULL) return -2;
 
   xmlNodePtr cur = el->xmlChildrenNode;
   while (cur != NULL) {

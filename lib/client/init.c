@@ -403,7 +403,7 @@ usage(void)
   printf("  --oml-samples count    .. Default number of samples to collect\n");
   printf("  --oml-interval seconds .. Default interval between measurements\n");
   printf("  --oml-log-file file    .. Writes log messages to 'file'\n");
-  printf("  --oml-log-level level  .. Log level used (error: 1 .. debug:4)\n");
+  printf("  --oml-log-level level  .. Log level used (error: -2 .. info: 0 .. debug4: 4)\n");
   printf("  --oml-noop             .. Do not collect measurements\n");
   printf("  --oml-list-filters     .. List the available types of filters\n");
   printf("  --oml-help             .. Print this message\n");
@@ -451,42 +451,57 @@ print_filters(void)
  * @return a writer
  */
 OmlWriter*
-create_writer(char* server_uri)
+create_writer(char* protocol, char* serverUri)
 {
   if (omlc_instance == NULL){
     logerror("No omlc_instance:  OML client was not initialized properly.\n");
     return NULL;
   }
 
+  if (serverUri == NULL) {
+    o_log(O_LOG_ERROR, "Missing server definition (e.g. --oml-server)\n");
+    return NULL;
+  }
+  if (omlc_instance->node_name == NULL) {
+    o_log(O_LOG_ERROR, "Missing '--oml-id' flag \n");
+    return NULL;
+  }
+  if (omlc_instance->experiment_id == NULL) {
+    o_log(O_LOG_ERROR, "Missing '--oml-exp-id' flag \n");
+    return NULL;
+  }
+
+  OmlOutStream* out_stream;
+  if (strncmp(serverUri, "file:", 5) == 0) {
+    out_stream = file_stream_new(serverUri + 5);
+    if (protocol == NULL) protocol = "text"; /* default protocol */
+  } else {
+    out_stream = net_stream_new(serverUri);
+    if (protocol == NULL) protocol = "binary"; /* default protocol */
+  }
+  if (out_stream == NULL) {
+    o_log(O_LOG_ERROR, "Failed to create stream for URI %s\n", serverUri);
+    return NULL;
+  }
+
+  // Now create a write on top of the stream
   OmlWriter* writer = NULL;
-  char* p = server_uri;
-  if (p == NULL) {
-    logerror("Missing server definition (e.g. --oml-server)\n");
-    return 0;
-  }
-  char* proto = p;
-  while (*p != '\0' && *p != ':') p++;
-  if (*p != '\0') *(p++) = '\0';
-  if (strcmp(proto, "file") == 0) {
-    writer = file_writer_new(p);
+  if (strcmp(protocol, "text") == 0) {
+    writer = text_writer_new(out_stream);
+  } else if (strcmp(protocol, "binary") == 0) {
+    writer = bin_writer_new(out_stream);
   } else {
-    // Net writer needs NAME and EXPERIMENT_ID
-    if (omlc_instance->node_name == NULL) {
-      logerror("Missing '--oml-id' flag \n");
-      return NULL;
-    }
-    if (omlc_instance->experiment_id == NULL) {
-      logerror("Missing '--oml-exp-id' flag \n");
-      return NULL;
-    }
-    writer = net_writer_new(proto, p);
+    o_log(O_LOG_ERROR, "Unknown protocol '%s', only support 'binary' and 'text'.\n", protocol);
+    // should cleanup streams
+    return NULL;
   }
-  if (writer != NULL) {
-    writer->next = omlc_instance->first_writer;
-    omlc_instance->first_writer = writer;
-  } else {
-    logwarn("Failed to create writer for URI %s\n", server_uri);
+  if (writer == NULL) {
+    o_log(O_LOG_ERROR, "Creating writer for protocol '%s' failed.\n", protocol);
+    return NULL;
   }
+  writer->next = omlc_instance->first_writer;
+  omlc_instance->first_writer = writer;
+
   return writer;
 }
 
@@ -679,7 +694,7 @@ static int
 default_configuration(void)
 {
   OmlWriter* writer;
-  if ((writer = create_writer(omlc_instance->server_uri)) == NULL) {
+  if ((writer = create_writer(NULL, omlc_instance->server_uri)) == NULL) {
     return -1;
   }
 
@@ -719,7 +734,7 @@ create_default_filters(OmlMP *mp, OmlMStream *ms)
     OmlFilter* f = create_default_filter(&def, ms, j);
     if (f) {
       if (prev == NULL) {
-        ms->filters = f;
+        ms->firstFilter = f;
       } else {
         prev->next = f;
       }
