@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2011 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,26 +20,56 @@
  * THE SOFTWARE.
  *
  */
-#ifndef CHECK_LIBOML2_SUITES_H__
-#define CHECK_LIBOML2_SUITES_H__
-
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <math.h>
 #include <check.h>
+#include <mbuf.h>
 
-extern Suite* filters_suite (void);
-extern Suite* api_suite (void);
-extern Suite* parser_suite (void);
-extern Suite* marshal_suite (void);
-extern Suite* mbuf_suite (void);
-extern Suite* cbuf_suite (void);
-extern Suite* bswap_suite (void);
-extern Suite* bw_suite (void);
+#include "util.h"
 
-#endif /* CHECK_LIBOML2_SUITES_H__ */
+START_TEST (test_bw_create)
+{
+  /*
+  MBuffer* mbuf = mbuf_create ();
+
+  fail_if (mbuf == NULL);
+  fail_if (mbuf->base == NULL);
+  fail_if (mbuf->rdptr != mbuf->base);
+  fail_if (mbuf->wrptr != mbuf->base);
+  fail_if (mbuf->fill != 0);
+  fail_unless (mbuf->length > 0);
+  fail_if (mbuf->wr_remaining != mbuf->length);
+  fail_if ((int)mbuf->rd_remaining != (mbuf->wrptr - mbuf->rdptr));
+  unsigned int i;
+  for (i = 0; i < mbuf->length; i++)
+	fail_if (mbuf->base[i] != 0);
+  */
+}
+END_TEST
+
+
+
+Suite*
+bw_suite (void)
+{
+  Suite* s = suite_create ("BufferedWriter");
+
+  /* Mbuf test cases */
+  TCase* tc_bw = tcase_create ("BfWr");
+
+  /* Add tests to "BfWr" */
+  tcase_add_test (tc_bw, test_bw_create);
+
+
+  suite_add_tcase (s, tc_bw);
+  return s;
+}
 
 /*
  Local Variables:
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
- End:
 */

@@ -3,7 +3,10 @@
 *.swp
 *.o
 *.lo
+*.Plo
+*.Po
 Makefile.in
+Makefile
 aclocal.m4
 config.h.in
 config.guess
