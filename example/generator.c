@@ -14,7 +14,8 @@
 static float amplitude = 1.0;
 static float frequency = 0.1;
 static float sample_interval = 1;
-static int   samples = -1;
+static float samples = -1;
+static int quiet = 0;       /* if 1 don't print anything */
 
 struct poptOption options[] = {
   POPT_AUTOHELP
@@ -26,6 +27,8 @@ struct poptOption options[] = {
         "Number of samples to take. -1 ... forever"},
   { "sample-interval", 's', POPT_ARG_FLOAT, &sample_interval, 0,
         "Time between consecutive measurements [sec]"},
+  { "quiet", 'q', POPT_ARG_NONE, &quiet, 0,
+        "If set, don't print"},
   { NULL, 0, 0, NULL, 0 }
 };
 
@@ -75,10 +78,10 @@ run()
       omlc_inject(m_sin, v);
     }
 
-    printf("%s %d | %f %f\n", label, count, angle, value);
+    if (!quiet) printf("%s %d | %f %f\n", label, count, angle, value);
 
     angle = fmodf(angle + delta, 2 * M_PI);
-    usleep(sleep);
+    if (sleep > 0) usleep(sleep);
   }
 }
 
@@ -98,7 +101,6 @@ main(int argc, const char **argv)
   while ((c = poptGetNextOpt(optCon)) >= 0);
 
   run();
-
   sleep (1); // Wait for measurements to be written.
   omlc_close ();
   return(0);
