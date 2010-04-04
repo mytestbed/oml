@@ -52,12 +52,9 @@ typedef struct _dbColumn {
 
 typedef struct _dbTable {
   char       name[MAX_TABLE_NAME_SIZE];
-
   DbColumn** columns;
   int        col_size;
-
   void*      adapter_hdl;
-
   struct _dbTable* next;
 } DbTable;
 

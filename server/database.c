@@ -29,6 +29,7 @@
 #include <sys/time.h>
 #include <log.h>
 #include <assert.h>
+#include "mem.h"
 #include "database.h"
 #include "util.h"
 #include "oml_value.h"
@@ -54,17 +55,19 @@ database_find(char* name, char* hostname, char* user)
 {
   Database* db = first_db;
   while (db != NULL) {
-      if (strcmp(name, db->name) == 0 && strcmp(hostname, db->hostname) == 0 && strcmp(user, db->user) == 0) {
+      if (!strcmp(name, db->name) &&
+          !strcmp(hostname, db->hostname) &&
+          !strcmp(user, db->user)) {
       db->ref_count++;
-      o_log(O_LOG_DEBUG, "Database %s at %s with %s found (%d clients)\n", name, hostname, user,db->ref_count);
+      logdebug ("Database %s at %s with %s found (%d clients)\n",
+                name, hostname, user, db->ref_count);
       return db;
     }
     db = db->next;
   }
 
   // need to create a new one
-  Database *self = (Database*)malloc(sizeof(Database));
-  memset(self, 0, sizeof(Database));
+  Database *self = xmalloc(sizeof(Database));
   logdebug("Creating new database %s at %s with %s\n", name, hostname, user);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
   strncpy(self->hostname, hostname, MAX_DB_NAME_SIZE);
@@ -73,11 +76,12 @@ database_find(char* name, char* hostname, char* user)
   self->create = database_create_function ();
 
   if (self->create (self)) {
-    free(self);
+    xfree(self);
     return NULL;
   }
 
-  char* start_time_str = self->get_metadata (self, "start_time");
+  char *start_time_str = self->get_metadata (self, "start_time");
+  char *method;
 
   if (start_time_str == NULL)
     {
@@ -87,14 +91,15 @@ database_find(char* name, char* hostname, char* user)
       char s[64];
       snprintf (s, LENGTH(s), "%lu", self->start_time);
       self->set_metadata (self, "start_time", s);
-      logdebug("Set DB start-time = %lu\n", self->start_time);
+      method = "Set";
     }
   else
     {
       self->start_time = strtol (start_time_str, NULL, 0);
-      free (start_time_str);
-      logdebug("Retrieved DB start-time = %lu\n", self->start_time);
+      xfree (start_time_str);
+      method = "Retrieved";
     }
+  logdebug("%s DB start-time = %lu\n", method, self->start_time);
 
   // hook this one into the list of active databases
   self->next = first_db;
@@ -145,7 +150,7 @@ database_release(Database* self)
       database_table_free(t_p);
       t_p = t;
     }
-  free(self);
+  xfree(self);
 }
 
 /**
@@ -232,8 +237,7 @@ database_get_table(Database* database, char* schema)
   }
   if (table == NULL) {
     assert (check_only == 0);
-    table = (DbTable*)malloc(sizeof(DbTable));
-    memset(table, 0, sizeof(DbTable));
+    table = xmalloc(sizeof(DbTable));
     strncpy(table->name, tname, MAX_TABLE_NAME_SIZE);
   }
 
@@ -259,7 +263,7 @@ database_get_table(Database* database, char* schema)
   }
   if (!check_only) {
     if (database->create_table (database, table)) {
-      free(table);
+      xfree(table);
       return NULL;
     }
     table->next = database->first_table;
@@ -271,8 +275,7 @@ database_get_table(Database* database, char* schema)
 void
 database_table_add_col (DbTable* table, const char* name, OmlValueT type, int index)
 {
-  DbColumn* col = (DbColumn*) malloc (sizeof (DbColumn));
-  memset (col, 0, sizeof (DbColumn));
+  DbColumn* col = xmalloc (sizeof (DbColumn));
   strncpy (col->name, name, MAX_COL_NAME_SIZE);
   col->type = type;
   database_table_store_col (table, col, index);
@@ -293,13 +296,13 @@ database_table_store_col(DbTable*  table, DbColumn* col, int index)
     int old_count = table->col_size;
 
     table->col_size += DEF_COLUMN_COUNT;
-    table->columns = (DbColumn**)malloc(table->col_size * sizeof(DbColumn*));
+    table->columns = xcalloc(table->col_size, sizeof(DbColumn*));
     int i;
     for (i = old_count - 1; i >= 0; i--) {
       table->columns[i] = old[i];
     }
 
-    free (old);
+    xfree (old);
   }
   table->columns[index] = col;
 }
@@ -320,12 +323,12 @@ database_table_free(DbTable* table)
             {
               if (table->columns[i] == NULL)
                 break; // reached end
-              free(table->columns[i]);
+              xfree(table->columns[i]);
             }
-          free(table->columns);
+          xfree(table->columns);
         }
       sq3_table_free (table);
-      free(table);
+      xfree(table);
     }
   else
     logwarn("Tried to free a NULL table\n");
