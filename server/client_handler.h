@@ -24,6 +24,9 @@
 #define CLIENT_HANDLER_H_
 
 #include <time.h>
+#include <ocomm/o_socket.h>
+#include <mbuf.h>
+
 #include "database.h"
 
 typedef enum _cstate {
@@ -59,6 +62,7 @@ typedef struct _clientHandler {
                             // sync time across all connections
 } ClientHandler;
 
+void *client_handler_new (Socket* new_sock, char* hostname, char* user);
 
 #endif /*CLIENT_HANDLER_H_*/
 

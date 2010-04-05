@@ -35,7 +35,7 @@
 
 #include "util.h"
 #include "version.h"
-#include "server.h"
+#include "client_handler.h"
 #include "sqlite_adapter.h"
 #ifdef HAVE_PG
 #include "psql_adapter.h"
