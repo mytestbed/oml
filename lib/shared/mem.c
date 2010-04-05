@@ -75,6 +75,7 @@ void *xcalloc (size_t count, size_t size)
 
 void *xrealloc (void *ptr, size_t size)
 {
+  if (!ptr) return xmalloc (size);
   size += sizeof (size_t);
   ptr = (size_t*)ptr - 1;
   size_t old = *(size_t*)ptr;
