@@ -42,9 +42,6 @@ static Database *first_db = NULL;
 db_adapter_create
 database_create_function ();
 
-static int
-parse_col_decl(DbTable* self, char* col_decl, int index, int check_only);
-
 /**
  * \brief create a date with the name +name+
  * \param name the name of the database
@@ -108,7 +105,8 @@ database_find(char* name, char* hostname, char* user)
   return self;
 }
 /**
- * \brief Client no longer uses this database. If this was the last client checking out, close database.
+ * \brief Client no longer uses this database.
+ * If this was the last client checking out, close database.
  * \param self the database to release
  */
 void
@@ -147,191 +145,105 @@ database_release(Database* self)
   while (t_p != NULL)
     {
       DbTable* t = t_p->next;
-      database_table_free(t_p);
+      /* Release the backend storage for this table */
+      self->table_free (self, t_p);
+      /* Release the table */
+      database_table_free(self, t_p);
       t_p = t;
     }
   xfree(self);
 }
 
-/**
- * \brief Create a column in the database
- * \param self the database where we create the column
- * \param col_decl the name of the column
- * \param index the index of the column
- * \param check_only don't create col, just check it
- * \return 1 if successful 0 otherwise
- */
-static int
-parse_col_decl(DbTable* self, char* col_decl, int index, int check_only)
-{
-  char* name = col_decl;
-  char* p = name;
-
-  while (*p != ':' && *p != '\0') p++;
-
-  if (*p == '\0')
-    {
-      logerror("Malformed column schema '%s'\n", name);
-      return 0;
-    }
-  *(p++) = '\0';
-
-  char* type_s = p;
-  OmlValueT type = oml_type_from_s (type_s);
-  // OML_LONG_VALUE is deprecated, and converted to INT32 internally in server.
-  type = (type == OML_LONG_VALUE) ? OML_INT32_VALUE : type;
-  if (type == OML_UNKNOWN_VALUE)
-    {
-      logerror("Unknown column type '%s'\n", type_s);
-      return 0;
-    }
-
-  if (check_only)
-    {
-      if (index < self->col_size)
-        {
-          DbColumn* col = self->columns[index];
-          if (col == NULL || strcmp(col->name, name) != 0 || col->type != type)
-            {
-              logwarn("Column '%s' of table '%s' different to previous declarations'\n",
-                    name, self->name);
-              return 0;
-            }
-        }
-      else
-        return 0; // This column is out of range for the previous schema... error!
-    }
-  else
-    database_table_add_col (self, name, type, index);
-
-  return 1;
-}
-
-/**
- * \brief get a table from the database
- * \param database the database to extract the table
- * \param schema name of the table
- * \return the table of or NULL if not successful
+/*
+ * Find the table with matching "name".  Return NULL if not found.
  */
 DbTable*
-database_get_table(Database* database, char* schema)
+database_find_table (Database *database, const char *name)
 {
-  if (database == NULL) return NULL;
-  // table name
-  char* p = schema;
-  while (*p == ' ') p++; // skip white space
-  char* tname = p;
-  while (*p != ' ' && *p != '\0') p++;
-  *(p++) = '\0';
-
-  // Check if table already exists
-  int check_only = 0; // only check col decl if table already exists
-  DbTable* table = database->first_table;
-  while (table != NULL) {
-    if (strcmp(table->name, tname) == 0) {
-      // table already exists
-      check_only = 1;
-      break;
-    }
+  DbTable *table = database->first_table;
+  while (table) {
+    if (!strcmp (table->schema->name, name))
+      return table;
     table = table->next;
   }
-  if (table == NULL) {
-    assert (check_only == 0);
-    table = xmalloc(sizeof(DbTable));
-    strncpy(table->name, tname, MAX_TABLE_NAME_SIZE);
-  }
+  return NULL;
+}
 
-  int index = 0;
-  while (*p != '\0') {
-    while (*p == ' ') p++; // skip white space
-    char* col = p;
-    while (*p != ' ' && *p != '\0') p++;
-    if (*p != '\0') *(p++) = '\0';
-    if (!parse_col_decl(table, col, index, check_only))
-      {
-        logwarn("A bad column specification was found in schema for table %s\n", table->name);
-        if (!check_only)
-          {
-            logerror("This table will not be registered now\n");
-            logerror("(but another client can register it with a valid schema later on)\n");
-            database_table_free (table);
-          }
-        return NULL;
-      }
-    logdebug("Column name '%s'\n", col);
-    index++;
+/*
+ * Create a new table in the database, with given schema.  Register
+ * the table with the database, so that database_find_table () will
+ * find it.  Return a pointer to the table, or NULL on error.
+ *
+ * The schema is deep copied, so the caller can safely free the
+ * schema.
+ *
+ * Note: this function does NOT issue the SQL required to create the
+ * table in the actual storage backend.
+ */
+DbTable*
+database_create_table (Database *database, struct schema *schema)
+{
+  DbTable *table = xmalloc (sizeof (DbTable));
+  if (!table)
+    return NULL;
+  table->schema = schema_copy (schema);
+  if (!table->schema) {
+    xfree (table);
+    return NULL;
   }
-  if (!check_only) {
-    if (database->create_table (database, table)) {
-      xfree(table);
+  table->next = database->first_table;
+  database->first_table = table;
+  return table;
+}
+
+DbTable*
+database_find_or_create_table(Database *database, struct schema *schema)
+{
+  if (database == NULL) return NULL;
+  DbTable *table = database_find_table (database, schema->name);
+  int found = table ? 1 : 0;
+
+  if (!found) {
+    table = database_create_table (database, schema);
+    if (!table)
+      return NULL;
+    if (database->table_create (database, table)) {
+      database_table_free (database, table);
       return NULL;
     }
-    table->next = database->first_table;
-    database->first_table = table;
+  } else {
+    /* If the table already exists, validate the client's schema against existing */
+    int same = schema_diff (schema, table->schema);
+    if (same == -1) {
+      logerror ("Schemas differ for table '%s'\n", schema->name);
+      return NULL;
+    } else if (same > 0) {
+      struct schema_field *client = &schema->fields[same-1];
+      struct schema_field *stored = &table->schema->fields[same-1];
+      logerror ("Schema differ at column %d:\n", same);
+      logerror ("Client declared         '%s:%s'\n",
+                client->name, oml_type_to_s (client->type));
+      logerror ("Existing table declared '%s:%s'\n",
+                stored->name, oml_type_to_s (stored->type));
+      return NULL;
+    }
   }
   return table;
 }
 
-void
-database_table_add_col (DbTable* table, const char* name, OmlValueT type, int index)
-{
-  DbColumn* col = xmalloc (sizeof (DbColumn));
-  strncpy (col->name, name, MAX_COL_NAME_SIZE);
-  col->type = type;
-  database_table_store_col (table, col, index);
-}
-/**
- * \brief store the column in the databse
- * \param table the table of the
- * \param col the column to store
- * \param index the index of the column
+/*
+ * Destroy a table in a database, by free all allocated data
+ * structures.  Does not release the table in the backend adapter.
  */
 void
-database_table_store_col(DbTable*  table, DbColumn* col, int index)
+database_table_free(Database *database, DbTable *table)
 {
-  assert (table != NULL && col != NULL);
-  assert (index >= 0);
-  if (index >= table->col_size) {
-    DbColumn** old = table->columns;
-    int old_count = table->col_size;
-
-    table->col_size += DEF_COLUMN_COUNT;
-    table->columns = xcalloc(table->col_size, sizeof(DbColumn*));
-    int i;
-    for (i = old_count - 1; i >= 0; i--) {
-      table->columns[i] = old[i];
-    }
-
-    xfree (old);
-  }
-  table->columns[index] = col;
-}
-/**
- * \brief Free the table
- * \param table the table to free
- */
-void
-database_table_free(DbTable* table)
-{
-  if (table)
-    {
-      logdebug("Freeing table %s\n", table->name);
-      if (table->columns != NULL)
-        {
-          int i;
-          for (i = 0; i < table->col_size; i++)
-            {
-              if (table->columns[i] == NULL)
-                break; // reached end
-              xfree(table->columns[i]);
-            }
-          xfree(table->columns);
-        }
-      sq3_table_free (table);
+  if (database && table) {
+      logdebug("Freeing table %s\n", table->schema->name);
+      schema_free (table->schema);
       xfree(table);
-    }
-  else
-    logwarn("Tried to free a NULL table\n");
+  } else
+    logwarn("Tried to free a NULL table (or database was NULL).\n");
 }
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,15 +20,34 @@
  * THE SOFTWARE.
  *
  */
-#ifndef SQLITE_ADAPTER_H_
-#define SQLITE_ADAPTER_H_
 
-#include "database.h"
+#ifndef SCHEMA_H__
+#define SCHEMA_H__
 
-int
-sq3_create_database(Database* db);
+#include <oml2/omlc.h>
 
-#endif /*SQLITE_ADAPTER_H_*/
+struct schema_field
+{
+  char *name;
+  OmlValueT type;
+};
+
+struct schema
+{
+  char *name;
+  struct schema_field *fields;
+  int nfields;
+  int index;
+};
+
+struct schema* schema_from_meta (char *meta);
+struct schema* schema_from_sql (char *sql);
+struct schema* schema_copy (struct schema *schema);
+void schema_free (struct schema *schema);
+int schema_diff (struct schema *s1, struct schema *s2);
+
+
+#endif /* SCHEMA_H__ */
 
 /*
  Local Variables:

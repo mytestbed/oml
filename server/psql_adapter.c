@@ -56,8 +56,9 @@ psql_release(Database* db)
 static int
 psql_add_sender_id(Database* db, char *sender_id)
 {
-  PsqlDB* self = (PsqlDB*)db->adapter_hdl;
-  int index = ++self->sender_cnt;
+  (void)db;
+  //PsqlDB* self = (PsqlDB*)db->adapter_hdl;
+  //  int index = ++self->sender_cnt;
 
   //char s[512];  // don't check for length
   // TDEBUG
@@ -105,15 +106,15 @@ psql_get_max_seq_no (Database *db, DbTable *table, int sender_id)
 int
 psql_create_table(Database* db, DbTable* table)
 {
-  if (table->columns == NULL) {
-    logwarn("No cols defined for table '%s'\n", table->name);
+  if (table->schema == NULL) {
+    logwarn("No schema defined for table, cannot create\n");
     return -1;
   }
 
   char *errmsg;
   PGresult   *res;
 
-  int max = table->col_size;
+  int max = table->schema->nfields;
 
   char create[512];  // don't check for length
   char index[512];  // don't check for length
@@ -123,18 +124,18 @@ psql_create_table(Database* db, DbTable* table)
   char update_key[512];  // don't check for length
 
   char* cs = create;
-  sprintf(cs, "CREATE TABLE %s (oml_sender_id INT4, oml_seq INT4, oml_ts_client FLOAT8, oml_ts_server FLOAT8", table->name);
+  sprintf(cs, "CREATE TABLE %s (oml_sender_id INT4, oml_seq INT4, oml_ts_client FLOAT8, oml_ts_server FLOAT8", table->schema->name);
   cs += strlen(cs);
 
   char* id = index;
 
-  sprintf(index_name, "idx_%s",table->name);
-  sprintf(id, "CREATE UNIQUE INDEX %s ON %s(", index_name,table->name);
+  sprintf(index_name, "idx_%s",table->schema->name);
+  sprintf(id, "CREATE UNIQUE INDEX %s ON %s(", index_name, table->schema->name);
   /* sprintf(id, "CREATE INDEX %s ON %s(", index_name,table->name); */
   id += strlen(id);
 
   char* is = insert;
-  sprintf(is, "INSERT INTO %s VALUES ($1, $2, $3, $4", table->name);
+  sprintf(is, "INSERT INTO %s VALUES ($1, $2, $3, $4", table->schema->name);
   is += strlen(is);
 
   /* rmz: this needs to be updated with a psql function or dealt with directly in here */
@@ -142,53 +143,52 @@ psql_create_table(Database* db, DbTable* table)
      where mac_src = '00:0e:0c:af:cb:48' and mac_dst =
      '00:1b:21:05:e7:92'; */
   char* up = update;
-  sprintf(up, "UPDATE %s SET oml_sender_id = $1, oml_seq = $2, oml_ts_client = $3, oml_ts_server = $4", table->name);
+  sprintf(up, "UPDATE %s SET oml_sender_id = $1, oml_seq = $2, oml_ts_client = $3, oml_ts_server = $4", table->schema->name);
   up += strlen(up);
   char* upk = update_key;
   sprintf(upk, " WHERE ");
   upk += strlen(upk);
 
   int first = 0;
-  DbColumn* col = table->columns[0];
   int i = 0;
   /* ruben: Index of fields who will be indexes, hard coded for now */
   int idx[4] = {0,1,2,3};
   int idx_len = 4;
   int idx_i = 0;
-  while (col != NULL && max > 0) {
+  while (max > 0) {
     char* t;
-    col = table->columns[i];
-    switch (col->type) {
+    struct schema_field *field = &table->schema->fields[i];
+    switch (field->type) {
       case OML_LONG_VALUE: t = "INT4"; break;
       case OML_DOUBLE_VALUE: t = "FLOAT8"; break;
       case OML_STRING_VALUE: t = "TEXT"; break;
       default:
-        logerror("Bug: Unknown type %d in col '%s'\n", col->type, col->name);
+        logerror("Bug: Unknown type %d in col '%s'\n", field->type, field->name);
     }
     if (first) {
-      sprintf(cs, "%s %s", col->name, t);
+      sprintf(cs, "%s %s", field->name, t);
       sprintf(is, "$%d",i+5);
       first = 0;
     } else {
-      sprintf(cs, ", %s %s", col->name, t);
+      sprintf(cs, ", %s %s", field->name, t);
       sprintf(is, ", $%d",i+5);
     }
     /* Checking for indexes */
     if (idx_i < idx_len && idx[idx_i] == i) {
       /* This column will be an index */
       if (idx_i == 0) {
-    sprintf(id, "%s", col->name);
-    sprintf(upk," %s = $%d", col->name,i+5);
+    sprintf(id, "%s", field->name);
+    sprintf(upk," %s = $%d", field->name,i+5);
       } else {
-    sprintf(id, ", %s", col->name);
-    sprintf(upk," and %s = $%d", col->name,i+5);
+    sprintf(id, ", %s", field->name);
+    sprintf(upk," and %s = $%d", field->name,i+5);
       }
       id += strlen(id);
       upk += strlen(upk);
       idx_i++;
     } else {
       /* No index */
-      sprintf(up, ", %s = $%d",col->name, i+5);
+      sprintf(up, ", %s = $%d",field->name, i+5);
       up += strlen(up);
     }
     cs += strlen(cs);
@@ -238,7 +238,7 @@ psql_create_table(Database* db, DbTable* table)
 
   strcpy(psqltable->insert_stmt,"InsertOMLResults");
   strcat(psqltable->insert_stmt,"-");
-  strcat(psqltable->insert_stmt,table->name);
+  strcat(psqltable->insert_stmt,table->schema->name);
   res = PQprepare(psqldb->conn,psqltable->insert_stmt,insert,i+4,NULL);
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
@@ -253,7 +253,7 @@ psql_create_table(Database* db, DbTable* table)
 
   strcpy(psqltable->update_stmt,"UpdateOMLResults");
   strcat(psqltable->update_stmt,"-");
-  strcat(psqltable->update_stmt,table->name);
+  strcat(psqltable->update_stmt,table->schema->name);
   res = PQprepare(psqldb->conn,psqltable->update_stmt,update,i+4,NULL);
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
@@ -351,12 +351,12 @@ psql_insert(Database* db,
 
   OmlValue* v = values;
   for (i = 0; i < value_count; i++, v++) {
-    DbColumn* col = table->columns[i];
-    if (v->type != col->type) {
-      logerror("Mismatch in %dth value type fo rtable '%s'\n", i, table->name);
+    struct schema_field *field = &table->schema->fields[i];
+    if (v->type != field->type) {
+      logerror("Mismatch in %dth value type fo rtable '%s'\n", i, table->schema->name);
       return -1;
     }
-    switch (col->type) {
+    switch (field->type) {
       case OML_LONG_VALUE:
     sprintf(paramValues[4+i],"%i",(int)v->value.longValue);
     paramLength[4+i] = 0;
@@ -377,12 +377,12 @@ psql_insert(Database* db,
 /*                 -1, SQLITE_TRANSIENT); */
         break;
       default:
-        logerror("Bug: Unknown type %d in col '%s'\n", col->type, col->name);
+        logerror("Bug: Unknown type %d in col '%s'\n", field->type, field->name);
         return -1;
     }
 /*     if (res != SQLITE_OK) { */
 /*       logerror("Could not bind column '%s' (%s).\n",  */
-/*           col->name, sqlite3_errmsg(sq3db->db_hdl));  */
+/*           field->name, sqlite3_errmsg(sq3db->db_hdl));  */
 /*     } */
   }
   logdebug("TDEBUG - into psql_insert - %d \n", seq_no);
@@ -580,7 +580,7 @@ psql_create_database(Database* db)
 
   db->create = psql_create_database;
   db->release = psql_release;
-  db->create_table = psql_create_table;
+  db->table_create = psql_create_table;
   db->insert = psql_insert;
   db->add_sender_id = psql_add_sender_id;
   db->get_metadata = psql_get_metadata;

@@ -39,6 +39,7 @@
 #include <mbuf.h>
 #include <oml_value.h>
 #include "client_handler.h"
+#include "schema.h"
 #include "util.h"
 
 #define DEF_TABLE_COUNT 10
@@ -105,56 +106,54 @@ client_handler_free (ClientHandler* self)
  * \param value the value to put in the database
  */
 void
-process_schema(
-  ClientHandler* self,
-  char* value
-) {
-  char* p = value;
-  while (!(*p == ' ' || *p == '\0')) p++;
-  if (*p == '\0') {
-    logerror("While parsing 'schema'. Can't find index (%s)\n", value);
+process_schema(ClientHandler* self, char* value)
+{
+  struct schema *schema = schema_from_meta (value);
+  if (!schema) {
+    logerror ("Schema parsing failed; disconnecting client.\n");
+    logerror ("Failed schema: %s\n", value);
     self->state = C_PROTOCOL_ERROR;
     return;
   }
-  *(p++) = '\0';
-  int index = atoi(value);
-  DbTable* t = database_get_table(self->database, p);
-  if (t == NULL)
-    {
-      logerror("While parsing schema '%s'.  Can't find table '%s' or the client declared a schema that doesn't match the previous declaration.\n", value, p);
-      self->state = C_PROTOCOL_ERROR;
-      return;   // error parsing schema
-    }
+  int index = schema->index;
+  DbTable* table = database_find_or_create_table(self->database, schema);
+  schema_free (schema);
+  if (table == NULL) {
+    logerror("Can't find table '%s' or client schema doesn't match the existing table.\n",
+             table->schema->name);
+    logerror("Failed schema: %s\n", value);
+    self->state = C_PROTOCOL_ERROR;
+    return;
+  }
 
   if (index >= self->table_size) {
-    DbTable** old = self->tables;
-    int* old_seq_no_offset = self->seq_no_offset;
-    int old_count = self->table_size;
+    size_t new_size = self->table_size + DEF_TABLE_COUNT;
+    DbTable **new_tables = xrealloc (self->tables, new_size * sizeof (DbTable*));
+    int *new_seq_no_offset = xrealloc (self->seq_no_offset, new_size * sizeof (int));
 
-    self->table_size += DEF_TABLE_COUNT;
-    self->tables = xcalloc(self->table_size, sizeof(DbTable*));
-    self->seq_no_offset = xcalloc(self->table_size, sizeof (int));
-    int i;
-    for (i = old_count - 1; i >= 0; i--) {
-      self->tables[i] = old[i];
-      self->seq_no_offset[i] = old_seq_no_offset[i];
+    if (!new_tables || !new_seq_no_offset) {
+      logerror ("Failed to allocate memory for client table vector (size %d)", new_size);
+      return;
     }
+    self->table_size = new_size;
+    self->tables = new_tables;
+    self->seq_no_offset = new_seq_no_offset;
   }
-  self->tables[index] = t;
+
+  self->tables[index] = table;
   // FIXME:  schema must come after sender-id
   // Look up the max sequence number for this sender in this table
-  self->seq_no_offset[index] = self->database->get_max_seq_no (self->database, t, self->sender_id);
+  self->seq_no_offset[index] = self->database->get_max_seq_no (self->database, table, self->sender_id);
 
   /* Reallocate the values vector if this schema has more columns than can fit already. */
-  if (t->col_size > self->value_count)
-    {
-      xfree (self->values);
-      self->value_count = t->col_size + DEF_NUM_VALUES;
-      self->values = xmalloc (self->value_count * sizeof (OmlValue));
-      if (self->values == NULL)
-          logwarn("Could not allocate values vector with %d elements\n",
-                 self->value_count);
-    }
+  if (table->schema->nfields > self->value_count) {
+    int new_count = table->schema->nfields + DEF_NUM_VALUES;
+    OmlValue *new = xrealloc (self->values, new_count * sizeof (OmlValue));
+    if (!new)
+      logwarn("Could not allocate values vector with %d elements\n", new_count);
+    self->value_count = new_count;
+    self->values = new;
+  }
 }
 
 /**
@@ -163,7 +162,6 @@ process_schema(
  * \param key the key
  * \param value the value
  */
-
 static void
 process_meta(
   ClientHandler* self,
@@ -388,11 +386,8 @@ process_bin_message(
  * \param length length of msg
  */
 static void
-process_text_data_message(
-  ClientHandler* self,
-  char** msg,
-  int    size
-) {
+process_text_data_message(ClientHandler* self, char** msg, int size)
+{
   if (size < 3) {
     logerror("Not enough parameters in text data message\n");
     return;
@@ -413,25 +408,20 @@ process_text_data_message(
     return;
   }
 
-  if (table->col_size != size - 3) {
-    logerror("Data item mismatch for table '%s'\n", table->name);
+  struct schema *schema = table->schema;
+  if (schema->nfields != size - 3) {
+    logerror("Data item mismatch for table '%s'\n", schema->name);
     return;
   }
 
   int i;
-  DbColumn** cols = table->columns;
   OmlValue* v = self->values;
   char** val_ap = msg + 3;
-  for (i= 0; i < table->col_size; i++, cols++, v++, val_ap++) {
-    DbColumn* col = (*cols);
+  for (i= 0; i < schema->nfields; i++, v++, val_ap++) {
     char* val = *val_ap;
-
-    v->type = col->type;
+    v->type = schema->fields[i].type;
     if (oml_value_from_s (v, val) == -1)
-      {
-        logerror("Error converting value of type %d from string '%s'\n",
-               col->type, val);
-      }
+      logerror("Error converting value of type %d from string '%s'\n", v->type, val);
   }
 
   self->database->insert(self->database, table, self->sender_id, seq_no,

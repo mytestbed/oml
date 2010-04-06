@@ -20,6 +20,8 @@ oml2_server_SOURCES = \
 	util.h \
 	table_descr.c \
 	table_descr.h \
+	schema.c\
+	schema.h \
 	version.h
 
 if HAVE_PG

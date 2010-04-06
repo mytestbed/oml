@@ -1,0 +1,399 @@
+/*
+ * Copyright 2010 National ICT Australia (NICTA), Australia
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#include <log.h>
+#include <mem.h>
+#include <oml_value.h>
+#include "schema.h"
+#include "util.h"
+
+static char *
+skip_white (char *p)
+{
+  if (p)
+    while (*p && isspace (*p)) p++;
+  return p;
+}
+
+static char *
+find_white (char *p)
+{
+  if (p)
+    while (*p && !isspace (*p)) p++;
+  return p;
+}
+
+/*
+ * Parse a schema field like '<name>:<type>' into a struct schema_field.
+ * The storage for the schema_field must be provided by the caller.
+ * "len" must give the number of characters in the field; the field does not
+ * have to be zero-terminated, but the string pointed to by "meta" should.
+ * Returns 0 on success, -1 on failure.
+ */
+int
+schema_field_from_meta (char *meta, size_t len, struct schema_field *field)
+{
+  char *p = meta;
+  char *q = memchr (p, ':', len);
+  if (!q)
+    return -1;
+  field->name = xstrndup (p, q++ - p);
+  char *type = xstrndup (q, len - (q - p));
+  if (!field->name || !type)
+    goto exit;
+  field->type = oml_type_from_s (type);
+  // OML_LONG_VALUE is deprecated, and converted to INT32 internally in server.
+  field->type = (field->type == OML_LONG_VALUE) ? OML_INT32_VALUE : field->type;
+  if (field->type == OML_UNKNOWN_VALUE)
+    goto exit;
+  xfree (type);
+  return 0;
+ exit:
+  if (!field->name) xfree (field->name);
+  if (!type) xfree (type);
+  return -1;
+}
+
+/*
+ * Parse a schema metadata line from client headers.  For a valid schema,
+ * return a pointer to the schema.  Otherwise, return NULL.
+ *
+ * Schema meta lines look like:
+ *
+ *  schema: <n> <name> <field_name1>:<field_type1> <field_name2>:<field_type2> ...
+ *
+ *  We get everything from the first colon ':' onwards in "meta" parameter.
+ */
+struct schema*
+schema_from_meta (char *meta)
+{
+  if (!meta) return NULL;
+
+  int index;
+  struct schema *schema = NULL;
+  struct schema_field *fields = NULL;
+  int nfields = -1;
+  size_t fields_size = 0;
+  char *name;
+  char *p = meta, *q;
+  index = strtol (p, &q, 0);
+  if (p == q)
+    return NULL; /* no digits found */
+  p = q;
+
+  p = skip_white (p);
+  q = find_white (p);
+  name = xstrndup (p, (q - p));
+  p = q;
+
+  while (q && *q) {
+    p = skip_white (p);
+    q = find_white (p);
+    if (p != q) {
+      nfields++;
+      fields_size += sizeof (struct schema_field);
+      struct schema_field *f = xrealloc (fields, fields_size);
+      if (!f) goto exit;
+      else fields = f;
+      if (schema_field_from_meta (p, (q - p), &fields[nfields]) == -1)
+        goto exit;
+      p = q;
+    }
+  }
+  schema = xmalloc (sizeof (struct schema));
+  if (!schema) goto exit;
+
+  schema->nfields = nfields + 1;
+  schema->index = index;
+  schema->fields = fields;
+  schema->name = name;
+  return schema;
+ exit:
+  if (name) xfree (name);
+  if (fields) {
+    int i = 0;
+    for (; i < nfields; i++)
+      if (fields[i].name)
+        xfree (fields[i].name);
+    xfree (fields);
+  }
+  if (schema) xfree (schema);
+  return NULL;
+}
+
+/*
+ * Parse an SQL name/type pair into a schema field object.  "sql"
+ * points to the start of the column specifier.  The column specifier
+ * can be part of a longer string and does not have to be null
+ * terminated.  There must be no leading whitespace.
+ *
+ * "len" is the length of the column specifier, from the first
+ * character of the name up to but not including the comma (or closing
+ * parenthesis) following the type.
+ *
+ * The parse result is stored in "field", which must be allocated by
+ * the caller.
+ *
+ * Return 0 on success, -1 on failure.
+ *
+ * Example input:
+ *
+ *  "rx_packets INTEGER, tx_packets INTEGER, ..."
+ *   ^          ^
+ *   |          |_type
+ *   |            type_len=7
+ *   |_ name
+ *      name_len=10
+ *
+ *      len = 10 + 7 + 1 = 18
+ *
+ *  The first four fields are handled specially, because they
+ *  represent OML metadata -- they must always be present.  They are:
+ *
+ *  oml_sender_id INTEGER
+ *  oml_seq       INTEGER
+ *  oml_ts_client REAL
+ *  oml_ts_server REAL
+ */
+int
+schema_field_from_sql (char *sql, size_t len, struct schema_field *field)
+{
+  char *p = sql, *q;
+  q = find_white (p);
+  field->name = xstrndup (p, q - p);
+  q = skip_white (q);
+  char *type = xstrndup (q, len - (q - p));
+  if (!field->name || !type)
+    goto exit;
+  field->type = sql_to_oml_type (type);
+  // OML_LONG_VALUE is deprecated, and converted to INT32 internally in server.
+  field->type = (field->type == OML_LONG_VALUE) ? OML_INT32_VALUE : field->type;
+  if (field->type == OML_UNKNOWN_VALUE)
+    goto exit;
+  xfree (type);
+  return 0;
+ exit:
+  if (!field->name) xfree (field->name);
+  if (!type) xfree (type);
+  return -1;
+}
+
+/*
+ *  Check to see if "field" represents a metadata column.  If so,
+ *  check the type matches the expected type.  If the type mismatches,
+ *  return -1.  If the type matches, return 0.  If the field is not a
+ *  metadata field, return 1.
+ */
+int
+schema_check_metadata (struct schema_field *field)
+{
+  struct schema_field metadata [] =
+    {
+      { "oml_sender_id", OML_INT32_VALUE },
+      { "oml_seq", OML_INT32_VALUE },
+      { "oml_ts_client", OML_DOUBLE_VALUE },
+      { "oml_ts_server", OML_DOUBLE_VALUE },
+    };
+  size_t i;
+  for (i = 0; i < LENGTH (metadata); i++) {
+    if (!strcmp (metadata[i].name, field->name)) {
+      if (metadata[i].type != field->type) {
+        char *expected = oml_type_to_s (metadata[i].type);
+        char *received = oml_type_to_s (field->type);
+        logerror ("Existing table metadata type mismatch (%s expected %s, got %s)\n",
+                  metadata[i].name, expected, received);
+        return -1;
+      } else return 0;
+    }
+  }
+  return 1;
+}
+
+struct schema*
+schema_from_sql (char *sql)
+{
+  const char * const command = "CREATE TABLE ";
+  int command_len = strlen (command);
+  /* Check that it's a CREATE TABLE statement */
+  if (strncmp (sql, command, command_len)) return NULL;
+
+  struct schema *schema = NULL;
+  struct schema_field *fields = NULL;
+  int nfields = 0; /* Different to schema_from_meta () */
+  size_t fields_size = 0;
+  char *name;
+  char *p = sql + command_len;
+  char *q;
+  p = skip_white (p);
+  q = find_white (p);
+  name = xstrndup (p, (q - p));
+  p = q;
+  p = skip_white (p);
+
+  if (*p++ != '(') /* Opening paren of colspec */
+    goto exit;
+
+  q = p;
+  while (q && *q && *q != ';') {
+    p = skip_white (p);
+    q = memchr (p, ',', strlen (p));
+    if (q == NULL) {
+      q = memchr (p, ')', strlen (p));
+    }
+    if (q != NULL) {
+      fields_size = (nfields + 1) * sizeof (struct schema_field);
+      struct schema_field *f = xrealloc (fields, fields_size);
+      if (!f)
+        goto exit;
+      fields = f;
+      if (schema_field_from_sql (p, (q - p), &fields[nfields]) == -1)
+        goto exit;
+      int n = schema_check_metadata (&fields[nfields]);
+      if (n == -1)
+        goto exit;
+      /* n == 0 means metadata column (must be skipped here) */
+      if (n == 0) {
+        xfree (fields[nfields].name);
+        fields[nfields].name = NULL;
+      }
+      nfields += n;
+      p = ++q;
+    }
+  }
+
+  schema = xmalloc (sizeof (struct schema));
+  if (!schema) goto exit;
+
+  schema->name = name;
+  schema->index = -1;
+  schema->fields = fields;
+  schema->nfields = nfields;
+  return schema;
+
+ exit:
+  if (name) xfree (name);
+  if (fields) {
+    int i = 0;
+    for (; i < nfields; i++)
+      if (fields[i].name)
+        xfree (fields[i].name);
+      xfree (fields);
+  }
+  if (schema) xfree (schema);
+  return NULL;
+}
+
+void
+schema_free (struct schema *schema)
+{
+  if (schema) {
+    if (schema->name)
+      xfree (schema->name);
+    if (schema->fields) {
+      int i;
+      for (i = 0; i < schema->nfields; i++)
+        xfree (schema->fields[i].name);
+      xfree (schema->fields);
+    }
+    xfree (schema);
+  }
+}
+
+struct schema*
+schema_copy (struct schema *schema)
+{
+  if (!schema) return NULL;
+  struct schema *new = xmalloc (sizeof (struct schema));
+  if (!new) return NULL;
+  new->name = xstrndup (schema->name, strlen (schema->name));
+  new->index = schema->index;
+  new->nfields = schema->nfields;
+  new->fields = xcalloc (new->nfields, sizeof (struct schema_field));
+  if (!new->name || !new->fields)
+    goto exit;
+  int i;
+  for (i = 0; i < new->nfields; i++) {
+    new->fields[i].name = xstrndup (schema->fields[i].name, strlen (schema->fields[i].name));
+    if (!new->fields[i].name)
+      goto exit;
+    new->fields[i].type = schema->fields[i].type;
+  }
+  return new;
+ exit:
+  if (new->name) xfree (new->name);
+  if (new->fields) {
+    for (i = 0; i < new->nfields; i++)
+      if (new->fields[i].name)
+        xfree (new->fields[i].name);
+    xfree (new->fields);
+  }
+  if (new) xfree (new);
+  return NULL;
+}
+
+/*
+ * Check if two schema are different.  Schema are equal if they have the
+ * same names and identical field names/numbers/types.  They may have a
+ * different index and still be considered equal.
+ *
+ * If the schema are the same object, or if the schema are identical
+ * in a deep compare sense as outlined above, return 0.
+ *
+ * If either s1 or s2 is NULL, or if their names differ, or if they
+ * differ in number of fields, or if either's fields vector is NULL,
+ * return -1.
+ *
+ * If s1 and s2 have differing field names and/or types, return the
+ * column number of the field that differs (fields are numbered from 1
+ * in this case to distinguish from return value 0, corresponding to
+ * "schema are equal".).
+ */
+int
+schema_diff (struct schema *s1, struct schema *s2)
+{
+  if (s1 == s2) return 0;
+  if (!s1 || !s2) return -1;
+  if (strcmp (s1->name, s2->name)) return -1;
+  if (s1->fields && s2->fields) {
+    if (s1->nfields != s2->nfields) return -1;
+    int i;
+    for (i = 0; i < s1->nfields; i++) {
+      if (strcmp (s1->fields[i].name, s2->fields[i].name) ||
+          s1->fields[i].type != s2->fields[i].type)
+        return i+1;
+    }
+  } else
+    return -1;
+  return 0;
+}
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 4
+ indent-tabs-mode: nil
+ End:
+*/

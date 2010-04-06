@@ -134,7 +134,8 @@ on_connect(Socket* new_sock, void* handle)
   logdebug("New client connected\n");
   client_handler_new(new_sock,hostname,user);
 }
-
+#include <mstring.h>
+#include "schema.h"
 int
 main(int argc, const char **argv)
 {
