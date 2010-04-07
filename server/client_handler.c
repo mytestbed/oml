@@ -75,6 +75,7 @@ client_handler_new(Socket* new_sock, char* hostname, char* user)
   self->DbHostname = hostname;
   self->DbUser = user;
   eventloop_on_read_in_channel(new_sock, client_callback, status_callback, (void*)self);
+  xmemreport ();
   return self;
 }
 
@@ -96,6 +97,8 @@ client_handler_free (ClientHandler* self)
     }
   xfree (self->values);
   xfree (self);
+
+  xmemreport ();
 
   // FIXME:  What about destroying the socket data structure --> memory leak?
 }
