@@ -25,6 +25,7 @@
 #define SCHEMA_H__
 
 #include <oml2/omlc.h>
+#include <mstring.h>
 
 struct schema_field
 {
@@ -45,7 +46,7 @@ struct schema* schema_from_sql (char *sql);
 struct schema* schema_copy (struct schema *schema);
 void schema_free (struct schema *schema);
 int schema_diff (struct schema *s1, struct schema *s2);
-
+MString* schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT));
 
 #endif /* SCHEMA_H__ */
 

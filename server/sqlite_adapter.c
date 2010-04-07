@@ -198,51 +198,6 @@ sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id)
 }
 
 MString*
-sq3_make_sql_create (DbTable* table)
-{
-  int n = 0;
-  int max = table->schema->nfields;
-
-  if (max <= 0) {
-    logerror ("Tried to create SQL CREATE statement for table with 0 columns\n");
-    return NULL;
-  }
-
-  MString* mstr = mstring_create ();
-  if (mstr == NULL) {
-    logerror("Failed to create managed string for preparing SQL CREATE statement\n");
-    return NULL;
-  }
-
-  /* Build SQL "CREATE TABLE" statement */
-  n += mstring_set (mstr, "CREATE TABLE ");
-  n += mstring_cat (mstr, table->schema->name);
-  n += mstring_cat (mstr,
-                    " (oml_sender_id INTEGER, oml_seq INTEGER, "
-                    "oml_ts_client REAL, oml_ts_server REAL");
-
-  int i = 0;
-  while (max > 0) {
-    OmlValueT type = table->schema->fields[i].type;
-    char *name = table->schema->fields[i].name;
-    const char* t = oml_to_sql_type (type);
-    if (!t) {
-      logerror("Unknown type in column '%s'\n", name);
-      goto fail_exit;
-    }
-    n += mstring_sprintf (mstr, ", %s %s", name, t);
-    i++; max--;
-  }
-  n += mstring_cat (mstr, ");");
-  if (n != 0) goto fail_exit;
-  return mstr;
-
- fail_exit:
-  if (mstr) mstring_delete (mstr);
-  return NULL;
-}
-
-MString*
 sq3_make_sql_insert (DbTable* table)
 {
   int n = 0;
@@ -306,7 +261,7 @@ table_create (Database* db, DbTable* table, int backend_create)
   Sq3DB* sq3db = (Sq3DB*)db->adapter_hdl;
 
   if (backend_create) {
-    create = sq3_make_sql_create (table);
+    create = schema_to_sql (table->schema, oml_to_sql_type);
     if (!create) {
       logwarn("Failed to build SQL CREATE TABLE statement string for table %s.\n",
               table->schema->name);

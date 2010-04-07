@@ -26,6 +26,7 @@
 
 #include <log.h>
 #include <mem.h>
+#include <mstring.h>
 #include <oml_value.h>
 #include "schema.h"
 #include "util.h"
@@ -388,6 +389,52 @@ schema_diff (struct schema *s1, struct schema *s2)
   } else
     return -1;
   return 0;
+}
+
+MString*
+schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT))
+{
+  int n = 0;
+  int max = schema->nfields;
+
+  if (max <= 0) {
+    logerror ("Tried to create SQL CREATE TABLE statement for schema with 0 columns\n");
+    return NULL;
+  }
+
+  MString* mstr = mstring_create ();
+  if (mstr == NULL) {
+    logerror("Failed to create managed string for preparing SQL CREATE TABLE statement\n");
+    return NULL;
+  }
+
+  /* Build SQL "CREATE TABLE" statement */
+  n += mstring_set (mstr, "CREATE TABLE ");
+  n += mstring_cat (mstr, schema->name);
+  n += mstring_sprintf (mstr, " (oml_sender_id %s, ", typemap (OML_INT32_VALUE));
+  n += mstring_sprintf (mstr, "oml_seq %s, ", typemap (OML_INT32_VALUE));
+  n += mstring_sprintf (mstr, "oml_ts_client %s, ", typemap (OML_DOUBLE_VALUE));
+  n += mstring_sprintf (mstr, "oml_ts_server %s", typemap (OML_DOUBLE_VALUE));
+
+  int i = 0;
+  while (max > 0) {
+    OmlValueT type = schema->fields[i].type;
+    char *name = schema->fields[i].name;
+    const char* t = typemap (type);
+    if (!t) {
+      logerror("Unknown type in column '%s'\n", name);
+      goto fail_exit;
+    }
+    n += mstring_sprintf (mstr, ", %s %s", name, t);
+    i++; max--;
+  }
+  n += mstring_cat (mstr, ");");
+  if (n != 0) goto fail_exit;
+  return mstr;
+
+ fail_exit:
+  if (mstr) mstring_delete (mstr);
+  return NULL;
 }
 
 /*
