@@ -256,7 +256,7 @@ oml_value_from_s (OmlValue *value, const char *value_s)
       {
         /* Make sure we do a deep copy */
         OmlValue v;
-        omlc_set_string (value->value, (char*)value_s);
+        omlc_set_string (v.value, (char*)value_s);
         oml_value_copy (&v.value, value->type, value);
         break;
       }

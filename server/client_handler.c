@@ -152,10 +152,12 @@ process_schema(ClientHandler* self, char* value)
   if (table->schema->nfields > self->value_count) {
     int new_count = table->schema->nfields + DEF_NUM_VALUES;
     OmlValue *new = xrealloc (self->values, new_count * sizeof (OmlValue));
-    if (!new)
+    if (!new) {
       logwarn("Could not allocate values vector with %d elements\n", new_count);
-    self->value_count = new_count;
-    self->values = new;
+    } else {
+      self->value_count = new_count;
+      self->values = new;
+    }
   }
 }
 
