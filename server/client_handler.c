@@ -163,6 +163,10 @@ process_schema(
           logwarn("Could not allocate values vector with %d elements\n",
                  self->value_count);
         }
+      else
+	{
+	  memset (self->values, 0, self->value_count * sizeof (OmlValue));
+	}
     }
 }
 
