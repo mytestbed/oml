@@ -1,3 +1,14 @@
+2010-04-08    <jolyon.white@nicta.com.au>
+
+	* OML:  New version 2.3.7.
+
+	* server/client_handler.c (process_text_data_message): Fix bug in
+	string handling for text protocol.  The client_handler_free()
+	function free()'s the string value pointers, but the text protocol
+	was not allocating new space for the pointers, only copying the
+	pointers (shallow copy).  This caused a crash when text clients
+	disconnected.  Fixes bug #266.
+
 2010-03-17    <jolyon.white@nicta.com.au>
 
 	* lib/client/misc.c (oml_value_copy): Make oml_value_copy() always
