@@ -430,7 +430,28 @@ process_text_data_message(
     switch(col->type) {
     case OML_LONG_VALUE: v->value.longValue = atol(val); break;
     case OML_DOUBLE_VALUE: v->value.doubleValue = (double)atof(val); break;
-    case OML_STRING_VALUE: v->value.stringValue.ptr = val; break;
+    case OML_STRING_VALUE: {
+      size_t len = strlen (val);
+      if (v->value.stringValue.ptr == NULL) {
+        v->value.stringValue.ptr = malloc (len + 1);
+        if (!v->value.stringValue.ptr) {
+          o_log (O_LOG_ERROR, "Could not allocate space for received value string\n");
+          return;
+        }
+        v->value.stringValue.size = len + 1;
+      } else if (len >= (size_t)v->value.stringValue.size) {
+        char *new = realloc (v->value.stringValue.ptr, len + 1);
+        if (!new) {
+          o_log (O_LOG_ERROR, "Failed to expand space for string value\n");
+          return;
+        }
+        v->value.stringValue.ptr = new;
+        v->value.stringValue.size = len + 1;
+      }
+      strncpy (v->value.stringValue.ptr, val, v->value.stringValue.size);
+      v->value.stringValue.length = len;
+      break;
+    }
     default:
       o_log(O_LOG_ERROR, "Bug: Unknown type %d in col '%s'\n",
 	    col->type, col->name);
