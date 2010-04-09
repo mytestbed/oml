@@ -574,10 +574,18 @@ class Metric < Struct.new(:name, :type, :opts)
     case type.to_sym
     when :string
       "OML_STRING_VALUE"
-    when :int, :integer, :long
+    when :long
       "OML_LONG_VALUE"
     when :double
       "OML_DOUBLE_VALUE"
+    when :int32
+      "OML_INT32_VALUE"
+    when :uint32
+      "OML_UINT32_VALUE"
+    when :int64
+      "OML_INT64_VALUE"
+    when :uint64
+      "OML_UINT64_VALUE"
     else
       "OML_UNKNOWN"
     end
