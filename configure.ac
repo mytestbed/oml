@@ -42,24 +42,35 @@ AC_CHECK_LIB([popt], [poptGetContext], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define i
 AC_CHECK_LIB([pthread], [pthread_create], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])], [missing_libs+=" libpthread"])
 AC_CHECK_LIB([m], [sqrt], [AC_DEFINE([HAVE_LIBM], [1], [Define if libm is installed (It should be!)])], [missing_libs+=" libm"])
 
-# Check that the PostgreSQL development libraries are installed, and work out how to compile/link against them.
-AC_PATH_PROG([HAVE_PGCFG], [pg_config])
+# Check if the user asked to build with PostgreSQL support enabled.
+AC_ARG_WITH([postgresql],
+		[AS_HELP_STRING([--with-postgresql],
+		  [support oml2-server storing measurements in a PostgreSQL database @<:@default=no@:>@])],
+		[],
+		[with_postgresql=no])
 
-AM_CONDITIONAL([HAVE_PG], [test "x${HAVE_PGCFG}" != "x"])
+if test "x$with_postgresql" != "xno"; then
+   # Check that the PostgreSQL development libraries are installed, and work out how to compile/link against them.
+   AC_PATH_PROG([HAVE_PGCFG], [pg_config])
+   AM_CONDITIONAL([HAVE_PG], [test "x${HAVE_PGCFG}" != "x"])
 
-if test "x$HAVE_PGCFG" != "x"; then
-   AC_DEFINE([HAVE_PG], [1], [Define if libpq is installed])
-   xxCFLAGS=-I`$HAVE_PGCFG --includedir`
-   xxLDFLAGS=-L`$HAVE_PGCFG --libdir`
-   AC_SUBST([LIBPQ_CFLAGS], [$xxCFLAGS])
-   AC_SUBST([LIBPQ_LDFLAGS], [$xxLDFLAGS])
-   AC_SUBST([LIBPQ_LIBS], [-lpq])
-   AC_MSG_CHECKING([how to include PostgreSQL headers])
-   AC_MSG_RESULT([$LIBPQ_CFLAGS])
-   AC_MSG_CHECKING([location of libpq])
-   AC_MSG_RESULT([$LIBPQ_LDFLAGS])
-#else
-#   missing_libs+=" libpq"
+   if test "x$HAVE_PGCFG" != "x"; then
+      AC_DEFINE([HAVE_PG], [1], [Define if libpq is installed])
+	  xxCFLAGS=-I`$HAVE_PGCFG --includedir`
+	  xxLDFLAGS=-L`$HAVE_PGCFG --libdir`
+	  AC_SUBST([LIBPQ_CFLAGS], [$xxCFLAGS])
+	  AC_SUBST([LIBPQ_LDFLAGS], [$xxLDFLAGS])
+	  AC_SUBST([LIBPQ_LIBS], [-lpq])
+	  AC_MSG_CHECKING([how to include PostgreSQL headers])
+	  AC_MSG_RESULT([$LIBPQ_CFLAGS])
+	  AC_MSG_CHECKING([location of libpq])
+	  AC_MSG_RESULT([$LIBPQ_LDFLAGS])
+   else
+	  missing_libs+=" libpq"
+   fi
+else
+   AC_DEFINE([HAVE_PG], [0], [Define if libpq is installed])
+   AM_CONDITIONAL([HAVE_PG], [0])
 fi
 
 
