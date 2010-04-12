@@ -14,6 +14,8 @@ libshared_la_SOURCES = \
 	mbuf.h \
 	mstring.c \
 	mstring.h \
+	mem.c \
+	mem.h \
 	oml_value.c \
 	oml_value.h \
 	log.c \

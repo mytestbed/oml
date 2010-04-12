@@ -29,58 +29,53 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include <log.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 #include <oml2/oml_writer.h>
 
+#include <log.h>
+#include <mem.h>
 #include <marshal.h>
 #include <mbuf.h>
 #include <oml_value.h>
 #include "client_handler.h"
+#include "schema.h"
 #include "util.h"
 
 #define DEF_TABLE_COUNT 10
 
 static void
-client_callback(SockEvtSource* source,
-  void* handle,
-  void* buf,
-  int buf_size
-);
+client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 
 static void
-status_callback(SockEvtSource* source,
-  SocketStatus status,
-  int errno,
-  void* handle
-);
-
+status_callback(SockEvtSource* source, SocketStatus status, int errno, void* handle);
 
 /**
  * \brief Create a client handler and associates it with the socket
  * \param newSock the socket from which the client is connected
+ * \param hostname
+ * \param user
  */
 void*
-client_handler_new(
-    Socket* newSock
-) {
-  ClientHandler* self = (ClientHandler *)malloc(sizeof(ClientHandler));
+client_handler_new(Socket* new_sock, char* hostname, char* user)
+{
+  ClientHandler* self = xmalloc(sizeof(ClientHandler));
   if (!self) return NULL;
-  memset(self, 0, sizeof(ClientHandler));
   self->value_count = DEF_NUM_VALUES;
-  self->values = (OmlValue*)malloc (self->value_count * sizeof (OmlValue));
+  self->values = (OmlValue*)xcalloc (self->value_count, sizeof (OmlValue));
   if (!self->values)
     {
-      free (self);
+      xfree (self);
       return NULL;
     }
-  memset (self->values, 0, self->value_count * sizeof (OmlValue));
   self->state = C_HEADER;
   self->content = C_TEXT_DATA;
   self->mbuf = mbuf_create ();
-  self->socket = newSock;
-  eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
+  self->socket = new_sock;
+  self->DbHostname = hostname;
+  self->DbUser = user;
+  eventloop_on_read_in_channel(new_sock, client_callback, status_callback, (void*)self);
+  xmemreport ();
   return self;
 }
 
@@ -90,9 +85,9 @@ client_handler_free (ClientHandler* self)
   if (self->database)
     database_release (self->database);
   if (self->tables)
-    free (self->tables);
+    xfree (self->tables);
   if (self->seq_no_offset)
-    free (self->seq_no_offset);
+    xfree (self->seq_no_offset);
   mbuf_destroy (self->mbuf);
   int i = 0;
   for (i = 0; i < self->value_count; i++)
@@ -100,8 +95,10 @@ client_handler_free (ClientHandler* self)
       if (self->values[i].type == OML_STRING_VALUE)
         free (self->values[i].value.stringValue.ptr);
     }
-  free (self->values);
-  free (self);
+  xfree (self->values);
+  xfree (self);
+
+  xmemreport ();
 
   // FIXME:  What about destroying the socket data structure --> memory leak?
 }
@@ -112,62 +109,56 @@ client_handler_free (ClientHandler* self)
  * \param value the value to put in the database
  */
 void
-process_schema(
-  ClientHandler* self,
-  char* value
-) {
-  char* p = value;
-  while (!(*p == ' ' || *p == '\0')) p++;
-  if (*p == '\0') {
-    logerror("While parsing 'schema'. Can't find index (%s)\n", value);
+process_schema(ClientHandler* self, char* value)
+{
+  struct schema *schema = schema_from_meta (value);
+  if (!schema) {
+    logerror ("Schema parsing failed; disconnecting client.\n");
+    logerror ("Failed schema: %s\n", value);
     self->state = C_PROTOCOL_ERROR;
     return;
   }
-  *(p++) = '\0';
-  int index = atoi(value);
-  DbTable* t = database_get_table(self->database, p);
-  if (t == NULL)
-    {
-      logerror("While parsing schema '%s'.  Can't find table '%s' or the client declared a schema that doesn't match the previous declaration.\n", value, p);
-      self->state = C_PROTOCOL_ERROR;
-      return;   // error parsing schema
-    }
+  int index = schema->index;
+  DbTable* table = database_find_or_create_table(self->database, schema);
+  schema_free (schema);
+  if (table == NULL) {
+    logerror("Can't find table '%s' or client schema doesn't match the existing table.\n",
+             table->schema->name);
+    logerror("Failed schema: %s\n", value);
+    self->state = C_PROTOCOL_ERROR;
+    return;
+  }
 
   if (index >= self->table_size) {
-    DbTable** old = self->tables;
-    int* old_seq_no_offset = self->seq_no_offset;
-    int old_count = self->table_size;
+    size_t new_size = self->table_size + DEF_TABLE_COUNT;
+    DbTable **new_tables = xrealloc (self->tables, new_size * sizeof (DbTable*));
+    int *new_seq_no_offset = xrealloc (self->seq_no_offset, new_size * sizeof (int));
 
-    self->table_size += DEF_TABLE_COUNT;
-    self->tables = (DbTable**)malloc(self->table_size * sizeof(DbTable*));
-    self->seq_no_offset = (int*)malloc(self->table_size * sizeof (int));
-    int i;
-    for (i = old_count - 1; i >= 0; i--) {
-      self->tables[i] = old[i];
-      self->seq_no_offset[i] = old_seq_no_offset[i];
+    if (!new_tables || !new_seq_no_offset) {
+      logerror ("Failed to allocate memory for client table vector (size %d)", new_size);
+      return;
     }
+    self->table_size = new_size;
+    self->tables = new_tables;
+    self->seq_no_offset = new_seq_no_offset;
   }
-  self->tables[index] = t;
+
+  self->tables[index] = table;
   // FIXME:  schema must come after sender-id
   // Look up the max sequence number for this sender in this table
-  self->seq_no_offset[index] = self->database->get_max_seq_no (self->database, t, self->sender_id);
+  self->seq_no_offset[index] = self->database->get_max_seq_no (self->database, table, self->sender_id);
 
   /* Reallocate the values vector if this schema has more columns than can fit already. */
-  if (t->col_size > self->value_count)
-    {
-      free (self->values);
-      self->value_count = t->col_size + DEF_NUM_VALUES;
-      self->values = (OmlValue*) malloc (self->value_count * sizeof (OmlValue));
-      if (self->values == NULL)
-        {
-          logwarn("Could not allocate values vector with %d elements\n",
-                 self->value_count);
-        }
-      else
-	{
-	  memset (self->values, 0, self->value_count * sizeof (OmlValue));
-	}
+  if (table->schema->nfields > self->value_count) {
+    int new_count = table->schema->nfields + DEF_NUM_VALUES;
+    OmlValue *new = xrealloc (self->values, new_count * sizeof (OmlValue));
+    if (!new) {
+      logwarn("Could not allocate values vector with %d elements\n", new_count);
+    } else {
+      self->value_count = new_count;
+      self->values = new;
     }
+  }
 }
 
 /**
@@ -176,7 +167,6 @@ process_schema(
  * \param key the key
  * \param value the value
  */
-
 static void
 process_meta(
   ClientHandler* self,
@@ -194,7 +184,7 @@ process_meta(
         return;
       }
   } else if (strcmp(key, "experiment-id") == 0) {
-    self->database = database_find(value);
+    self->database = database_find(value,self->DbHostname,self->DbUser);
   } else if (strcmp(key, "content") == 0) {
     if (strcmp(value, "binary") == 0) {
       self->content = C_BINARY_DATA;
@@ -307,15 +297,10 @@ process_header(ClientHandler* self, MBuffer* mbuf)
   else
     return 1; // still in header
 }
-/**
- * \brief process a subset of the data
- * \param selfthe client handler
- */
+
 static void
-process_bin_data_message(
-  ClientHandler* self,
-  OmlBinaryHeader* header
-) {
+process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
+{
   MBuffer* mbuf = self->mbuf;
   int cnt = unmarshal_measurements(mbuf, header, self->values, self->value_count);
 
@@ -370,10 +355,10 @@ process_bin_message(
     sync_pos = -1;
   else
     sync_pos = sync - mbuf->base;
-  char* octets_str = to_octets (mbuf->base, mbuf->fill);
+  //  char* octets_str = to_octets (mbuf->base, mbuf->fill);
   //logdebug("Received %d octets (sync at %d):\t%s\n", mbuf->fill, sync_pos, octets_str);
   logdebug("Received %d octets (sync at %d)\n", mbuf->fill, sync_pos);
-  free (octets_str);
+  //xfree (octets_str);
 
   int res = unmarshal_init(mbuf, &header);
   //  int res = -1;
@@ -406,11 +391,8 @@ process_bin_message(
  * \param length length of msg
  */
 static void
-process_text_data_message(
-  ClientHandler* self,
-  char** msg,
-  int    size
-) {
+process_text_data_message(ClientHandler* self, char** msg, int size)
+{
   if (size < 3) {
     logerror("Not enough parameters in text data message\n");
     return;
@@ -431,25 +413,20 @@ process_text_data_message(
     return;
   }
 
-  if (table->col_size != size - 3) {
-    logerror("Data item mismatch for table '%s'\n", table->name);
+  struct schema *schema = table->schema;
+  if (schema->nfields != size - 3) {
+    logerror("Data item mismatch for table '%s'\n", schema->name);
     return;
   }
 
   int i;
-  DbColumn** cols = table->columns;
   OmlValue* v = self->values;
   char** val_ap = msg + 3;
-  for (i= 0; i < table->col_size; i++, cols++, v++, val_ap++) {
-    DbColumn* col = (*cols);
+  for (i= 0; i < schema->nfields; i++, v++, val_ap++) {
     char* val = *val_ap;
-
-    v->type = col->type;
+    v->type = schema->fields[i].type;
     if (oml_value_from_s (v, val) == -1)
-      {
-        logerror("Error converting value of type %d from string '%s'\n",
-               col->type, val);
-      }
+      logerror("Error converting value of type %d from string '%s'\n", v->type, val);
   }
 
   self->database->insert(self->database, table, self->sender_id, seq_no,
@@ -507,23 +484,19 @@ process_text_message(
  * \param buf data received from the socket
  * \param bufsize the size of the data set from the socket
  */
+#include <stdio.h>
 void
-client_callback(
-  SockEvtSource* source,
-  void* handle,
-  void* buf,
-  int buf_size
-) {
+client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
+{
   ClientHandler* self = (ClientHandler*)handle;
   MBuffer* mbuf = self->mbuf;
 
   int result = mbuf_write (mbuf, buf, buf_size);
 
-  if (result == -1)
-    {
-      logerror("Failed to write message from client into message buffer (mbuf_write())\n");
-      return;
-    }
+  if (result == -1) {
+    logerror("Failed to write message from client into message buffer (mbuf_write())\n");
+    return;
+  }
 
   process:
   switch (self->state)
@@ -571,17 +544,11 @@ client_callback(
  * \param handle the Client handler structure
  */
 void
-status_callback(
- SockEvtSource* source,
- SocketStatus status,
- int errno,
- void* handle
-) {
+status_callback(SockEvtSource* source, SocketStatus status, int errno, void* handle)
+{
   logdebug("Socket status changed to %s(%d) on source '%s'; error code is %d\n",
-        socket_status_string (status),
-        status,
-        source->name,
-        errno);
+           socket_status_string (status), status,
+           source->name, errno);
   switch (status)
     {
     case SOCKET_WRITEABLE:

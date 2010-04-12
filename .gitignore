@@ -13,3 +13,5 @@ ltmain.sh
 missing
 autom4te.cache
 m4/*.m4
+*.o
+*.lo

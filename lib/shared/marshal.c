@@ -413,8 +413,6 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   if (result == -1)
     return mbuf_remaining (mbuf) - PACKET_HEADER_SIZE;
 
-  logdebug("HEADER: %s\n", to_octets (header_str, LENGTH (header_str)));
-
   if (! (header_str[0] == SYNC_BYTE && header_str[1] == SYNC_BYTE))
     {
       logerror("Out of sync. Don't know how to get back\n");

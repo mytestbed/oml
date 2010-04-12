@@ -28,15 +28,6 @@
 int
 sq3_create_database(Database* db);
 
-void
-sq3_release(Database* db);
-
-void
-sq3_table_free (DbTable* table);
-
-int
-sq3_create_table(Database* database, DbTable* table);
-
 #endif /*SQLITE_ADAPTER_H_*/
 
 /*

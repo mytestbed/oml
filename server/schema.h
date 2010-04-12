@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,17 +20,35 @@
  * THE SOFTWARE.
  *
  */
-#ifndef SERVER_H_
-#define SERVER_H_
 
-#include "ocomm/o_socket.h"
+#ifndef SCHEMA_H__
+#define SCHEMA_H__
 
-void*
-client_handler_new(
-    Socket* newSock
-);
+#include <oml2/omlc.h>
+#include <mstring.h>
 
-#endif /*SERVER_H_*/
+struct schema_field
+{
+  char *name;
+  OmlValueT type;
+};
+
+struct schema
+{
+  char *name;
+  struct schema_field *fields;
+  int nfields;
+  int index;
+};
+
+struct schema* schema_from_meta (char *meta);
+struct schema* schema_from_sql (char *sql);
+struct schema* schema_copy (struct schema *schema);
+void schema_free (struct schema *schema);
+int schema_diff (struct schema *s1, struct schema *s2);
+MString* schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT));
+
+#endif /* SCHEMA_H__ */
 
 /*
  Local Variables:

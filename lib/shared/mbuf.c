@@ -25,6 +25,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "mem.h"
 #include "mbuf.h"
 
 #define DEF_BUF_SIZE 512
@@ -65,19 +66,17 @@ mbuf_check_invariant (MBuffer* mbuf)
 MBuffer*
 mbuf_create (void)
 {
-  MBuffer* mbuf = (MBuffer*) malloc (sizeof (MBuffer));
+  MBuffer* mbuf = xmalloc (sizeof (MBuffer));
   if (mbuf == NULL) return NULL;
-  memset (mbuf, 0, sizeof (MBuffer));
 
   mbuf->length = DEF_BUF_SIZE;
-  mbuf->base = (uint8_t*) malloc (mbuf->length * sizeof (uint8_t));
+  mbuf->base = xmalloc (mbuf->length);
 
   if (mbuf->base == NULL)
-	{
-	  free (mbuf);
-	  return NULL;
-	}
-  memset (mbuf->base, 0, mbuf->length);
+    {
+      xfree (mbuf);
+      return NULL;
+    }
 
   mbuf->rdptr = mbuf->base;
   mbuf->wrptr = mbuf->base;
@@ -94,8 +93,8 @@ mbuf_create (void)
 void
 mbuf_destroy (MBuffer* mbuf)
 {
-  free (mbuf->base);
-  free (mbuf);
+  xfree (mbuf->base);
+  xfree (mbuf);
 }
 
 uint8_t*
@@ -170,16 +169,11 @@ mbuf_resize (MBuffer* mbuf, size_t new_length)
   mbuf_check_invariant (mbuf);
 
   if (mbuf == NULL || mbuf->base == NULL)
-	return -1;
+    return -1;
 
   /* Don't resize if we don't have to */
   if (new_length <= mbuf->length)
-	return 0;
-
-  uint8_t* new = (uint8_t*) malloc (new_length * sizeof (uint8_t));
-  memset (new, 0, sizeof (new));
-  if (new == NULL)
-	return -1;
+    return 0;
 
   int wr_offset = mbuf->wrptr - mbuf->base;
   int rd_offset = mbuf->rdptr - mbuf->base;
@@ -187,10 +181,11 @@ mbuf_resize (MBuffer* mbuf, size_t new_length)
 
   assert (wr_offset == (int)mbuf->fill);
 
-  memcpy (new, mbuf->base, mbuf->fill);
-  free (mbuf->base);
-  mbuf->base = new;
+  uint8_t* new = xrealloc (mbuf->base, new_length);
+  if (new == NULL)
+    return -1;
 
+  mbuf->base = new;
   mbuf->wrptr = mbuf->base + wr_offset;
   mbuf->rdptr = mbuf->base + rd_offset;
   mbuf->msgptr = mbuf->base + msg_offset;
@@ -207,9 +202,9 @@ int
 mbuf_check_resize (MBuffer* mbuf, size_t bytes)
 {
   if (mbuf->wr_remaining < bytes)
-	return mbuf_resize (mbuf, 2 * mbuf->length);
+    return mbuf_resize (mbuf, 2 * mbuf->length);
   else
-	return 0;
+    return 0;
 }
 
 /**
@@ -234,7 +229,7 @@ mbuf_write (MBuffer* mbuf, const uint8_t* buf, size_t len)
   mbuf_check_invariant (mbuf);
 
   if (mbuf_check_resize (mbuf, len) == -1)
-	return -1;
+    return -1;
 
   memcpy (mbuf->wrptr, buf, len);
 
@@ -330,7 +325,7 @@ mbuf_find (MBuffer* mbuf, uint8_t c)
 
   int result = -1;
   if (*p == c)
-	result = p - mbuf->rdptr;
+    result = p - mbuf->rdptr;
 
   mbuf_check_invariant (mbuf);
   return result;
@@ -349,7 +344,7 @@ mbuf_find_not (MBuffer* mbuf, uint8_t c)
 
   int result = -1;
   if (*p != c)
-	result = p - mbuf->rdptr;
+    result = p - mbuf->rdptr;
 
   mbuf_check_invariant (mbuf);
   return result;
@@ -410,7 +405,7 @@ mbuf_reset_write (MBuffer* mbuf)
 
   // If in the middle of a read, can't do a write reset
   if (mbuf->rdptr > mbuf->msgptr)
-	return -1;
+    return -1;
 
   size_t msglen = mbuf->wrptr - mbuf->msgptr;
   mbuf->fill -= msglen;
@@ -431,7 +426,7 @@ mbuf_reset_read (MBuffer* mbuf)
 
   // If in the middle of a write, can't do a read reset
   if (mbuf->msgptr > mbuf->rdptr)
-	return -1;
+    return -1;
 
   mbuf->rdptr = mbuf->msgptr;
   mbuf->rd_remaining = mbuf->wrptr - mbuf->rdptr;
@@ -449,7 +444,7 @@ mbuf_consume_message (MBuffer* mbuf)
 
   // Can't consume message if we're in the middle of writing it
   if (mbuf->msgptr > mbuf->rdptr)
-	return -1;
+    return -1;
 
   mbuf->msgptr = mbuf->rdptr;
 
@@ -501,14 +496,14 @@ char*
 to_octets (unsigned char* buf, int len)
 {
   const int octet_width = 5;
-  char* out = (char*) malloc ((octet_width * len + 1) * sizeof (char));
+  char* out = xmalloc (octet_width * len + 1);
   int i = 0;
   int count = 0;
   for (i = 0; i < len; i++)
-	{
-	  int n = snprintf (&out[count], octet_width + 1, "0x%02x ", (unsigned int)buf[i]);
-	  count += n;
-	}
+    {
+      int n = snprintf (&out[count], octet_width + 1, "0x%02x ", (unsigned int)buf[i]);
+      count += n;
+    }
 
   return out;
 }

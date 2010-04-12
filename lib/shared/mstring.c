@@ -20,9 +20,12 @@
  * THE SOFTWARE.
  *
  */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <assert.h>
+#include "mem.h"
 #include "mstring.h"
 
 #define DEFAULT_MSTRING_SIZE 64
@@ -30,27 +33,25 @@
 MString*
 mstring_create (void)
 {
-  MString* mstr = (MString*)malloc (sizeof (MString));
+  MString* mstr = xmalloc (sizeof (MString));
 
   if (mstr)
-	{
-	  mstr->buf = (char*)malloc (DEFAULT_MSTRING_SIZE * sizeof (char));
-	  if (mstr->buf)
-		{
-		  mstr->size = DEFAULT_MSTRING_SIZE;
-		  mstr->length = 0;
-		  memset (mstr->buf, 0, mstr->size);
-
-		  return mstr;
-		}
-	  else
-		{
-		  free (mstr);
-		  return NULL;
-		}
-	}
+    {
+      mstr->buf = xmalloc (DEFAULT_MSTRING_SIZE);
+      if (mstr->buf)
+        {
+          mstr->size = DEFAULT_MSTRING_SIZE;
+          mstr->length = 0;
+          return mstr;
+        }
+      else
+        {
+          xfree (mstr);
+          return NULL;
+        }
+    }
   else
-	return NULL;
+    return NULL;
 }
 
 int
@@ -59,17 +60,13 @@ mstring_set (MString* mstr, const char* str)
   if (mstr == NULL || str == NULL) return -1;
   size_t len = strlen (str);
 
-  if (mstr->size < len + 1)
-	{
-	  size_t new_size = len + DEFAULT_MSTRING_SIZE + 1;
-	  char* new = (char*) malloc (new_size * sizeof (char));
-	  if (new == NULL) return -1;
-
-	  memset (new, 0, new_size);
-	  free (mstr->buf);
-	  mstr->buf = new;
-	  mstr->size = new_size;
-	}
+  if (mstr->size < len + 1) {
+    size_t new_size = len + DEFAULT_MSTRING_SIZE + 1;
+    char* new = xrealloc (mstr->buf, new_size);
+    if (new == NULL) return -1;
+    mstr->buf = new;
+    mstr->size = new_size;
+  }
 
   assert (mstr->size > len);
 
@@ -88,20 +85,20 @@ mstring_cat (MString* mstr, const char* str)
   size_t len = strlen (str);
 
   if (mstr->size < mstr->length + len + 1)
-	{
-	  size_t new_size = mstr->size + len + DEFAULT_MSTRING_SIZE + 1;
-	  char* new = (char*) malloc (new_size * sizeof (char));
-	  if (new == NULL) return -1;
+    {
+      size_t new_size = mstr->size + len + DEFAULT_MSTRING_SIZE + 1;
+      char* new = xmalloc (new_size);
+      if (new == NULL) return -1;
 
-	  assert (new_size > mstr->length);
+      assert (new_size > mstr->length);
 
-	  memset (new, 0, new_size);
-	  strncpy (new, mstr->buf, new_size);
+      memset (new, 0, new_size);
+      strncpy (new, mstr->buf, new_size);
 
-	  free (mstr->buf);
-	  mstr->buf = new;
-	  mstr->size = new_size;
-	}
+      xfree (mstr->buf);
+      mstr->buf = new;
+      mstr->size = new_size;
+    }
 
   assert (mstr->size > mstr->length + len);
 
@@ -113,35 +110,62 @@ mstring_cat (MString* mstr, const char* str)
   return 0;
 }
 
+int
+mstring_sprintf (MString *mstr, const char *fmt, ...)
+{
+  char *buf = mstr->buf + mstr->length;
+  size_t space = mstr->size - mstr->length;
+  size_t n;
+  va_list va;
+  va_start (va, fmt);
+  n = vsnprintf (buf, space, fmt, va);
+  if (n >= space) {
+    char *new = xrealloc (mstr->buf, mstr->length + n + 1);
+    if (!new)
+      return -1;
+    mstr->buf = new;
+    mstr->size = mstr->length + n + 1;
+    buf = mstr->buf + mstr->length;
+    space = n + 1;
+    va_start (va, fmt);
+    n = vsnprintf (buf, space, fmt, va);
+    if (n >= space)
+      return -1;
+  }
+  va_end (va);
+  mstr->length += n;
+  return 0;
+}
+
 size_t
 mstring_len (MString* mstr)
 {
   if (mstr)
-	{
-	  assert (mstr->buf && mstr->length == strlen (mstr->buf));
-	  return mstr->length;
-	}
+    {
+      assert (mstr->buf && mstr->length == strlen (mstr->buf));
+      return mstr->length;
+    }
   else
-	return 0;
+    return 0;
 }
 
 char*
 mstring_buf (MString* mstr)
 {
   if (mstr)
-	return mstr->buf;
+    return mstr->buf;
   else
-	return NULL;
+    return NULL;
 }
 
 void
 mstring_delete (MString* mstr)
 {
   if (mstr)
-	{
-	  free (mstr->buf);
-	  free (mstr);
-	}
+    {
+      xfree (mstr->buf);
+      xfree (mstr);
+    }
 }
 
 /*

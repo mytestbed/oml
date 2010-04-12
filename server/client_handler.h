@@ -23,6 +23,10 @@
 #ifndef CLIENT_HANDLER_H_
 #define CLIENT_HANDLER_H_
 
+#include <time.h>
+#include <ocomm/o_socket.h>
+#include <mbuf.h>
+
 #include "database.h"
 
 typedef enum _cstate {
@@ -40,6 +44,8 @@ typedef struct _clientHandler {
   char name[MAX_STRING_SIZE];
 
   Database*   database;
+  char*       DbHostname;
+  char*       DbUser;
   DbTable**   tables;
   int*        seq_no_offset;
   int         table_size;    // size of tables array and seq_no_offset array
@@ -52,15 +58,11 @@ typedef struct _clientHandler {
 
   OmlValue*   values;
   int         value_count;
-
-  OmlValue    table_name;
-
-  long        time_offset;  // value to add to remote ts to
+  time_t      time_offset;  // value to add to remote ts to
                             // sync time across all connections
-
-
 } ClientHandler;
 
+void *client_handler_new (Socket* new_sock, char* hostname, char* user);
 
 #endif /*CLIENT_HANDLER_H_*/
 

@@ -20,79 +20,127 @@
  * THE SOFTWARE.
  *
  */
-/*!\file main.c
-  \brief This file is the starting point.
-*/
 
 #include <config.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <popt.h>
 
 #include <oml2/oml_writer.h>
 #include <log.h>
+#include <mem.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 
+#include "util.h"
 #include "version.h"
-#include "server.h"
+#include "client_handler.h"
+#include "sqlite_adapter.h"
+#ifdef HAVE_PG
+#include "psql_adapter.h"
+#endif
 
-#define DEF_PORT 3003
-#define DEF_PORT_STR "3003"
+void
+die (const char *fmt, ...)
+{
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_ERROR, fmt, va);
+  va_end (va);
+  exit (EXIT_FAILURE);
+}
+
+#define DEFAULT_PORT 3003
+#define DEFAULT_PORT_STR "3003"
 #define DEFAULT_LOG_FILE "oml_server.log"
+#define DEFAULT_DB_HOST "localhost"
+#define DEFAULT_DB_USER "dbuser"
+#define DEFAULT_DB_BACKEND "sqlite"
 
-static int listen_port = DEF_PORT;
+static int listen_port = DEFAULT_PORT;
 char* g_database_data_dir = ".";
 
 static int log_level = O_LOG_INFO;
 static char* logfile_name = DEFAULT_LOG_FILE;
+static char* hostname = DEFAULT_DB_HOST;
+static char* user = DEFAULT_DB_USER;
+static char* backend = DEFAULT_DB_BACKEND;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
-  { "listen", 'l', POPT_ARG_INT, &listen_port, 0,
-        "Port to listen for TCP based clients", DEF_PORT_STR},
-
-  { "data-dir", '\0', POPT_ARG_STRING, &g_database_data_dir, 0,
-        "Directory to store dtabase files" },
-  { "debug-level", 'd', POPT_ARG_INT, &log_level, 0,
-        "Debug level - error:1 .. debug:4"  },
-  { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0,
-        "File to log to", DEFAULT_LOG_FILE },
+  { "listen", 'l', POPT_ARG_INT, &listen_port, 0, "Port to listen for TCP based clients", DEFAULT_PORT_STR},
+  { "db", 'b', POPT_ARG_STRING, &backend, 0, "Database server backend", DEFAULT_DB_BACKEND},
+  { "hostname", 'h', POPT_ARG_STRING, &hostname, 0, "Database server hostname", DEFAULT_DB_HOST},
+  { "user", 'u', POPT_ARG_STRING, &user, 0, "Database server username", DEFAULT_DB_USER},
+  { "data-dir", '\0', POPT_ARG_STRING, &g_database_data_dir, 0, "Directory to store database files (sqlite)" },
+  { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level - 1 .. 4"  },
+  { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0, "File to log to", DEFAULT_LOG_FILE },
   { "version", 'v', 0, 0, 'v', "Print version information and exit" },
   { NULL, 0, 0, NULL, 0 }
 };
-/**
- * \brief Called when a node connects via TCP
- * \param newSock
- */
-void
-on_connect(
-  Socket* newSock,
-  void* handle
-) {
-  (void)handle; // FIXME:  why is this not used?
-//  Socket* outSock = (Socket*)handle;
 
-  logdebug("New client connected\n");
-  client_handler_new(newSock);
+static struct db_backend
+{
+  const char * const name;
+  db_adapter_create fn;
+} backends [] =
+  {
+    { "sqlite", sq3_create_database },
+#if HAVE_PG
+    { "postgresql", psql_create_database },
+#endif
+  };
+
+const char *
+valid_backends ()
+{
+  static char s[256] = {0};
+  int i;
+  if (s[0] == '\0') {
+    char *p = s;
+    for (i = LENGTH (backends) - 1; i >= 0; i--) {
+      int n = sprintf(p, "%s", backends[i].name);
+      if (i) {
+        p[n++] = ',';
+        p[n++] = ' ';
+      }
+      p[n] = '\0';
+      p += n;
+    }
+  }
+  return s;
+}
+
+db_adapter_create
+database_create_function ()
+{
+  size_t i = 0;
+  for (i = 0; i < LENGTH (backends); i++)
+    if (!strncmp (backend, backends[i].name, strlen (backends[i].name)))
+      return backends[i].fn;
+
+  return NULL;
 }
 
 /**
- * \brief
- * \param argc
- * \param argv
- * \return
+ * \brief Called when a node connects via TCP
+ * \param new_sock
  */
+void
+on_connect(Socket* new_sock, void* handle)
+{
+  (void)handle;
+  logdebug("New client connected\n");
+  client_handler_new(new_sock,hostname,user);
+}
+#include <mstring.h>
+#include "schema.h"
 int
-main(
-  int argc,
-  const char *argv[]
-) {
-
-
+main(int argc, const char **argv)
+{
   char c;
-
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
-  poptSetOtherOptionHelp(optCon, "configFile");
 
   while ((c = poptGetNextOpt(optCon)) >= 0) {
     switch (c) {
@@ -106,31 +154,38 @@ main(
   o_set_log_file(logfile_name);
   o_set_log_level(log_level);
 
-  if (c < -1) {
-    /* an error occurred during option processing */
-    fprintf(stderr, "%s: %s\n",
-      poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
-      poptStrerror(c));
-    return -1;
-  }
+  if (c < -1)
+    die ("%s: %s\n", poptBadOption (optCon, POPT_BADOPTION_NOALIAS), poptStrerror (c));
 
   loginfo(V_STRING, VERSION);
   loginfo("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
   loginfo(COPYRIGHT);
 
+  if (!database_create_function ())
+      die ("Unknown database backend '%s' (valid backends: %s)\n",
+           backend, valid_backends ());
+
+  loginfo ("Database backend: '%s'\n", backend);
+  const char *pg = "postgresql";
+  const char *sq = "sqlite";
+  if (!strcmp (backend, pg))
+    loginfo ("PostgreSQL backend is still experimental!\n");
+  if (strcmp (backend, sq))
+    loginfo ("Database server: %s with %s\n", hostname, user);
+
   eventloop_init();
 
-  Socket* serverSock;
-  serverSock = socket_server_new("server", listen_port, on_connect, NULL);
+  Socket* server_sock;
+  server_sock = socket_server_new("server", listen_port, on_connect, NULL);
 
-  if (serverSock)
-    eventloop_run();
-  else {
-    logerror("SERVER QUIT:  failed to create socket for client connections.\n");
-    return -2;
-  }
+  if (!server_sock)
+    die ("Failed to create socket (port %d) to listen for client connections.\n", listen_port);
 
-  return(0);
+  eventloop_run();
+
+  xmemreport();
+
+  return 0;
 }
 
 /*

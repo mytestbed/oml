@@ -40,6 +40,9 @@ mstring_set (MString* mstr, const char* str);
 int
 mstring_cat (MString* mstr, const char* str);
 
+int
+mstring_sprintf (MString *mstr, const char *fmt, ...);
+
 size_t
 mstring_len (MString* mstr);
 
