@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 National ICT Australia (NICTA), Australia
+# Copyright (c) 2009-2010 National ICT Australia (NICTA), Australia
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,8 @@
 #
 # This is a simple client library for OML which does not use liboml2 and its
 # filters, but connects directly to the server using the +text+ protocol.
-# User can use this library to create ruby applications which can send 
-# measurement to the OML collection server. A simple example on how to use 
+# User can use this library to create ruby applications which can send
+# measurement to the OML collection server. A simple example on how to use
 # this library is attached at the end of this file. Another example can be
 # found in the file oml4r-example.rb
 #
@@ -64,7 +64,7 @@ module OML4R
 
     # Set the useOML flag
     def self.__useOML__()
-      @@useOML = true 
+      @@useOML = true
     end
 
     # Returns the definition of this MP
@@ -109,12 +109,12 @@ module OML4R
         puts "#{line}"
         return
       end
-      # Check that the list of values passed as argument matches the 
+      # Check that the list of values passed as argument matches the
       # definition of this Measurement Point
       defs = __def__()
       pdef = defs[:p_def]
       if args.size != pdef.size
-        raise "OML4R: Size mismatch between the measurement and the MP definition!" 
+        raise "OML4R: Size mismatch between the measurement and the MP definition!"
       end
 
       # Now prepare the measurement...
@@ -129,7 +129,7 @@ module OML4R
       @@sout.puts a.join("\t")
     end
 
-    # Freeze the definition of further MPs 
+    # Freeze the definition of further MPs
     # - sout = the output stream to the OML collection server
     def self.__freeze__(sout)
       @@frozen = true
@@ -168,7 +168,7 @@ module OML4R
   # The Init method of OML4R
   # Ruby applications should call this method to initialise the OML4R module
   # This method will parse the command line argument of the calling application
-  # to extract the OML specific parameters, it will also do the parsing for the 
+  # to extract the OML specific parameters, it will also do the parsing for the
   # remaining application-specific parameters.
   # It will then connect to the OML server (if requested on the command line), and
   # send the initial instruction to setup the database and the tables for each MPs.
@@ -177,7 +177,7 @@ module OML4R
   # - & block = a block which defines the additional application-specific arguments
   #
   def self.init(argv, &block)
-    
+
     expID = nil
     nodeID = nil
     appID = nil
@@ -203,7 +203,7 @@ module OML4R
     # Check if we have enough info to use OML
     if !omlServer && !omlFile
       puts "OML4R: OML disabled."
-      return 
+      return
     else
       MPBase.__useOML__()
       puts "OML4R: OML enabled."
@@ -223,19 +223,20 @@ module OML4R
       raise 'OML4R: Missing values for parameters expID, nodeID, or appID!'
     end
 
-    # Send initial OML commands to server (or local file)
+    # Handle the defined Measurement Points
+    MPBase.__freeze__(sout)
+
+    # Finally, send initial OML commands to server (or local file)
     sout.puts "protocol: 1"
     sout.puts "experiment-id: #{expID}"
-    sout.puts "start_time: #{Time.now.tv_sec}"
+    sout.puts "start_time: #{@@start_time.tv_sec}"
     sout.puts "sender-id: #{nodeID}"
     sout.puts "app-name: #{appID}"
     sout.puts "content: text"
 
-    # Finally, handle the defined Measurement Points
-    MPBase.__freeze__(sout)
     i = 1
     MPBase.each_mp do |klass, defs|
-      defs[:index] ||= i
+      defs[:index] = i
       klass.__print_meta__(appID)
       i += 1
     end
@@ -246,11 +247,11 @@ end # module OML4R
 
 #
 # A very simple straightforward example
-# Also look at the file oml4r-example.rb for another simple 
+# Also look at the file oml4r-example.rb for another simple
 # example.
 #
 if $0 == __FILE__
-  
+
   # Define your own Measurement Point
   class MyMP < OML4R::MPBase
     name :sin
@@ -260,9 +261,9 @@ if $0 == __FILE__
   end
 
   # Initialise the OML4R module for your application
-  args = ["--oml-expid", "foo", 
-	  "--oml-nodeid", "n1", 
-	  "--oml-appid", "app1", 
+  args = ["--oml-expid", "foo",
+	  "--oml-nodeid", "n1",
+	  "--oml-appid", "app1",
 	  "--oml-file", "myLocalFile.db"]
   OML4R::init(args)
 
