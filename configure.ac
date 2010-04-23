@@ -70,7 +70,7 @@ if test "x$with_postgresql" != "xno"; then
    fi
 else
    AC_DEFINE([HAVE_PG], [0], [Define if libpq is installed])
-   AM_CONDITIONAL([HAVE_PG], [0])
+   AM_CONDITIONAL([HAVE_PG], [false])
 fi
 
 
