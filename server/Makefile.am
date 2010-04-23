@@ -13,7 +13,6 @@ oml2_server_SOURCES = \
 	client_handler.h \
 	database.c \
 	database.h \
-	server.h \
 	sqlite_adapter.c \
 	sqlite_adapter.h \
 	util.c \

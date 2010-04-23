@@ -19,5 +19,6 @@ libshared_la_SOURCES = \
 	oml_value.c \
 	oml_value.h \
 	log.c \
-	log.h
+	log.h \
+	htonll.h
 

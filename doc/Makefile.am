@@ -6,6 +6,8 @@ MAN1_FILES= \
 	oml2-proxy-server.txt \
 	liboml2.txt
 
+EXTRA_DIST=$(MAN1_FILES)
+
 A2X_ARGS = \
 	--destination-dir=$(builddir) --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' -f manpage
 
