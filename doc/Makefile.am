@@ -3,7 +3,8 @@ ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 DATE=`date "+%Y-%m-%d"`
 MAN1_FILES= \
 	oml2-server.txt \
-	oml2-proxy-server.txt
+	oml2-proxy-server.txt \
+	liboml2.txt
 
 A2X_ARGS = \
 	--destination-dir=$(builddir) --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' -f manpage
