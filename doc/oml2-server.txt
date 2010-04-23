@@ -8,18 +8,18 @@ oml2-server - OML2 server daemon
 SYNOPSIS
 --------
 [verse]
-'oml2-server' [--version | -v] [-d loglevel | --debug-level=loglevel]
+*oml2-server* [--version | -v] [-d loglevel | --debug-level=loglevel]
 	  [-l port | --listen=port] [--data-dir] [--logfile=file]
 	  [-? | --help]
 
 DESCRIPTION
 -----------
 
-'oml2-server' (OML2 Server) is the daemon program for OML.  It
+*oml2-server* (OML2 Server) is the daemon program for OML.  It
 collects measurements from client applications and stores them in a
 measurement database.
 
-'oml2-server' listens for connections from clients.  It is normally
+*oml2-server* listens for connections from clients.  It is normally
 started at boot as a system service.  Each client declares which
 experiment it belongs to (using the --oml-exp-id option of the liboml2
 client library), and then sends a stream of measurement packets.  The
@@ -27,12 +27,12 @@ measurements for each client are stored in the experiment database
 belonging to the client's experiment.
 
 If the client declares that it belongs to experiment EXP, then
-'oml2-server' will look for an existing experiment database named
+*oml2-server* will look for an existing experiment database named
 EXP.sq3 in the data directory (see the --data-dir option).  Currently
-'oml2-server' uses SQLite3 as the database backend, hence the .sq3
-file name extension. If the database exists already, 'oml2-server'
+*oml2-server* uses SQLite3 as the database backend, hence the .sq3
+file name extension. If the database exists already, *oml2-server*
 will open it and append new measurements from the client to it.  If
-EXP.sq3 does not exist, 'oml2-server' will attempt to create the
+EXP.sq3 does not exist, *oml2-server* will attempt to create the
 measurement database, initialize it for use, and then append new
 measurements from the client to it.  Measurement streams from
 subsequent clients belonging to the same experiment EXP will also be
@@ -61,7 +61,7 @@ OPTIONS
 
 -v::
 --version::
-		Print the version number of 'oml2-server'.
+		Print the version number of *oml2-server*.
 
 --usage::
 		Print a brief usage message.
@@ -85,7 +85,7 @@ http://omf.mytestbed.net/projects/oml/issues
 SECURITY CONSIDERATIONS
 -----------------------
 
-'oml2-server' does not use any authentication, and should thus be
+*oml2-server* does not use any authentication, and should thus be
 considered insecure.  It is intended to be deployed behind firewalls
 on a dedicated testbed network.  It should not be run as a daemon on
 an open network.  Future versions of OML may be re-designed to be
@@ -95,7 +95,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-'oml2-proxy-server' (1), 'liboml2' (3)
+*oml2-proxy-server*(1), *liboml2*(1), *liboml2*(3)
 
 OML User Manual
 ~~~~~~~~~~~~~~~
