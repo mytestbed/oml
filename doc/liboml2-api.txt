@@ -1,0 +1,265 @@
+liboml2(3)
+==========
+
+NAME
+----
+liboml2 - OML2 client library
+
+SYNOPSIS
+--------
+[verse]
+*#include <stdint.h>*
+*#include <oml2/omlc.h>*
+[verse]
+'int'    *omlc_init*('const char' \*appname, 'int' \*pargc, 'const char' \*\*argv, 'o_log_fn' log_fn); +
+'OmlMP'* *omlc_add_mp*('const char' \*name, 'OmlMPDef' \*definition); +
+'int'    *omlc_start*('void'); +
+'void'   *omlc_inject*('OmlMP' \*mp, 'OmlValueU' \*values); +
+'int'    *omlc_close*('void'); +
+[verse]
+'void'   *omlc_set_long*('OmlValueU' value, 'long' longval); +
+'void'   *omlc_set_int32*('OmlValueU' value, 'int32_t' int32val); +
+'void'   *omlc_set_uint32*('OmlValueU' value, 'uint32_t' uint32val); +
+'void'   *omlc_set_int64*('OmlValueU' value, 'int64_t' int64val); +
+'void'   *omlc_set_uint64*('OmlValueU' value, 'uint64_t' uint64val); +
+'void'   *omlc_set_double*('OmlValueU' value, 'double' doubleval); +
+'void'   *omlc_set_string*('OmlValueU' value, 'long' longval); +
+'void'   *omlc_set_const_string*('OmlValueU' value, 'long' longval); +
+
+
+DESCRIPTION
+-----------
+
+*liboml2* is the client library for OML2.  It provides an API for
+application writers to collect measurements from their applications
+via user-defined 'Measurement Points' (MPs).  It also provides a
+flexible filtering and collection mechanism that allows application
+users to customize how measurements are processed and stored by an
+OML-enabled application.
+
+This man page summarizes the API.  Each function in the API also has
+its own detailed man page.  To learn how to configure the an
+application that uses the API from the command line, see
+*liboml2*(1).  To learn about the external configuration file that
+*liboml2* can use, see *liboml2.conf*(5).
+
+A programmer who wants to use *liboml2* to perform measurements in her
+application must first decide what to measure.  OML works by letting
+the programmer first define 'MPs' and then letting the programmer
+inject measurement tuples into them.  The core of the library then
+performs filtering on the injected measurements and at predefined
+times emits the filtered samples to either a local file or a
+measurement server (see *oml2-server*(1)).
+
+A program using OML can therefore be divided into two stages:
+
+Initialization::
+First the library is initialized and measurement points are defined.
+
+Measurement::
+Then the filters are enabled and measurement can proceed, with as many
+calls to *omlc_inject*(3) as required.
+
+It is also best to call *omlc_close*(3) to shut down the measurement
+library cleanly once measurement tasks are completed, such as when the
+application is terminating.
+
+Initialization
+~~~~~~~~~~~~~~
+When the application starts up, the programmer should make a call to
+*omlc_init*(3) to initialize *liboml2*.  The function accepts a name
+for the application itself, together with the executable's command
+line arguments (the C *main*() function's *argc* and *argv*
+parameters), and a fourth argument which is not widely used and can
+safely be set to NULL:
+
+----
+#include <oml2/omlc.h>
+
+int main(int argc, const char **argv)
+{
+  int result = omlc_init ("MyOmlClient", &argc, argv, NULL);
+  if (result == -1) {
+    fprintf (stderr, "Could not initialize OML\n");
+    exit (1);
+  }
+
+  /* Do application stuff... */
+
+  return 0;
+}
+----
+
+The *omlc_init*(3) function gathers configuration information from the
+command line arguments, the environment, and possibly an external
+configuration file, and sets internal configuration options of the
+library.  It removes any command line options that it recognizes, so
+that the application itself does not get confused when it tries to
+interpret the command line.  All OML options start with the prefix
+'--oml-'.  An application should call *omlc_init*(3) _before_ running
+its own command line option parser.
+
+After initializing the library, the programmer must define the
+application's 'MPs'.  Each 'MP' is defined as a typed tuple.  OML
+supports basic integer types, a double-precision floating point type,
+and a string type.  Future versions will support blobs, network
+addresses, ... etc.  An 'MP' definition is represented as an array of
+'OmlMPDef' objects, terminated by a NULL object, as shown here:
+
+----
+OmlMPDef mp_def [] =
+{
+  { "source", OML_UINT32_VALUE },
+  { "destination", OML_UINT32_VALUE },
+  { "length", OML_UINT32_VALUE },
+  { "weight", OML_DOUBLE_VALUE },
+  { "protocol", OML_STRING_VALUE },
+  { NULL, (OmlValueT)0 }
+};
+----
+
+The first member of the 'OmlMPDef' struct is the name of the field of
+the 'MP' that it represents.  The second member is its type.  The name
+appears in the schema for the local file storage, and as part of the
+database column name for the database created by *oml2-server*(1).
+
+To register the 'MP' definition with *liboml2*, the programmer must
+call *omlc_add_mp*(3):
+
+----
+OmlMP* mp = omlc_add_mp ("packet_info", mp_def);
+
+if (mp == NULL) {
+ fprintf (stderr, "Error: could not register Measurement Point 'packet_info');
+ exit (1);
+}
+----
+
+This function returns a handle to the internal 'MP' object, which
+should be used in subsequent calls to *omlc_inject*(3), and should be
+treated as opaque.
+
+Measurement
+~~~~~~~~~~~
+
+Once all measurement points have been defined and created using calls
+to *omlc_add_mp*(3), the programmer must start the measurement
+collection process by calling *omlc_start*(3).  This call creates the
+internal filters according to the current configuration options, and
+starts the filter output sampling threads for \'interval' style
+filters (for more information see *liboml2.conf*(5)).  Once
+*omlc_start*(3) has been called, no more 'MPs' can be added:  further
+calls to *omlc_add_mp*(3) will be ignored.  Conversely, once
+*omlc_start*(3) has been called, calls to *omlc_inject*(3) can be made
+to perform measurements.
+
+The *omlc_inject*(3) function accepts an 'MP' handle and a vector of
+'OmlValueU' objects.  The programmer should first load up the vector
+with new values to be measured using the *omlc_set_** macros, and
+the call *omlc_inject*(3).  For instance, here is how a measurement
+injection might look for the 'MP' definition above:
+
+----
+OmlMP *mp = omlc_add_mp( ... );
+
+...
+
+uint32_t source_id;
+uint32_t destination_id;
+uint32_t packet_length;
+double weight;
+char *protocol;
+
+...
+
+/* Some application-specific code to obtain new values for the variables above */
+
+...
+
+OmlValueU values[5];
+
+omlc_set_uint32 (values[0], source_id);
+omlc_set_uint32 (values[1], destination_id);
+omlc_set_uint32 (values[2], packet_length);
+omlc_set_double (values[3], weight);
+omlc_set_string (values[4], protocol);
+
+omlc_inject (mp, values);
+----
+
+The vector must be loaded with values in the same order as the
+original definition of the fields of the 'MP' in the call to
+*omlc_add_mp*(3).  This call can be repeated as many times as the
+program wants to make a measurement for this 'MP'.
+
+OML Types
+~~~~~~~~~
+
+OML defines the following types:
+
+* OML_INT32_VALUE
+* OML_UINT32_VALUE
+* OML_INT64_VALUE
+* OML_UINT64_VALUE
+* OML_DOUBLE_VALUE
+* OML_STRING_VALUE
+
+Each of the first four integral types maps to an underlying equivalent
+type from the C standard header *stdint.h*.  These types should be
+used in calls to the *omlc_set_** macros.  They are:
+
+* 'int32_t'
+* 'uint32_t'
+* 'int64_t'
+* 'uint64_t'
+
+The OML_DOUBLE_VALUE type maps to an underlying C double.  The C value
+is a compound type, and currently just conveys the pointer to the
+caller's object into the *liboml2* library, but the library generally
+copies the string into its own memory, so the programmer shouldn't have to
+worry about memory management across the API boundary.
+
+*liboml2* currently also defines an OML_LONG_VALUE that maps to a C
+ 'long' type, but this type is deprecated because it can change size
+ between 32-bit and 64-bit platforms.  It will be removed from the API
+ when OML3 is released.  The library internally clamps OML_LONG_VALUE
+ 'MP' fields to the most positive and negative values that will fit in
+ an 'int32_t' object before sending them to the *oml2-server*(3) or a
+ local measurement file.  OML_LONG_VALUE should not be used in new
+ applications.
+
+Building
+~~~~~~~~
+Applications using *liboml2* must include the '-loml2' flag on the linker command line to link against the client library.
+
+BUGS
+----
+
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+For outstanding known bugs, please consult
+http://omf.mytestbed.net/projects/oml/issues
+
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+*oml2-server*(1), *liboml2*(1), *liboml2.conf*(5)
+
+
+*omlc_init*(3), *omlc_add_mp*(3), *omlc_start*(3), *omlc_inject*(3), *omlc_close*(3)
+
+*omlc_set_long*(3), *omlc_set_int32*(3), *omlc_set_uint32*(3), *omlc_set_int64*(3), *omlc_set_uint64*(3), *omlc_set_double*(3), *omlc_set_string*(3), *omlc_set_const_string*(3)
+
+
+OML User Manual
+~~~~~~~~~~~~~~~
+http://omf.mytestbed.net/wiki/oml/Documentation
