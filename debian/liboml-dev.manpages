@@ -1,0 +1,13 @@
+doc/liboml2.3
+doc/omlc_init.3
+doc/omlc_add_mp.3
+doc/omlc_start.3
+doc/omlc_inject.3
+doc/omlc_close.3
+doc/omlc_set_int32.3
+doc/omlc_set_uint32.3
+doc/omlc_set_int64.3
+doc/omlc_set_uint64.3
+doc/omlc_set_double.3
+doc/omlc_set_string.3
+doc/omlc_set_const_string.3
