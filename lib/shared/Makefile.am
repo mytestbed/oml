@@ -20,5 +20,7 @@ libshared_la_SOURCES = \
 	oml_value.h \
 	log.c \
 	log.h \
+	validate.c \
+	validate.h \
 	htonll.h
 

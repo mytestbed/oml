@@ -38,6 +38,7 @@
 #include <marshal.h>
 #include <mbuf.h>
 #include <oml_value.h>
+#include <validate.h>
 #include "client_handler.h"
 #include "schema.h"
 #include "util.h"
@@ -103,6 +104,27 @@ client_handler_free (ClientHandler* self)
   // FIXME:  What about destroying the socket data structure --> memory leak?
 }
 
+static int
+validate_schema_names (struct schema *schema, char **invalid)
+{
+  if (schema == NULL || invalid == NULL)
+    return 0;
+
+  if (!validate_name (schema->name)) {
+    *invalid = schema->name;
+    return 0;
+  }
+
+  int i;
+  for (i = 0; i < schema->nfields; i++) {
+    if (!validate_name (schema->fields[i].name)) {
+      *invalid = schema->fields[i].name;
+      return 0;
+    }
+  }
+  return 1;
+}
+
 /**
  * \brief Process the data and put value inside the database
  * \param self the clienat handler
@@ -118,6 +140,17 @@ process_schema(ClientHandler* self, char* value)
     self->state = C_PROTOCOL_ERROR;
     return;
   }
+
+  char *invalid = NULL;
+  if (!validate_schema_names (schema, &invalid)) {
+    logerror ("The following schema contained an invalid name '%s'\n", invalid);
+    logerror ("Failed schema: %s\n", value);
+    logerror ("Disconnecting client\n");
+    self->state = C_PROTOCOL_ERROR;
+    schema_free (schema);
+    return;
+  }
+
   int index = schema->index;
   DbTable* table = database_find_or_create_table(self->database, schema);
   schema_free (schema);

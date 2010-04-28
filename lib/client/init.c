@@ -32,6 +32,7 @@
 #include <sys/time.h>
 
 #include <oml_value.h>
+#include <validate.h>
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
 #include "filter/factory.h"
@@ -216,10 +217,10 @@ OmlMP*
 omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 {
   if (omlc_instance == NULL) return NULL;
-  const char* name = validate_mp_name (mp_name);
+  const char* name = validate_name (mp_name);
   if (!name)
     {
-      logerror("Found illegal whitespace in MP name '%s'.  MP will not be created\n", mp_name);
+      logerror("Found illegal MP name '%s'.  MP will not be created\n", mp_name);
       return NULL;
     }
 
@@ -238,6 +239,13 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
           logwarn("--> OML_LONG_VALUE is deprecated and should not be used in new code\n");
           logwarn("--> Values outside of [INT_MIN, INT_MAX] will be clamped!\n");
         }
+      char *dpname = validate_name (dp->name);
+      if (!dpname) {
+        logerror ("Found illegal field name '%s' in MP '%s'.  MP will not be created\n",
+                  dp->name, mp_name);
+        free (mp);
+        return NULL;
+      }
       pc++;
       dp++;
     }
@@ -709,14 +717,15 @@ write_schema(OmlMStream *ms, int index)
   return 0;
 }
 
-
 /**
  *  Validate the name of the application.
  *
  *  If the application name contains a '/', it is truncated to the
  *  sub-string following the final '/'.  If the application name
- *  contains any whitespace, it is declared invalid.
- *
+ *  contains any characters other than alphanumeric characters or an
+ *  underscore, it is declared invalid.  The first character must not
+ *  be a digit.  Whitespace is not allowed.  An empty string is also
+ *  not allowed.
  *
  *  @param name the name of the application.
  *
@@ -729,50 +738,18 @@ write_schema(OmlMStream *ms, int index)
 const char*
 validate_app_name (const char* name)
 {
-  const char* p = name + strlen (name);
-  while (p != name)
-    {
-      if (*p == '/')
-        break;
-      if (isspace (*p))
-        return NULL;
-      p--;
-    }
+  size_t len = strlen (name);
+  const char* p = name + len - 1;
 
-  if (isspace (*p))
-    return NULL;
+  while (p >= name) {
+    if (*p == '/')
+      break;
+    p--;
+  }
+  /* Either 1 character before name, or '/': need to move forward 1 character */
+  p++;
 
-  if (*p == '/')
-    p++;
-  return p;
-}
-
-/**
- *  Validate the name of a Measurement Point.
- *
- *  If the measurement point name contains any whitespace, it is
- *  declared invalid.
- *
- *  @param name the name of the MP.
- *
- *  @return If the MP name is valid, a pointer to the MP name
- *  returned.  If the MP name is not valid, returns NULL.  If the
- *  returned pointer is not NULL, it may be different from name.
- *
- */
-const char*
-validate_mp_name (const char* name)
-{
-  const char* p = name + strlen (name);
-
-  do
-    {
-      if (isspace (*p))
-        return NULL;
-    }
-  while (p-- != name);
-
-  return ++p;
+  return validate_name (p);
 }
 
 /*
