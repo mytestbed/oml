@@ -7,7 +7,7 @@ Standards-Version: 3.7.2
 
 Package: oml-server
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libsqlite3-0, libpopt0, liboml (= ${Source-Version}), libc6
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsqlite3-0, libpopt0, liboml (= ${Source-Version})
 Description: OML measurement server
  The OML server component is responsible to collect and store the
  measurements inside a database. Currently, the sqlite3 library is
@@ -16,8 +16,7 @@ Description: OML measurement server
 Package: liboml-dev
 Section: libdevel
 Architecture: all
-Depends: liboml (= ${Source-Version})
-Recommends: ruby
+Depends: liboml (= ${Source-Version}), ruby
 Description: OML measurement library headers
  Development headers for developing applications that make
  measurements using the liboml, the client library for the OML
@@ -26,7 +25,7 @@ Description: OML measurement library headers
 Package: liboml
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libxml2, libc6
+Depends: ${shlibs:Depends}, ${misc:Depends}, libxml2
 Description: OML: The Orbit Measurement Library
  This library allows application writers to define customizable
  measurement points in their applications to record measurements

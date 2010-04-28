@@ -4,7 +4,7 @@ def debian_changelog_version()
   f = File.new("debian/changelog")
   begin
     firstline = f.readline
-    if (firstline =~ /\(([0-9]+\.[0-9]+\..*)-[0-9]+\)/) then
+    if (firstline =~ /\(([0-9]+\.[0-9]+\..*)-.+\)/) then
       return $1
     else
       $stderr.print "ERROR:  debian/changelog first line does not appear to have the version number on it.\n"

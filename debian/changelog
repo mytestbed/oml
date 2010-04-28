@@ -1,8 +1,70 @@
-oml (2.4.pre0-1) testing; urgency=low
+oml (2.4.pre0-ubuntu1) karmic; urgency=low
 
-  * Beta (pre-release) leading to 2.4.0 release.
+  * Beta (testing) release of OML 2.4.
 
- -- Jolyon White <jolyon.white@nicta.com.au>  Sat, 30 Jan 2010 14:23:52 +1100
+ -- Jolyon White <jolyon.white@nicta.com.au>  Wed, 28 Apr 2010 19:32:41 +1000
+
+oml (2.3.7-ubuntu1) karmic; urgency=low
+
+  * New upstream release 2.3.7.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Thu, 08 Apr 2010 18:22:19 +1000
+
+oml (2.3.6-ubuntu1) karmic; urgency=low
+
+  * New upstream release 2.3.6.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Wed, 17 Mar 2010 18:25:12 +1100
+
+oml (2.3.5-ubuntu1) karmic; urgency=low
+
+  * New upstream release 2.3.5.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Fri, 12 Mar 2010 18:11:24 +1100
+
+oml (2.3.4-ubuntu1) karmic; urgency=low
+
+  * Now building for Ubuntu karmic.
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Fri, 05 Feb 2010 16:25:25 +1100
+
+oml (2.3.4-3) stable; urgency=low
+
+  * Fix packaging of oml2_scaffold (should be in liboml-dev).
+  * Fix -dev symlinks for .so's (should be in liboml-dev).
+  * Fix some lintian warnings.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Mon, 01 Feb 2010 18:13:06 +1100
+
+oml (2.3.4-2) stable; urgency=low
+
+  * Add oml2-server.1 man page to Debian package.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Thu, 21 Jan 2010 16:36:03 +1100
+
+oml (2.3.4-1) stable; urgency=low
+
+  * new upstream release 2.3.4
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Wed, 16 Dec 2009 20:31:30 +1100
+
+oml (2.3.3-3) stable; urgency=low
+
+  * fixed otg/otr libc6 issue
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Wed, 16 Dec 2009 02:12:40 +0000
+
+oml (2.3.3-2) stable; urgency=low
+
+  * fixed logrotation
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Tue, 08 Dec 2009 14:50:40 +1100
+
+oml (2.3.3-1) stable; urgency=low
+
+  * new upstream release 2.3.3
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Mon, 07 Dec 2009 17:01:05 +1100
 
 oml (2.3.1-1) stable; urgency=low
 
@@ -12,7 +74,7 @@ oml (2.3.1-1) stable; urgency=low
 
 oml (2.3.0-1) stable; urgency=low
 
-  * Latest upstream release (SVN tags/Release_2_3). 
+  * Latest upstream release (SVN tags/Release_2_3).
 
  -- Jolyon White <jolyon.white@nicta.com.au>  Wed, 09 Sep 2009 17:56:05 +1000
 

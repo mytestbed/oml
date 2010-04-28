@@ -49,21 +49,28 @@ install: build
 	dh_clean -k 
 	dh_installdirs
 
-	# Install the binaries into debian/om-server
-	$(MAKE) DESTDIR=$(CURDIR)/debian/oml-server install
+	# Install the binaries into debian/tmp
+	$(MAKE) DESTDIR=$(CURDIR)/debian/tmp install
 
-	# Build the liboml-dev package
+	# Make directories for all debian packages
+	mkdir -p $(CURDIR)/debian/oml-server/usr/bin
+	mkdir -p $(CURDIR)/debian/liboml/usr/lib
 	mkdir -p $(CURDIR)/debian/liboml-dev/usr/include
 	mkdir -p $(CURDIR)/debian/liboml-dev/usr/bin
 	mkdir -p $(CURDIR)/debian/liboml-dev/usr/lib
-	mv $(CURDIR)/debian/oml-server/usr/include/* $(CURDIR)/debian/liboml-dev/usr/include/
-	mv $(CURDIR)/debian/oml-server/usr/bin/oml2_scaffold $(CURDIR)/debian/liboml-dev/usr/bin
-	mv $(CURDIR)/debian/oml-server/usr/lib/liboml2.so $(CURDIR)/debian/liboml-dev/usr/lib
-	mv $(CURDIR)/debian/oml-server/usr/lib/libocomm.so $(CURDIR)/debian/liboml-dev/usr/lib
+
+	# Build the oml-server package
+	mv $(CURDIR)/debian/tmp/usr/bin/oml2-* $(CURDIR)/debian/oml-server/usr/bin
+
+	# Build the liboml-dev package
+	mv $(CURDIR)/debian/tmp/usr/include/* $(CURDIR)/debian/liboml-dev/usr/include/
+	mv $(CURDIR)/debian/tmp/usr/bin/oml2_scaffold $(CURDIR)/debian/liboml-dev/usr/bin
+	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so $(CURDIR)/debian/liboml-dev/usr/lib
+	mv $(CURDIR)/debian/tmp/usr/lib/libocomm.so $(CURDIR)/debian/liboml-dev/usr/lib
 
 	# Build the liboml package
-	mkdir -p $(CURDIR)/debian/liboml/usr/lib
-	mv $(CURDIR)/debian/oml-server/usr/lib/* $(CURDIR)/debian/liboml/usr/lib/
+	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so.* $(CURDIR)/debian/liboml/usr/lib/
+	mv $(CURDIR)/debian/tmp/usr/lib/libocomm.so.* $(CURDIR)/debian/liboml/usr/lib/
 
 # Build architecture-independent files here.
 binary-indep: build install
