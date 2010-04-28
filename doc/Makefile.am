@@ -19,7 +19,14 @@ EXTRA_DIST=$(MAN1_FILES) $(MAN3_FILES)
 A2X_ARGS = \
 	--destination-dir=$(builddir) --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' -f manpage
 
-man_MANS = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) liboml2.3
+man_MANS = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) \
+	liboml2.3 \
+	omlc_set_uint32.3 \
+	omlc_set_int64.3 \
+	omlc_set_uint64.3 \
+	omlc_set_double.3 \
+	omlc_set_string.3 \
+	omlc_set_const_string.3
 
 if HAVE_A2X
 $(MAN1_FILES:.txt=.1):  %.1: %.txt
@@ -34,7 +41,19 @@ $(MAN3_FILES:.txt=.3):  %.3: %.txt
 	$(A2X) $(A2X_ARGS) $<
 	test -f "$(<:.txt=.xml)" && rm $(<:.txt=.xml) || true
 
-EXTRA_DIST+=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) liboml2.3
+# Set up roff links for the omlc_set_* macros (they share the same manpage).
+omlc_set_%.3:	omlc_set_int32.txt
+	echo ".so man3/omlc_set_int32.3" > $@
+
+
+EXTRA_DIST+=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) \
+	liboml2.3 \
+	omlc_set_uint32.3 \
+	omlc_set_int64.3 \
+	omlc_set_uint64.3 \
+	omlc_set_double.3 \
+	omlc_set_string.3 \
+	omlc_set_const_string.3
 else
 	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
 endif
