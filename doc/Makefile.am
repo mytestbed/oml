@@ -33,6 +33,8 @@ liboml2.3: liboml2-api.txt
 $(MAN3_FILES:.txt=.3):  %.3: %.txt
 	$(A2X) $(A2X_ARGS) $<
 	test -f "$(<:.txt=.xml)" && rm $(<:.txt=.xml) || true
+
+EXTRA_DIST+=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) liboml2.3
 else
 	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
 endif
