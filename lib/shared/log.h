@@ -31,4 +31,4 @@ void logwarn (const char *fmt, ...);
 void loginfo (const char *fmt, ...);
 void logdebug (const char *fmt, ...);
 
-#endif LOG_H__
+#endif /* LOG_H__ */
