@@ -1,0 +1,131 @@
+omlc_inject(3)
+==============
+
+NAME
+----
+omlc_inject - inject a measurement sample into a measurement point
+
+SYNOPSIS
+--------
+[verse]
+*#include <oml2/omlc.h>*
+[verse]
+'void' *omlc_inject*('OmlMP' *mp, 'OmlValueU' *values);
+
+DESCRIPTION
+-----------
+
+*omlc_inject*() takes a vector of values and injects them as a
+measurement sample into a 'measurement point' (MP) previously defined
+via a call to *omlc_add_mp*(3). If *omlc_inject*(3) is called prior to
+the start of measurement sampling, then it will be ignored.
+Measurement sampling is initiated by a call to *omlc_start*(3).
+
+The 'mp' parameter must be an MP handle returned by a call
+to *omlc_add_mp*(3). The 'values' array must contain values whose
+number and types correspond to the types declared for the MP tuple in
+the call to *omlc_add_mp*(3). The convenience macros *omlc_set_**()
+should be used to set up the values vector.
+
+For instance, suppose the following MP definition:
+
+----
+OmlMPDef mp_def [] =
+{
+  { "source", OML_UINT32_VALUE },
+  { "destination", OML_UINT32_VALUE },
+  { "length", OML_UINT32_VALUE },
+  { "weight", OML_DOUBLE_VALUE },
+  { "protocol", OML_STRING_VALUE },
+  { NULL, (OmlValueT)0 } /* Sentinel value */
+};
+----
+
+(See *omlc_add_mp*(3) for details.)
+
+To inject a measurement sample into this MP, the programmer must first
+declare an 'OmlValueU' array with the right number of elements, in
+this case five (the sentinel value is only needed when declaring the
+MP to *omlc_add_mp*(3), it doesn't play any further part).  Then, call
+the value setting macros to load new values into the vector, and
+finally pass the array to *omlc_inject*(3):
+
+----
+OmlMP *mp = omlc_add_mp ("myMP", mp_def);
+
+...
+
+omlc_start();
+
+...
+
+uint32_t source_id;
+uint32_t destination_id;
+uint32_t packet_length;
+double weight;
+char *protocol;
+
+/* Some application-specific code to obtain new values for the variables above */
+
+...
+
+OmlValueU values[5];
+
+omlc_set_uint32 (values[0], source_id);
+omlc_set_uint32 (values[1], destination_id);
+omlc_set_uint32 (values[2], packet_length);
+omlc_set_double (values[3], weight);
+omlc_set_string (values[4], protocol);
+
+omlc_inject (mp, values);
+----
+
+Internally, the library guards each MP with a mutex, so this function
+should be thread safe.
+
+The caller must be careful to ensure that the 'values' array has
+enough elements to accommodate the declared number of fields in the
+tuple for the given 'mp'. Otherwise, *omlc_inject*() might try to read
+past the end of the array. Similarly, the types of the values must be
+as declared, and in the same order in the array as specified for the
+MP tuple definition. This is particularly important for strings.
+
+
+ERRORS
+------
+
+If the library has not been initialized with a call to *omlc_init*(3),
+and if measurement sampling has not been started with a call
+to *omlc_start*(3), then this function exits without performing any
+actions.  Similarly, if either 'mp' or 'values' is NULL, then the
+function exits silently.
+
+BUGS
+----
+
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+This function is quite fragile to mishandling of the 'values' array
+relative to the declared MP tuple definition.
+
+For other outstanding known bugs, please consult
+http://omf.mytestbed.net/projects/oml/issues
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+
+*omlc_init*(3), *omlc_add_mp*(3), *omlc_start*(3)
+
+OML User Manual
+~~~~~~~~~~~~~~~
+http://omf.mytestbed.net/wiki/oml/Documentation

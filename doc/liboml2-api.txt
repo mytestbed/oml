@@ -17,7 +17,6 @@ SYNOPSIS
 'void'   *omlc_inject*('OmlMP' \*mp, 'OmlValueU' \*values); +
 'int'    *omlc_close*('void'); +
 [verse]
-'void'   *omlc_set_long*('OmlValueU' value, 'long' longval); +
 'void'   *omlc_set_int32*('OmlValueU' value, 'int32_t' int32val); +
 'void'   *omlc_set_uint32*('OmlValueU' value, 'uint32_t' uint32val); +
 'void'   *omlc_set_int64*('OmlValueU' value, 'int64_t' int64val); +
@@ -257,7 +256,7 @@ Manual Pages
 
 *omlc_init*(3), *omlc_add_mp*(3), *omlc_start*(3), *omlc_inject*(3), *omlc_close*(3)
 
-*omlc_set_long*(3), *omlc_set_int32*(3), *omlc_set_uint32*(3), *omlc_set_int64*(3), *omlc_set_uint64*(3), *omlc_set_double*(3), *omlc_set_string*(3), *omlc_set_const_string*(3)
+*omlc_set_int32*(3), *omlc_set_uint32*(3), *omlc_set_int64*(3), *omlc_set_uint64*(3), *omlc_set_double*(3), *omlc_set_string*(3), *omlc_set_const_string*(3)
 
 
 OML User Manual

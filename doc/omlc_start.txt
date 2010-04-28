@@ -1,0 +1,99 @@
+omlc_start(3)
+=============
+
+NAME
+----
+omlc_start - start measurement outputs
+
+SYNOPSIS
+--------
+[verse]
+*#include <oml2/omlc.h>*
+[verse]
+'int' *omlc_start*('void');
+
+DESCRIPTION
+-----------
+
+*omlc_start*() begins the process of measurement sampling and output.
+It must be called after any 'measurement points' (MPs) have been
+registered with *liboml2* using *omlc_add_mp*(3).  Once *omlc_start*()
+has been called, it is valid to call *omlc_inject*(3) to start making
+measurements.
+
+The main function of *omlc_start*() is to set up the internal data
+structures that determine the filtering configuration.  It also starts
+threads to periodically generate filter outputs for measurement
+streams that are declared using the 'interval' sampling method (see
+the '--oml-interval' option in *liboml2*(1) or the 'interval'
+attribute in *liboml2.conf*(5)).
+
+If a configuration file is given using the '--oml-config' command line
+option or the OML_CONFIG environment variable, then *omlc_start*()
+reads the configuration file to determine what filters to create.
+Otherwise it creates a set of default filters as follows:
+
+* For each field of each MP, a separate filter is created;
+* If the type of the field is a numeric type, then the filter will be
+the 'avg' averaging filter, unless the 'samples' method is specified
+and the number of samples per filter output is set to 1, in which case
+the 'first' filter is used.
+* If the type of the field is not a numeric type, then the 'first'
+filter is used.
+
+All filter outputs for the default configuration are sent to the same
+destination: either a file if the '--oml-file' option was given, or
+an *oml2-server*(1) if the '--oml-server' option was given.  For custom
+configuration specified using the '--oml-config' command line option,
+the user can specify numerous possible measurement output
+destinations.  See *liboml2.conf*(5) for more details.
+
+RETURN VALUE
+------------
+
+*omlc_start*() returns 0 on success; on error, a negative value is returned.
+
+ERRORS
+------
+
+*omlc_start*() will return < 0 if:
+
+* *liboml2* has not yet been initialized via a call to *omlc_init*(3);
+* an error occurred parsing the external config file;
+* no config file was given and no output destination was specified on
+either the command line or using an environment variable (e.g. no
+'--oml-file' and no '--oml-server' command line options);
+* there was an error in the specification of the output destination;
+* there was an error writing to the output destination stream(s).
+
+The last condition can occur during a call to *omlc_start*() because
+the function writes the metadata for the current configuration to all
+of the currently configured output streams, either local files
+or *oml2-server*(1) daemons.
+
+BUGS
+----
+
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+For outstanding known bugs, please consult
+http://omf.mytestbed.net/projects/oml/issues
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+
+*omlc_init*(3), *omlc_add_mp*(3), *omlc_inject*(3)
+
+OML User Manual
+~~~~~~~~~~~~~~~
+http://omf.mytestbed.net/wiki/oml/Documentation

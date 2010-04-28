@@ -1,0 +1,64 @@
+omlc_close(3)
+=============
+
+NAME
+----
+omlc_close - shutdown the OML client library
+
+SYNOPSIS
+--------
+[verse]
+*#include <oml2/omlc.h>*
+[verse]
+'int' *omlc_close*('void');
+
+DESCRIPTION
+-----------
+
+*omlc_close*() shuts down the OML client library, and stops all
+measurement processes.  It also flushes all measurement streams to try
+to ensure that all measurements are stored correctly before the
+application terminates.  The application should call *omlc_close*() if
+it intends to exit.
+
+If *omlc_inject*(3) is called after *omlc_close*(3) has been called,
+then it will be ignored and not measurement collection will take
+place.  Other API functions will return with an error.
+
+RETURN VALUE
+------------
+
+*omlc_close*() returns 0 on success; on error it returns -1.
+
+ERRORS
+------
+
+*omlc_close*() will succeed unless the API has not already been
+initialized by a call to *omlc_init*(3).
+
+BUGS
+----
+
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+For outstanding known bugs, please consult
+http://omf.mytestbed.net/projects/oml/issues
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+
+*omlc_init*(3), *omlc_add_mp*(3), *omlc_start*(3), *omlc_inject*(3)
+
+OML User Manual
+~~~~~~~~~~~~~~~
+http://omf.mytestbed.net/wiki/oml/Documentation

@@ -1,0 +1,93 @@
+omlc_init(3)
+============
+
+NAME
+----
+omlc_init - initialize the liboml2 measurement API.
+
+SYNOPSIS
+--------
+[verse]
+*#include <oml2/omlc.h>*
+[verse]
+'int' *omlc_init*('const char' *appname, 'int' *pargc, 'const char' **argv, 'o_log_fn' log_fn); +
+
+DESCRIPTION
+-----------
+
+*omlc_init* initializes the OML client library API.  It must be called
+before any other function in the API can be called.
+
+The 'appname' argument is a string name for this application that the
+library uses when declaring schemata for measurement output to local
+file storage or to an *oml2-server*(1).
+
+The 'pargc' and 'argv' parameters should refer to the program's
+command line arguments.  'pargc' should be a pointer to the 'argc'
+parameter of the program's *main*() function, and 'argv' should be
+identical to the *main*() function's 'argv' parameter.  *omlc_init*
+scans the command line options for options starting with '--oml-', and
+uses them to configure the API.  The '--oml-' options and their
+arguments are then removed from the 'argv' array, and \*'pargc' is
+adjusted to account for their removal.  This allows the application
+using *liboml2* to do its own option parsing without getting confused
+by the '--oml-' options.  The available '--oml-' options are listed
+in *liboml2*(1).
+
+If the '--oml-config' option is specified then *liboml2* reads its
+configuration from an external configuration file (the format is
+documented in *liboml2.conf*(5)).  *omlc_init* also recognizes several
+environment variables, see *liboml2*(1).  Generally, if an option
+can be configured on the command line or an environment variable, the
+command line option takes precedence.  If an option can also be set
+using the config file, then the config file takes precedence.
+
+The 'log_fn' parameter allows the user to supply a custom logging
+function;  however, if 'log_fn' is 'NULL' then *liboml2* uses its own
+logging function (the output file is specified by the user in the
+'--oml-log-file' command line argument).  Use of the 'log_fn'
+parameter is deprecated; it may be removed or replaced in a future
+version of OML.  New applications should always set it to 'NULL'.
+
+RETURN VALUE
+------------
+
+*omlc_init*() returns 0 on success; on error, -1 is returned and an
+error message will be written to the log file describing the error.
+If the function returns -1 then the API will be unusable.  The
+application should either refrain from calling any other functions in
+the API, or it should terminate.
+
+ERRORS
+------
+
+*omlc_init*() will return -1 if:
+
+* the 'appname' contains whitespace or is NULL;
+* an OML command line option that expects an argument is missing its
+argument.
+
+BUGS
+----
+
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+For outstanding known bugs, please consult
+http://omf.mytestbed.net/projects/oml/issues
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+
+OML User Manual
+~~~~~~~~~~~~~~~
+http://omf.mytestbed.net/wiki/oml/Documentation

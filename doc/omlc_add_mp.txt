@@ -1,0 +1,132 @@
+omlc_add_mp(3)
+==============
+
+NAME
+----
+omlc_add_mp - register the definition of a new Measurement Point
+
+SYNOPSIS
+--------
+[verse]
+*#include <oml2/omlc.h>*
+[verse]
+'OmlMP'* *omlc_add_mp*('const char' *name, 'OmlMPDef' *definition);
+
+DESCRIPTION
+-----------
+
+*omlc_add_mp* registers the definition of a new 'Measurement Point'
+(MP) with the OML client API and returns a handle to it.  The 'MP'
+must be given a 'name', which is used in declarations of schemata for
+the 'MP' in measurement output to either a local file or
+an *oml2-server*(1).
+
+A 'measurement point' accepts typed tuples as input.  The 'definition'
+parameter of *omlc_add_mp*() defines this tuple.  It must be an array
+of 'OmlMPDef' objects, terminated with a sentinel.  Here is an example:
+
+----
+OmlMPDef mp_def [] =
+{
+  { "source", OML_UINT32_VALUE },
+  { "destination", OML_UINT32_VALUE },
+  { "length", OML_UINT32_VALUE },
+  { "weight", OML_DOUBLE_VALUE },
+  { "protocol", OML_STRING_VALUE },
+  { NULL, (OmlValueT)0 } /* Sentinel */
+};
+----
+
+This definition would then be passed to *omlc_add_mp*() like so:
+
+----
+OmlMP* mp = omlc_add_mp("myMP", mp_def);
+----
+
+The name of each field of the tuple is the first element of the
+'OmlMPDef' object, the type is the second. The available types are
+described in *liboml2*(3). The field names also become part of the
+schemata for this MP.  For instance, if the application was called
+"my_oml_app" in the call to *omlc_init*(3), then the schema for the
+above measurement point might look like:
+
+----
+schema: 1 my_oml_app_myMP source:uint32 destination:uint32
+  length:uint32 weight:double protocol:string
+----
+
+This assumes a simple filter configuration, using the 'first' filter
+type. Note how the application name is concatenated with the MP name,
+separated by an underscore, to uniquely identify the schema in the
+output. If the averaging filter 'avg' was used for the numeric
+quantities, the schema would change to:
+
+----
+schema: 1 my_oml_app_myMP
+  source_avg:double source_min:double source_max:double
+  destination_avg:double destination_min:double destination_max:double
+  length_avg:double length_min:double length_max:double
+  weight_avg:double weight_min:double weight_max:double
+  protocol:string
+----
+
+Note how the schema changes due to the fact that the 'avg' filter
+outputs a tuple of three values:  the average for the sample set, the
+minimum value of the sample set, and the maximum value for the sample
+set.  The 'avg' filter also outputs 'double' values, since the average
+can't be represented using integers.  Also note that 'string' values
+are never filtered using the 'avg' filter, because there is no
+sensible way of averaging a string.
+
+The schema above have been split into multiple lines to improve
+legibility, but in reality the library outputs them as a single line
+of text.
+
+*omlc_add_mp*() can only be called after *omlc_init*(3) has been
+called, and cannot be called once *omlc_start*(3) has been called.
+See *liboml2*(3) for more details on the phases of an OML-enabled
+application.
+
+RETURN VALUE
+------------
+
+*omlc_add_mp*() returns NULL if an error occurs.  If the call
+succeeds, it returns a pointer to an 'OmlMP' object that should be
+used in subsequent calls to *omlc_inject*(3).  The 'OmlMP' pointer
+should be treated as an opaque handle.
+
+ERRORS
+------
+
+*omlc_add_mp*() will return NULL if:
+
+* the 'name' of the MP contains whitespace or is NULL;
+* the library cannot allocate memory for the MP;
+* *liboml2* has not yet been initialized via a call to *omlc_init*(3).
+
+BUGS
+----
+
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+For outstanding known bugs, please consult
+http://omf.mytestbed.net/projects/oml/issues
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+
+*omlc_init*(3), *omlc_start*(3), *omlc_inject*(3)
+
+OML User Manual
+~~~~~~~~~~~~~~~
+http://omf.mytestbed.net/wiki/oml/Documentation

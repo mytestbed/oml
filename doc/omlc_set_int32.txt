@@ -1,0 +1,85 @@
+omlc_set_int32(3)
+=================
+
+NAME
+----
+omlc_set_int32 - set up a values array for injecting to an MP.
+
+SYNOPSIS
+--------
+[verse]
+*#include <stdint.h>
+*#include <oml2/omlc.h>*
+[verse]
+'void'   *omlc_set_int32*('OmlValueU' value, 'int32_t' int32val); +
+'void'   *omlc_set_uint32*('OmlValueU' value, 'uint32_t' uint32val); +
+'void'   *omlc_set_int64*('OmlValueU' value, 'int64_t' int64val); +
+'void'   *omlc_set_uint64*('OmlValueU' value, 'uint64_t' uint64val); +
+'void'   *omlc_set_double*('OmlValueU' value, 'double' doubleval); +
+'void'   *omlc_set_string*('OmlValueU' value, 'long' longval); +
+'void'   *omlc_set_const_string*('OmlValueU' value, 'long' longval); +
+
+DESCRIPTION
+-----------
+
+The *omlc_set_**() macros are convenience macros for setting the
+values of an 'OmlValueU' array to be passed to *omlc_inject*(3).  The
+underlying 'OmlValueU' array is a simple union, but it should be
+treated as an opaque type to ensure backwards compatibility for
+applications using OML.  These macros operate on this type.
+
+The '(u)int{32,64}' variants are for setting integral types.  The
+argument should be one of the equivalent types from *stdint.h*.  The
+'double' variant is for setting double precision floating point
+values.
+
+The 'string' and 'const_string' variants are for setting string
+values.  Note that only the pointer is copied by the macro, but that
+the library internally copies the caller's string into its own
+internally managed memory, so the caller does not need to worry about
+preserving the string after any call to *omlc_inject*(3) on the
+'OmlValueU' array.
+
+The 'const_string' variant is mainly historical.  It was originally
+intended to express immutable string semantics, but this made the
+library complicated and prone to segfaults, so it was deprecated in
+favour of the aforementioned copying semantics.
+
+For an example of how these macros should be used, refer
+to *omlc_inject*(3) and *liboml2*(3).
+
+RETURN VALUE
+------------
+
+These functions are defined as macros and so don't return values.
+They should be treated as separate statements, rather than as proper
+functions.  In a future version of OML they may be converted to real
+inline functions.
+
+BUGS
+----
+
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+C preprocessor macros are generally brittle and error prone.
+Unfortunately, they are all we've got.
+
+For outstanding known bugs, please consult
+http://omf.mytestbed.net/projects/oml/issues
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+*liboml2*(3), *omlc_inject*(3)
+
+OML User Manual
+~~~~~~~~~~~~~~~
+http://omf.mytestbed.net/wiki/oml/Documentation
