@@ -56,7 +56,7 @@ void
 omlc_inject(OmlMP *mp, OmlValueU *values)
 {
   if (omlc_instance == NULL) return;
-  if (mp == NULL) return;
+  if (mp == NULL || values == NULL) return;
   if (mp_lock(mp)) return;
 
   OmlMStream* ms = mp->firstStream;
