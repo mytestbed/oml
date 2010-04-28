@@ -19,6 +19,7 @@ EXTRA_DIST=$(MAN1_FILES) $(MAN3_FILES)
 A2X_ARGS = \
 	--destination-dir=$(builddir) --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' -f manpage
 
+if HAVE_A2X
 man_MANS = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) \
 	liboml2.3 \
 	omlc_set_uint32.3 \
@@ -28,7 +29,6 @@ man_MANS = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) \
 	omlc_set_string.3 \
 	omlc_set_const_string.3
 
-if HAVE_A2X
 $(MAN1_FILES:.txt=.1):  %.1: %.txt
 	$(A2X) $(A2X_ARGS) $<
 	test -f "$(<:.txt=.xml)" && rm $(<:.txt=.xml) || true
