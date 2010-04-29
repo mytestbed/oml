@@ -47,7 +47,9 @@ liboml2_la_LIBADD = \
 	$(top_builddir)/lib/shared/libshared.la \
 	$(LIBXML2_LIBS) -lpthread
 
-liboml2_la_LDFLAGS = -version-info 0:0:0
+# To quote the APR build scripts:
+#    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiocy"
+liboml2_la_LDFLAGS = -version-info $(OML_VER_MINOR):$(OML_VER_PATCH_LT):$(OML_VER_MINOR)
 
 script_src = $(srcdir)/ruby/oml2_scaffold
 
