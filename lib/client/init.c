@@ -217,8 +217,7 @@ OmlMP*
 omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 {
   if (omlc_instance == NULL) return NULL;
-  const char* name = validate_name (mp_name);
-  if (!name)
+  if (!validate_name (mp_name))
     {
       logerror("Found illegal MP name '%s'.  MP will not be created\n", mp_name);
       return NULL;
@@ -227,7 +226,7 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
   OmlMP* mp = (OmlMP*)malloc(sizeof(OmlMP));
   memset(mp, 0, sizeof(OmlMP));
 
-  mp->name = name;
+  mp->name = mp_name;
   mp->param_defs = mp_def;
   int pc = 0;
   OmlMPDef* dp = mp_def;
@@ -239,8 +238,7 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
           logwarn("--> OML_LONG_VALUE is deprecated and should not be used in new code\n");
           logwarn("--> Values outside of [INT_MIN, INT_MAX] will be clamped!\n");
         }
-      char *dpname = validate_name (dp->name);
-      if (!dpname) {
+      if (!validate_name (dp->name)) {
         logerror ("Found illegal field name '%s' in MP '%s'.  MP will not be created\n",
                   dp->name, mp_name);
         free (mp);
@@ -749,7 +747,10 @@ validate_app_name (const char* name)
   /* Either 1 character before name, or '/': need to move forward 1 character */
   p++;
 
-  return validate_name (p);
+  if (validate_name (p))
+    return p;
+  else
+    return NULL;
 }
 
 /*

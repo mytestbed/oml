@@ -41,24 +41,22 @@ valid_name_char (char c)
  *
  *  @param name the name to validate.
  *
- *  @return If the name is valid, a pointer to the name
- *  returned.  If the name is not valid, returns NULL.  If the
- *  returned pointer is not NULL, it may be different from name.
+ *  @return If the name is valid, returns 1, otherwise returns 0.
  *
  */
-const char*
+int
 validate_name (const char* name)
 {
   size_t len = strlen (name);
-  const char* p = name + len - 1;
+  const char* p = name;
+
+  if (!p || *p == '\0' || isdigit (*p))
+    return 0;
 
   do {
     if (!valid_name_char (*p))
-      return NULL;
-  } while (--p >= name);
+      return 0;
+  } while ((++p - name) < len);
 
-  if (isdigit (*++p))
-    return NULL;
-
-  return p;
+  return 1;
 }

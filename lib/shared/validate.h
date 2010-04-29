@@ -25,6 +25,6 @@
 #ifndef VALIDATE_H__
 #define VALIDATE_H__
 
-const char* validate_name (const char* name);
+int validate_name (const char* name);
 
 #endif /* VALIDATE_H__ */
