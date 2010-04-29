@@ -75,7 +75,8 @@ client_handler_new(Socket* new_sock, char* hostname, char* user)
   self->socket = new_sock;
   self->DbHostname = hostname;
   self->DbUser = user;
-  eventloop_on_read_in_channel(new_sock, client_callback, status_callback, (void*)self);
+  self->event = eventloop_on_read_in_channel(new_sock, client_callback,
+                                             status_callback, (void*)self);
   xmemreport ();
   return self;
 }
@@ -145,7 +146,6 @@ process_schema(ClientHandler* self, char* value)
   if (!validate_schema_names (schema, &invalid)) {
     logerror ("The following schema contained an invalid name '%s'\n", invalid);
     logerror ("Failed schema: %s\n", value);
-    logerror ("Disconnecting client\n");
     self->state = C_PROTOCOL_ERROR;
     schema_free (schema);
     return;
@@ -554,6 +554,7 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
     case C_PROTOCOL_ERROR:
       // Protocol error:  close the client connection and teardown all
       // of it's allocated data.
+      eventloop_socket_remove (self->event);
       socket_close (self->socket);
       client_handler_free (self);
       /*
@@ -590,11 +591,11 @@ status_callback(SockEvtSource* source, SocketStatus status, int errno, void* han
     case SOCKET_CONN_CLOSED:
       {
         /* Client closed the connection */
-        ClientHandler* self = (ClientHandler*)handle;
-        client_handler_free (self);
-        socket_close (source->socket);
-
         logdebug("socket '%s' closed\n", source->name);
+        ClientHandler* self = (ClientHandler*)handle;
+        eventloop_socket_remove (self->event);
+        socket_close (source->socket);
+        client_handler_free (self);
         break;
       }
     case SOCKET_CONN_REFUSED:

@@ -25,6 +25,7 @@
 
 #include <time.h>
 #include <ocomm/o_socket.h>
+#include <ocomm/o_eventloop.h>
 #include <mbuf.h>
 
 #include "database.h"
@@ -54,6 +55,7 @@ typedef struct _clientHandler {
   CState      state;
   CState      content;
   Socket*     socket;
+  SockEvtSource *event;
   MBuffer* mbuf;
 
   OmlValue*   values;
