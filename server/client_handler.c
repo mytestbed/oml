@@ -153,14 +153,15 @@ process_schema(ClientHandler* self, char* value)
 
   int index = schema->index;
   DbTable* table = database_find_or_create_table(self->database, schema);
-  schema_free (schema);
   if (table == NULL) {
     logerror("Can't find table '%s' or client schema doesn't match the existing table.\n",
-             table->schema->name);
+             schema->name);
     logerror("Failed schema: %s\n", value);
     self->state = C_PROTOCOL_ERROR;
+    schema_free (schema);
     return;
   }
+  schema_free (schema);
 
   if (index >= self->table_size) {
     size_t new_size = self->table_size + DEF_TABLE_COUNT;

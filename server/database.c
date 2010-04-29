@@ -55,9 +55,9 @@ database_find(char* name, char* hostname, char* user)
       if (!strcmp(name, db->name) &&
           !strcmp(hostname, db->hostname) &&
           !strcmp(user, db->user)) {
-      db->ref_count++;
       logdebug ("Database %s at %s with %s found (%d clients)\n",
                 name, hostname, user, db->ref_count);
+      db->ref_count++;
       return db;
     }
     db = db->next;
