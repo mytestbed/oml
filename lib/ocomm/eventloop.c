@@ -154,14 +154,14 @@ update_fds(void)
     if (ch->is_active) {
       i++;
       if (self.length <= i) {
-	// Need to increase size of fds array
-	int l = (self.length > 0 ? 2 * self.length : DEF_FDS_LENGTH);
-	if (self.fds != NULL) free(self.fds);
-	self.fds = (struct pollfd *)malloc(l * sizeof(struct pollfd));
-	if (self.fds_channels != NULL) free(self.fds_channels);
-	self.fds_channels = (Channel **)malloc(l * sizeof(Channel*));
-	self.length = l;
-	return update_fds();  // start over
+    // Need to increase size of fds array
+    int l = (self.length > 0 ? 2 * self.length : DEF_FDS_LENGTH);
+    if (self.fds != NULL) free(self.fds);
+    self.fds = (struct pollfd *)malloc(l * sizeof(struct pollfd));
+    if (self.fds_channels != NULL) free(self.fds_channels);
+    self.fds_channels = (Channel **)malloc(l * sizeof(Channel*));
+    self.length = l;
+    return update_fds();  // start over
       }
       self.fds[i].fd = ch->fds_fd;
       self.fds[i].events = ch->fds_events;
@@ -175,7 +175,6 @@ update_fds(void)
 
 void
 eventloop_run()
-
 {
   start = now = time(NULL);
   while (1) {
@@ -184,9 +183,9 @@ eventloop_run()
     TimerInt* t = self.timers;
     while (t != NULL) {
       if (t->is_active) {
-	int delta = 1000 * (t->due_time - now);
-	if (delta < 0) delta = 0; // overdue
-	if (delta < timeout || timeout < 0) timeout = delta;
+        int delta = 1000 * (t->due_time - now);
+        if (delta < 0) delta = 0; // overdue
+        if (delta < timeout || timeout < 0) timeout = delta;
       }
       t = t->next;
     }
@@ -200,114 +199,123 @@ eventloop_run()
       // Check sockets
       int i = 0;
       for (; i < self.size; i++) {
-	Channel* ch = self.fds_channels[i];
-	if (self.fds[i].revents & POLLERR) {
-	  char buf[32];
-	  SocketStatus status;
-	  int len;
+        Channel* ch = self.fds_channels[i];
+        if (self.fds[i].revents & POLLERR) {
+          char buf[32];
+          SocketStatus status;
+          int len;
 
-	  if ((len = recv(self.fds[i].fd, buf, 32, 0)) <= 0) {
-	    switch (errno) {
-	    case ECONNREFUSED:
-	      status = SOCKET_CONN_REFUSED;
-	      break;
-	    default:
-	      status = SOCKET_UNKNOWN;
-	      if (!ch->status_cbk) {
-		o_log(O_LOG_ERROR, "EventLoop: While reading from socket '%s': (%d) %s\n",
-		      ch->name, errno, strerror(errno));
-		socket_close(ch->socket);
-	      }
-	    }
-	    ch->is_active = 0;
-	    self.fds_dirty = 1;
-	    if (ch->status_cbk) {
-	      ch->status_cbk((SockEvtSource*)ch, status, errno, ch->handle);
-	    }
-	  } else {
-	    o_log(O_LOG_ERROR, "EventLoop: Expected error on socket '%s' but read '%s'\n", ch->name, buf);
-	  }
-      } else if (self.fds[i].revents & POLLHUP) {
-	  ch->is_active = 0;
-	  self.fds_dirty = 1;
-	  if (ch->status_cbk) {
-	    ch->status_cbk((SockEvtSource*)ch, SOCKET_CONN_CLOSED, 0, ch->handle);
-	  }
-	} else if (self.fds[i].revents & POLLIN) {
-	  char buf[MAX_READ_BUFFER_SIZE];
-	  if (ch->read_cbk) {
-	    int len;
-	    int fd = self.fds[i].fd;
-	    if (fd == 0) {
-	      // stdin
-	      len = read(fd, buf, MAX_READ_BUFFER_SIZE);
-	      //Thierry: not required anymore
-	      //if (len > 0) len--; // ignoring trailing CR
-	    } else {
-	      // socket
-	      len = recv(fd, buf, 512, 0);
-	    }
-	    if (len > 0) {
-	      buf[len] = '\0';
-	      o_log(O_LOG_DEBUG2, "received(%i): <%s>\n", len, buf);
-	      ch->read_cbk((SockEvtSource*)ch, ch->handle, buf, len);
-	    } else if (len == 0 && ch->socket != NULL) {  // skip stdin
-	      // closed down
-	      ch->is_active = 0;
-	      self.fds_dirty = 1;
-	      if (ch->status_cbk) {
-		// expect the callback to handle socket close
-		ch->status_cbk((SockEvtSource*)ch, SOCKET_CONN_CLOSED, 0, ch->handle);
-	      } else {
-		socket_close(ch->socket);
-	      }
-	    } else if (len < 0) {
-	      o_log(O_LOG_ERROR, "Eventloop: Read error not implemented\n");
-	    }
-	  } else {
-	    if (ch->monitor_cbk) {
-	      ch->monitor_cbk((SockEvtSource*)ch, ch->handle);
-	    }
-	  }
-	}
-	if (self.fds[i].revents & POLLOUT) {
-	  if (ch->status_cbk) {
-	    ch->status_cbk((SockEvtSource*)ch, SOCKET_WRITEABLE, 0, ch->handle);
-	  }
-	}
-	if (self.fds[i].revents & POLLNVAL) {
-	  ch->is_active = 0;
-	  self.fds_dirty = 1;
-	  if (ch->status_cbk) {
-	    ch->status_cbk((SockEvtSource*)ch, SOCKET_DROPPED, 0, ch->handle);
-	  } else {
-	    o_log(O_LOG_WARN, "EventLoop: Deactivated socket '%s'\n", ch->name);
-	  }
-	}
+          if ((len = recv(self.fds[i].fd, buf, 32, 0)) <= 0) {
+            switch (errno) {
+            case ECONNREFUSED:
+              status = SOCKET_CONN_REFUSED;
+              break;
+            default:
+              status = SOCKET_UNKNOWN;
+              if (!ch->status_cbk) {
+                o_log(O_LOG_ERROR, "EventLoop: While reading from socket '%s': (%d) %s\n",
+                      ch->name, errno, strerror(errno));
+                socket_close(ch->socket);
+              }
+            }
+            ch->is_active = 0;
+            self.fds_dirty = 1;
+            if (ch->status_cbk) {
+              ch->status_cbk((SockEvtSource*)ch, status, errno, ch->handle);
+            }
+          } else {
+            o_log(O_LOG_ERROR, "EventLoop: Expected error on socket '%s' but read '%s'\n", ch->name, buf);
+          }
+        } else if (self.fds[i].revents & POLLHUP) {
+          ch->is_active = 0;
+          self.fds_dirty = 1;
+          if (ch->status_cbk) {
+            ch->status_cbk((SockEvtSource*)ch, SOCKET_CONN_CLOSED, 0, ch->handle);
+          }
+        } else if (self.fds[i].revents & POLLIN) {
+          char buf[MAX_READ_BUFFER_SIZE];
+          if (ch->read_cbk) {
+            int len;
+            int fd = self.fds[i].fd;
+            if (fd == 0) {
+              // stdin
+              len = read(fd, buf, MAX_READ_BUFFER_SIZE);
+              //Thierry: not required anymore
+              //if (len > 0) len--; // ignoring trailing CR
+            } else {
+              // socket
+              len = recv(fd, buf, 512, 0);
+            }
+            if (len > 0) {
+              buf[len] = '\0';
+              o_log(O_LOG_DEBUG2, "received(%i): <%s>\n", len, buf);
+              ch->read_cbk((SockEvtSource*)ch, ch->handle, buf, len);
+            } else if (len == 0 && ch->socket != NULL) {  // skip stdin
+              // closed down
+              ch->is_active = 0;
+              self.fds_dirty = 1;
+              if (ch->status_cbk) {
+                // expect the callback to handle socket close
+                ch->status_cbk((SockEvtSource*)ch, SOCKET_CONN_CLOSED, 0, ch->handle);
+              } else {
+                socket_close(ch->socket);
+              }
+            } else if (len < 0) {
+              if (errno == ENOTSOCK) {
+                o_log(O_LOG_ERROR,
+                      "Eventloop: Monitored socket '%s' is now invalid; "
+                      "removing from monitored set\n",
+                      ch->name);
+                eventloop_socket_remove ((SockEvtSource*)ch);
+              } else {
+                o_log(O_LOG_ERROR, "Eventloop: Unrecognized read error not handled (errno=%d)\n",
+                      errno);
+              }
+            }
+          } else {
+            if (ch->monitor_cbk) {
+              ch->monitor_cbk((SockEvtSource*)ch, ch->handle);
+            }
+          }
+        }
+        if (self.fds[i].revents & POLLOUT) {
+          if (ch->status_cbk) {
+            ch->status_cbk((SockEvtSource*)ch, SOCKET_WRITEABLE, 0, ch->handle);
+          }
+        }
+        if (self.fds[i].revents & POLLNVAL) {
+          ch->is_active = 0;
+          self.fds_dirty = 1;
+          if (ch->status_cbk) {
+            ch->status_cbk((SockEvtSource*)ch, SOCKET_DROPPED, 0, ch->handle);
+          } else {
+            o_log(O_LOG_WARN, "EventLoop: Deactivated socket '%s'\n", ch->name);
+          }
+        }
       }
     }
     if (timeout >= 0) {
       // check timers
       TimerInt* t = self.timers;
       while (t != NULL) {
-	if (t->is_active) {
-	  if (t->due_time <= now) {
-	    // fires
-	    o_log(O_LOG_DEBUG2, "Eventloop: Timer '%s' fired\n", t->name);
-	    if (t->callback) t->callback((TimerEvtSource*)t, t->handle);
+        if (t->is_active) {
+          if (t->due_time <= now) {
+            // fires
+            o_log(O_LOG_DEBUG2, "Eventloop: Timer '%s' fired\n", t->name);
+            if (t->callback) t->callback((TimerEvtSource*)t, t->handle);
 
-	    if (t->is_periodic) {
-	      while ((t->due_time += t->period) < now) {
-		// should really only happen during debugging
-		o_log(O_LOG_WARN, "Eventloop: Skipped timer period for '%s'\n",
-		      t->name);
-	      }
-	    } else {
-	      t->is_active = 0;
-	    }
-	  }
-	}
-	t = t->next;
+            if (t->is_periodic) {
+              while ((t->due_time += t->period) < now) {
+                // should really only happen during debugging
+                o_log(O_LOG_WARN, "Eventloop: Skipped timer period for '%s'\n",
+                      t->name);
+              }
+            } else {
+              t->is_active = 0;
+            }
+          }
+        }
+        t = t->next;
       }
     }
   }
@@ -371,7 +379,7 @@ eventloop_on_read_in_channel(
   }
   Channel* ch;
   ch = eventloop_on_in_fd(socket->name, socket->get_sockfd(socket),
-			  data_cbk, NULL, status_cbk, handle);
+              data_cbk, NULL, status_cbk, handle);
   ch->socket = socket;
   return (SockEvtSource*)ch;
 }
@@ -389,7 +397,7 @@ eventloop_on_monitor_in_channel(
   }
   Channel* ch;
   ch = eventloop_on_in_fd(socket->name, socket->get_sockfd(socket),
-			  NULL, data_cbk, status_cbk, handle);
+              NULL, data_cbk, status_cbk, handle);
   ch->socket = socket;
   return (SockEvtSource*)ch;
 }
@@ -431,7 +439,7 @@ eventloop_on_out_channel(
   }
   Channel* ch;
   ch = eventloop_on_out_fd(socket->name, socket->get_sockfd(socket),
-			  status_cbk, handle);
+              status_cbk, handle);
   ch->socket = socket;
 
   return (SockEvtSource*)ch;
@@ -468,11 +476,11 @@ eventloop_socket_remove(
     Channel* p = prev->next;
     while (p != NULL) {
       if (p == ch) {
-	prev->next = ch->next;
-	p = NULL;
+    prev->next = ch->next;
+    p = NULL;
       } else {
-	prev = p;
-	p = p->next;
+    prev = p;
+    p = p->next;
       }
     }
   }
