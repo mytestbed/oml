@@ -324,7 +324,7 @@ mbuf_find (MBuffer* mbuf, uint8_t c)
   while (p < mbuf->wrptr && *p != c) p++;
 
   int result = -1;
-  if (*p == c)
+  if (p < mbuf->wrptr && *p == c)
     result = p - mbuf->rdptr;
 
   mbuf_check_invariant (mbuf);
@@ -343,7 +343,7 @@ mbuf_find_not (MBuffer* mbuf, uint8_t c)
   while (p < mbuf->wrptr && *p == c) p++;
 
   int result = -1;
-  if (*p != c)
+  if (p < mbuf->wrptr && *p != c)
     result = p - mbuf->rdptr;
 
   mbuf_check_invariant (mbuf);
