@@ -554,8 +554,8 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
     case C_PROTOCOL_ERROR:
       // Protocol error:  close the client connection and teardown all
       // of it's allocated data.
-      eventloop_socket_remove (self->event);
       socket_close (self->socket);
+      eventloop_socket_remove (self->event);  // Note: this free()'s source!
       client_handler_free (self);
       /*
        * The mbuf is also freed by client_handler_free(), and there's
@@ -593,8 +593,8 @@ status_callback(SockEvtSource* source, SocketStatus status, int errno, void* han
         /* Client closed the connection */
         logdebug("socket '%s' closed\n", source->name);
         ClientHandler* self = (ClientHandler*)handle;
-        eventloop_socket_remove (self->event);
         socket_close (source->socket);
+        eventloop_socket_remove (self->event); // Note:  This free()'s source!
         client_handler_free (self);
         break;
       }
