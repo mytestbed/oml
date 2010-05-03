@@ -136,10 +136,6 @@ database_release(Database* self)
     prev_p->next = self->next;
   }
 
-  loginfo ("Closing database '%s'\n", self->name);
-
-  self->release (self);
-
   // no longer needed
   DbTable* t_p = self->first_table;
   while (t_p != NULL)
@@ -151,6 +147,10 @@ database_release(Database* self)
       database_table_free(self, t_p);
       t_p = t;
     }
+
+  loginfo ("Closing database '%s'\n", self->name);
+  self->release (self);
+
   xfree(self);
 }
 

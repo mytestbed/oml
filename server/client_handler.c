@@ -98,11 +98,10 @@ client_handler_free (ClientHandler* self)
         free (self->values[i].value.stringValue.ptr);
     }
   xfree (self->values);
+  free (self->socket);
   xfree (self);
 
   xmemreport ();
-
-  // FIXME:  What about destroying the socket data structure --> memory leak?
 }
 
 static int
