@@ -51,6 +51,91 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 static void
 status_callback(SockEvtSource* source, SocketStatus status, int errno, void* handle);
 
+/*
+ *  Allocate data structures for the client's tables.
+ *
+ *  The following need to be allocated:
+ *
+ *  self->tables -- the DbTables themselves
+ *  self->seq_no_offsets -- the seq_no offet of each table
+ *  self->values_vectors -- values vectors -- one for each table
+ *  self->values_vector_counts -- size of each of the values_vectors
+ *
+ *  There should be ntables of each of these.  For the size of each of
+ *  the values_vectors[i], see client_realloc_values().
+ *
+ *  self->table_count is set to ntables at the end of this, as long as
+ *  there are not already enough tables to accomodate ntables.
+ */
+int
+client_realloc_tables (ClientHandler *self, int ntables)
+{
+  if (!self || ntables <= 0)
+    return -1;
+
+  if (ntables > self->table_count) {
+    int error = 0;
+    DbTable **new_tables = xrealloc (self->tables, ntables*sizeof(DbTable*));
+    int *new_so = xrealloc (self->seqno_offsets, ntables*sizeof(int));
+    OmlValue **new_vv = xrealloc (self->values_vectors, ntables*sizeof(OmlValue*));
+    int *new_vv_counts = xrealloc (self->values_vector_counts, ntables * sizeof (int));
+
+    if (!new_tables || !new_so || !new_vv || !new_vv_counts) {
+      logerror ("Failed to allocate memory for %d more client tables (current %d)\n",
+                (ntables - self->table_count), self->table_count);
+      // Don't free anything because whatever got successfully xrealloc'd is still ok
+      error = -1;
+    }
+
+    /* Keep whatever succeeded */
+    if (new_tables) self->tables = new_tables;
+    if (new_so) self->seqno_offsets = new_so;
+    if (new_vv) self->values_vectors = new_vv;
+    if (new_vv_counts) self->values_vector_counts = new_vv_counts;
+
+    /* If the values vectors succeeded, we need to create the new ones */
+    if (new_vv && new_vv_counts) {
+      int i = 0;
+      for (i = self->table_count; i < ntables; i++) {
+        self->values_vectors[i] = xcalloc (DEF_NUM_VALUES, sizeof (OmlValue));
+        if (self->values_vectors[i]) {
+          self->values_vector_counts[i] = DEF_NUM_VALUES;
+        } else {
+          self->values_vector_counts[i] = -1;
+          logerror ("Error:  could not allocate memory for values vector for table %d\n", i);
+          error = -1;
+        }
+      }
+    }
+    if (!error)
+      self->table_count = ntables;
+    return error;
+  }
+
+  return 0;
+}
+
+/*
+ *  (Re)allocate the values vector for the table with the given index,
+ *  so that it is expanded or contracted to have nvalues elements.
+ */
+int
+client_realloc_values (ClientHandler *self, int index, int nvalues)
+{
+  if (!self || index < 0 || index > self->table_count || nvalues <= 0)
+    return -1;
+
+  if (nvalues > self->values_vector_counts[index]) {
+    OmlValue *new_values = xrealloc (self->values_vectors[index], nvalues * sizeof (OmlValue));
+    if (!new_values)
+      return -1;
+    self->values_vectors[index] = new_values;
+    self->values_vector_counts[index] = nvalues;
+  }
+
+  return 0;
+}
+
 /**
  * \brief Create a client handler and associates it with the socket
  * \param newSock the socket from which the client is connected
@@ -62,13 +147,7 @@ client_handler_new(Socket* new_sock, char* hostname, char* user)
 {
   ClientHandler* self = xmalloc(sizeof(ClientHandler));
   if (!self) return NULL;
-  self->value_count = DEF_NUM_VALUES;
-  self->values = (OmlValue*)xcalloc (self->value_count, sizeof (OmlValue));
-  if (!self->values)
-    {
-      xfree (self);
-      return NULL;
-    }
+
   self->state = C_HEADER;
   self->content = C_TEXT_DATA;
   self->mbuf = mbuf_create ();
@@ -88,16 +167,19 @@ client_handler_free (ClientHandler* self)
     database_release (self->database);
   if (self->tables)
     xfree (self->tables);
-  if (self->seq_no_offset)
-    xfree (self->seq_no_offset);
+  if (self->seqno_offsets)
+    xfree (self->seqno_offsets);
   mbuf_destroy (self->mbuf);
-  int i = 0;
-  for (i = 0; i < self->value_count; i++)
-    {
-      if (self->values[i].type == OML_STRING_VALUE)
-        free (self->values[i].value.stringValue.ptr);
+  int i, j;
+  for (i = 0; i < self->table_count; i++) {
+    for (j = 0; j < self->values_vector_counts[i]; j++) {
+      if (self->values_vectors[i][j].type == OML_STRING_VALUE)
+        free (self->values_vectors[i][j].value.stringValue.ptr);
     }
-  xfree (self->values);
+    xfree (self->values_vectors[i]);
+  }
+  xfree (self->values_vectors);
+  xfree (self->values_vector_counts);
   free (self->socket);
   xfree (self);
 
@@ -162,35 +244,21 @@ process_schema(ClientHandler* self, char* value)
   }
   schema_free (schema);
 
-  if (index >= self->table_size) {
-    size_t new_size = self->table_size + DEF_TABLE_COUNT;
-    DbTable **new_tables = xrealloc (self->tables, new_size * sizeof (DbTable*));
-    int *new_seq_no_offset = xrealloc (self->seq_no_offset, new_size * sizeof (int));
-
-    if (!new_tables || !new_seq_no_offset) {
-      logerror ("Failed to allocate memory for client table vector (size %d)", new_size);
-      return;
-    }
-    self->table_size = new_size;
-    self->tables = new_tables;
-    self->seq_no_offset = new_seq_no_offset;
+  if (client_realloc_tables (self, index + 1) == -1) {
+    logerror ("Failed to get memory for table index %d --> can't continue\n", index);
+    return;
   }
 
   self->tables[index] = table;
   // FIXME:  schema must come after sender-id
   // Look up the max sequence number for this sender in this table
-  self->seq_no_offset[index] = self->database->get_max_seq_no (self->database, table, self->sender_id);
+  self->seqno_offsets[index] =
+    self->database->get_max_seq_no (self->database, table, self->sender_id);
 
   /* Reallocate the values vector if this schema has more columns than can fit already. */
-  if (table->schema->nfields > self->value_count) {
-    int new_count = table->schema->nfields + DEF_NUM_VALUES;
-    OmlValue *new = xrealloc (self->values, new_count * sizeof (OmlValue));
-    if (!new) {
-      logwarn("Could not allocate values vector with %d elements\n", new_count);
-    } else {
-      self->value_count = new_count;
-      self->values = new;
-    }
+  if (client_realloc_values (self, index, table->schema->nfields) == -1) {
+    logwarn ("Could not allocate values vector of size %d for table %d\n",
+             table->schema->nfields, index);
   }
 }
 
@@ -334,8 +402,11 @@ process_header(ClientHandler* self, MBuffer* mbuf)
 static void
 process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 {
+  int index = header->stream;
   MBuffer* mbuf = self->mbuf;
-  int cnt = unmarshal_measurements(mbuf, header, self->values, self->value_count);
+  OmlValue *values = self->values_vectors[index];
+  int count = self->values_vector_counts[index];
+  int cnt = unmarshal_measurements(mbuf, header, values, count);
 
   /* Some error occurred in unmarshaling; can't continue */
   if (cnt < 0)
@@ -344,15 +415,9 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
   double ts;
 
   ts = self->time_offset + header->timestamp;
-
-  if (header->stream >= self->table_size || header->stream < 0) {
-    logerror("Table index '%d' out of bounds\n", header->stream);
-    self->state = C_PROTOCOL_ERROR;
-    return;
-  }
-  DbTable* table = self->tables[header->stream];
+  DbTable* table = self->tables[index];
   if (table == NULL) {
-    logerror("Undefined table '%d'\n", header->stream);
+    logerror("Undefined table '%d'\n", index);
     self->state = C_PROTOCOL_ERROR;
     return;
   }
@@ -360,9 +425,9 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
   self->database->insert(self->database,
                          table,
                          self->sender_id,
-                         header->seqno + self->seq_no_offset[header->stream],
+                         header->seqno + self->seqno_offsets[index],
                          ts,
-                         self->values,
+                         self->values_vectors[index],
                          cnt);
 
   mbuf_consume_message (mbuf);
@@ -436,7 +501,7 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
   long seq_no = atol(msg[2]);
 
   ts += self->time_offset;
-  if (table_index >= self->table_size || table_index < 0) {
+  if (table_index >= self->table_count || table_index < 0) {
     logerror("Table index '%d' out of bounds\n", table_index);
     return;
   }
@@ -453,7 +518,7 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
   }
 
   int i;
-  OmlValue* v = self->values;
+  OmlValue* v = self->values_vectors[table_index];
   char** val_ap = msg + 3;
   for (i= 0; i < schema->nfields; i++, v++, val_ap++) {
     char* val = *val_ap;
@@ -463,7 +528,7 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
   }
 
   self->database->insert(self->database, table, self->sender_id, seq_no,
-                         ts, self->values, size - 3);
+                         ts, self->values_vectors[table_index], size - 3);
 }
 
 /**

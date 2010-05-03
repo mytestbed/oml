@@ -48,8 +48,10 @@ typedef struct _clientHandler {
   char*       DbHostname;
   char*       DbUser;
   DbTable**   tables;
-  int*        seq_no_offset;
-  int         table_size;    // size of tables array and seq_no_offset array
+  int*        seqno_offsets;
+  OmlValue**  values_vectors;
+  int*        values_vector_counts; // size of each vector in values_vectors
+  int         table_count;    // size of tables, seq_no_offsets, and values arrays
   int         sender_id;
 
   CState      state;
@@ -58,8 +60,6 @@ typedef struct _clientHandler {
   SockEvtSource *event;
   MBuffer* mbuf;
 
-  OmlValue*   values;
-  int         value_count;
   time_t      time_offset;  // value to add to remote ts to
                             // sync time across all connections
 } ClientHandler;
