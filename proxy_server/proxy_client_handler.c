@@ -95,51 +95,43 @@ int startConnection(){
  */
 static void* thread_proxystart(void* handle) {
 
-  ProxyClientHandler* proxy = ( ProxyClientHandler* ) handle;
-  //ProxyClientBuffer* buffer = proxy->currentBuffertoSend;
+  ProxyClientHandler* client = ( ProxyClientHandler* ) handle;
   while(1){
-    ProxyClientBuffer* buffer = proxy->currentBuffertoSend;
-    if (strcmp(proxyServer->cmdSocket, "OMLPROXY-RESUME") == 0){
-      //printf(" change %s\n",proxyServer->cmdSocket);
-      //socket_sendto(proxy->socket_to_server,proxy->buffer->buff,proxy->buffer->currentSize);
+    ProxyClientBuffer* buffer = client->currentBuffertoSend;
+    switch (proxyServer->state) {
+    case ProxyState_SENDING:
       if((buffer->currentSize - buffer->byteAlreadySent)>0){
-
-
-        if(socket_sendto(proxy->socket_to_server, (char*)buffer->buffToSend, (buffer->currentSize - buffer->byteAlreadySent))==0){
+        if(socket_sendto(client->socket_to_server,
+                         (char*)buffer->buffToSend,
+                         (buffer->currentSize - buffer->byteAlreadySent))==0) {
           buffer->buffToSend += (buffer->currentSize - buffer->byteAlreadySent);
-          //printf(" test \n");
           buffer->byteAlreadySent = buffer->currentSize;
         }
-
       }
       if(buffer->next != NULL){
-
-          proxy->currentBuffertoSend = buffer->next;
-
+        client->currentBuffertoSend = buffer->next;
+      }
+      else{
+        if(client->socketClosed == 1){
+          socket_close(client->socket_to_server);
+          client->socketClosed++;  // Inform the status callback that we closed our end.
         }
-       else{
-         if(proxy->socketClosed == 1){
-           socket_close(proxy->socket_to_server);
-           proxy->cmdSocket = "OMLPROXY-STOP";
-         }
-       }
-      //sleep(1);
-
-    }else if (strcmp(proxyServer->cmdSocket, "OMLPROXY-STOP") == 0){
-        //printf(" change %s\n",proxyServer->cmdSocket);
-
-    }else if (strcmp(proxyServer->cmdSocket, "OMLPROXY-PAUSE") == 0){
-      //printf(" change %s\n",proxyServer->cmdSocket);
-      sleep(1);
+      }
+      break;
+    case ProxyState_STOPPED:
+      break;
+    case ProxyState_PAUSED:
+      sleep (1);
+      break;
+    default:
+      logerror ("Unknown ProxyState %d\n", proxyServer->state);
     }
-
   }
-
 }
 
 void setCommand( ProxyClientHandler* proxy, char* cmd ){
 
-  proxy->cmdSocket= cmd;
+  //  proxy->cmdSocket= cmd;
   //printf(" cmdSocket %s\n",proxy->cmdSocket);
 
 
@@ -171,17 +163,16 @@ proxy_client_handler_new(
   self->currentBuffertoSend = self->buffer;
   self->currentPageNumber = 0;
   self->file = fopen(file_name, "wa");
-  self->cmdSocket = "pause";
   self->socketClosed = 0;
 
   self->file_name =  file_name;
-
   self->addressServer = addressServer;
-
   self->portServer = portServer;
 
-  self->socket_to_server =  socket_tcp_out_new(file_name, addressServer, portServer);;
-  pthread_create(&self->thread_pch, NULL, thread_proxystart, (void*)self);
+  self->socket_to_server =  socket_tcp_out_new(file_name, addressServer, portServer);
+
+  pthread_create(&self->thread, NULL, thread_proxystart, (void*)self);
+
   return self;
   //eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
 }
@@ -261,7 +252,16 @@ status_callback(
       fflush(self->file);
       fclose(self->file);
       self->socketClosed = 1;
-      while(strcmp(self->cmdSocket, "OMLPROXY-STOP") != 0)
+
+      /*
+       * The thread that sends to the downstream oml2-server must
+       * detect that socketClosed == 1 and increment it to 2 to inform
+       * this thread that it is ok to declare the socket closed and
+       * exit.
+       *
+       * FIXME:  This blocks the main event loop for a second at a time.
+       */
+      while(self->socketClosed <= 1)
         sleep(1);
       logdebug("socket '%s' closed\n", source->name);
       break;

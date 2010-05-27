@@ -50,71 +50,45 @@ typedef enum _cstate {
 
 typedef struct _proxyClientBuffer{
     int pageNumber;
-
     unsigned char* current_pointer;
-
     unsigned char* buffToSend;
-
     int max_length;
-
     int currentSize;
-
     int byteAlreadySent;
-
     unsigned char* buff;
-
     struct _proxyClientBuffer* next;
-
-
-}ProxyClientBuffer;
+} ProxyClientBuffer;
 
 typedef struct _proxyClientHandler {
   //! Name used for debugging
   char name[64];
-
   int         sender_id;
-
   Socket*     socket;
-
   int currentPageNumber;
-
   struct _proxyClientBuffer* buffer;
   struct _proxyClientBuffer* firstBuffer;
-
   struct _proxyClientBuffer* currentBuffertoSend;
-
   FILE *      file;
-
   int         fd_file;
-
   struct _proxyClientHandler* next;
-
-  pthread_t thread_pch;
-
-  char* cmdSocket;
-
+  pthread_t thread;
   int socketClosed;
-
   char* file_name;
-
   int portServer;
-
   char* addressServer;
-
   Socket*     socket_to_server;
+} ProxyClientHandler;
 
-}ProxyClientHandler;
+enum ProxyState {
+  ProxyState_PAUSED,
+  ProxyState_SENDING,
+  ProxyState_STOPPED
+};
 
 typedef struct _proxyServer{
-
   struct _proxyClientHandler* first;
-
   struct _proxyClientHandler* current;
-
-  char* cmdSocket;
-
-  pthread_t thread_stdin;
-
+  enum ProxyState state;
 }ProxyServer;
 
 ProxyClientBuffer* initPCB(

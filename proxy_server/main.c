@@ -94,25 +94,77 @@ on_connect(
 
 }
 
-
-static void* thread_stdinstart(void* handle)
+/*
+ *  A hack to work around Mac OSX's broken implementation of poll(2),
+ *  which does not allow polling stdin.  This hack dup()'s stdin to
+ *  another file descriptor and creates a pipe(2) which it then
+ *  dup2()'s into the normal stdin file descriptor.  If this succeeds,
+ *  it then spawns a thread whose only function is to read(2) from the
+ *  original stdin and write into the pipe.  The read end of the pipe,
+ *  which is now file descriptor 0, is then useable in a call to
+ *  poll(2).
+ */
+void*
+prepare_stdin (void *handle)
 {
-  ProxyServer* proxy = ( ProxyServer* ) handle;
-  char command[80];
-
-  while(1){
-    command[0] = '\0';
-    scanf ("%s",command);
-    if (strcmp(command, "OMLPROXY-RESUME") == 0){
-      printf(" command %s \n", command);
-      proxy->cmdSocket = command;
-    }else if (strcmp(command, "OMLPROXY-STOP") == 0){
-      printf(" command %s \n", command);
-      proxy->cmdSocket = command;
-    }else if (strcmp(command, "OMLPROXY-PAUSE") == 0){
-      printf(" command %s \n", command);
-      proxy->cmdSocket = command;
+  (void)handle;
+#ifdef __APPLE__
+  static int thread_started = 0;
+  static int stdin_dup;
+  static int stdin_pipe[2];
+  static pthread_t self;
+  if (!thread_started) {
+    int result;
+    result = pipe (stdin_pipe);
+    if (result) {
+      logerror ("Could not create pipe for stdin duplication: %s\n", strerror(errno));
+      exit(EXIT_FAILURE);
     }
+
+    stdin_dup = dup(fileno(stdin));
+    dup2(stdin_pipe[0], fileno(stdin));
+
+    thread_started = 1;
+    result = pthread_create (&self, NULL, prepare_stdin, NULL);
+    if (result == -1) {
+      logerror ("Error creating thread for reading stdin: %s\n", strerror (errno));
+      exit (EXIT_FAILURE);
+    }
+  } else {
+    char buf [512];
+    while (1) {
+      ssize_t count = read (stdin_dup, buf, 512);
+      if (count < 0)
+        logerror ("Error reading from stdin: %s\n", strerror(errno));
+      if (count <= 0)
+        return NULL;
+      write (stdin_pipe[1], buf, count);
+    }
+  }
+#endif
+}
+
+void
+stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
+{
+  ProxyServer *proxy = (ProxyServer*)handle;
+  char command[80];
+  strncpy (command, buf, 80);
+
+  if (buf_size < 80 && command[buf_size-1] == '\n')
+    command[buf_size-1] = '\0';
+
+  printf ("Received command: %s\n", command);
+
+  if ((strcmp (command, "OMLPROXY-RESUME") == 0) ||
+      (strcmp (command, "RESUME") == 0)) {
+    proxy->state = ProxyState_SENDING;
+  } else if (strcmp (command, "OMLPROXY-STOP") == 0 ||
+             strcmp (command, "STOP") == 0) {
+    proxy->state = ProxyState_STOPPED;
+  } else if (strcmp (command, "OMLPROXY-PAUSE") == 0 ||
+             strcmp (command, "PAUSE") == 0) {
+    proxy->state = ProxyState_PAUSED;
   }
 }
 
@@ -155,17 +207,18 @@ main(
   loginfo (V_STRING, VERSION);
   loginfo (COPYRIGHT);
 
+  prepare_stdin(NULL);
+
   eventloop_init();
    proxyServer = (ProxyServer*) malloc(sizeof(ProxyServer));
   memset(proxyServer, 0, sizeof(ProxyServer));
 
-  proxyServer->cmdSocket = "OMLPROXY-PAUSE";
+  proxyServer->state = ProxyState_PAUSED;
 
   Socket* serverSock;
   serverSock = socket_server_new("proxy_server", listen_port, on_connect, NULL);
 
-  pthread_create(&proxyServer->thread_stdin, NULL, thread_stdinstart, (void*)proxyServer);
-
+  eventloop_on_stdin(stdin_handler, proxyServer);
   eventloop_run();
 
   return(0);
