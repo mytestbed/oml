@@ -95,41 +95,25 @@ on_connect(
 }
 
 
-static void* thread_stdinstart(void* handle) {
-
+static void* thread_stdinstart(void* handle)
+{
   ProxyServer* proxy = ( ProxyServer* ) handle;
   char command[80];
-//  char* cmd;
 
   while(1){
+    command[0] = '\0';
     scanf ("%s",command);
-    //strcpy(cmd,command);
-//    ProxyClientHandler* tmp = proxy->current;
     if (strcmp(command, "OMLPROXY-RESUME") == 0){
-//      while(tmp =! NULL){
-//          setCommand( tmp,  command );
-//          tmp = tmp->next;
-//      }
       printf(" command %s \n", command);
       proxy->cmdSocket = command;
     }else if (strcmp(command, "OMLPROXY-STOP") == 0){
-//        while(tmp =! NULL){
-//          setCommand( tmp,  command );
-//          tmp = tmp->next;
-//      }
       printf(" command %s \n", command);
       proxy->cmdSocket = command;
     }else if (strcmp(command, "OMLPROXY-PAUSE") == 0){
-//        while(tmp =! NULL){
-//          setCommand( tmp,  command );
-//          tmp = tmp->next;
-//      }
       printf(" command %s \n", command);
       proxy->cmdSocket = command;
-
     }
   }
-
 }
 
 
