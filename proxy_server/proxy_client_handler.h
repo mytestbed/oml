@@ -91,32 +91,14 @@ typedef struct _proxyServer{
   enum ProxyState state;
 }ProxyServer;
 
-ProxyClientBuffer* initPCB(
-        int size,
-        int number
-        );
-
-void setCommand( ProxyClientHandler* proxy, char* cmd );
+ProxyClientBuffer* initPCB(int size, int number);
 
 ProxyClientHandler*
-proxy_client_handler_new(
-    Socket* newSock,
-    int size_page,
-    char* file_name,
-    int portServer,
-    char* addressServer
-);
+proxy_client_handler_new(Socket* sock, int size_page, char *file,
+                         int portServer, char *addressServer);
 
 void
-startLoopChannel(Socket* newSock, ProxyClientHandler* proxy);
-
-int pauseConnection();
-
-int resumeConnection();
-
-int stopConnection();
-
-int startConnection();
+startLoopChannel(Socket* sock, ProxyClientHandler* client);
 
 #endif /*CLIENT_HANDLER_H_*/
 

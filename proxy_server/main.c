@@ -60,7 +60,7 @@ struct poptOption options[] = {
   { "resultfile",  'r',  POPT_ARG_STRING, &resultfile_name, 0,   "File to put the result",               DEFAULT_RESULT_FILE},
   { "size",        's',  POPT_ARG_INT,    &page_size,       0,   "Size of the bufferised data",          NULL},
   { "dstport",     'p',  POPT_ARG_INT,    &dstport,         0,   "Destination port of the server",       NULL},
-  { "dstaddress",  'a',  POPT_ARG_STRING, &address_server,  0,   "Address of the OML Server",            DEFAULT_LOG_FILE },
+  { "dstaddress",  'a',  POPT_ARG_STRING, &address_server,  0,   "Address of the OML Server",            DEF_PORT_STR },
   { NULL,          0,    0,               NULL,             0,   NULL,                                   NULL }
 };
 
@@ -83,15 +83,12 @@ on_connect(
   logdebug("New client connected\n");
   numberSocket++;
   ProxyClientHandler* proxy = proxy_client_handler_new(newSock, page_size, resultfile_name, dstport, address_server);
-  //store in the proxy
-  //mp->next = omlc_instance->mpoints;  omlc_instance->mpoints = mp;
 
-    proxy->next = proxyServer->current;
-    proxyServer->current = proxy;
+  proxy->next = proxyServer->current;
+  proxyServer->current = proxy;
 
 
   startLoopChannel( newSock,  proxy);
-
 }
 
 /*
@@ -176,10 +173,8 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
  * \return
  */
 int
-main(
-  int argc,
-  const char *argv[]
-) {
+main(int argc, const char *argv[])
+{
   char c;
 
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);

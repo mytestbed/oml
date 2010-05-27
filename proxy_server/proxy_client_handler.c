@@ -41,7 +41,7 @@ extern ProxyServer* proxyServer;
  * \return
  */
 ProxyClientBuffer* initPCB( int size, int number){
-    ProxyClientBuffer* self = ( ProxyClientBuffer*) malloc(sizeof(ProxyClientBuffer));
+    ProxyClientBuffer* self = (ProxyClientBuffer*) malloc(sizeof(ProxyClientBuffer));
     memset(self, 0, sizeof(ProxyClientBuffer));
     self->max_length = size;
     self->pageNumber = number;
@@ -59,34 +59,13 @@ ProxyClientBuffer* initPCB( int size, int number){
 
 
 static void
-client_callback(SockEvtSource* source,
-  void* handle,
-  void* buf,
-  int buf_size
-);
+client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 
+/* errno is not a good name for an variable as it expands to a fn ptr
+   when unistd.h is included */
 static void
-status_callback(SockEvtSource* source,
-  SocketStatus status,
-  int err_no,  /* errno is not a good name as it expands to a fn ptr when unistd.h is included */
-  void* handle
-);
-
-int pauseConnection(){
-    return 0;
-}
-
-int resumeConnection(){
-    return 0;
-}
-
-int stopConnection(){
-    return 0;
-}
-
-int startConnection(){
-    return 0;
-}
+status_callback(SockEvtSource* source, SocketStatus status, int err_no,
+                void* handle);
 
 /**
  * \fn static void* thread_proxystart(void* handle)
@@ -129,13 +108,6 @@ static void* thread_proxystart(void* handle) {
   }
 }
 
-void setCommand( ProxyClientHandler* proxy, char* cmd ){
-
-  //  proxy->cmdSocket= cmd;
-  //printf(" cmdSocket %s\n",proxy->cmdSocket);
-
-
-}
 /**
  * \fn ProxyClientHandler* proxy_client_handler_new(Socket* newSock, int size_page, char* file_name, int portServer, char* addressServer)
  * \brief Create and initialise a +ProxyClientHandler+ structure
