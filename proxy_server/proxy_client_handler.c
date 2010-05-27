@@ -34,7 +34,6 @@
 
 extern ProxyServer* proxyServer;
 /**
- * \fn ProxyClientBuffer* initPCB( int size, int number)
  * \brief Create and initialise a new +ProxyClientBuffer+ structure
  * \param size the maximum lenght of the buffer
  * \param number the page number
@@ -68,7 +67,6 @@ status_callback(SockEvtSource* source, SocketStatus status, int err_no,
                 void* handle);
 
 /**
- * \fn static void* thread_proxystart(void* handle)
  * \brief function that will try to send data to the real OML server
  * \param handle the proxy Client Handler
  */
@@ -109,7 +107,6 @@ static void* thread_proxystart(void* handle) {
 }
 
 /**
- * \fn ProxyClientHandler* proxy_client_handler_new(Socket* newSock, int size_page, char* file_name, int portServer, char* addressServer)
  * \brief Create and initialise a +ProxyClientHandler+ structure
  * \param newSock the socket associated to the client transmition
  * \param size_page the size of the buffers
@@ -155,7 +152,6 @@ startLoopChannel(Socket* newSock, ProxyClientHandler* proxy){
 }
 
 /**
- * \fn void client_callback(SockEvtSource* source, void* handle, void* buf,int buf_size)
  * \brief function called when the socket receive some data
  * \param source the socket event
  * \param handle the cleint handler
@@ -203,7 +199,6 @@ client_callback(
 }
 
 /**
- * \fn void status_callback( SockEvtSource* source, SocketStatus status, int errno, void* handle)
  * \brief Call back function when the status of the socket change
  * \param source the socket event
  * \param status the status of the socket

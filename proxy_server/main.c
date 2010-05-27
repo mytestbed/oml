@@ -65,7 +65,6 @@ struct poptOption options[] = {
 };
 
 /**
- * \fn void on_connect(Socket* newSock, void* handle)
  * \brief Called when a node connects via TCP
  * \param
  * \return
@@ -165,13 +164,6 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
   }
 }
 
-
-/**
- * \fn int main(int argc, const char *argv[])
- * \brief Start the proxy server
- * \param
- * \return
- */
 int
 main(int argc, const char *argv[])
 {
