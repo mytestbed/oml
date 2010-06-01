@@ -14,7 +14,8 @@
 static float amplitude = 1.0;
 static float frequency = 0.1;
 static float sample_interval = 1;
-static float samples = -1;
+static int samples = -1;
+static int fast = 0;
 static int quiet = 0;       /* if 1 don't print anything */
 
 struct poptOption options[] = {
@@ -27,6 +28,7 @@ struct poptOption options[] = {
         "Number of samples to take. -1 ... forever"},
   { "sample-interval", 's', POPT_ARG_FLOAT, &sample_interval, 0,
         "Time between consecutive measurements [sec]"},
+  { "fast", 'f', POPT_ARG_NONE, &fast, 0, "Run fast:  don't actually pause between samples" },
   { "quiet", 'q', POPT_ARG_NONE, &quiet, 0,
         "If set, don't print"},
   { NULL, 0, 0, NULL, 0 }
@@ -81,7 +83,7 @@ run()
     if (!quiet) printf("%s %d | %f %f\n", label, count, angle, value);
 
     angle = fmodf(angle + delta, 2 * M_PI);
-    if (sleep > 0) usleep(sleep);
+    if (!fast && sleep > 0) usleep(sleep);
   }
 }
 
