@@ -19,7 +19,7 @@ def type_strings(t):
         return ("long", "OML_LONG_VALUE")
     else:
         return ("int", "OML_BAD_VALUE")
-    
+
 def print_cvec(strm, v):
 
     strm.write('{ ')
@@ -68,7 +68,7 @@ def print_test(strm, t, name):
         i = i + 1
 
     input_count = i
-    
+
     i = 0
     outputs = []
     outputs_tv = []
@@ -124,5 +124,5 @@ def main():
         print_test(f, t, "stddev_%d" % i)
         i = i + 1
 
-    
+
 if __name__ == '__main__': main()

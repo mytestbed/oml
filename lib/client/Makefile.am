@@ -1,7 +1,5 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
-SUBDIRS = . tests
-
 oml2incdir = $(includedir)/oml2
 
 oml2inc_HEADERS = \

@@ -109,13 +109,13 @@ fi
 AC_CONFIG_FILES([Makefile
 		 lib/Makefile
 		 lib/client/Makefile
-		 lib/client/tests/Makefile
 		 lib/shared/Makefile
 		 lib/ocomm/Makefile
 		 server/Makefile
 		 proxy_server/Makefile
 		 doc/Makefile
 		 example/Makefile
+		 test/Makefile
 		 ])
 
 if test "x$missing_check" != "x"; then
