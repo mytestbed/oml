@@ -60,7 +60,7 @@ struct poptOption options[] = {
   { "resultfile",  'r',  POPT_ARG_STRING, &resultfile_name, 0,   "File to put the result",               DEFAULT_RESULT_FILE},
   { "size",        's',  POPT_ARG_INT,    &page_size,       0,   "Size of the bufferised data",          NULL},
   { "dstport",     'p',  POPT_ARG_INT,    &dstport,         0,   "Destination port of the server",       NULL},
-  { "dstaddress",  'a',  POPT_ARG_STRING, &address_server,  0,   "Address of the OML Server",            DEF_PORT_STR },
+  { "dstaddress",  'a',  POPT_ARG_STRING, &address_server,  0,   "Address of the OML Server",            DEFAULT_SERVER_ADDRESS },
   { NULL,          0,    0,               NULL,             0,   NULL,                                   NULL }
 };
 
