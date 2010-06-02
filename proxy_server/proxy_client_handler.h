@@ -33,9 +33,9 @@
 
 #include <ocomm/o_socket.h>
 
-struct _proxyClientBuffer;
+struct _clientBuffer;
 
-struct _proxyClientHandler;
+struct _client;
 
 typedef enum _cstate {
   C_HEADER,       // processing header info
@@ -46,9 +46,7 @@ typedef enum _cstate {
 #define DEF_NUM_VALUES 30
 #define MAX_STRING_SIZE 64
 
-
-
-typedef struct _proxyClientBuffer{
+typedef struct _clientBuffer{
     int pageNumber;
     unsigned char* current_pointer;
     unsigned char* buffToSend;
@@ -56,28 +54,31 @@ typedef struct _proxyClientBuffer{
     int currentSize;
     int byteAlreadySent;
     unsigned char* buff;
-    struct _proxyClientBuffer* next;
-} ProxyClientBuffer;
+    struct _clientBuffer* next;
+} ClientBuffer;
 
-typedef struct _proxyClientHandler {
+typedef struct _client {
   //! Name used for debugging
-  char name[64];
+  char        name[64];
   int         sender_id;
-  Socket*     socket;
-  int currentPageNumber;
-  struct _proxyClientBuffer* buffer;
-  struct _proxyClientBuffer* firstBuffer;
-  struct _proxyClientBuffer* currentBuffertoSend;
+  Socket*     recv_socket;
+  Socket*     send_socket;
+  int         recv_socket_closed;
+  int         send_socket_closed;
+
+  int         currentPageNumber;
+  struct _clientBuffer* buffer;
+  struct _clientBuffer* firstBuffer;
+  struct _clientBuffer* currentBuffertoSend;
+
   FILE *      file;
   int         fd_file;
-  struct _proxyClientHandler* next;
-  pthread_t thread;
-  int socketClosed;
-  char* file_name;
-  int portServer;
-  char* addressServer;
-  Socket*     socket_to_server;
-} ProxyClientHandler;
+  char*       file_name;
+
+  pthread_t   thread;
+
+  struct _client* next;
+} Client;
 
 enum ProxyState {
   ProxyState_PAUSED,
@@ -86,19 +87,24 @@ enum ProxyState {
 };
 
 typedef struct _proxyServer{
-  struct _proxyClientHandler* first;
-  struct _proxyClientHandler* current;
   enum ProxyState state;
-}ProxyServer;
 
-ProxyClientBuffer* initPCB(int size, int number);
+  int client_count;
+  struct _client* first;
 
-ProxyClientHandler*
-proxy_client_handler_new(Socket* sock, int size_page, char *file,
-                         int portServer, char *addressServer);
+  int  server_port;
+  char* server_address;
+} ProxyServer;
+
+ClientBuffer*
+make_client_buffer (int size, int number);
+
+Client*
+client_new(Socket* sock, int page_size, char *file,
+           int server_port, char *server_address);
 
 void
-startLoopChannel(Socket* sock, ProxyClientHandler* client);
+client_socket_monitor(Socket* sock, Client* client);
 
 #endif /*CLIENT_HANDLER_H_*/
 

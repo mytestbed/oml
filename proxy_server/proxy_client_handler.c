@@ -33,15 +33,17 @@
 #define DEF_TABLE_COUNT 10
 
 extern ProxyServer* proxyServer;
+
 /**
- * \brief Create and initialise a new +ProxyClientBuffer+ structure
+ * \brief Create and initialise a new +ClientBuffer+ structure
  * \param size the maximum lenght of the buffer
  * \param number the page number
  * \return
  */
-ProxyClientBuffer* initPCB( int size, int number){
-    ProxyClientBuffer* self = (ProxyClientBuffer*) malloc(sizeof(ProxyClientBuffer));
-    memset(self, 0, sizeof(ProxyClientBuffer));
+ClientBuffer* make_client_buffer( int size, int number)
+{
+    ClientBuffer* self = (ClientBuffer*) malloc(sizeof(ClientBuffer));
+    memset(self, 0, sizeof(ClientBuffer));
     self->max_length = size;
     self->pageNumber = number;
     self->currentSize = 0;
@@ -70,15 +72,16 @@ status_callback(SockEvtSource* source, SocketStatus status, int err_no,
  * \brief function that will try to send data to the real OML server
  * \param handle the proxy Client Handler
  */
-static void* thread_proxystart(void* handle) {
+static void* client_send_thread (void* handle)
+{
+  Client *client = (Client*)handle;
 
-  ProxyClientHandler* client = ( ProxyClientHandler* ) handle;
-  while(1){
-    ProxyClientBuffer* buffer = client->currentBuffertoSend;
+  while(1) {
+    ClientBuffer* buffer = client->currentBuffertoSend;
     switch (proxyServer->state) {
     case ProxyState_SENDING:
-      if((buffer->currentSize - buffer->byteAlreadySent)>0){
-        if(socket_sendto(client->socket_to_server,
+      if ((buffer->currentSize - buffer->byteAlreadySent) > 0) {
+        if(socket_sendto(client->send_socket,
                          (char*)buffer->buffToSend,
                          (buffer->currentSize - buffer->byteAlreadySent))==0) {
           buffer->buffToSend += (buffer->currentSize - buffer->byteAlreadySent);
@@ -88,8 +91,10 @@ static void* thread_proxystart(void* handle) {
       if(buffer->next != NULL){
         client->currentBuffertoSend = buffer->next;
       } else {
-        if (client->socketClosed == 1)
-          socket_close (client->socket_to_server);
+        if (client->recv_socket_closed == 1) {
+          socket_close (client->send_socket);
+          client->send_socket_closed = 1;
+        }
       }
       break;
     case ProxyState_STOPPED:
@@ -104,48 +109,46 @@ static void* thread_proxystart(void* handle) {
 }
 
 /**
- * \brief Create and initialise a +ProxyClientHandler+ structure
+ * \brief Create and initialise a +Client+ structure
  * \param newSock the socket associated to the client transmition
- * \param size_page the size of the buffers
+ * \param page_size the size of the buffers
  * \param file_name the name of the file to save the measurements
- * \param portServer the destination port of the OML server
- * \param addressServer the address of the OML Server
- * \return a new ProxyClientHandler structure
+ * \param server_port the destination port of the OML server
+ * \param server_address the address of the OML Server
+ * \return a new Client structure
  */
-ProxyClientHandler*
-proxy_client_handler_new(
-    Socket* newSock,
-    int size_page,
-    char* file_name,
-    int portServer,
-    char* addressServer
-) {
-  ProxyClientHandler* self = (ProxyClientHandler *)malloc(sizeof(ProxyClientHandler));
-  memset(self, 0, sizeof(ProxyClientHandler));
+Client*
+client_new (Socket* client_sock, int page_size, char* file_name,
+           int server_port, char* server_address)
+{
+  Client* self = (Client *)malloc(sizeof(Client));
+  memset(self, 0, sizeof(Client));
 
-  self->socket = newSock;
-  self->buffer = initPCB( size_page, 0); //TODO change it to integrate option of the command line
+  self->buffer = make_client_buffer (page_size, 0); //TODO change it to integrate option of the command line
+
   self->firstBuffer = self->buffer;
   self->currentBuffertoSend = self->buffer;
   self->currentPageNumber = 0;
+
   self->file = fopen(file_name, "wa");
-  self->socketClosed = 0;
-
   self->file_name =  file_name;
-  self->addressServer = addressServer;
-  self->portServer = portServer;
 
-  self->socket_to_server =  socket_tcp_out_new(file_name, addressServer, portServer);
+  self->recv_socket = client_sock;
+  self->recv_socket_closed = 0;
 
-  pthread_create(&self->thread, NULL, thread_proxystart, (void*)self);
+  self->send_socket =  socket_tcp_out_new(file_name, server_address, server_port);
+  self->send_socket_closed = 0;
+
+  pthread_create(&self->thread, NULL, client_send_thread, (void*)self);
 
   return self;
-  //eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)self);
+  //eventloop_on_read_in_channel(client_sock, client_callback, status_callback, (void*)self);
 }
 
 void
-startLoopChannel(Socket* newSock, ProxyClientHandler* proxy){
-  eventloop_on_read_in_channel(newSock, client_callback, status_callback, (void*)proxy);
+client_socket_monitor (Socket* client_sock, Client* client)
+{
+  eventloop_on_read_in_channel(client_sock, client_callback, status_callback, (void*)client);
 }
 
 /**
@@ -156,43 +159,23 @@ startLoopChannel(Socket* newSock, ProxyClientHandler* proxy){
  * \param bufsize the size of the data set from the socket
  */
 void
-client_callback(
-  SockEvtSource* source,
-  void* handle,
-  void* buf,
-  int buf_size
-) {
-  ProxyClientHandler* self = (ProxyClientHandler*)handle;
+client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
+{
+  Client* self = (Client*)handle;
   int available = self->buffer->max_length - self->buffer->currentSize ;
 
-  if(self->file == NULL)
-      ;
-  else{
-    if(available < buf_size){
+  if (self->file != NULL) {
+    if (available < buf_size) {
         fwrite(self->buffer->buff,sizeof(char), self->buffer->currentSize, self->file);
-        //fflush(self->queue);
-        //socket_sendto(self->socket_to_server,self->buffer->buff,self->buffer->currentSize);
-
         self->currentPageNumber += 1;
-        self->buffer->next = initPCB(self->buffer->max_length, self->currentPageNumber);
+        self->buffer->next = make_client_buffer(self->buffer->max_length,
+                                                self->currentPageNumber);
         self->buffer = self->buffer->next;
-
-        //memcpy(self->buffer->current_pointer, buf, buf_size);
-
-        //self->buffer->current_pointer += buf_size;
-        //self->buffer->currentSize += buf_size;
-
     }
-
-
-
     memcpy(self->buffer->current_pointer,  buf, buf_size);
     self->buffer->current_pointer += buf_size;
     self->buffer->currentSize += buf_size;
-
-
   }
-
 }
 
 /**
@@ -211,12 +194,12 @@ status_callback(
 ) {
   switch (status) {
     case SOCKET_CONN_CLOSED: {
-      ProxyClientHandler* self = (ProxyClientHandler*)handle;
+      Client* self = (Client*)handle;
       fwrite(self->buffer->buff,sizeof(char), self->buffer->currentSize, self->file);
       fflush(self->file);
       fclose(self->file);
       /* signal the sender thread that this client closed the connection */
-      self->socketClosed = 1;
+      self->recv_socket_closed = 1;
       logdebug("socket '%s' closed\n", source->name);
       break;
     default:

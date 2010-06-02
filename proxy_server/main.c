@@ -44,10 +44,8 @@ static int log_level = O_LOG_INFO;
 static char* logfile_name = DEFAULT_LOG_FILE;
 static char resultfile_name[128] = DEFAULT_RESULT_FILE;
 static int page_size = DEF_PAGE_SIZE;
-static int dstport = DEF_PORT;
-static char* address_server = DEFAULT_SERVER_ADDRESS;
-
-int numberSocket = 0;
+static int downstream_port = DEF_PORT;
+static char* downstream_address = DEFAULT_SERVER_ADDRESS;
 
 ProxyServer* proxyServer = NULL;
 
@@ -59,8 +57,8 @@ struct poptOption options[] = {
   { "version",     'v',  POPT_ARG_NONE,   NULL,             'v', "Print version information and exit",   NULL},
   { "resultfile",  'r',  POPT_ARG_STRING, &resultfile_name, 0,   "File to put the result",               DEFAULT_RESULT_FILE},
   { "size",        's',  POPT_ARG_INT,    &page_size,       0,   "Size of the bufferised data",          NULL},
-  { "dstport",     'p',  POPT_ARG_INT,    &dstport,         0,   "Destination port of the server",       NULL},
-  { "dstaddress",  'a',  POPT_ARG_STRING, &address_server,  0,   "Address of the OML Server",            DEFAULT_SERVER_ADDRESS },
+  { "dstport",     'p',  POPT_ARG_INT,    &downstream_port, 0,   "Downstream OML server port",       NULL},
+  { "dstaddress",  'a',  POPT_ARG_STRING, &downstream_address,  0,   "Downstream OML server address",            DEFAULT_SERVER_ADDRESS },
   { NULL,          0,    0,               NULL,             0,   NULL,                                   NULL }
 };
 
@@ -70,24 +68,22 @@ struct poptOption options[] = {
  * \return
  */
 void
-on_connect(
-  Socket* newSock,
-  void* handle
-) {
-  (void)handle;  // FIXME:  Why is this parameter unused?
-//  Socket* outSock = (Socket*)handle;
+on_connect (Socket* client_sock, void* handle)
+{
+  (void)handle;  // This parameter is unused
   char integer_string[32];
-  sprintf(integer_string, "%d", numberSocket);
+  sprintf(integer_string, "%d", proxyServer->client_count);
   strcat(resultfile_name, integer_string);
   logdebug("New client connected\n");
-  numberSocket++;
-  ProxyClientHandler* proxy = proxy_client_handler_new(newSock, page_size, resultfile_name, dstport, address_server);
+  proxyServer->client_count++;
+  Client* client = client_new(client_sock, page_size, resultfile_name,
+                              downstream_port, downstream_address);
 
-  proxy->next = proxyServer->current;
-  proxyServer->current = proxy;
+  client->next = proxyServer->first;
+  proxyServer->first = client;
 
 
-  startLoopChannel( newSock,  proxy);
+  client_socket_monitor (client_sock, client);
 }
 
 /*
@@ -197,7 +193,7 @@ main(int argc, const char *argv[])
   prepare_stdin(NULL);
 
   eventloop_init();
-   proxyServer = (ProxyServer*) malloc(sizeof(ProxyServer));
+  proxyServer = (ProxyServer*) malloc(sizeof(ProxyServer));
   memset(proxyServer, 0, sizeof(ProxyServer));
 
   proxyServer->state = ProxyState_PAUSED;
