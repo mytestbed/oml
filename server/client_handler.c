@@ -582,7 +582,6 @@ process_text_message(
  * \param buf data received from the socket
  * \param bufsize the size of the data set from the socket
  */
-#include <stdio.h>
 void
 client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
 {
@@ -663,11 +662,14 @@ status_callback(SockEvtSource* source, SocketStatus status, int errno, void* han
         break;
       }
     case SOCKET_CONN_REFUSED:
+      logdebug ("Unhandled condition CONN_REFUSED on socket '%s'\n", source->name);
       break;
     case SOCKET_DROPPED:
+      logdebug ("Unhandled condition CONN_REFUSED on socket '%s'\n", source->name);
       break;
     case SOCKET_UNKNOWN:
     default:
+      logdebug ("Unhandled condition UNKNOWN on socket '%s'\n", source->name);
       break;
     }
 }

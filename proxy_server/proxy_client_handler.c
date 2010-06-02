@@ -87,12 +87,9 @@ static void* thread_proxystart(void* handle) {
       }
       if(buffer->next != NULL){
         client->currentBuffertoSend = buffer->next;
-      }
-      else{
-        if(client->socketClosed == 1){
-          socket_close(client->socket_to_server);
-          client->socketClosed++;  // Inform the status callback that we closed our end.
-        }
+      } else {
+        if (client->socketClosed == 1)
+          socket_close (client->socket_to_server);
       }
       break;
     case ProxyState_STOPPED:
@@ -218,18 +215,8 @@ status_callback(
       fwrite(self->buffer->buff,sizeof(char), self->buffer->currentSize, self->file);
       fflush(self->file);
       fclose(self->file);
+      /* signal the sender thread that this client closed the connection */
       self->socketClosed = 1;
-
-      /*
-       * The thread that sends to the downstream oml2-server must
-       * detect that socketClosed == 1 and increment it to 2 to inform
-       * this thread that it is ok to declare the socket closed and
-       * exit.
-       *
-       * FIXME:  This blocks the main event loop for a second at a time.
-       */
-      while(self->socketClosed <= 1)
-        sleep(1);
       logdebug("socket '%s' closed\n", source->name);
       break;
     default:

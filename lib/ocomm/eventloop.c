@@ -230,6 +230,21 @@ eventloop_run()
           ch->is_active = 0;
           self.fds_dirty = 1;
           if (ch->status_cbk) {
+            /* Client closed the connection, but there might still be bytes
+               for us to read from our end of the connection. */
+            int len;
+            int fd = self.fds[i].fd;
+            char buf[MAX_READ_BUFFER_SIZE];
+            do {
+              if (fd == 0) {
+                len = read(fd, buf, MAX_READ_BUFFER_SIZE);
+              } else {
+                len = recv(fd, buf, 512, 0);
+              }
+              if (ch->read_cbk) {
+                ch->read_cbk ((SockEvtSource*)ch, ch->handle, buf, len);
+              }
+            } while (len > 0);
             ch->status_cbk((SockEvtSource*)ch, SOCKET_CONN_CLOSED, 0, ch->handle);
           }
         } else if (self.fds[i].revents & POLLIN) {
@@ -240,15 +255,12 @@ eventloop_run()
             if (fd == 0) {
               // stdin
               len = read(fd, buf, MAX_READ_BUFFER_SIZE);
-              //Thierry: not required anymore
-              //if (len > 0) len--; // ignoring trailing CR
             } else {
               // socket
               len = recv(fd, buf, 512, 0);
             }
             if (len > 0) {
-              buf[len] = '\0';
-              o_log(O_LOG_DEBUG2, "received(%i): <%s>\n", len, buf);
+              o_log(O_LOG_DEBUG2, "Eventloop:  received %i octets\n", len);
               ch->read_cbk((SockEvtSource*)ch, ch->handle, buf, len);
             } else if (len == 0 && ch->socket != NULL) {  // skip stdin
               // closed down
