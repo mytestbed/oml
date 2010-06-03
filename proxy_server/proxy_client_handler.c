@@ -70,40 +70,50 @@ status_callback(SockEvtSource* source, SocketStatus status, int err_no,
 
 /**
  * \brief function that will try to send data to the real OML server
- * \param handle the proxy Client Handler
+ * \param handle the client data structure i.e. a pointer to a Client*.
  */
 static void* client_send_thread (void* handle)
 {
   Client *client = (Client*)handle;
+  pthread_mutex_lock (&client->mutex);
 
   while(1) {
-    ClientBuffer* buffer = client->currentBuffertoSend;
-    switch (proxyServer->state) {
-    case ProxyState_SENDING:
-      if ((buffer->currentSize - buffer->byteAlreadySent) > 0) {
-        if(socket_sendto(client->send_socket,
-                         (char*)buffer->buffToSend,
-                         (buffer->currentSize - buffer->byteAlreadySent))==0) {
-          buffer->buffToSend += (buffer->currentSize - buffer->byteAlreadySent);
-          buffer->byteAlreadySent = buffer->currentSize;
+    pthread_cond_wait (&client->condvar, &client->mutex);
+
+    if (proxyServer->state == ProxyState_SENDING) {
+      while (client->send_buffer &&
+             client->send_buffer != client->recv_buffer) {
+        ClientBuffer* buffer = client->send_buffer;
+
+        int bytes_to_send = buffer->currentSize - buffer->byteAlreadySent;
+
+        if (bytes_to_send > 0) {
+          /* Don't block other threads while sending data */
+          pthread_mutex_unlock (&client->mutex);
+          int result = socket_sendto (client->send_socket, (char*)buffer->buffToSend,
+                                      bytes_to_send);
+          pthread_mutex_lock (&client->mutex);
+          if (result == 0) {
+            buffer->buffToSend += bytes_to_send;
+            buffer->byteAlreadySent = buffer->currentSize;
+            client->bytes_sent += bytes_to_send;
+            logdebug ("Sent %d bytes downstream (total %d)\n", bytes_to_send,
+                      client->bytes_sent);
+          } else {
+            logerror ("Error sending %d bytes to downstream server:  %s\n",
+                      bytes_to_send, strerror (errno));
+          }
         }
+        client->send_buffer = client->send_buffer->next;
       }
-      if(buffer->next != NULL){
-        client->currentBuffertoSend = buffer->next;
-      } else {
-        if (client->recv_socket_closed == 1) {
-          socket_close (client->send_socket);
-          client->send_socket_closed = 1;
-        }
+
+      if (client->recv_socket_closed == 1) {
+        socket_close (client->send_socket);
+        client->send_socket_closed = 1;
       }
-      break;
-    case ProxyState_STOPPED:
-      break;
-    case ProxyState_PAUSED:
-      sleep (1);
-      break;
-    default:
-      logerror ("Unknown ProxyState %d\n", proxyServer->state);
+    } else {
+      logwarn ("Client sender thread woke up when not in state SENDING (actual state %d)\n",
+               proxyServer->state);
     }
   }
 }
@@ -124,11 +134,12 @@ client_new (Socket* client_sock, int page_size, char* file_name,
   Client* self = (Client *)malloc(sizeof(Client));
   memset(self, 0, sizeof(Client));
 
-  self->buffer = make_client_buffer (page_size, 0); //TODO change it to integrate option of the command line
+  self->recv_buffer = make_client_buffer (page_size, 0); //TODO change it to integrate option of the command line
 
-  self->firstBuffer = self->buffer;
-  self->currentBuffertoSend = self->buffer;
+  self->first_buffer = self->recv_buffer;
+  self->send_buffer = self->recv_buffer;
   self->currentPageNumber = 0;
+  self->bytes_sent = 0;
 
   self->file = fopen(file_name, "wa");
   self->file_name =  file_name;
@@ -139,10 +150,12 @@ client_new (Socket* client_sock, int page_size, char* file_name,
   self->send_socket =  socket_tcp_out_new(file_name, server_address, server_port);
   self->send_socket_closed = 0;
 
+  /* FIXME:  Return value checking */
   pthread_create(&self->thread, NULL, client_send_thread, (void*)self);
+  pthread_mutex_init (&self->mutex, NULL);
+  pthread_cond_init (&self->condvar, NULL);
 
   return self;
-  //eventloop_on_read_in_channel(client_sock, client_callback, status_callback, (void*)self);
 }
 
 void
@@ -159,46 +172,51 @@ client_socket_monitor (Socket* client_sock, Client* client)
  * \param bufsize the size of the data set from the socket
  */
 void
-client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
+client_callback(SockEvtSource *source, void *handle, void *buf, int buf_size)
 {
   Client* self = (Client*)handle;
-  int available = self->buffer->max_length - self->buffer->currentSize ;
+  pthread_mutex_lock (&self->mutex);
+
+  int available = self->recv_buffer->max_length - self->recv_buffer->currentSize ;
 
   if (self->file != NULL) {
     if (available < buf_size) {
-        fwrite(self->buffer->buff,sizeof(char), self->buffer->currentSize, self->file);
+        fwrite(self->recv_buffer->buff,sizeof(char), self->recv_buffer->currentSize, self->file);
         self->currentPageNumber += 1;
-        self->buffer->next = make_client_buffer(self->buffer->max_length,
+        self->recv_buffer->next = make_client_buffer(self->recv_buffer->max_length,
                                                 self->currentPageNumber);
-        self->buffer = self->buffer->next;
+        self->recv_buffer = self->recv_buffer->next;
     }
-    memcpy(self->buffer->current_pointer,  buf, buf_size);
-    self->buffer->current_pointer += buf_size;
-    self->buffer->currentSize += buf_size;
+    memcpy(self->recv_buffer->current_pointer,  buf, buf_size);
+    self->recv_buffer->current_pointer += buf_size;
+    self->recv_buffer->currentSize += buf_size;
   }
+
+  if (proxyServer->state == ProxyState_SENDING)
+    pthread_cond_signal (&self->condvar);
+
+  pthread_mutex_unlock (&self->mutex);
 }
 
 /**
  * \brief Call back function when the status of the socket change
  * \param source the socket event
  * \param status the status of the socket
- * \param errno the value of the error if there is
+ * \param error the value of the error if there is
  * \param handle the Client handler structure
  */
 void
-status_callback(
- SockEvtSource* source,
- SocketStatus status,
- int err_no,
- void* handle
-) {
+status_callback(SockEvtSource *source, SocketStatus status, int error, void *handle)
+{
+  (void)error;
   switch (status) {
     case SOCKET_CONN_CLOSED: {
       Client* self = (Client*)handle;
-      fwrite(self->buffer->buff,sizeof(char), self->buffer->currentSize, self->file);
+      fwrite(self->recv_buffer->buff,sizeof(char), self->recv_buffer->currentSize, self->file);
       fflush(self->file);
       fclose(self->file);
       /* signal the sender thread that this client closed the connection */
+      self->recv_buffer = NULL;
       self->recv_socket_closed = 1;
       logdebug("socket '%s' closed\n", source->name);
       break;

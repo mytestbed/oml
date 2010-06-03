@@ -21,8 +21,10 @@
  *
  */
 #include <config.h>
-#include <popt.h>
 #include <string.h>
+#include <unistd.h>
+#include <popt.h>
+
 
 #include <log.h>
 #include <ocomm/o_socket.h>
@@ -134,6 +136,7 @@ prepare_stdin (void *handle)
     }
   }
 #endif
+  return NULL;
 }
 
 void
@@ -148,6 +151,7 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
 
   printf ("Received command: %s\n", command);
 
+  enum ProxyState old_state = proxyServer->state;
   if ((strcmp (command, "OMLPROXY-RESUME") == 0) ||
       (strcmp (command, "RESUME") == 0)) {
     proxy->state = ProxyState_SENDING;
@@ -157,6 +161,19 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
   } else if (strcmp (command, "OMLPROXY-PAUSE") == 0 ||
              strcmp (command, "PAUSE") == 0) {
     proxy->state = ProxyState_PAUSED;
+  }
+
+
+  /* If we switched to sending state, wake up the client sender
+     threads so that they will start sending to the downstream server */
+  if (old_state != ProxyState_SENDING && proxyServer->state == ProxyState_SENDING) {
+    Client *current = proxyServer->first;
+    while (current) {
+      pthread_mutex_lock (&current->mutex);
+      pthread_cond_signal (&current->condvar);
+      pthread_mutex_unlock (&current->mutex);
+      current = current->next;
+    }
   }
 }
 

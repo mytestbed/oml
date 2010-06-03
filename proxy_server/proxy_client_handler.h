@@ -43,7 +43,6 @@ typedef enum _cstate {
   C_TEXT_DATA
 } CState;
 
-#define DEF_NUM_VALUES 30
 #define MAX_STRING_SIZE 64
 
 typedef struct _clientBuffer{
@@ -67,15 +66,18 @@ typedef struct _client {
   int         send_socket_closed;
 
   int         currentPageNumber;
-  struct _clientBuffer* buffer;
-  struct _clientBuffer* firstBuffer;
-  struct _clientBuffer* currentBuffertoSend;
+  struct _clientBuffer* first_buffer;
+  struct _clientBuffer* recv_buffer;
+  struct _clientBuffer* send_buffer;
+  int bytes_sent;
 
   FILE *      file;
   int         fd_file;
   char*       file_name;
 
-  pthread_t   thread;
+  pthread_t       thread;
+  pthread_mutex_t mutex;
+  pthread_cond_t  condvar;
 
   struct _client* next;
 } Client;
