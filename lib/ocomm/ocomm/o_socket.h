@@ -170,6 +170,11 @@ socket_close(
 int
 socket_close_all(void);
 
+void
+socket_free (
+  Socket* socket
+);
+
 
 /*! Send a message through the socket
  *

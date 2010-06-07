@@ -156,6 +156,13 @@ initialize(
   return self;
 }
 
+void
+socket_free (
+  Socket* socket
+) {
+  free (socket);
+}
+
 //! Create a socket structure
 int
 s_socket(

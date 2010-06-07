@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #include <log.h>
+#include <mem.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 
@@ -40,7 +41,7 @@ extern ProxyServer* proxyServer;
  * \param number the page number
  * \return
  */
-ClientBuffer* make_client_buffer( int size, int number)
+ClientBuffer* make_client_buffer (int size, int number)
 {
     ClientBuffer* self = (ClientBuffer*) malloc(sizeof(ClientBuffer));
     memset(self, 0, sizeof(ClientBuffer));
@@ -58,6 +59,13 @@ ClientBuffer* make_client_buffer( int size, int number)
     return self;
 }
 
+void
+free_client_buffer (ClientBuffer *buffer)
+{
+  free (buffer->buff);
+  free (buffer);
+}
+
 
 static void
 client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
@@ -67,6 +75,9 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 static void
 status_callback(SockEvtSource* source, SocketStatus status, int err_no,
                 void* handle);
+
+void
+client_free (Client *client);
 
 /**
  * \brief function that will try to send data to the real OML server
@@ -97,8 +108,6 @@ static void* client_send_thread (void* handle)
             buffer->buffToSend += bytes_to_send;
             buffer->byteAlreadySent = buffer->currentSize;
             client->bytes_sent += bytes_to_send;
-            logdebug ("Sent %d bytes downstream (total %d)\n", bytes_to_send,
-                      client->bytes_sent);
           } else {
             logerror ("Error sending %d bytes to downstream server:  %s\n",
                       bytes_to_send, strerror (errno));
@@ -108,8 +117,11 @@ static void* client_send_thread (void* handle)
       }
 
       if (client->recv_socket_closed == 1) {
+        /* Client disconnected */
         socket_close (client->send_socket);
         client->send_socket_closed = 1;
+        client_free (client);
+        pthread_exit (NULL);
       }
     } else {
       logwarn ("Client sender thread woke up when not in state SENDING (actual state %d)\n",
@@ -138,7 +150,7 @@ client_new (Socket* client_sock, int page_size, char* file_name,
 
   self->first_buffer = self->recv_buffer;
   self->send_buffer = self->recv_buffer;
-  self->currentPageNumber = 0;
+  self->current_page = 0;
   self->bytes_sent = 0;
 
   self->file = fopen(file_name, "wa");
@@ -159,6 +171,43 @@ client_new (Socket* client_sock, int page_size, char* file_name,
 }
 
 void
+client_free (Client *client)
+{
+  if (client == NULL) return;
+  /* Unlink this client from the main client list */
+  Client *current = proxyServer->first_client;
+  if (current == client) proxyServer->first_client = current->next;
+  while (current) {
+    if (current->next == client) {
+      current->next = current->next->next;
+      break;
+    }
+    current = current->next;
+  }
+
+  if (client->file) {
+    fflush (client->file);
+    fclose (client->file);
+    client->file = NULL;
+  }
+
+  ClientBuffer *buffer = client->first_buffer, *next = NULL;
+  while (buffer) {
+    next = buffer->next;
+    free_client_buffer (buffer);
+    buffer = next;
+  }
+
+  pthread_cond_destroy (&client->condvar);
+  pthread_mutex_destroy (&client->mutex);
+
+  socket_free (client->send_socket);
+  socket_free (client->recv_socket);
+
+  free (client);
+}
+
+void
 client_socket_monitor (Socket* client_sock, Client* client)
 {
   eventloop_on_read_in_channel(client_sock, client_callback, status_callback, (void*)client);
@@ -174,6 +223,7 @@ client_socket_monitor (Socket* client_sock, Client* client)
 void
 client_callback(SockEvtSource *source, void *handle, void *buf, int buf_size)
 {
+  (void)source;
   Client* self = (Client*)handle;
   pthread_mutex_lock (&self->mutex);
 
@@ -182,9 +232,9 @@ client_callback(SockEvtSource *source, void *handle, void *buf, int buf_size)
   if (self->file != NULL) {
     if (available < buf_size) {
         fwrite(self->recv_buffer->buff,sizeof(char), self->recv_buffer->currentSize, self->file);
-        self->currentPageNumber += 1;
+        self->current_page += 1;
         self->recv_buffer->next = make_client_buffer(self->recv_buffer->max_length,
-                                                self->currentPageNumber);
+                                                     self->current_page);
         self->recv_buffer = self->recv_buffer->next;
     }
     memcpy(self->recv_buffer->current_pointer,  buf, buf_size);
@@ -215,10 +265,16 @@ status_callback(SockEvtSource *source, SocketStatus status, int error, void *han
       fwrite(self->recv_buffer->buff,sizeof(char), self->recv_buffer->currentSize, self->file);
       fflush(self->file);
       fclose(self->file);
+      self->file = NULL;
       /* signal the sender thread that this client closed the connection */
       self->recv_buffer = NULL;
       self->recv_socket_closed = 1;
+      //      logdebug ("status_callback --> close socket\n");
+      //      socket_close (source->socket);
       logdebug("socket '%s' closed\n", source->name);
+      logdebug ("status_callback --> remove socket\n");
+      eventloop_socket_remove (source); // Note:  this free()'s source!
+
       break;
     default:
       break;

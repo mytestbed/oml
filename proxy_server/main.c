@@ -81,8 +81,8 @@ on_connect (Socket* client_sock, void* handle)
   Client* client = client_new(client_sock, page_size, resultfile_name,
                               downstream_port, downstream_address);
 
-  client->next = proxyServer->first;
-  proxyServer->first = client;
+  client->next = proxyServer->first_client;
+  proxyServer->first_client = client;
 
 
   client_socket_monitor (client_sock, client);
@@ -167,7 +167,7 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
   /* If we switched to sending state, wake up the client sender
      threads so that they will start sending to the downstream server */
   if (old_state != ProxyState_SENDING && proxyServer->state == ProxyState_SENDING) {
-    Client *current = proxyServer->first;
+    Client *current = proxyServer->first_client;
     while (current) {
       pthread_mutex_lock (&current->mutex);
       pthread_cond_signal (&current->condvar);

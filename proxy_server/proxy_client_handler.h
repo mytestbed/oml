@@ -65,11 +65,11 @@ typedef struct _client {
   int         recv_socket_closed;
   int         send_socket_closed;
 
-  int         currentPageNumber;
+  int         bytes_sent;
+  int         current_page;
   struct _clientBuffer* first_buffer;
   struct _clientBuffer* recv_buffer;
   struct _clientBuffer* send_buffer;
-  int bytes_sent;
 
   FILE *      file;
   int         fd_file;
@@ -92,7 +92,7 @@ typedef struct _proxyServer{
   enum ProxyState state;
 
   int client_count;
-  struct _client* first;
+  struct _client* first_client;
 
   int  server_port;
   char* server_address;
