@@ -189,7 +189,8 @@ eventloop_run()
       }
       t = t->next;
     }
-    o_log(O_LOG_DEBUG3, "Eventloop: Timeout = %d\n", timeout);
+    if (timeout != -1)
+      o_log(O_LOG_DEBUG3, "Eventloop: Timeout = %d\n", timeout);
 
     if (self.fds_dirty) update_fds();
     int count = poll(self.fds, self.size, timeout);
@@ -260,7 +261,7 @@ eventloop_run()
               len = recv(fd, buf, 512, 0);
             }
             if (len > 0) {
-              o_log(O_LOG_DEBUG2, "Eventloop:  received %i octets\n", len);
+              o_log(O_LOG_DEBUG3, "Eventloop:  received %i octets\n", len);
               ch->read_cbk((SockEvtSource*)ch, ch->handle, buf, len);
             } else if (len == 0 && ch->socket != NULL) {  // skip stdin
               // closed down

@@ -154,7 +154,7 @@ client_new (Socket* client_sock, int page_size, char* file_name,
   self->bytes_sent = 0;
 
   self->file = fopen(file_name, "wa");
-  self->file_name =  file_name;
+  self->file_name =  strdup (file_name);
 
   self->recv_socket = client_sock;
   self->recv_socket_closed = 0;
@@ -190,6 +190,8 @@ client_free (Client *client)
     fclose (client->file);
     client->file = NULL;
   }
+
+  free (client->file_name);
 
   ClientBuffer *buffer = client->first_buffer, *next = NULL;
   while (buffer) {

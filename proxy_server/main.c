@@ -25,8 +25,8 @@
 #include <unistd.h>
 #include <popt.h>
 
-
 #include <log.h>
+#include <mstring.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 
@@ -73,17 +73,19 @@ void
 on_connect (Socket* client_sock, void* handle)
 {
   (void)handle;  // This parameter is unused
-  char integer_string[32];
-  sprintf(integer_string, "%d", proxyServer->client_count);
-  strcat(resultfile_name, integer_string);
-  logdebug("New client connected\n");
+  MString *mstr = mstring_create ();
+
+  mstring_sprintf (mstr,"%s.%d", resultfile_name, proxyServer->client_count);
+  logdebug("New client (index %d) connected\n", proxyServer->client_count);
   proxyServer->client_count++;
-  Client* client = client_new(client_sock, page_size, resultfile_name,
+
+  Client* client = client_new(client_sock, page_size, mstring_buf (mstr),
                               downstream_port, downstream_address);
+
+  mstring_delete (mstr);
 
   client->next = proxyServer->first_client;
   proxyServer->first_client = client;
-
 
   client_socket_monitor (client_sock, client);
 }
