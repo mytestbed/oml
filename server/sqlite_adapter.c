@@ -164,7 +164,6 @@ sq3_add_sender_id(Database* database, char* sender_id)
       sq3_set_sender_id (database, sender_id, index);
     }
 
-  logdebug("Sender database id for sender '%s' is %d\n", sender_id, index);
   return index;
 }
 
@@ -353,8 +352,8 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
     sq3db->last_commit = tv.tv_sec;
   }
 
-  o_log(O_LOG_DEBUG2, "sq3_insert(%s): insert row %d \n",
-        table->schema->name, seq_no);
+  //  o_log(O_LOG_DEBUG2, "sq3_insert(%s): insert row %d \n",
+  //        table->schema->name, seq_no);
 
   if (sqlite3_bind_int(stmt, 1, sender_id) != SQLITE_OK) {
     logerror("Could not bind 'oml_sender_id' (%s).\n",

@@ -51,8 +51,9 @@ typedef struct _clientHandler {
   int*        seqno_offsets;
   OmlValue**  values_vectors;
   int*        values_vector_counts; // size of each vector in values_vectors
-  int         table_count;    // size of tables, seq_no_offsets, and values arrays
+  int         table_count;    // size of tables, seq_nooffsets, and values arrays
   int         sender_id;
+  char*       sender_name;
 
   CState      state;
   CState      content;

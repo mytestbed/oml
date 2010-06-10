@@ -52,11 +52,11 @@ database_find(char* name, char* hostname, char* user)
 {
   Database* db = first_db;
   while (db != NULL) {
-      if (!strcmp(name, db->name) &&
-          !strcmp(hostname, db->hostname) &&
-          !strcmp(user, db->user)) {
-      logdebug ("Database %s at %s with %s found (%d clients)\n",
-                name, hostname, user, db->ref_count);
+    if (!strcmp(name, db->name) &&
+        !strcmp(hostname, db->hostname) &&
+        !strcmp(user, db->user)) {
+      loginfo ("Experiment '%s': Database '%s' already open at %s with user '%s' (%d clients)\n",
+                name, name, hostname, user, db->ref_count);
       db->ref_count++;
       return db;
     }
@@ -65,7 +65,8 @@ database_find(char* name, char* hostname, char* user)
 
   // need to create a new one
   Database *self = xmalloc(sizeof(Database));
-  logdebug("Creating new database %s at %s with %s\n", name, hostname, user);
+  loginfo("Experiment '%s': Opening database '%s' at %s with user '%s'\n",
+          name, name, hostname, user);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
   strncpy(self->hostname, hostname, MAX_DB_NAME_SIZE);
   strncpy(self->user, user, MAX_DB_NAME_SIZE);
@@ -96,7 +97,7 @@ database_find(char* name, char* hostname, char* user)
       xfree (start_time_str);
       method = "Retrieved";
     }
-  logdebug("%s DB start-time = %lu\n", method, self->start_time);
+  loginfo("Experiment '%s': %s DB start-time = %lu\n", name, method, self->start_time);
 
   // hook this one into the list of active databases
   self->next = first_db;
@@ -112,7 +113,6 @@ database_find(char* name, char* hostname, char* user)
 void
 database_release(Database* self)
 {
-  // FIXME:  This is currently being tripped by an upstream bug that needs to be investigated.
   if (self == NULL) {
     logerror("Tried to do database_release() on a NULL database.\n");
     return;
@@ -127,28 +127,26 @@ database_release(Database* self)
     db_p = db_p->next;
   }
   if (db_p == NULL) {
-    logerror("BUG: Releasing to unknown database\n");
+    logerror("Experiment '%'s:  trying to release an unknown database\n", self->name);
     return;
   }
-  if (prev_p == NULL) {
+  if (prev_p == NULL)
     first_db = self->next; // was first
-  } else {
+  else
     prev_p->next = self->next;
-  }
 
   // no longer needed
   DbTable* t_p = self->first_table;
-  while (t_p != NULL)
-    {
-      DbTable* t = t_p->next;
-      /* Release the backend storage for this table */
-      self->table_free (self, t_p);
-      /* Release the table */
-      database_table_free(self, t_p);
-      t_p = t;
-    }
+  while (t_p != NULL) {
+    DbTable* t = t_p->next;
+    /* Release the backend storage for this table */
+    self->table_free (self, t_p);
+    /* Release the table */
+    database_table_free(self, t_p);
+    t_p = t;
+  }
 
-  loginfo ("Closing database '%s'\n", self->name);
+  loginfo ("Experiment '%s': closing database\n", self->name);
   self->release (self);
 
   xfree(self);
@@ -239,11 +237,13 @@ void
 database_table_free(Database *database, DbTable *table)
 {
   if (database && table) {
-      logdebug("Freeing table %s\n", table->schema->name);
-      schema_free (table->schema);
-      xfree(table);
-  } else
-    logwarn("Tried to free a NULL table (or database was NULL).\n");
+    logdebug("Experiment '%s':  freeing table %s\n", database->name, table->schema->name);
+    schema_free (table->schema);
+    xfree(table);
+  } else {
+    logwarn("Experiment '%s':  tried to free a NULL table (or database was NULL).\n",
+            (database ? database->name : "NONE"));
+  }
 }
 
 

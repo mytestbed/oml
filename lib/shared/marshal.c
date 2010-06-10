@@ -428,7 +428,6 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   int extra = mbuf_remaining (mbuf) - header->length;
   if (extra < 0)
     {
-      logdebug("Didn't get a full message (%d octets short), so unwinding the message buffer\n", -extra);
       mbuf_reset_read (mbuf);
       return extra;
     }

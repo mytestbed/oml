@@ -131,11 +131,10 @@ void
 on_connect(Socket* new_sock, void* handle)
 {
   (void)handle;
-  logdebug("New client connected\n");
-  client_handler_new(new_sock,hostname,user);
+  ClientHandler *client = client_handler_new(new_sock,hostname,user);
+  loginfo("'%s': new client connected\n", client->name);
 }
-#include <mstring.h>
-#include "schema.h"
+
 int
 main(int argc, const char **argv)
 {
