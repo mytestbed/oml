@@ -118,14 +118,15 @@ static void* client_send_thread (void* handle)
 
       if (client->recv_socket_closed == 1) {
         /* Client disconnected */
+        logdebug("Closing downstream server connection '%s'\n", client->send_socket->name);
         socket_close (client->send_socket);
         client->send_socket_closed = 1;
         client_free (client);
         pthread_exit (NULL);
       }
     } else {
-      logwarn ("Client sender thread woke up when not in state SENDING (actual state %d)\n",
-               proxyServer->state);
+      logdebug ("Client sender thread woke up when not in state SENDING (actual state %d)\n",
+                proxyServer->state);
     }
   }
 }
@@ -264,19 +265,19 @@ status_callback(SockEvtSource *source, SocketStatus status, int error, void *han
   switch (status) {
     case SOCKET_CONN_CLOSED: {
       Client* self = (Client*)handle;
+      pthread_mutex_lock (&self->mutex);
       fwrite(self->recv_buffer->buff,sizeof(char), self->recv_buffer->currentSize, self->file);
       fflush(self->file);
       fclose(self->file);
       self->file = NULL;
       /* signal the sender thread that this client closed the connection */
       self->recv_buffer = NULL;
+      pthread_cond_signal (&self->condvar);
+      pthread_mutex_unlock (&self->mutex);
       self->recv_socket_closed = 1;
-      //      logdebug ("status_callback --> close socket\n");
-      //      socket_close (source->socket);
+      socket_close (source->socket);
       logdebug("socket '%s' closed\n", source->name);
-      logdebug ("status_callback --> remove socket\n");
       eventloop_socket_remove (source); // Note:  this free()'s source!
-
       break;
     default:
       break;
