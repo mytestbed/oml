@@ -1,3 +1,11 @@
+2010-06-29  Jolyon White  <jolyon.white@nicta.com.au>
+
+	* OML:  New version 2.3.8
+
+	* server/sqlite_adapter.c (sq3_table_free): add check for null
+	sq3table that was causing a segault in the server when a client
+	connected with an invalid column type in the schemas.
+
 2010-04-08    <jolyon.white@nicta.com.au>
 
 	* OML:  New version 2.3.7.
