@@ -56,6 +56,7 @@ module OML4R
     @@defs = {}
     @@frozen = false
     @@useOML = false
+    @@start_time = nil
 
     # Execute a block for each defined MP
     def self.each_mp(&block)
@@ -129,6 +130,10 @@ module OML4R
       @@sout.puts a.join("\t")
     end
 
+    def self.start_time()
+      @@start_time
+    end
+
     # Freeze the definition of further MPs
     # - sout = the output stream to the OML collection server
     def self.__freeze__(sout)
@@ -176,14 +181,14 @@ module OML4R
   # - argv = the Array of command line arguments from the calling Ruby application
   # - & block = a block which defines the additional application-specific arguments
   #
-  def self.init(argv, &block)
+  def self.init(argv, opts = {}, &block)
 
-    expID = nil
-    nodeID = nil
-    appID = nil
-    omlServer = nil
-    omlPort = nil
-    omlFile = nil
+    expID = opts[:expID]
+    nodeID = opts[:nodeID]
+    appID = opts[:appID]
+    omlServer = opts[:omlServer]
+    omlPort = opts[:omlPort]
+    omlFile = opts[:omlFile]
 
     # Create a new Parser for the command line
     require 'optparse'
@@ -200,10 +205,24 @@ module OML4R
     # Now parse the command line
     rest = opts.parse(argv)
 
-    # Check if we have enough info to use OML
+    if !omlServer && !omlFile && !ENV['OML_SERVER'].nil?
+      transport, target, port = ENV['OML_SERVER'].split(':')
+      case transport
+      when 'tcp'
+	omlServer = target
+	omlPort = port
+      when 'file'
+	omlFile = target
+      else
+	puts "OML4R: Unknown transport '#{transport}'"
+      end
+    end
+    expID ||= ENV['OML_EXP_ID']
+    nodeID ||= ENV['OML_NAME']
+
     if !omlServer && !omlFile
       puts "OML4R: OML disabled."
-      return
+      return rest
     else
       MPBase.__useOML__()
       puts "OML4R: OML enabled."
@@ -229,7 +248,7 @@ module OML4R
     # Finally, send initial OML commands to server (or local file)
     sout.puts "protocol: 1"
     sout.puts "experiment-id: #{expID}"
-    sout.puts "start_time: #{@@start_time.tv_sec}"
+    sout.puts "start_time: #{MPBase.start_time().tv_sec}"
     sout.puts "sender-id: #{nodeID}"
     sout.puts "app-name: #{appID}"
     sout.puts "content: text"
@@ -241,6 +260,8 @@ module OML4R
       i += 1
     end
     sout.puts ""
+
+    rest || []
   end
 
 end # module OML4R
