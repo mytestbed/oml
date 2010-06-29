@@ -225,9 +225,11 @@ void
 sq3_table_free (DbTable* table)
 {
   Sq3Table* sq3table = (Sq3Table*)table->adapter_hdl;
-  if (sqlite3_finalize (sq3table->insert_stmt) != SQLITE_OK)
-	o_log (O_LOG_WARN, "Error encountered trying to finalize SQLITE3 prepared statement\n");
-  free (sq3table);
+  if (sq3table) {
+    if (sqlite3_finalize (sq3table->insert_stmt) != SQLITE_OK)
+      o_log (O_LOG_WARN, "Error encountered trying to finalize SQLITE3 prepared statement\n");
+    free (sq3table);
+  }
 }
 
 /**
