@@ -622,14 +622,14 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
       // Protocol error:  close the client connection and teardown all
       // of it's allocated data.
       socket_close (self->socket);
+      logerror("'%s': protocol error, server has disconnected the client\n",
+               source->name);
       eventloop_socket_remove (self->event);  // Note: this free()'s source!
       client_handler_free (self);
       /*
        * The mbuf is also freed by client_handler_free(), and there's
        * no point repacking the buffer in that case, so just return.
        */
-      logerror("'%s': protocol error, server has disconnected the client\n",
-               source->name);
       return;
     default:
       logerror("'%s': unknown client state '%d'\n", source->name, self->state);

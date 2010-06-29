@@ -315,10 +315,13 @@ sq3_table_free (Database *database, DbTable* table)
 {
   (void)database;
   Sq3Table* sq3table = (Sq3Table*)table->adapter_hdl;
-  int ret = sqlite3_finalize (sq3table->insert_stmt);
-  if (ret != SQLITE_OK)
-    logwarn("Error encountered trying to finalize SQLITE3 prepared statement\n");
-  xfree (sq3table);
+  int ret = 0;
+  if (sq3table) {
+    ret = sqlite3_finalize (sq3table->insert_stmt);
+    if (ret != SQLITE_OK)
+      logwarn("Error encountered trying to finalize SQLITE3 prepared statement\n");
+    xfree (sq3table);
+  }
   return ret;
 }
 
