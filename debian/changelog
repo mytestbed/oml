@@ -1,3 +1,9 @@
+oml (2.3.8-ubuntu1) karmic; urgency=low
+
+  * New upstream release 2.3.8.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Tue, 29 Jun 2010 12:11:33 +1000
+
 oml (2.3.7-ubuntu1) karmic; urgency=low
 
   * New upstream release 2.3.7.
