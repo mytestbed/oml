@@ -1,0 +1,75 @@
+oml2_scaffold(1)
+==============
+
+NAME
+----
+oml2_scaffold - OML2 server daemon
+
+SYNOPSIS
+--------
+[verse]
+*oml2_scaffold* [OPTIONS] 'appfile'
+
+DESCRIPTION
+-----------
+
+*oml2_scaffold* generates skeleton OML application source code based
+on a template provided by the user.
+
+OPTIONS
+-------
+
+-a::
+--app 'name'::
+Create a skeleton OMF application definition file
+
+-f::
+--force::
+Do not check if a file would be overwritten
+
+--oml::
+Create the oml header file defining all measurement points
+
+--opts::
+Create the popt header file for all application properties
+
+--make::
+Create a skeleton Makefile for this application
+
+--main::
+Create a skeleton main file for this application
+
+-v::
+--version::
+Print the version number of *oml2_scaffold*.
+
+-h::
+--help::
+Print a brief usage message.
+
+BUGS
+----
+
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+For outstanding known bugs, please consult
+http://omf.mytestbed.net/projects/oml/issues
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+*liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+
+*omlc_init*(3), *omlc_add_mp*(3), *omlc_inject*(3)
+
+OML User Manual
+~~~~~~~~~~~~~~~
+http://omf.mytestbed.net/wiki/oml/Documentation

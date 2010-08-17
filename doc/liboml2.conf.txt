@@ -1,0 +1,177 @@
+liboml2.conf(5)
+===============
+
+NAME
+----
+liboml2.conf - OML2 client library configuration file format
+
+DESCRIPTION
+-----------
+
+*liboml2* is the client library for OML2.  It provides an API for
+application writers to collect measurements from their applications
+via user-defined 'Measurement Points' (MPs).  It also provides a
+flexible filtering and collection mechanism that allows application
+users to customize how measurements are processed and stored by an
+OML-enabled application.
+
+This man page documents the format of the configuration file that
+*liboml2* uses to configure itself at runtime.  Application writers
+who want to learn how to write an application using the *liboml2* API
+should consult *liboml2*(3).  OML also supports simpler but less
+powerful configuration via the command line, for testing and
+debugging.  It is documented in *liboml2*(1).
+
+When an OML application starts up, it passes the command line
+arguments to *liboml2*, which scans them for options that it
+understands, and uses those to configure itself.  *liboml2* then
+removes its own options from the command line so that the application
+proper does not get confused by them.  All OML options start with the
+prefix '--oml-'.  For more information, see *liboml2*(1).
+
+The '--oml-config' command line option accepts the name of a
+configuration file.  If specified, this file is used to configure the
+library internally.  The file is an XML document.  The configuration
+file serves two main purposes: configuring the destinations for
+measurement outputs, and configuring the filtering of the MP inputs
+prior to sending them to their destinations.  It is therefore
+important to understand how OML filters work.
+
+An OML filter is a processing block that accepts a stream of typed
+tuples from an MP on its input, computes a function of the input
+tuples, and outputs the result as another stream of tuples.  The
+schema of the input tuples can be different from the schema of the
+output tuples, i.e. they can differ in number, name and type.
+Further, the output samples can be generated at a different rate to
+the input samples.  For instance, an output might be generated only on
+every tenth input sample.
+
+There can be multiple filters accepting input from the same MP; each
+MP can have its own set of filters.  The arrangement for a single MP
+looks like this:
+
+----
+        ---> F1 ---
+       /           \
+MP *--- ---> F2 --- ---> Collector
+       \           /
+        |   ...   |
+        |         |
+         --> FN --
+----
+
+The samples injected to the MP are sent to N filters.  Note that there
+is no round-robin scheme operating among the filters; all injected
+samples are sent to all filters attached to the MP.  The outputs of
+all the filters are then multiplexed together into an combined output
+stream that is sent to the collector.  A collector is a destination
+for measurements, either a file on the local disk or a remote OML
+server (see *oml2-server*(1)).
+
+Note that although the diagram above shows the outputs of the filters
+attached to one MP being sent to one collector, that same collector
+may be accepting the output streams of filters attached to several
+MPs.  This will become clear in the description of the configuration
+file format below.
+
+There are two mechanisms available for generating outputs from
+filters.  The first is the "samples" method.  It causes a
+filter output sample to be generated for every 'n'-th sample injected
+into the filter.  The second is the "interval" method.  It causes a
+filter output sample to be generated every 't' seconds.  The parameters
+'t' and 'n' can be specified in the configuration file.  The output
+mechanism can be selected independently for each MP (or more
+accurately, for each <mp/> element in the configuration file).
+
+URI FORMAT
+----------
+*liboml2* accepts a 'uri' argument for the '--oml-server' option
+that is similar to an IETF URI (see e.g. RFC3986).  The OML URI
+consists of an optional network protocol, a host identifier, and an
+optional port number, or an optional 'file' protocol and a local
+filesystem path.  The format of the network server version is:
+---------------------------
+		[tcp|udp]:[//]<host>:<port>
+---------------------------
+The format for the local file version is:
+---------------------------
+		file:[//]<local-path>
+---------------------------
+
+For instance, 'tcp:10.0.0.200:3003' or 'tcp://10.0.0.200:3003' will
+send measurements to an *oml2-server* listening on port 3003 at IP
+address 10.0.0.200, using TCP.  The '//' is recognized but optional.
+Alternatively, 'file:/tmp/myfile.txt' writes to the /tmp/myfile.txt
+file in the local filesystem.  Relative paths are also accepted.  The
+'file' protocol also accepts an optional '//' between the colon ':'
+and the local path.
+
+CONFIGURATION WITHOUT XML FILE
+------------------------------
+
+When no configuration file is given, *liboml2* provides a basic set of
+filters for each measurement point, and sends measurements to just one
+location (given by either the '--oml-server' or '--oml-file' command
+line options).  For each measurement point, each element of the
+measurement point's injected tuple is given its own filter.  The
+filter created depends on the type of the element and the current
+sampling policy.
+
+For instance, suppose a measurement point is defined with a
+measurement tuple as follows:
+
+----------
+("source"      : OML_UINT64_VALUE,
+ "destination" : OML_UINT64_VALUE,
+ "length"      : OML_INT32_VALUE,
+ "snr"         : OML_DOUBLE_VALUE,
+ "name"        : OML_STRING_VALUE)
+----------
+
+Then *liboml2* will create a separate filter for each of "source",
+"destination", "length", "snr", and "name".  The filters for the first
+four numeric elements will be an averaging filter (filter type
+'avg'), and the last string element will be given a 'first' filter.
+The 'first' filter keeps the first injected value in the current
+sampling period and throws away all others, passing the first value on
+to the measurement output stage.
+
+For more information on measurement points and how
+they are defined, see *liboml*(3) and *omlc_add_mp*(3).
+
+
+
+BUGS
+----
+
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+For outstanding known bugs, please consult
+http://omf.mytestbed.net/projects/oml/issues
+
+
+SECURITY CONSIDERATIONS
+-----------------------
+
+'oml2-server' does not use any authentication, and should thus be
+considered insecure.  It is intended to be deployed behind firewalls
+on a dedicated testbed network.  It should not be run as a daemon on
+an open network.  Future versions of OML may be re-designed to be
+suitable for use in insecure environments.
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+*oml2-server*(1), *oml2-proxy-server*(1), *liboml2(1), *liboml2*(3), *omlc_add_mp*(3)
+
+OML User Manual
+~~~~~~~~~~~~~~~
+http://omf.mytestbed.net/wiki/oml/Documentation
