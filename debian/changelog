@@ -1,3 +1,9 @@
+oml (2.4.pre0-ubuntu2) lucid; urgency=low
+
+  * Update to Lucid Ubuntu release.
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Tue, 17 Aug 2010 17:43:54 +1000
+
 oml (2.4.pre0-ubuntu1) karmic; urgency=low
 
   * Beta (testing) release of OML 2.4.
