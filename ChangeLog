@@ -1,3 +1,17 @@
+2010-08-17  Jolyon White  <jolyon.white@nicta.com.au>
+
+	* OML:  New version 2.3.9
+
+	* server/client_handler.c (process_text_data_message): fix a bug
+	in the handling of the client's values array for the text
+	protocol.  Because the text protocol parser reuses the values
+	array for all streams from the same client, it can end up trying
+	to interpret numeric values that fit into a machine word as
+	pointers to malloc'd strings, and tries to realloc() or free()
+	them.  This causes segfaults.  Fixed to always malloc() a new
+	block of memory for each string, and free() it immediately after
+	it is inserted into the database.
+
 2010-06-29  Jolyon White  <jolyon.white@nicta.com.au>
 
 	* OML:  New version 2.3.8

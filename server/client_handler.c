@@ -432,35 +432,49 @@ process_text_data_message(
     case OML_DOUBLE_VALUE: v->value.doubleValue = (double)atof(val); break;
     case OML_STRING_VALUE: {
       size_t len = strlen (val);
-      if (v->value.stringValue.ptr == NULL) {
-        v->value.stringValue.ptr = malloc (len + 1);
-        if (!v->value.stringValue.ptr) {
-          o_log (O_LOG_ERROR, "Could not allocate space for received value string\n");
-          return;
-        }
-        v->value.stringValue.size = len + 1;
-      } else if (len >= (size_t)v->value.stringValue.size) {
-        char *new = realloc (v->value.stringValue.ptr, len + 1);
-        if (!new) {
-          o_log (O_LOG_ERROR, "Failed to expand space for string value\n");
-          return;
-        }
-        v->value.stringValue.ptr = new;
-        v->value.stringValue.size = len + 1;
+      v->value.stringValue.ptr = malloc (len + 1);
+      if (!v->value.stringValue.ptr) {
+        o_log (O_LOG_ERROR, "Could not allocate space for received value string\n");
+        goto exit;
       }
-      strncpy (v->value.stringValue.ptr, val, v->value.stringValue.size);
+      v->value.stringValue.size = len + 1;
       v->value.stringValue.length = len;
+      strncpy (v->value.stringValue.ptr, val, v->value.stringValue.size);
       break;
     }
     default:
       o_log(O_LOG_ERROR, "Bug: Unknown type %d in col '%s'\n",
-	    col->type, col->name);
+        col->type, col->name);
     }
     v->type = col->type;
   }
 
   self->database->insert(self->database, table, self->sender_id, seq_no,
-						 ts, self->values, size - 3);
+                         ts, self->values, size - 3);
+
+  /*
+   * Reset strings to NULL and free their pointers to avoid the
+   * realloc() path in the for loop above; it can't distinguish the
+   * case of another schema/stream using the same value as a
+   * non-string, so it will try to free() e.g. integers, etc, that
+   * don't point to malloc'd memory.
+   *
+   * JW: note 2010-08-17: this is fixed by a redesign on the master
+   * branch (2.4.0 release candidate).
+   *
+   */
+ exit:
+  cols = table->columns;
+  v = self->values;
+  for (i = 0; i < table->col_size; i++) {
+    if (cols[i]->type == OML_STRING_VALUE) {
+      if (v[i].value.stringValue.ptr != NULL)
+        free(v[i].value.stringValue.ptr);
+      v[i].value.stringValue.ptr = NULL;
+      v[i].value.stringValue.length = 0;
+      v[i].value.stringValue.size = 0;
+    }
+  }
 }
 
 /**
