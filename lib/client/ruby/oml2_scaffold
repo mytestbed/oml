@@ -26,29 +26,29 @@ Execute an experiment script
   create_app = false
   force = false
 
-  opts.on('-a', "--app PROG_NAME", 
-	  "Create a skeleton OMF application definition file ") do |name|
+  opts.on('-a', "--app PROG_NAME",
+      "Create a skeleton OMF application definition file ") do |name|
     create_app = true
     app_name = name
   end
-  opts.on('-f', "--force", 
-	  "Do not check if a file would be overwritten") do 
+  opts.on('-f', "--force",
+      "Do not check if a file would be overwritten") do
     force = true
   end
-  opts.on(nil, "--oml", 
-	  "Create the oml header file defining all measurement points") do 
+  opts.on(nil, "--oml",
+      "Create the oml header file defining all measurement points") do
     output << :oml
   end
-  opts.on(nil, "--opts", 
-	  "Create the popt header file for all application properties") do 
+  opts.on(nil, "--opts",
+      "Create the popt header file for all application properties") do
     output << :popt
   end
-  opts.on("--make", 
-	  "Create a skeleton Makefile for this application") do 
+  opts.on("--make",
+      "Create a skeleton Makefile for this application") do
     output << :make
   end
-  opts.on("--main", 
-	  "Create a skeleton main file for this application") do 
+  opts.on("--main",
+      "Create a skeleton main file for this application") do
     output << :main
   end
 
@@ -74,7 +74,7 @@ Execute an experiment script
 
   if create_app
     if app_file
-      $stderr.puts "Don't specify app_file when asking to create one" 
+      $stderr.puts "Don't specify app_file when asking to create one"
       exit -1
     end
     uri = "#{ENV['USER']}:app:#{app_name}"
@@ -84,7 +84,7 @@ Execute an experiment script
       $stderr.puts "'#{app_file}' already exists. Use --force to overwrite"
     else
       File.open(app_file, 'w') do |f|
-	ad.write_app_def(f)
+    ad.write_app_def(f)
       end
     end
     puts "Created '#{app_file}'"
@@ -92,53 +92,53 @@ Execute an experiment script
   end
 
   unless app_file
-    $stderr.puts "Missing app_file" 
+    $stderr.puts "Missing app_file"
     exit -1
   end
-    
+
 #  eval(File.read(app_file))
   load(app_file)
   AppDefinition.each do |app|
     output.each do |type|
       case type
       when :oml
-	fname = "#{app.name}_oml.h"
-	File.open(fname, 'w') do |f|
-	  app.write_oml_h(f)
-	end
-	puts "Created '#{fname}'"
+    fname = "#{app.name}_oml.h"
+    File.open(fname, 'w') do |f|
+      app.write_oml_h(f)
+    end
+    puts "Created '#{fname}'"
       when :popt
-	fname = "#{app.name}_popt.h"
-	File.open(fname, 'w') do |f|
-	  app.write_opts_h(f)
-	end
-	puts "Created '#{fname}'"
+    fname = "#{app.name}_popt.h"
+    File.open(fname, 'w') do |f|
+      app.write_opts_h(f)
+    end
+    puts "Created '#{fname}'"
       when :make
-	fname = "Makefile"
-	if File.exists?(fname) && !force
-	  $stderr.puts "'#{fname}' already exists. Use --force to overwrite"
-	else
-	  File.open(fname, 'w') do |f|
-	    app.write_makefile(f)
-	  end
-	  puts "Created '#{fname}'"
-	end
+    fname = "Makefile"
+    if File.exists?(fname) && !force
+      $stderr.puts "'#{fname}' already exists. Use --force to overwrite"
+    else
+      File.open(fname, 'w') do |f|
+        app.write_makefile(f)
+      end
+      puts "Created '#{fname}'"
+    end
       when :main
-	fname = "#{app.name}.c"
-	if File.exists?(fname) && !force
-	  $stderr.puts "'#{fname}' already exists. Use --force to overwrite"
-	else
-	  File.open(fname, 'w') do |f|
-	    app.write_main(f)
-	  end
-	  File.open('version.h', 'w') do |f|
-	    app.write_version(f)
-	  end
-	  puts "Created '#{fname}' and 'version.h'"
-	end
+    fname = "#{app.name}.c"
+    if File.exists?(fname) && !force
+      $stderr.puts "'#{fname}' already exists. Use --force to overwrite"
+    else
+      File.open(fname, 'w') do |f|
+        app.write_main(f)
+      end
+      File.open('version.h', 'w') do |f|
+        app.write_version(f)
+      end
+      puts "Created '#{fname}' and 'version.h'"
+    end
       else
-	$stderr.puts "Unsupported output format '#{type}'"
-	exit -1
+    $stderr.puts "Unsupported output format '#{type}'"
+    exit -1
       end
     end
   end
@@ -163,7 +163,7 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
     v = opts[:default]
     if v
       if opts[:type] == :string
-	v = "\"#{v}\""
+    v = "\"#{v}\""
       end
       return v
     end
@@ -273,7 +273,7 @@ class AppDefinition
       s.puts "  OmlMP* #{mp.name};"
     end
   end
-    
+
   def write_oml_register(s)
     @mps.each do |mp|
       n = mp.name
@@ -288,7 +288,7 @@ class AppDefinition
     end
     s.write a.join(', ')
   end
- 
+
   def write_opts_options(s)
     @properties.each do |p|
       s.puts p.popt_def()
@@ -306,7 +306,7 @@ class AppDefinition
       return "#{ENV['USER'] || 'xxx'}:app:#{@name}"
     when :options_t
       @properties.each do |p|
-	p.write_opts_t(s)
+    p.write_opts_t(s)
       end
     when :options_default
       write_opts_default(s)
@@ -409,12 +409,12 @@ INSTALL_DIR = $(DESTDIR)/usr/bin
 #### FOR EXPERTS ONLY  ###
 TOP = .
 
-SRCS = ${PROGRAM}.c 
+SRCS = ${PROGRAM}.c
 
 CFLAGS = -g -I. -I/usr/local/include
 LDFLAGS =
 LIBS = -loml2 -lxml2 -lpopt -lpthread
- 
+
 
 #BUILD_TOP = $(TOP)/build
 #BUILD_DIR = $(BUILD_TOP)/$(PROGRAM)
@@ -423,52 +423,52 @@ BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/objs
 BIN_DIR = $(BUILD_DIR)/bin
 
-OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o) 
+OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
 
 build:  $(BIN_DIR)/$(PROGRAM)
 
-$(BIN_DIR)/$(PROGRAM): $(BIN_DIR) $(OBJ_DIR) $(SRCS) $(OBJS) 
-	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
+$(BIN_DIR)/$(PROGRAM): $(BIN_DIR) $(OBJ_DIR) $(SRCS) $(OBJS)
+    $(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
 $(OBJ_DIR)/%.o: %.c
-	$(CC) -c $(CFLAGS) $< -o $@
+    $(CC) -c $(CFLAGS) $< -o $@
 
 $(OBJ_DIR):
-	mkdir -p $@
+    mkdir -p $@
 
 $(BIN_DIR):
-	mkdir -p $@
+    mkdir -p $@
 
 $(BUILD_DIR)/$(PROGRAM):
-	mkdir -p $@
+    mkdir -p $@
 
 install: build
-	install -m 755 $(BIN_DIR)/$(PROGRAM) $(INSTALL_DIR)
+    install -m 755 $(BIN_DIR)/$(PROGRAM) $(INSTALL_DIR)
 
 debian: build
-	mkdir -p $(BUILD_DIR)/debian
-	v=`cat version.h | sed -n 's/.*VERSION[^"]*"\([^"]*\).*/\1/p'`; \
-	epm --output-dir $(BUILD_DIR)/debian -n -f deb $(DEB_NAME) \
-		build_dir=$(BUILD_DIR) version=$$v \
-		$(PROGRAM).epm
+    mkdir -p $(BUILD_DIR)/debian
+    v=`cat version.h | sed -n 's/.*VERSION[^"]*"\([^"]*\).*/\1/p'`; \
+    epm --output-dir $(BUILD_DIR)/debian -n -f deb $(DEB_NAME) \
+        build_dir=$(BUILD_DIR) version=$$v \
+        $(PROGRAM).epm
 
 clean:
-	rm -fr $(BUILD_DIR) *~ $(PROGRAM)_popt.h $(PROGRAM)_oml.h 
+    rm -fr $(BUILD_DIR) *~ $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
 run: ARGS = --loop --delay 1
 run: build
-	$(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-file - 
+    $(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-file -
 
 debug:
-	echo $(OBJS)
+    echo $(OBJS)
 
-$(OBJ_DIR)/$(PROGRAM).o: version.h $(PROGRAM)_popt.h $(PROGRAM)_oml.h 
+$(OBJ_DIR)/$(PROGRAM).o: version.h $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
 $(PROGRAM)_popt.h: $(PROGRAM).app
-	oml2_scaffold --opts $<
+    oml2_scaffold --opts $<
 
 $(PROGRAM)_oml.h: $(PROGRAM).app
-	oml2_scaffold --oml $<
+    oml2_scaffold --oml $<
 ?
   end
 
@@ -491,16 +491,15 @@ run(
   long val = 1;
 
   do {
-    OmlValueU v[3];
-
-    omlc_set_long(v[0], val);
-    omlc_set_double(v[1], 1.0 / val);
-    omlc_set_const_string(v[2], "foo");
-    omlc_inject(oml_mps->sensor, v);
-
+|
+    @mps.each do |mp|
+      mp.write_inject_example(stream)
+      stream.puts "\n\n"
+    end
+    stream.puts %Q|
     val += 2;
-    if (opts->loop) sleep(opts->delay);
-  } while (opts->loop);
+    sleep(1);
+  } while (1);
 }
 
 int
@@ -508,7 +507,7 @@ main(
   int argc,
   const char *argv[]
 ) {
-  omlc_init(argv[0], &argc, argv, NULL); 
+  omlc_init(argv[0], &argc, argv, NULL);
 
   // parsing command line arguments
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
@@ -542,15 +541,15 @@ defApplication('#{template(:app_urn)}', '#{template(:app_name)}') do |a|
   a.version(1, 0, 0)
   a.shortDescription = 'A short description'
   a.description = %{
-A longer description describing in more detail what this application 
+A longer description describing in more detail what this application
 is doing and useful for.
 }
 
-  a.defProperty('loop', 'Create periodic result', ?l, 
-		:type => :flag, :impl => { :var_name => 'loop' })
-  a.defProperty('delay', 'Delay between consecutive measurements', ?d, 
-		:type => :int, :unit => 'seconds',
-		:impl => { :var_name => 'delay' })
+  a.defProperty('loop', 'Create periodic result', ?l,
+        :type => :flag, :impl => { :var_name => 'loop' })
+  a.defProperty('delay', 'Delay between consecutive measurements', ?d,
+        :type => :int, :unit => 'seconds',
+        :impl => { :var_name => 'delay' })
 
   a.defMeasurement("sensor") do |m|
     m.defMetric('val', 'long')
@@ -615,6 +614,36 @@ class MeasurementPoint
     end
     stream.puts "  {NULL, (OmlValueT)0}"
     stream.puts "};"
+  end
+
+  def write_inject_example(stream)
+    sets = {
+      "string" => "const_string",
+      "long" => "long",
+      "int32" => "int32",
+      "uint32" => "uint32",
+      "int64" => "int64",
+      "uint64" => "uint64",
+      "double" => "double"
+    }
+    vals = {
+      "string" => '"foo"',
+      "long" => "val",
+      "int32" => "(int32_t)-val",
+      "uint32" => "(uint32_t)val",
+      "int64" => "(int64_t)-val",
+      "uint64" => "(uint64_t)val",
+      "double" => "1.0 / val"
+    }
+
+
+    stream.puts "    OmlValueU v_#{@name}[#{@ms.length}];\n\n"
+    i = 0
+    @ms.each do |m|
+      stream.puts "    omlc_set_#{sets[m.type]}(v_#{@name}[#{i}], #{vals[m.type]});"
+      i = i + 1
+    end
+    stream.puts "    omlc_inject(oml_mps->#{@name}, v_#{@name});"
   end
 
 
