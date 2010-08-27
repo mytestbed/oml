@@ -14,30 +14,49 @@ DESCRIPTION
 -----------
 
 *oml2_scaffold* generates skeleton OML application source code based
-on a template provided by the user.
+on a template provided by the user. When invoked with the '--oml'
+options, a C header is generated describing the application's OML
+measurement points; when '--opts' is used, another C header is
+generated that describes the command line options that the program
+accepts, using the functions and data structures provided by the
+*popt*(3) library; when '--main' is used, a C file is generated that
+provides a skeleton *main*() function and run loop, with an example of
+how to inject measurement samples using *omlc_inject*(3) for every
+defined measurement point; and when '--make' is used, *oml2_scaffold*
+creates a Makefile that can be used to build the generated program.
+
+In fact, the generated program can be built and run as is with no
+further modifications required.  This can serve as an example OML
+application to play with, however the data that it measures is
+not very interesting.  The programmer must supply that part of the
+application, unfortunately.
 
 OPTIONS
 -------
+*oml2_scaffold* recognizes the following command line options:
 
 -a::
 --app 'name'::
-Create a skeleton OMF application definition file
+Create a skeleton OMF application definition file for an application
+with the given 'name'.
+
+--oml::
+Create the oml header file defining all measurement points.
+
+--opts::
+Create the popt header file for all application properties.
+
+--make::
+Create a skeleton Makefile for this application.
+
+--main::
+Create a skeleton main file for this application.
 
 -f::
 --force::
-Do not check if a file would be overwritten
-
---oml::
-Create the oml header file defining all measurement points
-
---opts::
-Create the popt header file for all application properties
-
---make::
-Create a skeleton Makefile for this application
-
---main::
-Create a skeleton main file for this application
+Do not check if a file would be overwritten.  Otherwise
+*oml2_scaffold* checks for an existing file trying to write to it,
+and aborts if it already exists.
 
 -v::
 --version::
@@ -46,6 +65,284 @@ Print the version number of *oml2_scaffold*.
 -h::
 --help::
 Print a brief usage message.
+
+It is permitted to issue multiple of '--oml', '--opts', '--main', and
+'--make' on the same command line.
+
+TEMPLATE LANGUAGE
+-----------------
+
+The template language is based on Ruby syntax.  Here is a simple
+example:
+
+--------
+defApplication('omf:app:foo', 'foo') do |a|
+  a.version(1,0)
+  a.shortDescription = "Monitoring the system's foo"
+  a.description = %{
+'foo' is an application to measure the 'foo' of a network and
+its computers. }
+
+  a.defProperty('cpu', 'Report CPU foo', ?c,
+               :type => :flag, :impl => { :var_name => 'report_cpu' })
+  a.defProperty('mem', 'Report memory foo', ?m,
+               :type => :flag, :impl => { :var_name => 'report_memory' })
+
+  a.defMeasurement("memory_foo") do |m|
+    m.defMetric('ram_foo', 'string')
+    m.defMetric('total_foo', 'uint32')
+    m.defMetric('free_foo', 'uint32')
+    m.defMetric('used_foo', 'uint32')
+    m.defMetric('free_percent', 'double')
+    m.defMetric('used_percent', 'double')
+ end
+end
+--------
+
+The 'defApplication' command begins the template, and it takes two
+arguments:  a 'uri' and a 'name'.  It also takes a Ruby block that
+can create the features of the application.  The 'uri' must be a
+string containing a colon-separated set of components.  The 'uri' is
+mandatory, but the 'name is optional.  If the 'name' is not supplied
+then it is taken from the final component of the 'uri'.  For example,
+
+--------
+defApplication('omf:app:bar') do |a|
+...
+end
+--------
+
+will create an application named 'bar'.  The application name is used
+to name the files that *oml2_scaffold* generates.  Note that
+'defApplication' must be followed by a block in either of Ruby's two
+syntaxes for blocks, either using do...end as above, or the C-like
+curly brace syntax:
+
+--------
+defApplication('omf:app:bar') { |a|
+...
+}
+--------
+
+The defApplication block is given an application object as a parameter
+(that's the do |a| part).  The application object supports a number of
+operations that are described below.
+
+a.version(major, minor = 0, revision = 0)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The 'version' command specifies the application's version number.  The
+'minor' and 'revision' can be omitted.  The arguments are assumed to
+be integers.  The version information is output as a string in the
+file 'version.h' as
+
+--------
+#define VERSION "x.y.z"
+--------
+
+a.shortDescription = <string>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This should be a one-line description of the application.
+
+a.description = <string>
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+This should be a longer description of the application.  It can use
+Ruby's multi-line string syntaxes to allow a string that breaks over
+multiple lines, as in the example above.
+
+a.defProperty(long_name, descr, letter_name, opts = {})
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The 'defProperty' command provides a way to describe the options that
+the program accepts on the command line.  The code generated by the
+'--opts' option to *oml2_scaffold* uses the 'defProperty' commands to
+construct a *popt*(3) table and function to parse the options that
+they define.
+
+The 'long_name' parameter is the long form of the option -- for
+instance, 'file' would cause the program to accept a '--file' option.
+The 'letter_name' parameter is the short version -- the
+single-character option.  It should be a Ruby character constant,
+which is introduced by a question mark.  For instance, ?f will create
+an option '-f'.  The 'descr' parameter is a string describing the
+option, which is used to generate output for the standard '--help'
+option.
+
+The 'opts' parameter should be a Ruby hash.  It allows the user to
+describe further behaviour for the option.  Here are the possible keys
+for the hash:
+
+*:type*:: The ':type' option specifies what type of argument this option accepts.
+If ':type' is omitted then ':int' is assumed.  The ':type' option
+should be one of:
+
+':flag';;
+This property is a flag that can be represented as a boolean value; it
+does not require an argument.  For instance, a '-q' option for
+enabling a quiet mode of operation could use the ':flag' option.
+
+':string';;
+This property accepts a string argument.
+
+':int';;
+':integer';;
+':long';;
+':long_long';;
+This property accepts an integer argument that is either an C 'int',
+a C 'long', or a C 'long long' value.  ':integer' is a synonym for ':int'.
+
+':float';;
+':double';;
+This property accepts a floating point argument that is either a C
+'float' or a C 'double'.
+
+*:unit*:: The units for this property.  This is used in help text generated by
+the '--help' option.
+
+*:default*:: The default value for this property if it is not specified on the
+command line by the user of the application.
+
+*:impl*:: Another Ruby hash that determines how the option is implemented in the
+C program output.  If ':impl' contains the key ':var_name', then the
+value of ':var_name' is used to name the C variable that will be used
+to store the value of this command line option's argument.  Otherwise
+the 'long_name' is used.  The option arguments are all stored in
+variables within the 'g_opts_storage' struct.
++
+The other key recognized by *oml2_scaffold* in the ':impl' hash is the
+':popt_val' key.  The value of this key is used to tell *popt*(3) what
+value to return if this argument is parsed; a value of 0, the default,
+tells *popt*(3) to not return when it parses this option, but to go on
+and parse the next one instead.  Most users can omit the ':popt_val'
+key safely.
+
+a.defMeasurement(name)
+~~~~~~~~~~~~~~~~~~~~~~
+The 'defMeasurement' command defines a new, named measurement point.
+(For more information about what a measurement point is, see
+*liboml2*(1) and *liboml2*(3).  The command accepts a block that
+accepts a single parameter, the MP itself; this block is used to
+define the fields of the measurement point.  Each field is defined
+using the 'defMetric' command.
+
+m.defMetric(name, type)
+~~~~~~~~~~~~~~~~~~~~~~~
+'defMetric' defines a single field of a measurement point.  Each field
+must have a 'name' and a 'type'.  The 'type' must be a string equal to
+one of the following, which correspond with the defined OML types:
+
+"*string*"::
+This field will record string data.
+
+"*long*"::
+This field will record data corresponding to the C 'long' type.  This
+type is depcrecated because 'long' changes size between 32-bit and
+64-bit platforms.  Use one of ':int32' or ':int64' instead.
+
+"*int32*"::
+This field will record 32-bit signed integer data.
+
+"*uint32*"::
+This field will record 32-bit unsigned integer data.
+
+"*int64*"::
+This field will record 64-bit signed integer data.
+
+"*uint64*"::
+This field will record 64-bit unsigned integer data.
+
+"*double*"::
+This field will record floating point data in C 'double' format.
+
+The integer types "'int32'", "'uint32'" "'int64'", and "'uint64'" are
+implemented in the application as the corresponding types from
+*stdint.h*, namely 'int32_t', 'uint32_t', 'int64_t', and 'uint64_t'
+respectively.
+
+BUT I DON'T KNOW RUBY!
+----------------------
+
+Although the template language uses Ruby syntax, you shouldn't need to
+know Ruby in order to define applications using *oml2_scaffold*.  All
+of the most useful features of the template language are illustrated
+in the example above.  It should be sufficient to copy and past the
+example and then modify it to suit your own needs.  Two things are
+worth mentioning about Ruby syntax:
+
+1. Ruby strings can use either single quotes \'foo', double quotes
+"bar", or any of several multi-line syntaxes.  The main difference
+between the first two is in their behaviour when interpolating values
+from Ruby variables, but this is not required for most purposes when
+using *oml2_scaffold*.  The multi-line string syntaxes in Ruby are
+even more esoteric; the one used above should be sufficient.
+
+2. Ruby hash tables are introduced using curly braces:
++
+------
+myhash = { 'a' => 1, 'b' => 2 }
+------
++
+This example constructs a hash in which the key \'a' maps to the value
+1, and the key \'b' maps to the value 2.  Each key-value pair is
+separated by a comma.
++
+Ruby has a special rule for hashes that appear as arguments in a
+method call:  you can omit the curly braces on a literal hash that
+appears as the final argument in a method call.  This means that the
+following two are equivalent:
++
+-------
+myobj1.foo(42, "hello", { 'a' => 1, 'b' => 2 })
+
+myobj1.foo(42, "hello", 'a' => 1, 'b' => 2)
+-------
++
+The example application definition given above uses the second
+syntax.  However, if one of the values of the hash is itself a hash,
+then you have to include the curly braces on the value hash:
++
+-------
+myobj1.foo(42, "hello", 'a' => 1, 'b' => { :var_name => 'report_cpu' })
+-------
+
+URI FORMAT
+----------
+The 'defApplication' command accepts a 'uri' parameter as documented
+above.  The URI can be chosen according to user needs, and does not
+have to start with \'omf:app' as in the example above.  When using the
+'--app' option to generate a skeleton application definition,
+*oml2_scaffold* will use the environment variable *USER* as the first
+component of the uri, and \'app' as the second, so for a user named
+bob, the following command line will result in an application with a
+uri of \'bob:app:foo':
+------
+$ oml2_scaffold --app foo
+------
+
+FILES
+-----
+The *oml2_scaffold* program generates a single output file for each
+possible command.  The files generated are named as follows:
+
+'--oml'::
+<app-name>_oml.h;;  The header defining the OML measurement points.
+
+'--opts'::
+<app-name>_popt.h;;  The header file defining the command line options
+for *popt*(3)
+
+'--main'::
+<app-name>.c;;  The main C header file;
+version.h;;     A file defining version information for the
+application.
+
+'--make'::
+Makefile;;  A Makefile for building the program with *make*(1).
+
+'--app' <app-name>::
+<app-name>.app;;  A skeleton application definition file.
 
 BUGS
 ----
@@ -68,7 +365,7 @@ Manual Pages
 ~~~~~~~~~~~~
 *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
 
-*omlc_init*(3), *omlc_add_mp*(3), *omlc_inject*(3)
+*omlc_inject*(3), *popt*(3)
 
 OML User Manual
 ~~~~~~~~~~~~~~~
