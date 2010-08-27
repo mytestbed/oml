@@ -426,8 +426,11 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
       return -1;
     }
   }
+
   if (sqlite3_step(stmt) != SQLITE_DONE) {
-    logerror("Could not step (execute) stmt.\n");
+    logerror("Could not step (execute) SQL statement in sq3_insert().  (%s)\n",
+             sqlite3_errmsg(sq3db->db_hdl));
+    sqlite3_reset(stmt);
     return -1;
   }
   return sqlite3_reset(stmt);
