@@ -342,7 +342,7 @@ typedef struct {
 
 #ifndef OML_FROM_MAIN
 
-oml_mps_t* g_oml_mps;
+extern oml_mps_t* g_oml_mps;
 
 #else
 #{template(:oml_decl)}
