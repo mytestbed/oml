@@ -428,47 +428,47 @@ OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
 build:  $(BIN_DIR)/$(PROGRAM)
 
 $(BIN_DIR)/$(PROGRAM): $(BIN_DIR) $(OBJ_DIR) $(SRCS) $(OBJS)
-    $(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
 $(OBJ_DIR)/%.o: %.c
-    $(CC) -c $(CFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) $< -o $@
 
 $(OBJ_DIR):
-    mkdir -p $@
+	mkdir -p $@
 
 $(BIN_DIR):
-    mkdir -p $@
+	mkdir -p $@
 
 $(BUILD_DIR)/$(PROGRAM):
-    mkdir -p $@
+	mkdir -p $@
 
 install: build
-    install -m 755 $(BIN_DIR)/$(PROGRAM) $(INSTALL_DIR)
+	install -m 755 $(BIN_DIR)/$(PROGRAM) $(INSTALL_DIR)
 
 debian: build
-    mkdir -p $(BUILD_DIR)/debian
-    v=`cat version.h | sed -n 's/.*VERSION[^"]*"\([^"]*\).*/\1/p'`; \
-    epm --output-dir $(BUILD_DIR)/debian -n -f deb $(DEB_NAME) \
-        build_dir=$(BUILD_DIR) version=$$v \
-        $(PROGRAM).epm
+	mkdir -p $(BUILD_DIR)/debian
+	v=`cat version.h | sed -n 's/.*VERSION[^"]*"\([^"]*\).*/\1/p'`; \
+	epm --output-dir $(BUILD_DIR)/debian -n -f deb $(DEB_NAME) \
+		build_dir=$(BUILD_DIR) version=$$v \
+		$(PROGRAM).epm
 
 clean:
-    rm -fr $(BUILD_DIR) *~ $(PROGRAM)_popt.h $(PROGRAM)_oml.h
+	rm -fr $(BUILD_DIR) *~ $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
 run: ARGS = --loop --delay 1
 run: build
-    $(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-file -
+	$(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-file -
 
 debug:
-    echo $(OBJS)
+	echo $(OBJS)
 
 $(OBJ_DIR)/$(PROGRAM).o: version.h $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
 $(PROGRAM)_popt.h: $(PROGRAM).app
-    oml2_scaffold --opts $<
+	oml2_scaffold --opts $<
 
 $(PROGRAM)_oml.h: $(PROGRAM).app
-    oml2_scaffold --oml $<
+	oml2_scaffold --oml $<
 ?
   end
 
