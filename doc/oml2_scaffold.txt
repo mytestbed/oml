@@ -8,24 +8,26 @@ oml2_scaffold - OML2 server daemon
 SYNOPSIS
 --------
 [verse]
-*oml2_scaffold* [OPTIONS] 'appfile'
+*oml2_scaffold* [OPTIONS] [--oml|--opts|--main|--make] 'appfile'
+*oml2_scaffold* [OPTIONS] --app 'appname'
 
 DESCRIPTION
 -----------
 
 *oml2_scaffold* generates skeleton OML application source code based
-on a template provided by the user. When invoked with the '--oml'
-options, a C header is generated describing the application's OML
-measurement points; when '--opts' is used, another C header is
-generated that describes the command line options that the program
-accepts, using the functions and data structures provided by the
-*popt*(3) library; when '--main' is used, a C file is generated that
-provides a skeleton *main*() function and run loop, with an example of
-how to inject measurement samples using *omlc_inject*(3) for every
-defined measurement point; and when '--make' is used, *oml2_scaffold*
-creates a Makefile that can be used to build the generated program.
+on a template provided by the user (the file named 'appfile'). When
+invoked with the '--oml' options, a C header is generated describing
+the application's OML measurement points; when '--opts' is used,
+another C header is generated that describes the command line options
+that the program accepts, using the functions and data structures
+provided by the *popt*(3) library; when '--main' is used, a C file is
+generated that provides a skeleton *main*() function and run loop,
+with an example of how to inject measurement samples
+using *omlc_inject*(3) for every defined measurement point; and when
+'--make' is used, *oml2_scaffold* creates a Makefile that can be used
+to build the generated program.
 
-In fact, the generated program can be built and run as is with no
+In fact, the generated program can be built and run as-is with no
 further modifications required.  This can serve as an example OML
 application to play with, however the data that it measures is
 not very interesting.  The programmer must supply that part of the
@@ -34,11 +36,6 @@ application, unfortunately.
 OPTIONS
 -------
 *oml2_scaffold* recognizes the following command line options:
-
--a::
---app 'name'::
-Create a skeleton OMF application definition file for an application
-with the given 'name'.
 
 --oml::
 Create the oml header file defining all measurement points.
@@ -52,10 +49,15 @@ Create a skeleton Makefile for this application.
 --main::
 Create a skeleton main file for this application.
 
+-a::
+--app 'name'::
+Create a skeleton OMF application definition file for an application
+with the given 'name'.  This creates a file called 'name'.app.
+
 -f::
 --force::
 Do not check if a file would be overwritten.  Otherwise
-*oml2_scaffold* checks for an existing file trying to write to it,
+*oml2_scaffold* checks for an existing file before trying to write to it,
 and aborts if it already exists.
 
 -v::
@@ -134,10 +136,17 @@ a.version(major, minor = 0, revision = 0)
 The 'version' command specifies the application's version number.  The
 'minor' and 'revision' can be omitted.  The arguments are assumed to
 be integers.  The version information is output as a string in the
-file 'version.h' as
+file 'version.h'.  As an example, the following version declaration:
 
 --------
-#define VERSION "x.y.z"
+a.version(2, 4, 0)
+--------
+
+will result in a 'version.h' file containing the following C
+preprocessor #define:
+
+--------
+#define VERSION "2.4.0"
 --------
 
 a.shortDescription = <string>
@@ -190,8 +199,9 @@ This property accepts a string argument.
 ':integer';;
 ':long';;
 ':long_long';;
-This property accepts an integer argument that is either an C 'int',
-a C 'long', or a C 'long long' value.  ':integer' is a synonym for ':int'.
+This property accepts an integer argument that is either a C 'int', a
+C 'long', or a C 'long long' value. The ':integer' variant is a synonym
+for ':int'.
 
 ':float';;
 ':double';;
@@ -204,18 +214,19 @@ the '--help' option.
 *:default*:: The default value for this property if it is not specified on the
 command line by the user of the application.
 
-*:impl*:: Another Ruby hash that determines how the option is implemented in the
-C program output.  If ':impl' contains the key ':var_name', then the
-value of ':var_name' is used to name the C variable that will be used
-to store the value of this command line option's argument.  Otherwise
-the 'long_name' is used.  The option arguments are all stored in
-variables within the 'g_opts_storage' struct.
+*:impl*:: Another Ruby hash that determines how the option is
+implemented in the C program output. If ':impl' contains the key
+':var_name', then the value of ':var_name' is used to name the C
+variable that will store the value of this command line option's
+argument. Otherwise the 'long_name' is used. The option arguments are
+all stored in variables within the 'g_opts_storage' struct in the
+generated C program.
 +
 The other key recognized by *oml2_scaffold* in the ':impl' hash is the
-':popt_val' key.  The value of this key is used to tell *popt*(3) what
+':popt_val' key. The value of this key is used to tell *popt*(3) what
 value to return if this argument is parsed; a value of 0, the default,
 tells *popt*(3) to not return when it parses this option, but to go on
-and parse the next one instead.  Most users can omit the ':popt_val'
+and parse the next one instead. Most users can omit the ':popt_val'
 key safely.
 
 a.defMeasurement(name)
@@ -223,7 +234,7 @@ a.defMeasurement(name)
 The 'defMeasurement' command defines a new, named measurement point.
 (For more information about what a measurement point is, see
 *liboml2*(1) and *liboml2*(3).  The command accepts a block that
-accepts a single parameter, the MP itself; this block is used to
+takes a single parameter, the MP itself; this block is used to
 define the fields of the measurement point.  Each field is defined
 using the 'defMetric' command.
 
@@ -232,14 +243,6 @@ m.defMetric(name, type)
 'defMetric' defines a single field of a measurement point.  Each field
 must have a 'name' and a 'type'.  The 'type' must be a string equal to
 one of the following, which correspond with the defined OML types:
-
-"*string*"::
-This field will record string data.
-
-"*long*"::
-This field will record data corresponding to the C 'long' type.  This
-type is depcrecated because 'long' changes size between 32-bit and
-64-bit platforms.  Use one of ':int32' or ':int64' instead.
 
 "*int32*"::
 This field will record 32-bit signed integer data.
@@ -256,10 +259,19 @@ This field will record 64-bit unsigned integer data.
 "*double*"::
 This field will record floating point data in C 'double' format.
 
+"*string*"::
+This field will record string data.
+
 The integer types "'int32'", "'uint32'" "'int64'", and "'uint64'" are
 implemented in the application as the corresponding types from
 *stdint.h*, namely 'int32_t', 'uint32_t', 'int64_t', and 'uint64_t'
 respectively.
+
+The 'defMetric' command also recognizes the type "*long*", which
+corresponds to the C 'long' type. However, this type is depcrecated
+because 'long' changes size between 32-bit and 64-bit platforms. New
+programs should use one of ':int32' or ':int64' instead.  See the *OML
+TYPES* section of the *liboml2*(3) man page for more information.
 
 BUT I DON'T KNOW RUBY!
 ----------------------
@@ -278,7 +290,7 @@ from Ruby variables, but this is not required for most purposes when
 using *oml2_scaffold*.  The multi-line string syntaxes in Ruby are
 even more esoteric; the one used above should be sufficient.
 
-2. Ruby hash tables are introduced using curly braces:
+2. Ruby hash table literals are introduced using curly braces:
 +
 ------
 myhash = { 'a' => 1, 'b' => 2 }
@@ -306,6 +318,19 @@ then you have to include the curly braces on the value hash:
 -------
 myobj1.foo(42, "hello", 'a' => 1, 'b' => { :var_name => 'report_cpu' })
 -------
+
+RESTRICTIONS ON NAMES
+---------------------
+The application name, the measurement point names ('defMeasurement'),
+and the measurement point field names ('defMetric') should be
+constrained to alpha-numeric names with a leading underscore or
+letter.  This is because they can appear in the names of tables and
+columns in the databases generated by the OML server, and therefore
+both the client library and the server reject names that are not
+easily used as SQL table and column names.
+
+*oml2_scaffold* currently does not impose any restrictions on names,
+but a future version probably will.
 
 URI FORMAT
 ----------
@@ -363,7 +388,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
 
 *omlc_inject*(3), *popt*(3)
 

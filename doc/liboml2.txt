@@ -52,6 +52,7 @@ For instance, suppose a measurement point defined with a measurement tuple
 as follows:
 
 ----------
+MeasurementPoint (name = "link_properties")
 ("source"      : OML_UINT64_VALUE,
  "destination" : OML_UINT64_VALUE,
  "length"      : OML_INT32_VALUE,
@@ -75,6 +76,78 @@ For more information on OML filters and how they are configured, see
 the documentation for the configuration file format,
 *liboml2.conf*(5). For more information on measurement points and how
 they are defined, see *liboml*(3) and *omlc_add_mp*(3).
+
+MEASUREMENT OUTPUT AND SCHEMAS
+------------------------------
+
+The measurement output of an OML program goes either to an SQL
+database (if using the '--oml-server' option) or a file (if using the
+'--oml-file' option).  Measurement points are created with a 'schema',
+as above, a schema being an ordered list of (name, type) pairs.  Each
+type of filter also has its own output schema.
+
+OML filters also generate output with a declared schema.  For each
+measurement point, *liboml2* generates a single output measurement
+that is the union of the outputs of all filters attached to the MP.
+The names of the fields (or columns) of the schema are derived from
+the names of the original MP fields, and the output schemas of the
+filters.  The schemas can be observed directly in the '--oml-file'
+output (identical schemas are sent to the server when '--oml-server'
+is used).  For instance, here is the output schema for a simple
+example MP that measures a string ("label") and an integer ("seq_no"):
+
+--------
+schema: 1 generator_lin label:string seq_no:uint32
+--------
+
+The schema name is "generator_lin" -- a combination of the application
+name ("generator") and the measurement point name ("lin").  (The
+number '1' on this line is an index used in the output columns to
+identify a line of measurement with the schema to which it conforms.)
+This output was made using '--oml-samples 1' on the command line.
+This creates a 'first' filter for both of the fields of the
+measurement point.  The 'first' filter outputs a single value that has
+the same type as the filter's input.
+
+If we change the command line to use '--oml-samples 2', then an
+averaging filter is used for the numeric "seq_no" field ("label" is
+unchanged).  The schema therefore changes as well:
+
+--------
+schema: 2 generator_lin label:string seq_no_avg:double seq_no_min:double seq_no_max:double
+--------
+
+An 'avg' filter picks one field of the MP to filter (in this case
+"seq_no") and then produces a 3-tuple as output (avg, min, max).
+Therefore *liboml2* creates a schema for this filter output that looks
+like:
+
+--------
+("seq_no_avg" : OML_DOUBLE_VALUE,
+ "seq_no_min" : OML_DOUBLE_VALUE,
+ "seq_no_max" : OML_DOUBLE_VALUE)
+--------
+
+This is the general pattern for filters:  their output schemas are
+formed by appending the name of the source MP with the name of the
+filter output field.  (The 'first' filter is an exception in that it
+just takes the name of the input field and uses that as the output
+field name.)
+
+When the '--oml-server' option is used, a database table is created
+for each measurement point using the combined OML output schema as
+schema for the table.  For instance, the above example would translate
+to an SQL CREATE statement like:
+
+--------
+CREATE TABLE generator_lin (label TEXT, seq_no_avg REAL, seq_no_min REAL, seq_no_max REAL);
+--------
+
+Note that even though an MP field may have an integral type, it may be
+represented as a floating point type in the output because the filter
+may output floating point values.  For instance, the average of a set
+of integers is real valued because of the division in the averaging
+operation.
 
 OML OPTIONS
 -----------

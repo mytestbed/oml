@@ -22,8 +22,8 @@ SYNOPSIS
 'void'   *omlc_set_int64*('OmlValueU' value, 'int64_t' int64val); +
 'void'   *omlc_set_uint64*('OmlValueU' value, 'uint64_t' uint64val); +
 'void'   *omlc_set_double*('OmlValueU' value, 'double' doubleval); +
-'void'   *omlc_set_string*('OmlValueU' value, 'long' longval); +
-'void'   *omlc_set_const_string*('OmlValueU' value, 'long' longval); +
+'void'   *omlc_set_string*('OmlValueU' value, 'char*' stringval); +
+'void'   *omlc_set_const_string*('OmlValueU' value, 'const char*' stringval); +
 
 
 DESCRIPTION
@@ -37,18 +37,17 @@ users to customize how measurements are processed and stored by an
 OML-enabled application.
 
 This man page summarizes the API.  Each function in the API also has
-its own detailed man page.  To learn how to configure the an
+its own detailed man page.  To learn how to configure an
 application that uses the API from the command line, see
 *liboml2*(1).  To learn about the external configuration file that
 *liboml2* can use, see *liboml2.conf*(5).
 
-A programmer who wants to use *liboml2* to perform measurements in her
-application must first decide what to measure.  OML works by letting
-the programmer first define 'MPs' and then letting the programmer
-inject measurement tuples into them.  The core of the library then
-performs filtering on the injected measurements and at predefined
-times emits the filtered samples to either a local file or a
-measurement server (see *oml2-server*(1)).
+A programmer who wants to use *liboml2* to perform measurements in
+their application must first decide what to measure. OML lets the
+programmer first define 'MPs' and then inject measurement tuples into
+them. The core of the library then performs filtering on the injected
+measurements and, at predefined times, emits the filtered samples to
+either a local file or a measurement server (see *oml2-server*(1)).
 
 A program using OML can therefore be divided into two stages:
 
@@ -56,8 +55,9 @@ Initialization::
 First the library is initialized and measurement points are defined.
 
 Measurement::
-Then the filters are enabled and measurement can proceed, with as many
-calls to *omlc_inject*(3) as required.
+Second, the filters are constructed and enabled by
+calling *omlc_start*(3). Measurement can proceed, with as many calls
+to *omlc_inject*(3) as required.
 
 It is also best to call *omlc_close*(3) to shut down the measurement
 library cleanly once measurement tasks are completed, such as when the
@@ -129,7 +129,7 @@ call *omlc_add_mp*(3):
 OmlMP* mp = omlc_add_mp ("packet_info", mp_def);
 
 if (mp == NULL) {
- fprintf (stderr, "Error: could not register Measurement Point 'packet_info');
+ fprintf (stderr, "Error: could not register Measurement Point 'packet_info'");
  exit (1);
 }
 ----
@@ -155,11 +155,13 @@ to perform measurements.
 The *omlc_inject*(3) function accepts an 'MP' handle and a vector of
 'OmlValueU' objects.  The programmer should first load up the vector
 with new values to be measured using the *omlc_set_** macros, and
-the call *omlc_inject*(3).  For instance, here is how a measurement
+then call *omlc_inject*(3).  For instance, here is how a measurement
 injection might look for the 'MP' definition above:
 
 ----
-OmlMP *mp = omlc_add_mp( ... );
+...
+
+OmlMP *mp = omlc_add_mp("packet_info", mp_def);
 
 ...
 
@@ -175,21 +177,23 @@ char *protocol;
 
 ...
 
-OmlValueU values[5];
+{
+   OmlValueU values[5];
 
-omlc_set_uint32 (values[0], source_id);
-omlc_set_uint32 (values[1], destination_id);
-omlc_set_uint32 (values[2], packet_length);
-omlc_set_double (values[3], weight);
-omlc_set_string (values[4], protocol);
+   omlc_set_uint32 (values[0], source_id);
+   omlc_set_uint32 (values[1], destination_id);
+   omlc_set_uint32 (values[2], packet_length);
+   omlc_set_double (values[3], weight);
+   omlc_set_string (values[4], protocol);
 
-omlc_inject (mp, values);
+   omlc_inject (mp, values);
+}
 ----
 
 The vector must be loaded with values in the same order as the
 original definition of the fields of the 'MP' in the call to
-*omlc_add_mp*(3).  This call can be repeated as many times as the
-program wants to make a measurement for this 'MP'.
+*omlc_add_mp*(3). The call to *omlc_inject*(3) can be repeated as many
+times as the program wants to make measurements for a given 'MP'.
 
 OML Types
 ~~~~~~~~~
@@ -229,7 +233,109 @@ worry about memory management across the API boundary.
 
 Building
 ~~~~~~~~
-Applications using *liboml2* must include the '-loml2' flag on the linker command line to link against the client library.
+Applications using *liboml2* must include the '-loml2' flag on the
+linker command line to link against the client library.
+
+EXAMPLE
+-------
+
+The following is a fully-functional example application that counts
+from 1 to 1000 and outputs the value of the counter as an unsigned
+integer, a string, and a double at each step:
+
+--------
+#include <stdio.h>
+#include <stdlib.h>
+#include <oml2/omlc.h>
+
+int main (int argc, const char **argv)
+{
+  int result = omlc_init ("Simple", &argc, argv, NULL);
+  if (result == -1) {
+    fprintf (stderr, "Could not initialize OML\n");
+    exit (1);
+  }
+
+  OmlMPDef mp_def [] = {
+    { "count", OML_UINT32_VALUE },
+    { "count_str", OML_STRING_VALUE },
+    { "count_real", OML_DOUBLE_VALUE },
+    { NULL, (OmlValueT)0 }
+  };
+
+  OmlMP *mp = omlc_add_mp ("counter", mp_def);
+
+  if (mp == NULL) {
+    fprintf (stderr, "Error: could not register Measurement Point 'counter'");
+    exit (1);
+  }
+
+  omlc_start();
+
+  int i = 0;
+  for (i = 0; i < 1000; i++) {
+    uint32_t count = (uint32_t)i;
+    char count_str[16];
+    double count_real = (double)i;
+    OmlValueU values[3];
+
+    snprintf(count_str, sizeof(count_str), "%d", i);
+
+    omlc_set_uint32 (values[0], count);
+    omlc_set_string (values[1], count_str);
+    omlc_set_double (values[2], count_real);
+
+    omlc_inject (mp, values);
+  }
+
+  omlc_close();
+
+  return 0;
+}
+--------
+
+The following command should be sufficient to compile this
+program:
+
+--------
+$ gcc -o counter counter.c -loml2
+--------
+
+Here is an example command line to run this application with a default
+set of filters:
+
+--------
+$ ./counter --oml-id myid --oml-exp-id count --oml-file -
+--------
+
+The output from this command will appear on the terminal because we
+told OML to use the standard output ('--oml-file -').  Here is what it
+looks like:
+
+--------
+# OML Client V2.4.0 Copyright (c)2007-2010, NICTA
+# OML Protocol V2
+protocol: 2
+experiment-id: count
+start_time: 1283160287
+sender-id: myid
+app-name: Counter
+schema: 1 Counter_counter count:uint32 count_str:string count_real:double
+content: text
+
+
+0.797713	1	1	0	0	0.000000
+0.797736	1	2	1	1	1.000000
+0.797748	1	3	2	2	2.000000
+0.797760	1	4	3	3	3.000000
+0.797774	1	5	4	4	4.000000
+0.797785	1	6	5	5	5.000000
+0.797796	1	7	6	6	6.000000
+...
+--------
+
+An easy way to create more complicated applications is to
+use *oml2_scaffold*(1).
 
 BUGS
 ----
@@ -251,7 +357,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*oml2-server*(1), *liboml2*(1), *liboml2.conf*(5)
+*oml2-server*(1), *liboml2*(1), *liboml2.conf*(5), *oml2_scaffold*(1)
 
 
 *omlc_init*(3), *omlc_add_mp*(3), *omlc_start*(3), *omlc_inject*(3), *omlc_close*(3)
