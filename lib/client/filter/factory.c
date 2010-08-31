@@ -239,6 +239,7 @@ omlf_register_filter(const char* filter_name,
 /* Builtin filter registration functions */
 void omlf_register_filter_average (void);
 void omlf_register_filter_first (void);
+void omlf_register_filter_last (void);
 void omlf_register_filter_histogram (void);
 void omlf_register_filter_stddev (void);
 
@@ -249,6 +250,7 @@ void register_builtin_filters ()
 {
   omlf_register_filter_average ();
   omlf_register_filter_first ();
+  omlf_register_filter_last ();
   //  omlf_register_filter_histogram ();
   omlf_register_filter_stddev ();
 }

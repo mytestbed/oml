@@ -360,6 +360,22 @@ has the same type as its input.
 
 To use this filter, use 'fname="first"' in the 'f' element.
 
+Last Filter (last)
+~~~~~~~~~~~~~~~~~~~~
+
+This filter saves the last sample in a sample set and throws away all
+the rest, outputting just the last sample. It accepts any type of
+value as its input. It outputs a single value:
+
+--------
+("last" : OML_INPUT_VALUE)
+--------
+
+The pseudo-type OML_INPUT_VALUE indicates that this filter's output
+has the same type as its input.
+
+To use this filter, use 'fname="last"' in the 'f' element.
+
 Averaging Filter (avg)
 ~~~~~~~~~~~~~~~~~~~~~~
 

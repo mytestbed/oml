@@ -29,10 +29,12 @@ liboml2_la_SOURCES = \
 	filter/factory.c \
 	filter/factory.h \
 	filter/first_filter.c \
+	filter/last_filter.c \
 	filter/average_filter.c \
 	filter/histogram_filter.c \
 	filter/stddev_filter.c \
 	filter/first_filter.h \
+	filter/last_filter.h \
 	filter/average_filter.h \
 	filter/histogram_filter.h \
 	filter/stddev_filter.h \
