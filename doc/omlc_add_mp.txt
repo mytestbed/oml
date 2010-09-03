@@ -16,10 +16,7 @@ DESCRIPTION
 -----------
 
 *omlc_add_mp* registers the definition of a new 'Measurement Point'
-(MP) with the OML client API and returns a handle to it.  The 'MP'
-must be given a 'name', which is used in declarations of schemata for
-the 'MP' in measurement output to either a local file or
-an *oml2-server*(1).
+(MP) with the OML client API and returns a handle to it.
 
 A 'measurement point' accepts typed tuples as input.  The 'definition'
 parameter of *omlc_add_mp*() defines this tuple.  It must be an array
@@ -43,44 +40,17 @@ This definition would then be passed to *omlc_add_mp*() like so:
 OmlMP* mp = omlc_add_mp("myMP", mp_def);
 ----
 
-The name of each field of the tuple is the first element of the
-'OmlMPDef' object, the type is the second. The available types are
-described in *liboml2*(3). The field names also become part of the
-schemata for this MP.  For instance, if the application was called
-"my_oml_app" in the call to *omlc_init*(3), then the schema for the
-above measurement point might look like:
+The 'MP' must be given a name (the 'name' parameter, "myMP" in this
+example), which is used to identify the source 'MP' in the measurement
+output (either to the *oml2-server*(1) or a file). The name of each
+field of the tuple is the first element of the 'OmlMPDef' object, the
+type is the second. The available types are described in *liboml2*(3).
 
-----
-schema: 1 my_oml_app_myMP source:uint32 destination:uint32
-  length:uint32 weight:double protocol:string
-----
-
-This assumes a simple filter configuration, using the 'first' filter
-type. Note how the application name is concatenated with the MP name,
-separated by an underscore, to uniquely identify the schema in the
-output. If the averaging filter 'avg' was used for the numeric
-quantities, the schema would change to:
-
-----
-schema: 1 my_oml_app_myMP
-  source_avg:double source_min:double source_max:double
-  destination_avg:double destination_min:double destination_max:double
-  length_avg:double length_min:double length_max:double
-  weight_avg:double weight_min:double weight_max:double
-  protocol:string
-----
-
-Note how the schema changes due to the fact that the 'avg' filter
-outputs a tuple of three values:  the average for the sample set, the
-minimum value of the sample set, and the maximum value for the sample
-set.  The 'avg' filter also outputs 'double' values, since the average
-can't be represented using integers.  Also note that 'string' values
-are never filtered using the 'avg' filter, because there is no
-sensible way of averaging a string.
-
-The schema above have been split into multiple lines to improve
-legibility, but in reality the library outputs them as a single line
-of text.
+This tuple of (name, type) pairs constitutes a declaration of what
+type of data will be injected into the 'MP', and what the data means.
+In this sense it is a schema or data definition for the measurement
+point.  For more information, including an overview of how filters
+work and how *liboml2* outputs measurements, see *liboml2.conf*(5).
 
 *omlc_add_mp*() can only be called after *omlc_init*(3) has been
 called, and cannot be called once *omlc_start*(3) has been called.

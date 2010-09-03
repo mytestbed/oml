@@ -279,7 +279,7 @@ BUT I DON'T KNOW RUBY!
 Although the template language uses Ruby syntax, you shouldn't need to
 know Ruby in order to define applications using *oml2_scaffold*.  All
 of the most useful features of the template language are illustrated
-in the example above.  It should be sufficient to copy and past the
+in the example above.  It should be sufficient to copy and paste the
 example and then modify it to suit your own needs.  Two things are
 worth mentioning about Ruby syntax:
 
@@ -318,6 +318,13 @@ then you have to include the curly braces on the value hash:
 -------
 myobj1.foo(42, "hello", 'a' => 1, 'b' => { :var_name => 'report_cpu' })
 -------
+
+If you do want to find out more about Ruby syntax, there are many good
+tutorials on the Internet. This one is a good starting point:
+
+--------
+http://www.ruby-lang.org/en/documentation/quickstart/
+--------
 
 RESTRICTIONS ON NAMES
 ---------------------
@@ -395,3 +402,7 @@ Manual Pages
 OML User Manual
 ~~~~~~~~~~~~~~~
 http://omf.mytestbed.net/wiki/oml/Documentation
+
+Ruby
+~~~~
+http://www.ruby-lang.org

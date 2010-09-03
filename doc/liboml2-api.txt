@@ -223,13 +223,13 @@ copies the string into its own memory, so the programmer shouldn't have to
 worry about memory management across the API boundary.
 
 *liboml2* currently also defines an OML_LONG_VALUE that maps to a C
- 'long' type, but this type is deprecated because it can change size
- between 32-bit and 64-bit platforms.  It will be removed from the API
- when OML3 is released.  The library internally clamps OML_LONG_VALUE
- 'MP' fields to the most positive and negative values that will fit in
- an 'int32_t' object before sending them to the *oml2-server*(3) or a
- local measurement file.  OML_LONG_VALUE should not be used in new
- applications.
+'long' type, but this type is deprecated because it can change size
+between 32-bit and 64-bit platforms. It will be removed from the API
+when OML3 is released. The library internally clamps OML_LONG_VALUE
+'MP' fields to the most positive and negative values that will fit in
+an 'int32_t' object before sending them to the *oml2-server*(1) or a
+local measurement file. OML_LONG_VALUE should not be used in new
+applications.
 
 Building
 ~~~~~~~~

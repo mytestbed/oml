@@ -19,7 +19,7 @@ DESCRIPTION
 It must be called after any 'measurement points' (MPs) have been
 registered with *liboml2* using *omlc_add_mp*(3).  Once *omlc_start*()
 has been called, it is valid to call *omlc_inject*(3) to start making
-measurements.
+measurements, but it is no longer possible to call *omlc_add_mp*(3).
 
 The main function of *omlc_start*() is to set up the internal data
 structures that determine the filtering configuration.  It also starts
@@ -41,12 +41,13 @@ the 'first' filter is used.
 * If the type of the field is not a numeric type, then the 'first'
 filter is used.
 
-All filter outputs for the default configuration are sent to the same
-destination: either a file if the '--oml-file' option was given, or
-an *oml2-server*(1) if the '--oml-server' option was given.  For custom
-configuration specified using the '--oml-config' command line option,
-the user can specify numerous possible measurement output
-destinations.  See *liboml2.conf*(5) for more details.
+For more details on how filter configuration is done, see *liboml2*(1)
+and *liboml2.conf*(5).
+
+Once *omlc_start*() has finished establishing the filter
+configuration, it writes headers to the configured output destinations
+(local files and/or *oml2-server*(1) daemons).
+
 
 RETURN VALUE
 ------------
