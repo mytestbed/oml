@@ -5,6 +5,11 @@ NAME
 ----
 liboml2.conf - OML2 client library configuration file format
 
+SYNOPSIS
+--------
+[verse]
+*<oml2-enabled-app>* [APP-OPTIONS] --oml-config <config-file>
+
 DESCRIPTION
 -----------
 
