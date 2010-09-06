@@ -43,10 +43,10 @@ liboml2_la_SOURCES = \
 liboml2_la_LIBADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \
 	$(top_builddir)/lib/shared/libshared.la \
-	$(LIBXML2_LIBS) -lpthread
+	$(LIBXML2_LIBS) -lpthread -lm
 
 # To quote the APR build scripts:
-#    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiocy"
+#    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiosyncrasy"
 liboml2_la_LDFLAGS = -version-info $(OML_VER_MINOR):$(OML_VER_PATCH_LT):$(OML_VER_MINOR)
 
 script_src = $(srcdir)/ruby/oml2_scaffold
