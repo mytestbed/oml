@@ -264,6 +264,9 @@ process_schema(ClientHandler* self, char* value)
   }
 }
 
+#define MAX_PROTOCOL_VERSION OML_PROTOCOL_VERSION
+#define MIN_PROTOCOL_VERSION 1
+
 /**
  * \brief Process a singel key/value pair contained in the header
  * \param self the client handler
@@ -277,10 +280,14 @@ process_meta(ClientHandler* self, char* key, char* value)
   logdebug("'%s': Meta <%s>:<%s>\n", self->name, key, value);
   if (strcmp(key, "protocol") == 0) {
     int protocol = atoi (value);
-    if (protocol != OML_PROTOCOL_VERSION)
+    if (protocol < MIN_PROTOCOL_VERSION || protocol > MAX_PROTOCOL_VERSION)
       {
         logerror("'%s': Client connected with incorrect protocol version (%d), <%s>\n",
                  self->name, protocol, value);
+        logerror("'%s':    this oml2-server supports protocol versions %d and lower;\n",
+                 self->name, MAX_PROTOCOL_VERSION);
+        logerror("'%s':    maybe the client was built with a newer version of OML?\n",
+                 self->name);
         self->state = C_PROTOCOL_ERROR;
         return;
       }
