@@ -8,7 +8,7 @@ omlc_set_int32 - set up a values array for injecting to an MP.
 SYNOPSIS
 --------
 [verse]
-*#include <stdint.h>
+*#include <stdint.h>*
 *#include <oml2/omlc.h>*
 [verse]
 'void'   *omlc_set_int32*('OmlValueU' value, 'int32_t' int32val); +

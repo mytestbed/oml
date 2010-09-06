@@ -101,9 +101,14 @@ AC_C_BIGENDIAN
 
 # Check for asciidoc (for generating manpages).
 AC_PATH_PROG(A2X, a2x, no)
+AC_PATH_PROG(ASCIIDOC, asciidoc, no)
 AM_CONDITIONAL([HAVE_A2X], [test "x$A2X" != "xno"])
+AM_CONDITIONAL([HAVE_ASCIIDOC], [test "x$ASCIIDOC" != "xno"])
 if test x"$A2X" = x"no"; then
-   AC_MSG_WARN([Test for asciidoc failed.  Not generating documentation (but OML build should still complete ok).])
+   AC_MSG_WARN([Test for a2x failed.  Not generating man pages (but OML build should still complete ok).])
+fi
+if test x"$ASCIIDOC" = x"no"; then
+   AC_MSG_WARN([Test for asciidoc failed.  Not generating html documentation (but OML build should still complete ok).])
 fi
 
 AC_CONFIG_FILES([Makefile

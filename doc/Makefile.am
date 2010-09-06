@@ -18,7 +18,21 @@ MAN3_FILES= \
 MAN5_FILES= \
 	liboml2.conf.txt
 
-EXTRA_DIST=$(MAN1_FILES) $(MAN3_FILES) $(MAN5_FILES) liboml2-api.txt
+REGULAR_MAN_FILES = $(MAN1_FILES) $(MAN3_FILES) $(MAN5_FILES)
+ALL_MAN_FILES = $(REGULAR_MAN_FILES) liboml2-api.txt
+
+html_docs = $(ALL_MAN_FILES:.txt=.html)
+
+EXTRA_DIST=$(ALL_MAN_FILES)
+CLEANFILES=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
+	liboml2.3 \
+	omlc_set_uint32.3 \
+	omlc_set_int64.3 \
+	omlc_set_uint64.3 \
+	omlc_set_double.3 \
+	omlc_set_string.3 \
+	omlc_set_const_string.3 \
+	$(html_docs)
 
 A2X_ARGS = \
 	--destination-dir=$(builddir) --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' -f manpage
@@ -62,8 +76,18 @@ EXTRA_DIST+=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	omlc_set_double.3 \
 	omlc_set_string.3 \
 	omlc_set_const_string.3
+
 else
 	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
 endif
 
-CLEANFILES = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) liboml2.3
+if HAVE_ASCIIDOC
+SUFFIXES = .html
+.txt.html:
+	$(ASCIIDOC) -o $@ $<
+
+.PHONY: html
+html:	$(html_docs)
+else
+	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
+endif
