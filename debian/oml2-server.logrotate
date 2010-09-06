@@ -1,4 +1,4 @@
-/var/log/oml-server.log {
+/var/log/oml2-server.log {
 	weekly
 	rotate 4
 	missingok

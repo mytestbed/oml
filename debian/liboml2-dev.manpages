@@ -11,3 +11,4 @@ doc/omlc_set_uint64.3
 doc/omlc_set_double.3
 doc/omlc_set_string.3
 doc/omlc_set_const_string.3
+doc/oml2_scaffold.1
