@@ -1,5 +1,5 @@
 oml2_scaffold(1)
-==============
+================
 
 NAME
 ----
@@ -23,7 +23,7 @@ that the program accepts, using the functions and data structures
 provided by the *popt*(3) library; when '--main' is used, a C file is
 generated that provides a skeleton *main*() function and run loop,
 with an example of how to inject measurement samples
-using *omlc_inject*(3) for every defined measurement point; and when
+using linkoml:omlc_inject[3] for every defined measurement point; and when
 '--make' is used, *oml2_scaffold* creates a Makefile that can be used
 to build the generated program.
 
@@ -233,7 +233,7 @@ a.defMeasurement(name)
 ~~~~~~~~~~~~~~~~~~~~~~
 The 'defMeasurement' command defines a new, named measurement point.
 (For more information about what a measurement point is, see
-*liboml2*(1) and *liboml2*(3).  The command accepts a block that
+linkoml:liboml2[1] and linkoml:liboml2[3,api].  The command accepts a block that
 takes a single parameter, the MP itself; this block is used to
 define the fields of the measurement point.  Each field is defined
 using the 'defMetric' command.
@@ -271,7 +271,7 @@ The 'defMetric' command also recognizes the type "*long*", which
 corresponds to the C 'long' type. However, this type is depcrecated
 because 'long' changes size between 32-bit and 64-bit platforms. New
 programs should use one of ':int32' or ':int64' instead.  See the *OML
-TYPES* section of the *liboml2*(3) man page for more information.
+TYPES* section of the linkoml:liboml2[3,api] man page for more information.
 
 BUT I DON'T KNOW RUBY!
 ----------------------
@@ -395,9 +395,9 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
 
-*omlc_inject*(3), *popt*(3)
+linkoml:omlc_inject[3], *popt*(3)
 
 OML User Manual
 ~~~~~~~~~~~~~~~

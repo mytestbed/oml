@@ -42,19 +42,19 @@ OmlMP* mp = omlc_add_mp("myMP", mp_def);
 
 The 'MP' must be given a name (the 'name' parameter, "myMP" in this
 example), which is used to identify the source 'MP' in the measurement
-output (either to the *oml2-server*(1) or a file). The name of each
+output (either to the linkoml:oml2-server[1] or a file). The name of each
 field of the tuple is the first element of the 'OmlMPDef' object, the
-type is the second. The available types are described in *liboml2*(3).
+type is the second. The available types are described in linkoml:liboml2[3,api].
 
 This tuple of (name, type) pairs constitutes a declaration of what
 type of data will be injected into the 'MP', and what the data means.
 In this sense it is a schema or data definition for the measurement
 point.  For more information, including an overview of how filters
-work and how *liboml2* outputs measurements, see *liboml2.conf*(5).
+work and how *liboml2* outputs measurements, see linkoml:liboml2.conf[5].
 
-*omlc_add_mp*() can only be called after *omlc_init*(3) has been
-called, and cannot be called once *omlc_start*(3) has been called.
-See *liboml2*(3) for more details on the phases of an OML-enabled
+*omlc_add_mp*() can only be called after linkoml:omlc_init[3] has been
+called, and cannot be called once linkoml:omlc_start[3] has been called.
+See linkoml:liboml2[3,api] for more details on the phases of an OML-enabled
 application.
 
 RETURN VALUE
@@ -62,7 +62,7 @@ RETURN VALUE
 
 *omlc_add_mp*() returns NULL if an error occurs.  If the call
 succeeds, it returns a pointer to an 'OmlMP' object that should be
-used in subsequent calls to *omlc_inject*(3).  The 'OmlMP' pointer
+used in subsequent calls to linkoml:omlc_inject[3].  The 'OmlMP' pointer
 should be treated as an opaque handle.
 
 ERRORS
@@ -72,7 +72,7 @@ ERRORS
 
 * the 'name' of the MP contains whitespace or is NULL;
 * the library cannot allocate memory for the MP;
-* *liboml2* has not yet been initialized via a call to *omlc_init*(3).
+* *liboml2* has not yet been initialized via a call to linkoml:omlc_init[3].
 
 BUGS
 ----
@@ -93,9 +93,9 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
 
-*omlc_init*(3), *omlc_start*(3), *omlc_inject*(3)
+linkoml:omlc_init[3], linkoml:omlc_start[3], linkoml:omlc_inject[3]
 
 OML User Manual
 ~~~~~~~~~~~~~~~

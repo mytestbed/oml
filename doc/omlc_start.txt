@@ -17,16 +17,16 @@ DESCRIPTION
 
 *omlc_start*() begins the process of measurement sampling and output.
 It must be called after any 'measurement points' (MPs) have been
-registered with *liboml2* using *omlc_add_mp*(3).  Once *omlc_start*()
-has been called, it is valid to call *omlc_inject*(3) to start making
-measurements, but it is no longer possible to call *omlc_add_mp*(3).
+registered with *liboml2* using linkoml:omlc_add_mp[3].  Once *omlc_start*()
+has been called, it is valid to call linkoml:omlc_inject[3] to start making
+measurements, but it is no longer possible to call linkoml:omlc_add_mp[3].
 
 The main function of *omlc_start*() is to set up the internal data
 structures that determine the filtering configuration.  It also starts
 threads to periodically generate filter outputs for measurement
 streams that are declared using the 'interval' sampling method (see
-the '--oml-interval' option in *liboml2*(1) or the 'interval'
-attribute in *liboml2.conf*(5)).
+the '--oml-interval' option in linkoml:liboml2[1] or the 'interval'
+attribute in linkoml:liboml2.conf[5]).
 
 If a configuration file is given using the '--oml-config' command line
 option or the OML_CONFIG environment variable, then *omlc_start*()
@@ -41,12 +41,12 @@ the 'first' filter is used.
 * If the type of the field is not a numeric type, then the 'first'
 filter is used.
 
-For more details on how filter configuration is done, see *liboml2*(1)
-and *liboml2.conf*(5).
+For more details on how filter configuration is done, see linkoml:liboml2[1]
+and linkoml:liboml2.conf[5].
 
 Once *omlc_start*() has finished establishing the filter
 configuration, it writes headers to the configured output destinations
-(local files and/or *oml2-server*(1) daemons).
+(local files and/or linkoml:oml2-server[1] daemons).
 
 
 RETURN VALUE
@@ -59,7 +59,7 @@ ERRORS
 
 *omlc_start*() will return < 0 if:
 
-* *liboml2* has not yet been initialized via a call to *omlc_init*(3);
+* *liboml2* has not yet been initialized via a call to linkoml:omlc_init[3];
 * an error occurred parsing the external config file;
 * no config file was given and no output destination was specified on
 either the command line or using an environment variable (e.g. no
@@ -70,7 +70,7 @@ either the command line or using an environment variable (e.g. no
 The last condition can occur during a call to *omlc_start*() because
 the function writes the metadata for the current configuration to all
 of the currently configured output streams, either local files
-or *oml2-server*(1) daemons.
+or linkoml:oml2-server[1] daemons.
 
 BUGS
 ----
@@ -91,9 +91,9 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
 
-*omlc_init*(3), *omlc_add_mp*(3), *omlc_inject*(3)
+linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_inject[3]
 
 OML User Manual
 ~~~~~~~~~~~~~~~

@@ -23,7 +23,7 @@ DESCRIPTION
 -----------
 
 The *omlc_set_**() macros are convenience macros for setting the
-values of an 'OmlValueU' array to be passed to *omlc_inject*(3).  The
+values of an 'OmlValueU' array to be passed to linkoml:omlc_inject[3].  The
 underlying 'OmlValueU' array is a simple union, but it should be
 treated as an opaque type to ensure backwards compatibility for
 applications using OML.  These macros operate on this type.
@@ -37,7 +37,7 @@ The 'string' and 'const_string' variants are for setting string
 values.  Note that only the pointer is copied by the macro, but that
 the library internally copies the caller's string into its own
 internally managed memory, so the caller does not need to worry about
-preserving the string after any call to *omlc_inject*(3) on the
+preserving the string after any call to linkoml:omlc_inject[3] on the
 'OmlValueU' array.
 
 The 'const_string' variant is mainly historical.  It was originally
@@ -46,7 +46,7 @@ library complicated and prone to segfaults, so it was deprecated in
 favour of the aforementioned copying semantics.
 
 For an example of how these macros should be used, refer
-to *omlc_inject*(3) and *liboml2*(3).
+to linkoml:omlc_inject[3] and linkoml:liboml2[3,api].
 
 RETURN VALUE
 ------------
@@ -78,7 +78,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*liboml2*(3), *omlc_inject*(3)
+linkoml:liboml2[3,api], linkoml:omlc_inject[3]
 
 OML User Manual
 ~~~~~~~~~~~~~~~

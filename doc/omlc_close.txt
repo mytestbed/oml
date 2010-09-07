@@ -21,7 +21,7 @@ to ensure that all measurements are stored correctly before the
 application terminates.  The application should call *omlc_close*() if
 it intends to exit.
 
-If *omlc_inject*(3) is called after *omlc_close*(3) has been called,
+If linkoml:omlc_inject[3] is called after *omlc_close*() has been called,
 then it will be ignored and not measurement collection will take
 place.  Other API functions will return with an error.
 
@@ -34,7 +34,7 @@ ERRORS
 ------
 
 *omlc_close*() will succeed unless the API has not already been
-initialized by a call to *omlc_init*(3).
+initialized by a call to linkoml:omlc_init[3].
 
 BUGS
 ----
@@ -55,9 +55,9 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
 
-*omlc_init*(3), *omlc_add_mp*(3), *omlc_start*(3), *omlc_inject*(3)
+linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_start[3], linkoml:omlc_inject[3]
 
 OML User Manual
 ~~~~~~~~~~~~~~~

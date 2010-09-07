@@ -20,7 +20,7 @@ before any other function in the API can be called.
 
 The 'appname' argument is a string name for this application that the
 library uses when declaring schemata for measurement output to local
-file storage or to an *oml2-server*(1).
+file storage or to an linkoml:oml2-server[1].
 
 The 'pargc' and 'argv' parameters should refer to the program's
 command line arguments.  'pargc' should be a pointer to the 'argc'
@@ -32,12 +32,12 @@ arguments are then removed from the 'argv' array, and \*'pargc' is
 adjusted to account for their removal.  This allows the application
 using *liboml2* to do its own option parsing without getting confused
 by the '--oml-' options.  The available '--oml-' options are listed
-in *liboml2*(1).
+in linkoml:liboml2[1].
 
 If the '--oml-config' option is specified then *liboml2* reads its
 configuration from an external configuration file (the format is
-documented in *liboml2.conf*(5)).  *omlc_init* also recognizes several
-environment variables, see *liboml2*(1).  Generally, if an option
+documented in linkoml:liboml2.conf[5]).  *omlc_init* also recognizes several
+environment variables, see linkoml:liboml2[1].  Generally, if an option
 can be configured on the command line or an environment variable, the
 command line option takes precedence.  If an option can also be set
 using the config file, then the config file takes precedence.
@@ -86,7 +86,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
 
 OML User Manual
 ~~~~~~~~~~~~~~~

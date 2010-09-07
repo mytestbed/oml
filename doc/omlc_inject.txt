@@ -17,14 +17,14 @@ DESCRIPTION
 
 *omlc_inject*() takes a vector of values and injects them as a
 measurement sample into a 'measurement point' (MP) previously defined
-via a call to *omlc_add_mp*(3). If *omlc_inject*(3) is called prior to
+via a call to linkoml:omlc_add_mp[3]. If linkoml:omlc_inject[3] is called prior to
 the start of measurement sampling, then it will be ignored.
-Measurement sampling is initiated by a call to *omlc_start*(3).
+Measurement sampling is initiated by a call to linkoml:omlc_start[3].
 
 The 'mp' parameter must be an MP handle returned by a call
-to *omlc_add_mp*(3). The 'values' array must contain values whose
+to linkoml:omlc_add_mp[3]. The 'values' array must contain values whose
 number and types correspond to the types declared for the MP tuple in
-the call to *omlc_add_mp*(3). The convenience macros *omlc_set_**()
+the call to linkoml:omlc_add_mp[3]. The convenience macros *omlc_set_**()
 should be used to set up the values vector.
 
 For instance, suppose the following MP definition:
@@ -41,14 +41,14 @@ OmlMPDef mp_def [] =
 };
 ----
 
-(See *omlc_add_mp*(3) for details.)
+(See linkoml:omlc_add_mp[3] for details.)
 
 To inject a measurement sample into this MP, the programmer must first
 declare an 'OmlValueU' array with the right number of elements, in
 this case five (the sentinel value is only needed when declaring the
-MP to *omlc_add_mp*(3), it doesn't play any further part).  Then, call
+MP to linkoml:omlc_add_mp[3], it doesn't play any further part).  Then, call
 the value setting macros to load new values into the vector, and
-finally pass the array to *omlc_inject*(3):
+finally pass the array to linkoml:omlc_inject[3]:
 
 ----
 OmlMP *mp = omlc_add_mp ("myMP", mp_def);
@@ -90,13 +90,15 @@ past the end of the array. Similarly, the types of the values must be
 as declared, and in the same order in the array as specified for the
 MP tuple definition. This is particularly important for strings.
 
+The values vector should be considered "write-only" and should only be
+manipulated using the value-setting macros, see linkoml:omlc_set_int32[3].
 
 ERRORS
 ------
 
-If the library has not been initialized with a call to *omlc_init*(3),
+If the library has not been initialized with a call to linkoml:omlc_init[3],
 and if measurement sampling has not been started with a call
-to *omlc_start*(3), then this function exits without performing any
+to linkoml:omlc_start[3], then this function exits without performing any
 actions.  Similarly, if either 'mp' or 'values' is NULL, then the
 function exits silently.
 
@@ -122,9 +124,9 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*oml2-server*(1), *liboml2*(1), *liboml2*(3), *liboml2.conf*(5)
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
 
-*omlc_init*(3), *omlc_add_mp*(3), *omlc_start*(3)
+linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_start[3], linkoml:omlc_set_int32[3]
 
 OML User Manual
 ~~~~~~~~~~~~~~~

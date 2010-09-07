@@ -39,15 +39,15 @@ OML-enabled application.
 This man page summarizes the API.  Each function in the API also has
 its own detailed man page.  To learn how to configure an
 application that uses the API from the command line, see
-*liboml2*(1).  To learn about the external configuration file that
-*liboml2* can use, see *liboml2.conf*(5).
+linkoml:liboml2[1].  To learn about the external configuration file that
+*liboml2* can use, see linkoml:liboml2.conf[5].
 
 A programmer who wants to use *liboml2* to perform measurements in
 their application must first decide what to measure. OML lets the
 programmer first define 'MPs' and then inject measurement tuples into
 them. The core of the library then performs filtering on the injected
 measurements and, at predefined times, emits the filtered samples to
-either a local file or a measurement server (see *oml2-server*(1)).
+either a local file or a measurement server (see linkoml:oml2-server[1]).
 
 A program using OML can therefore be divided into two stages:
 
@@ -56,17 +56,17 @@ First the library is initialized and measurement points are defined.
 
 Measurement::
 Second, the filters are constructed and enabled by
-calling *omlc_start*(3). Measurement can proceed, with as many calls
-to *omlc_inject*(3) as required.
+calling linkoml:omlc_start[3]. Measurement can proceed, with as many calls
+to linkoml:omlc_inject[3] as required.
 
-It is also best to call *omlc_close*(3) to shut down the measurement
+It is also best to call linkoml:omlc_close[3] to shut down the measurement
 library cleanly once measurement tasks are completed, such as when the
 application is terminating.
 
 Initialization
 ~~~~~~~~~~~~~~
 When the application starts up, the programmer should make a call to
-*omlc_init*(3) to initialize *liboml2*.  The function accepts a name
+linkoml:omlc_init[3] to initialize *liboml2*.  The function accepts a name
 for the application itself, together with the executable's command
 line arguments (the C *main*() function's *argc* and *argv*
 parameters), and a fourth argument which is not widely used and can
@@ -89,13 +89,13 @@ int main(int argc, const char **argv)
 }
 ----
 
-The *omlc_init*(3) function gathers configuration information from the
+The linkoml:omlc_init[3] function gathers configuration information from the
 command line arguments, the environment, and possibly an external
 configuration file, and sets internal configuration options of the
 library.  It removes any command line options that it recognizes, so
 that the application itself does not get confused when it tries to
 interpret the command line.  All OML options start with the prefix
-'--oml-'.  An application should call *omlc_init*(3) _before_ running
+'--oml-'.  An application should call linkoml:omlc_init[3] _before_ running
 its own command line option parser.
 
 After initializing the library, the programmer must define the
@@ -120,10 +120,10 @@ OmlMPDef mp_def [] =
 The first member of the 'OmlMPDef' struct is the name of the field of
 the 'MP' that it represents.  The second member is its type.  The name
 appears in the schema for the local file storage, and as part of the
-database column name for the database created by *oml2-server*(1).
+database column name for the database created by linkoml:oml2-server[1].
 
 To register the 'MP' definition with *liboml2*, the programmer must
-call *omlc_add_mp*(3):
+call linkoml:omlc_add_mp[3]:
 
 ----
 OmlMP* mp = omlc_add_mp ("packet_info", mp_def);
@@ -135,27 +135,27 @@ if (mp == NULL) {
 ----
 
 This function returns a handle to the internal 'MP' object, which
-should be used in subsequent calls to *omlc_inject*(3), and should be
+should be used in subsequent calls to linkoml:omlc_inject[3], and should be
 treated as opaque.
 
 Measurement
 ~~~~~~~~~~~
 
 Once all measurement points have been defined and created using calls
-to *omlc_add_mp*(3), the programmer must start the measurement
-collection process by calling *omlc_start*(3).  This call creates the
+to linkoml:omlc_add_mp[3], the programmer must start the measurement
+collection process by calling linkoml:omlc_start[3].  This call creates the
 internal filters according to the current configuration options, and
 starts the filter output sampling threads for \'interval' style
-filters (for more information see *liboml2.conf*(5)).  Once
-*omlc_start*(3) has been called, no more 'MPs' can be added:  further
-calls to *omlc_add_mp*(3) will be ignored.  Conversely, once
-*omlc_start*(3) has been called, calls to *omlc_inject*(3) can be made
+filters (for more information see linkoml:liboml2.conf[5]).  Once
+linkoml:omlc_start[3] has been called, no more 'MPs' can be added:  further
+calls to linkoml:omlc_add_mp[3] will be ignored.  Conversely, once
+linkoml:omlc_start[3] has been called, calls to linkoml:omlc_inject[3] can be made
 to perform measurements.
 
-The *omlc_inject*(3) function accepts an 'MP' handle and a vector of
+The linkoml:omlc_inject[3] function accepts an 'MP' handle and a vector of
 'OmlValueU' objects.  The programmer should first load up the vector
 with new values to be measured using the *omlc_set_** macros, and
-then call *omlc_inject*(3).  For instance, here is how a measurement
+then call linkoml:omlc_inject[3].  For instance, here is how a measurement
 injection might look for the 'MP' definition above:
 
 ----
@@ -192,7 +192,7 @@ char *protocol;
 
 The vector must be loaded with values in the same order as the
 original definition of the fields of the 'MP' in the call to
-*omlc_add_mp*(3). The call to *omlc_inject*(3) can be repeated as many
+linkoml:omlc_add_mp[3]. The call to linkoml:omlc_inject[3] can be repeated as many
 times as the program wants to make measurements for a given 'MP'.
 
 OML Types
@@ -227,7 +227,7 @@ worry about memory management across the API boundary.
 between 32-bit and 64-bit platforms. It will be removed from the API
 when OML3 is released. The library internally clamps OML_LONG_VALUE
 'MP' fields to the most positive and negative values that will fit in
-an 'int32_t' object before sending them to the *oml2-server*(1) or a
+an 'int32_t' object before sending them to the linkoml:oml2-server[1] or a
 local measurement file. OML_LONG_VALUE should not be used in new
 applications.
 
@@ -335,7 +335,7 @@ content: text
 --------
 
 An easy way to create more complicated applications is to
-use *oml2_scaffold*(1).
+use linkoml:oml2_scaffold[1].
 
 BUGS
 ----
@@ -357,12 +357,12 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*oml2-server*(1), *liboml2*(1), *liboml2.conf*(5), *oml2_scaffold*(1)
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2.conf[5], linkoml:oml2_scaffold[1]
 
 
-*omlc_init*(3), *omlc_add_mp*(3), *omlc_start*(3), *omlc_inject*(3), *omlc_close*(3)
+linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_start[3], linkoml:omlc_inject[3], linkoml:omlc_close[3]
 
-*omlc_set_int32*(3), *omlc_set_uint32*(3), *omlc_set_int64*(3), *omlc_set_uint64*(3), *omlc_set_double*(3), *omlc_set_string*(3), *omlc_set_const_string*(3)
+linkoml:omlc_set_int32[3], linkoml:omlc_set_uint32[3], linkoml:omlc_set_int64[3], linkoml:omlc_set_uint64[3], linkoml:omlc_set_double[3], linkoml:omlc_set_string[3], linkoml:omlc_set_const_string[3]
 
 
 OML User Manual

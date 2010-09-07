@@ -17,7 +17,7 @@ SYNOPSIS
 DESCRIPTION
 -----------
 
-*oml2-proxy-server* provides a buffered proxy for the *oml2-server*(1)
+*oml2-proxy-server* provides a buffered proxy for the linkoml:oml2-server[1]
 for use in situations where either the normal *oml2-server* is not
 reachable, or where using a reachable *oml2-server* to store
 measurements as they are made would disturb the phenomena being
@@ -133,7 +133,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-*om2-server*(1), *liboml2*(1), *liboml2*(3)
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api]
 
 OML User Manual
 ~~~~~~~~~~~~~~~
