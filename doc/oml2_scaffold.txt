@@ -244,34 +244,37 @@ m.defMetric(name, type)
 must have a 'name' and a 'type'.  The 'type' must be a string equal to
 one of the following, which correspond with the defined OML types:
 
-"*int32*"::
+*:int32*::
 This field will record 32-bit signed integer data.
 
-"*uint32*"::
+*:uint32*::
 This field will record 32-bit unsigned integer data.
 
-"*int64*"::
+*:int64*::
 This field will record 64-bit signed integer data.
 
-"*uint64*"::
+*:uint64*::
 This field will record 64-bit unsigned integer data.
 
-"*double*"::
+*:double*::
 This field will record floating point data in C 'double' format.
 
-"*string*"::
+*:string*::
 This field will record string data.
 
-The integer types "'int32'", "'uint32'" "'int64'", and "'uint64'" are
+The integer types ':int32', ':uint32' ':int64', and ':uint64' are
 implemented in the application as the corresponding types from
 *stdint.h*, namely 'int32_t', 'uint32_t', 'int64_t', and 'uint64_t'
 respectively.
 
-The 'defMetric' command also recognizes the type "*long*", which
+The 'defMetric' command also recognizes the type ':long', which
 corresponds to the C 'long' type. However, this type is depcrecated
 because 'long' changes size between 32-bit and 64-bit platforms. New
 programs should use one of ':int32' or ':int64' instead.  See the *OML
 TYPES* section of the linkoml:liboml2[3,api] man page for more information.
+
+It is also permissible to use strings to specify the type of a metric,
+i.e. '"int32"' instead of ':int32', '"double"' instead of ':double'.
 
 BUT I DON'T KNOW RUBY!
 ----------------------
