@@ -552,7 +552,7 @@ is doing and useful for.
         :impl => { :var_name => 'delay' })
 
   a.defMeasurement("sensor") do |m|
-    m.defMetric('val', 'long')
+    m.defMetric('val', 'int32')
     m.defMetric('inverse', 'double')
     m.defMetric('name', 'string')
   end
@@ -569,13 +569,28 @@ end
 
 class Metric < Struct.new(:name, :type, :opts)
 
+  @@warnings = Hash.new
+
   def c_type
+    case type.to_sym
+    when :int, :integer
+      if @@warnings[type.to_sym] == nil
+        puts "WARNING:  Type :#{type.to_sym} is currently an alias for :long, but this will be changed to :int32 in OML 2.5.0"
+        @@warnings[type.to_sym] = true
+      end
+    when :long
+      if @@warnings[type.to_sym] == nil
+        puts "WARNING:  Type :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead"
+        @@warnings[type.to_sym] = true
+      end
+    end
+
     case type.to_sym
     when :string
       "OML_STRING_VALUE"
-    when :long
+    when :int, :integer, :long
       "OML_LONG_VALUE"
-    when :double
+    when :float, :double, :real
       "OML_DOUBLE_VALUE"
     when :int32
       "OML_INT32_VALUE"
@@ -589,7 +604,6 @@ class Metric < Struct.new(:name, :type, :opts)
       "OML_UNKNOWN"
     end
   end
-
 end
 
 class MeasurementPoint
