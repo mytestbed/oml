@@ -1,8 +1,8 @@
-oml2 (2.4.pre0-ubuntu1) lucid; urgency=low
+oml2 (2.4.0-ubuntu1) lucid; urgency=low
 
-  * Beta (testing) release of OML 2.4.
+  * New upstream release OML 2.4.0.
 
- -- Jolyon White <jolyon.white@nicta.com.au>  Tue, 07 Sep 2010 01:54:55 +1000
+ -- Jolyon White <jolyon.white@nicta.com.au>  Wed, 08 Sep 2010 22:26:50 +1000
 
 oml (2.3.9-ubuntu2) lucid; urgency=low
 
