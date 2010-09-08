@@ -11,6 +11,7 @@ PROG = 'oml_scaffold'
 require 'stringio'
 require 'optparse'
 
+@@integer_alias = :long
 
 def run()
   opts = OptionParser.new
@@ -34,6 +35,14 @@ Execute an experiment script
   opts.on('-f', "--force",
       "Do not check if a file would be overwritten") do
     force = true
+  end
+  opts.on('-l', "--long",
+      "Alias :int and :integer to underlying :long (default)") do
+    @@integer_alias = :long
+  end
+  opts.on('-i', "--int32",
+      "Alias :int and :integer to underyling :int32") do
+    @@integer_alias = :int32
   end
   opts.on(nil, "--oml",
       "Create the oml header file defining all measurement points") do
@@ -60,6 +69,9 @@ Execute an experiment script
 
   begin
     rest = opts.parse(ARGV)
+  rescue OptionParser::InvalidOption => ex
+    $stderr.puts ex
+    exit -1
   rescue OptionParser::MissingArgument => ex
     $stderr.puts ex
     exit -1
@@ -574,7 +586,7 @@ class Metric < Struct.new(:name, :type, :opts)
   def c_type
     case type.to_sym
     when :int, :integer
-      if @@warnings[type.to_sym] == nil
+      if @@integer_alias == :long and @@warnings[type.to_sym] == nil
         puts "WARNING:  Type :#{type.to_sym} is currently an alias for :long, but this will be changed to :int32 in OML 2.5.0"
         @@warnings[type.to_sym] = true
       end
@@ -588,7 +600,14 @@ class Metric < Struct.new(:name, :type, :opts)
     case type.to_sym
     when :string
       "OML_STRING_VALUE"
-    when :int, :integer, :long
+    when :int, :integer
+      case @@integer_alias
+      when :long
+        "OML_LONG_VALUE"
+      when :int32
+        "OML_INT32_VALUE"
+      end
+    when :long
       "OML_LONG_VALUE"
     when :float, :double, :real
       "OML_DOUBLE_VALUE"

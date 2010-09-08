@@ -60,6 +60,16 @@ Do not check if a file would be overwritten.  Otherwise
 *oml2_scaffold* checks for an existing file before trying to write to it,
 and aborts if it already exists.
 
+-l::
+--long::
+Use the ':long' type as the underlying type for the ':int' and
+':integer' aliases.  This is the default behaviour.
+
+-i::
+--int32::
+Use the ':int32' type as the underlying type for the ':int' and
+':integer' aliases.  This overrides the default of ':long'.
+
 -v::
 --version::
 Print the version number of *oml2_scaffold*.
@@ -233,7 +243,7 @@ a.defMeasurement(name)
 ~~~~~~~~~~~~~~~~~~~~~~
 The 'defMeasurement' command defines a new, named measurement point.
 (For more information about what a measurement point is, see
-linkoml:liboml2[1] and linkoml:liboml2[3,api].  The command accepts a block that
+linkoml:liboml2[1] and linkoml:liboml2[3,api].)  The command accepts a block that
 takes a single parameter, the MP itself; this block is used to
 define the fields of the measurement point.  Each field is defined
 using the 'defMetric' command.
@@ -272,6 +282,18 @@ corresponds to the C 'long' type. However, this type is depcrecated
 because 'long' changes size between 32-bit and 64-bit platforms. New
 programs should use one of ':int32' or ':int64' instead.  See the *OML
 TYPES* section of the linkoml:liboml2[3,api] man page for more information.
+
+The types ':float' and ':real' are synonyms for the type ':double'.
+In OML v2.4 and earlier, the types ':int' and ':integer' were synonyms
+for ':long'.  Because ':long' is deprecated, these aliases will be
+changed to map to ':int32' from OML 2.5 and onwards.  To give
+developers a chance to migrate their applications, we provide switches
+'--int32' and '--long'.  Each one selects what the underlying type
+will be for the ':int' and ':integer' aliases.  In OML 2.4, the
+default behaviour if neither is specified is ':long'.  To override
+this, use the '--int32' switch.  In OML 2.5 the default will be
+changed to ':int32', which developers can override using the '--long'
+switch.
 
 It is also permissible to use strings to specify the type of a metric,
 i.e. '"int32"' instead of ':int32', '"double"' instead of ':double'.
