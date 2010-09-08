@@ -243,16 +243,22 @@ filesystem path.  The format of the network server version is:
 ---------------------------
 The format for the local file version is:
 ---------------------------
-		file:[//]<local-path>
+		file:<local-path>
 ---------------------------
 
 For instance, 'tcp:10.0.0.200:3003' or 'tcp://10.0.0.200:3003' will
 send measurements to an *oml2-server* listening on port 3003 at IP
-address 10.0.0.200, using TCP.  The '//' is recognized but optional.
+address 10.0.0.200, using TCP. The '//' is recognized but optional.
+Either an IP address or a hostname can be used as the <host>
+specifier, and the <port> specifier is optional, defaulting to port
+3003.
+
 Alternatively, 'file:/tmp/myfile.txt' writes to the /tmp/myfile.txt
-file in the local filesystem.  Relative paths are also accepted.  The
-'file' protocol also accepts an optional '//' between the colon ':'
-and the local path.
+file in the local filesystem. Relative paths are also accepted. There
+should be no double-slash after the colon: 'file://myfile.txt' is
+treated the same as 'file:/myfile.txt', i.e. it will try to write the
+output in the root directory. The special file URL 'file:-' will write
+output to the standard output.
 
 ENVIRONMENT VARIABLES
 ---------------------
