@@ -34,12 +34,14 @@ liboml2_la_SOURCES = \
 	filter/histogram_filter.c \
 	filter/stddev_filter.c \
 	filter/sum_filter.c \
+	filter/delta_filter.c \
 	filter/first_filter.h \
 	filter/last_filter.h \
 	filter/average_filter.h \
 	filter/histogram_filter.h \
 	filter/stddev_filter.h \
 	filter/sum_filter.h \
+	filter/delta_filter.h \
 	oml2/omlc.h \
 	oml2/oml_filter.h \
 	oml2/oml_writer.h

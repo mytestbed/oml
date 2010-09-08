@@ -428,6 +428,32 @@ set.
 
 To use this filter, use 'fname="sum"' in the 'f' element.
 
+Delta Filter (delta)
+~~~~~~~~~~~~~~~~~~~~
+
+This filter computes the change in its input value between the end of
+the previous sample set and the start of the current one.  If the
+value at the end of the previous sample set was 'last' and the value
+at the end of the current sample set was 'current', then the filter
+computes 'delta=current-last'. It accepts numeric inputs only (one
+of the OML integer types or OML_DOUBLE_VALUE). It outputs a pair of
+values, namely:
+
+--------
+("delta" : OML_DOUBLE_VALUE,
+ "last   : OML_DOUBLE_VALUE)
+--------
+
+where 'delta' is the change in the input over the current sample set
+and 'last' is the value that the input had at the end of the current
+sample set.
+
+The value of 'delta' in the first sample set is computed as
+'current-first', where 'first' is the first value in the sample set
+and 'current' is the final value.
+
+To use this filter, use 'fname="delta"' in the 'f' element.
+
 BUGS
 ----
 
