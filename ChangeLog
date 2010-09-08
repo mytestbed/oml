@@ -1,3 +1,190 @@
+2010-09-08  Jolyon White  <jolyon.white@nicta.com.au>
+
+	* OML: New version 2.4.0
+
+	* OML: Package names changed to be better for Debian/Ubuntu policy
+	compliance.  Splite oml2-proxy-server into its own package; split
+	libocomm into its own package.  oml2_scaffold is now correctly
+	included in the liboml2-dev package; various other files were
+	moved to the package in which the Debian manual says that they
+	should reside.  The -dev packages are now marked as "Architecture:
+	any" instead of "Architecture: all" to avoid problems when
+	uploading packages for different architectures.
+
+	* OML: fixes to 'make dist' to ensure the release tarball contains
+	all the files it should.
+
+	* OML: Added a comprehensive set of man pages for OML using
+	Asciidoc as the markup format.  The standard build now also builds
+	documentation if asciidoc is installed, and 'make html' will build
+	HTML versions of the man pages for the website.  The Debian
+	packages now include man pages.
+
+	* OML: add support for four new integer types:  OML_INT32_VALUE,
+	OML_UINT32_VALUE, OML_INT64_VALUE, and OML_UINT64_VALUE.  These
+	types map to the equivalents from <stdint.h>, i.e. int32_t,
+	uint32_t, etc.  Extensive changes and refactoring in both the
+	client and the server to support these new types.  OML_LONG_VALUE
+	is now deprecated because it changes width between 32-bit and
+	64-bit x86 Linux, which causes OML_LONG_VALUES to be corrupted
+	when transmitted over the binary protocol.  OML_LONG_VALUE will
+	still be supported until the end of the OML2 series, but will be
+	removed in OML3.  The client now complains when an MP is defined
+	using OML_LONG_VALUE.  oml2_scaffold now also supports these new
+	types.
+
+	* OML: split the applications into their own repository; delete
+	the apps subdirectory.
+
+	* OML: convert from Subversion to GIT.
+
+	* OML: add support for four new integer types:  OML_INT32_VALUE,
+	OML_UINT32_VALUE, OML_INT64_VALUE, and OML_UINT64_VALUE.  These
+	types map to the equivalents from <stdint.h>, i.e. int32_t,
+	uint32_t, etc.  Extensive changes and refactoring in both the
+	client and the server to support these new types.  OML_LONG_VALUE
+	is now deprecated because it changes width between 32-bit and
+	64-bit x86 Linux, which causes OML_LONG_VALUES to be corrupted
+	when transmitted over the binary protocol.  OML_LONG_VALUE will
+	still be supported until the end of the OML2 series, but will be
+	removed in OML3.  The client now complains when an MP is defined
+	using OML_LONG_VALUE.  oml2_scaffold now also supports these new
+	types.
+
+	* OML: substantial changes to configure.ac to provide good
+	detection and handling of optional features (building
+	documentation, running unit tests, etc.).  The configure script
+	now aborts when it detects missing libraries.
+
+	* oml2_scaffold: Types :int and :integer were aliases for :long
+	previously.  Added compatibility switches -i,--int32 to select
+	:int32 as the underlying type and -l,--long to select long as the
+	underlying type.  For now the default will be --long (same
+	behaviour as before), but in OML 2.5 the default will be changed
+	to --int32.  This allows developers now to generate oml2_scaffold
+	code that uses the new :int32 type easily with OMF
+	defApplications, and encourages developers to port their old
+	applications to use the new types by the time OML 2.5 is release.
+	A warning is printed whenever the :int or :integer are used to
+	alert the developer to the migration, and :long now generates a
+	warning that it is deprecated. This also introduces a new version
+	of the binary and text protocol (version 2) to support the new
+	types.
+
+	* oml2_scaffold: Added synonyms :float and :real for :double.
+
+	* oml2_scaffold: Fix bug to allow the generated OML header file to
+	be included from multiple source files.
+
+	* liboml2, oml2-server: fix lots of OML_STRING_VALUE handling code
+	to make sure that we allocate the right amount of memory, don't
+	try to manipulate null pointers, and don't try to free memory that
+	wasn't allocated (or wasn't allocated at the location we are
+	trying to free).
+
+	* liboml2, oml2-server: tighten up name validation.  Names must
+	now be like C identifiers for application name, measurement point
+	names, and measurement point field names.
+
+	* liboml2: The library now gets generated with the correct
+	-version-info from libtool.
+
+	* liboml2: Fix omlc_set_string() and omlc_set_const_string()
+	macros.
+
+	* liboml2: Added three new filters:  'last' (like first, but takes
+	the last sample and throws away the rest), 'sum' (computes the sum
+	of each sample set) and 'delta' (computes the change in the input
+	value over the sample set).  Thanks to Olivier Mehani for
+	contributing this code.
+
+	* lib/client/filter/factory.c (create_filter_result_vector): Fix a
+	one-character bug that was causing this function to allocate less
+	memory than needed, leading to segfaults and upredictable behaviour.
+
+	* lib/client/filter.c (filter_process): Make this function fail
+	gracefully if omlc_instance == NULL.
+
+	* libocomm: Fixed various issues with the poll() loop that were
+	causing poll() to exit even when no new data had been received.
+	This was also spamming the server log file.
+
+	* libocomm: Fixed connection handling to make sure all data
+	received for a connection gets delivered to the application, even
+	when the client closes the connection.
+
+	* oml2-server: Add code to make the SQLite backend use
+	transactions.  Existing transaction is COMMIT'ed and a new one
+	started whenever a measurement is received and at least one second
+	has elapsed since the last transaction was begun.  This results in
+	a significant performance increase.
+
+	* server/database.c (database_find): Fixed a bug that caused this
+	function to enter an infinite loop when multiple experiments
+	connected to the server.  This function would loop forever when
+	trying to check whether the second connecting experiment already
+	existed and was open.
+
+	* oml2-server: Redesigned SQL statement string building code to
+	use safer string handling functions to avoid buffer overflows.
+
+	* oml2-server: Schema handling factored out into its own module
+	and re-worked/tested to improve server robustness.  This resulted
+	in redesigning the main code path to the database in a way that is
+	more reliable.
+
+	* oml2-server: Now uses a set of x-functions (xmalloc(),
+	xrealloc(), etc.) for memory-related code.  These functions allow
+	a central point for control and auditing of memory.  xmalloc()
+	stores an integer indicating the size of the object allocated to
+	allow simple memory use tracking, and to detect problems when
+	using xfree() to free allocated memory.
+
+	* oml2-server: Integrate Ruben Merz's patches for the server to
+	support PostgreSQL backend.  The code is still experimental, and
+	is not enabled by default.  ./configure --with-postgresql does the
+	trick.
+
+	* oml2-server: Refactored server message buffer handling to be
+	more robust and fixed a lot of bugs and segfaults along the way.
+	The buffer component is now extensively unit tested.
+
+	* oml2-server: Refactored binary protocol parser to be more
+	robust.  Implemented extensive unit testing of binary protocol
+	marshalling and unmarshalling (client and server).  Found and
+	fixed lots of bugs.
+
+	* oml2-server: Substantially redesigned the client memory handling
+	to avoid problems with string memory leaking and overruns.  Each
+	client now includes a set of vectors, one for each table, that are
+	correctly sized to accept measurements for the table, rather than
+	having one vector that is shared amongst all tables.  This
+	simplifies reallocation dramatically.
+
+	* oml2-server: Ran the server under Valgrind and fixed lots of
+	memory leaks.
+
+	* oml2-server: Revamp log messages to be more expressive and to
+	make it easier to tie a log message to the client connection that
+	caused it.
+
+	* oml2-server: Fix connection handling to avoid dropping
+	measurements at the end of the measurement stream when the client
+	disconnects.
+
+	* oml2-server: Fix lots of bugs and segfaults.
+
+	* oml2-proxy-server: Fixed bug in dump file naming so that there
+	are no buffer overflow problems and the file name length doesn't
+	keep growing ad infinitum with each new run.
+
+	* oml2-proxy-server: The proxy server has been substantially
+	re-written.  It now does thread synchronization correctly, and
+	does much better at connection handling.  The command state
+	machine is also much better implemented now.  Added synonyms
+	"RESUME" and "PAUSE" for "OMLPROXY-RESUME" and "OMLPROXY-PAUSE"
+	commands.
+
 2010-08-17  Jolyon White  <jolyon.white@nicta.com.au>
 
 	* OML:  New version 2.3.9
