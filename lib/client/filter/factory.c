@@ -242,6 +242,7 @@ void omlf_register_filter_first (void);
 void omlf_register_filter_last (void);
 void omlf_register_filter_histogram (void);
 void omlf_register_filter_stddev (void);
+void omlf_register_filter_sum (void);
 
 /**
  *  Register all built-in filters.
@@ -253,6 +254,7 @@ void register_builtin_filters ()
   omlf_register_filter_last ();
   //  omlf_register_filter_histogram ();
   omlf_register_filter_stddev ();
+  omlf_register_filter_sum ();
 }
 
 

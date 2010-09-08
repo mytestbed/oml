@@ -379,7 +379,7 @@ To use this filter, use 'fname="last"' in the 'f' element.
 Averaging Filter (avg)
 ~~~~~~~~~~~~~~~~~~~~~~
 
-This filter computes the average of its inputs samples. It accepts
+This filter computes the average of its input samples. It accepts
 numeric inputs only (one of the OML integer types or
 OML_DOUBLE_VALUE). It outputs a pair of values, namely:
 
@@ -411,6 +411,22 @@ where 'stddev' is the standard deviation over the current sample set
 and 'variance' is the variance (i.e. the square of 'stddev').
 
 To use this filter, put 'fname="stddev"' in the 'f' element.
+
+Sum Filter (sum)
+~~~~~~~~~~~~~~~~
+
+This filter computes the sum of its input samples. It accepts
+numeric inputs only (one of the OML integer types or
+OML_DOUBLE_VALUE). It outputs a single value, namely:
+
+--------
+("sum" : OML_DOUBLE_VALUE)
+--------
+
+where 'sum' is the sum all the sample values in the current sample
+set.
+
+To use this filter, use 'fname="sum"' in the 'f' element.
 
 BUGS
 ----
