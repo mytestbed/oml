@@ -1,3 +1,9 @@
+oml2 (2.4.0-ubuntu2) lucid; urgency=low
+
+  * Fix library dependencies to be less strict (don't use ${shlibs:Depends}).
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Tue, 14 Sep 2010 17:25:00 +1000
+
 oml2 (2.4.0-ubuntu1) lucid; urgency=low
 
   * New upstream release OML 2.4.0.

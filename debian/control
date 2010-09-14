@@ -9,7 +9,7 @@ Package: oml2-server
 Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
-Depends: ${shlibs:Depends}, ${misc:Depends}, libsqlite3-0, libpopt0, libocomm0 (= ${Source-Version})
+Depends: ${misc:Depends}, libc6, libsqlite3-0, libpopt0, libocomm0 (= ${Source-Version})
 Description: OML measurement server
  The OML server accepts connections from client applications and
  stores measurements that they transmit in a database.  Currently the
@@ -20,7 +20,7 @@ Package: oml2-proxy-server
 Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
-Depends: ${shlibs:Depends}, ${misc:Depends}, libpopt0, libocomm0 (= ${Source-Version})
+Depends: ${misc:Depends}, libc6, libpopt0, libocomm0 (= ${Source-Version})
 Description: OML measurement server
  The OML proxy server acts as a buffer for measurements.  It accepts
  connections from OML client applications and then stores them in
@@ -48,7 +48,7 @@ Section: libs
 Architecture: any
 Replaces: liboml
 Breaks: liboml (<< 2.4)
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: libc6, libocomm0, libxml2, ${misc:Depends}
 Description: OML: The Orbit Measurement Library
  This library allows application writers to define customizable
  measurement points in their applications to record measurements
