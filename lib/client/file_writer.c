@@ -72,10 +72,11 @@ static int close(OmlWriter* writer);
  * \param file_name the destination file
  * \return a new +OmlWriter+
  */
-OmlWriter*
+/*@null@*/OmlWriter*
 file_writer_new(char* file_name)
 {
   OmlFileWriter* self = (OmlFileWriter *)malloc(sizeof(OmlFileWriter));
+  if (self == NULL) return NULL;
   memset(self, 0, sizeof(OmlFileWriter));
   self->first_row = 1;
 

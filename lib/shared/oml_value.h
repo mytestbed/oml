@@ -35,7 +35,7 @@ static inline int32_t oml_value_clamp_long (long value)
   if (value < INT_MIN)
     return INT_MIN;
 #endif
-  return value;
+  return (int32_t)value;
 }
 
 

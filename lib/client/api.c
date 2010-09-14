@@ -27,6 +27,7 @@
 #include <errno.h>
 
 #include <oml2/oml_filter.h>
+#include <oml2/omlc.h>
 #include "client.h"
 
 /**
@@ -55,11 +56,12 @@ omlc_process(OmlMP *mp, OmlValueU *values)
 void
 omlc_inject(OmlMP *mp, OmlValueU *values)
 {
+  OmlMStream* ms;
   if (omlc_instance == NULL) return;
   if (mp == NULL || values == NULL) return;
-  if (mp_lock(mp)) return;
+  if (mp_lock(mp) == -1) return;
 
-  OmlMStream* ms = mp->firstStream;
+  ms = mp->firstStream;
   while (ms) {
     OmlFilter* f = ms->firstFilter;
     for (; f != NULL; f = f->next) {
