@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,24 +21,23 @@
  *
  */
 
-#ifndef UTIL_H__
-#define UTIL_H__
+#include <stdlib.h>
+#include <check.h>
+#include "check_server_suites.h"
 
-#include <oml2/omlc.h>
+int
+main (void)
+{
+  int number_failed = 0;
 
-#define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
+  SRunner *sr = srunner_create (headers_suite ());
+  //  srunner_add_suite (sr, database_suite ()); /* For example ... */
 
-void chomp (char* str);
-
-const char *skip_white (const char *p);
-const char *find_white (const char *p);
-
-OmlValueT sql_to_oml_type (const char* type);
-
-const char*
-oml_to_sql_type (OmlValueT type);
-
-#endif // UTIL_H__
+  srunner_run_all (sr, CK_NORMAL);
+  number_failed += srunner_ntests_failed (sr);
+  srunner_free (sr);
+  return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
 
 /*
  Local Variables:

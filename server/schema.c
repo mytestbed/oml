@@ -31,22 +31,6 @@
 #include "schema.h"
 #include "util.h"
 
-static char *
-skip_white (char *p)
-{
-  if (p)
-    while (*p && isspace (*p)) p++;
-  return p;
-}
-
-static char *
-find_white (char *p)
-{
-  if (p)
-    while (*p && !isspace (*p)) p++;
-  return p;
-}
-
 /*
  * Parse a schema field like '<name>:<type>' into a struct schema_field.
  * The storage for the schema_field must be provided by the caller.

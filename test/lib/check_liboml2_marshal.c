@@ -31,7 +31,7 @@
 #include <oml_value.h>
 #include <htonll.h>
 
-#include "util.h"
+#include "check_util.h"
 
 
 #define EPSILON 1e-8

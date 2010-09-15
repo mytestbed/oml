@@ -27,7 +27,7 @@
 #include <check.h>
 #include <mbuf.h>
 
-#include "util.h"
+#include "check_util.h"
 
 START_TEST (test_mbuf_create)
 {

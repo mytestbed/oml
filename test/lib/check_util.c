@@ -24,7 +24,7 @@
 #include <string.h>
 #include <math.h>
 #include <check.h>
-#include "util.h"
+#include "check_util.h"
 #include "oml2/omlc.h"
 #include "oml2/oml_writer.h"
 

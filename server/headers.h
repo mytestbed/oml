@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,29 +21,31 @@
  *
  */
 
-#ifndef UTIL_H__
-#define UTIL_H__
+#ifndef HEADERS_H__
+#define HEADERS_H__
 
-#include <oml2/omlc.h>
+#include <stdlib.h>
 
-#define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
+enum HeaderTag {
+  H_NONE,
+  H_PROTOCOL,
+  H_EXPERIMENT_ID,
+  H_CONTENT,
+  H_APP_NAME,
+  H_SENDER_ID,
+  H_SCHEMA,
+  H_START_TIME,
+  H_max /* For calculating the max value for use in tables */
+};
 
-void chomp (char* str);
+struct header {
+  enum HeaderTag tag;
+  char *value;
+  struct header *next; /* For linked lists */
+};
 
-const char *skip_white (const char *p);
-const char *find_white (const char *p);
+enum HeaderTag tag_from_string (const char *str, size_t n);
+struct header *header_from_string (const char *str, size_t n);
+void header_free (struct header *header);
 
-OmlValueT sql_to_oml_type (const char* type);
-
-const char*
-oml_to_sql_type (OmlValueT type);
-
-#endif // UTIL_H__
-
-/*
- Local Variables:
- mode: C
- tab-width: 4
- indent-tabs-mode: nil
- End:
-*/
+#endif /* HEADERS_H__ */

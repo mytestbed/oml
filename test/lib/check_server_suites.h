@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,24 +21,14 @@
  *
  */
 
-#ifndef UTIL_H__
-#define UTIL_H__
+#ifndef CHECK_LIBOML2_SUITES_H__
+#define CHECK_LIBOML2_SUITES_H__
 
-#include <oml2/omlc.h>
+#include <check.h>
 
-#define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
+extern Suite* headers_suite (void);
 
-void chomp (char* str);
-
-const char *skip_white (const char *p);
-const char *find_white (const char *p);
-
-OmlValueT sql_to_oml_type (const char* type);
-
-const char*
-oml_to_sql_type (OmlValueT type);
-
-#endif // UTIL_H__
+#endif /* CHECK_LIBOML2_SUITES_H__ */
 
 /*
  Local Variables:

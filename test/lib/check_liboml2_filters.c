@@ -31,7 +31,7 @@
 #include "filter/histogram_filter.h"
 #include "filter/stddev_filter.h"
 #include "oml2/oml_writer.h"
-#include "util.h"
+#include "check_util.h"
 
 typedef struct _omlAvgFilterInstanceData AvgInstanceData;
 typedef struct _omlFirstFilterInstanceData FirstInstanceData;

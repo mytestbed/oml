@@ -37,6 +37,21 @@ chomp (char* str)
   *++p = '\0';
 }
 
+const char *
+skip_white (const char *p)
+{
+  if (p)
+    while (*p && isspace (*p)) p++;
+  return p;
+}
+
+const char *
+find_white (const char *p)
+{
+  if (p)
+    while (*p && !isspace (*p)) p++;
+  return p;
+}
 
 OmlValueT sql_to_oml_type (const char *s)
 {
