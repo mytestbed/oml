@@ -22,5 +22,15 @@ libshared_la_SOURCES = \
 	log.h \
 	validate.c \
 	validate.h \
+	schema.c \
+	schema.h \
+	headers.c \
+	headers.h \
+	binary.c \
+	binary.h \
+	text.c \
+	text.h \
+	util.c \
+	util.h \
 	htonll.h
 

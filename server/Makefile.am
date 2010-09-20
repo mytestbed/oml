@@ -15,12 +15,8 @@ oml2_server_SOURCES = \
 	database.h \
 	sqlite_adapter.c \
 	sqlite_adapter.h \
-	util.c \
-	util.h \
 	table_descr.c \
 	table_descr.h \
-	schema.c\
-	schema.h \
 	version.h
 
 if HAVE_PG

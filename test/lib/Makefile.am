@@ -23,20 +23,7 @@ check_server_SOURCES = \
 	check_util.h \
 	check_server.c \
 	check_server_suites.h \
-	check_server_headers.c \
-	$(top_srcdir)/lib/shared/mem.c \
-	$(top_srcdir)/lib/shared/mem.h \
-	$(top_srcdir)/server/util.c \
-	$(top_srcdir)/server/util.h \
-	$(top_srcdir)/server/headers.c \
-	$(top_srcdir)/server/headers.h \
-	$(top_srcdir)/server/schema.c \
-	$(top_srcdir)/server/schema.h \
-	$(top_srcdir)/server/binary.c \
-	$(top_srcdir)/server/binary.h \
-	$(top_srcdir)/server/text.c \
-	$(top_srcdir)/server/text.h
-
+	check_server_headers.c
 
 check_liboml2_CFLAGS = @CHECK_CFLAGS@
 check_server_CFLAGS = @CHECK_CFLAGS@
