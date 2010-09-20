@@ -139,6 +139,15 @@ mbuf_message_offset (MBuffer* mbuf)
   return mbuf->msgptr - mbuf->base;
 }
 
+/*
+ * Difference between the rdptr and the msgptr
+ */
+size_t
+mbuf_message_index (MBuffer* mbuf)
+{
+  return mbuf->rdptr - mbuf->msgptr;
+}
+
 size_t
 mbuf_message_length (MBuffer* mbuf)
 {

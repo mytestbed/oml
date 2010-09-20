@@ -512,7 +512,8 @@ unmarshal_values(
    //logdebug("value to analyse'%d'\n", value_count);
   for (i = 0; i < value_count; i++, val++) {
     if (unmarshal_value(mbuf, val) == 0) {
-      logwarn("unmarshal_values():  Some kind of ERROR in unmarshal_value() call #%d of %d\n", i, value_count);
+      logwarn("unmarshal_values():  Some kind of ERROR in unmarshal_value() call #%d of %d\n",
+              i, value_count);
       return -1;
     }
   }

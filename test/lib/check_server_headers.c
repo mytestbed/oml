@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <check.h>
 #include <headers.h>
+#include <text.h>
+#include <binary.h>
 #include "util.h"
 
 /*
@@ -139,6 +141,78 @@ START_TEST (test_header_from_string_short)
 }
 END_TEST
 
+START_TEST (test_text_read)
+{
+  uint8_t buf [] = "0.123456\t1\t42\tabde\t3.1416\t111\nbleftover text for next line";
+  char meta [] = "1 mympstrm label:string pi:double fighter:uint32";
+  MBuffer *mbuf = mbuf_create();
+  struct oml_message msg;
+  struct schema *schema = schema_from_meta (meta);
+  OmlValue values[3];
+
+  bzero(&msg, sizeof(msg));
+
+  mbuf_write (mbuf, buf, sizeof(buf));
+
+  int result = text_read_msg_start (&msg, mbuf);
+
+  fprintf (stderr, "STRM: %d\n", msg.stream);
+  fprintf (stderr, "SEQN: %u\n", msg.seqno);
+  fprintf (stderr, "TS  : %f\n", msg.timestamp);
+  fprintf (stderr, "LEN : %d\n", msg.length);
+  fprintf (stderr, "COUNT: %d\n", msg.count);
+
+  result = text_read_msg_values (&msg, mbuf, schema, values);
+
+  result *= 42;
+}
+END_TEST
+
+START_TEST (test_bin_read)
+{
+  /* DATA_P, count=1, stream=3, { LONG_T 42 } */
+  uint8_t buf [] = { 0xAA, 0xAA, 0x01, 0x00, 0x00,
+                     0x3, 0x1, // count = 1, stream = 3
+                     0x01, 0x00, 0x00, 0x00, 0x32, // LONG_T 50
+                     0x02, 0x54, 0x00, 0x00, 0x00, 0x05, // DOUBLE_T 42.0
+                     0x01, 0x00, 0x10, 0xF4, 0x47, // LONG_T 1111111
+                     0x02, 0x54, 0x00, 0x00, 0x00, 0x05, // DOUBLE_T 42.0
+                     0x04, 0x03, 'A',  'B',  'C' // STRING_T "ABC"
+  };
+  char meta [] = "3 mympstrm id:long hitchhiker:double sesame:string";
+  MBuffer *mbuf = mbuf_create ();
+  struct oml_message msg;
+  struct schema *schema = schema_from_meta (meta);
+  OmlValue values [3];
+
+  bzero(&msg, sizeof(msg));
+
+  int size = sizeof (buf) - 5;
+  uint16_t nv = htons (size);
+  memcpy (buf + 3, &nv, 2);
+
+  mbuf_write (mbuf, buf, sizeof (buf));
+
+  int result = bin_read_msg_start (&msg, mbuf);
+
+  fprintf (stderr, "---\n");
+  fprintf (stderr, "STRM: %d\n", msg.stream);
+  fprintf (stderr, "SEQN: %u\n", msg.seqno);
+  fprintf (stderr, "TS  : %f\n", msg.timestamp);
+  fprintf (stderr, "LEN : %d\n", msg.length);
+  fprintf (stderr, "COUNT: %d\n", msg.count);
+
+  result = bin_read_msg_values (&msg, mbuf, schema, values);
+
+  int i = 0;
+  for (i = 0; i < 3; i++) {
+    char s[64];
+    oml_value_to_s (&values[i].value, values[i].type, s);
+    fprintf (stderr, "%s\n", s);
+  }
+}
+END_TEST
+
 Suite *
 headers_suite (void)
 {
@@ -155,6 +229,9 @@ headers_suite (void)
                        0, LENGTH (vector_headers));
   tcase_add_loop_test (tc_header_from_string, test_header_from_string_short,
                        0, LENGTH (vector_headers));
+
+  tcase_add_test (tc_header_from_string, test_text_read);
+  tcase_add_test (tc_header_from_string, test_bin_read);
 
   suite_add_tcase (s, tc_tag_from_string);
   suite_add_tcase (s, tc_header_from_string);

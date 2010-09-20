@@ -23,19 +23,20 @@
 #ifndef MBUF_H__
 #define MBUF_H__
 
+#include <stdlib.h>
 #include <stdint.h>
 
 typedef struct
 {
-	uint8_t* base;             //! Underlying storage
-	size_t   length;           //! size of allocated buffer
-	size_t   wr_remaining;     //! Number of bytes unfilled.
-	size_t   rd_remaining;     //! Number of data bytes remaining to be read
-	size_t   fill;             //! number of bytes 'valid' data (number of bytes filled)
+    uint8_t* base;             //! Underlying storage
+    size_t   length;           //! size of allocated buffer
+    size_t   wr_remaining;     //! Number of bytes unfilled.
+    size_t   rd_remaining;     //! Number of data bytes remaining to be read
+    size_t   fill;             //! number of bytes 'valid' data (number of bytes filled)
 
-	uint8_t* rdptr;            //! Pointer at which to read the next byte from the buffer
-	uint8_t* wrptr;            //! Pointer at which to write the next byte into the buffer
-	uint8_t* msgptr;           //! Begining of message if more than one in buffer
+    uint8_t* rdptr;            //! Pointer at which to read the next byte from the buffer
+    uint8_t* wrptr;            //! Pointer at which to write the next byte into the buffer
+    uint8_t* msgptr;           //! Begining of message if more than one in buffer
 
 } MBuffer;
 
@@ -54,6 +55,7 @@ size_t mbuf_read_offset (MBuffer* mbuf);
 size_t mbuf_write_offset (MBuffer* mbuf);
 size_t mbuf_message_offset (MBuffer* mbuf);
 size_t mbuf_message_length (MBuffer* mbuf);
+size_t mbuf_message_index (MBuffer* mbuf);
 
 int mbuf_resize (MBuffer* mbuf, size_t new_length);
 int mbuf_check_resize (MBuffer* mbuf, size_t bytes);
