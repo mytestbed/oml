@@ -12,6 +12,8 @@ libshared_la_SOURCES = \
 	marshal.h \
 	mbuf.c \
 	mbuf.h \
+	cbuf.c \
+	cbuf.h \
 	mstring.c \
 	mstring.h \
 	mem.c \

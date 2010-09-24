@@ -37,6 +37,7 @@ main (void)
   srunner_add_suite (sr, bswap_suite ());
   srunner_add_suite (sr, marshal_suite ());
   srunner_add_suite (sr, mbuf_suite ());
+  srunner_add_suite (sr, cbuf_suite ());
 
   srunner_run_all (sr, CK_NORMAL);
   number_failed += srunner_ntests_failed (sr);

@@ -14,6 +14,7 @@ check_liboml2_SOURCES = \
 	check_liboml2_bswap.c \
 	check_liboml2_marshal.c \
 	check_liboml2_mbuf.c \
+	check_liboml2_cbuf.c \
 	check_liboml2_suites.h \
 	$(top_srcdir)/lib/client/oml2/omlc.h \
 	$(top_srcdir)/lib/client/oml2/oml_filter.h
