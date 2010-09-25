@@ -44,9 +44,9 @@ void *xmalloc (size_t size)
 {
   size += sizeof (size_t);
   void *ret = malloc (size);
-  memset (ret, 0, size);
   if (!ret)
     xreturn (ret, size, "Out of memory, malloc failed\n");
+  memset (ret, 0, size);
   *(size_t*)ret = size;
   xcount_new (size);
   return (size_t*)ret + 1;
