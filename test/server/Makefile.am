@@ -8,6 +8,8 @@ msgloop_SOURCES = \
 	$(top_srcdir)/proxy_server/sm.c \
 	$(top_srcdir)/proxy_server/client.c \
 	$(top_srcdir)/proxy_server/client.h \
+	$(top_srcdir)/proxy_server/message_queue.c \
+	$(top_srcdir)/proxy_server/message_queue.h \
 	$(top_srcdir)/proxy_server/proxy_client_handler.c \
 	$(top_srcdir)/proxy_server/proxy_client_handler.h \
 	$(top_srcdir)/lib/client/oml2/omlc.h \

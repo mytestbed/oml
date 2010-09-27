@@ -4,10 +4,13 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <mbuf.h>
+#include <cbuf.h>
 #include <headers.h>
 #include <message.h>
 
 #include <ocomm/o_socket.h>
+
+#include "message_queue.h"
 
 typedef struct _clientBuffer{
     int page_number;
@@ -58,16 +61,21 @@ typedef struct _client {
   struct header *header_table[H_max];
   MBuffer *mbuf;
   msg_start_fn msg_start; // Pointer to function for reading message boundaries
+  struct msg_queue *messages;
 
   Socket*     recv_socket;
   Socket*     send_socket;
   int         recv_socket_closed;
   int         send_socket_closed;
 
+  int    locking; // True if the client is using locking; mainly for testing (set locking = 0);
+
   /*
    * All the data members below must be locked and signalled properly
    * using the mutex and condvar
    */
+  CBuffer    *cbuf;
+
   int         bytes_sent;
   int         current_page;
   struct _clientBuffer* first_buffer;

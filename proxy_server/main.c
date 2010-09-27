@@ -89,9 +89,6 @@ on_connect (Socket* client_sock, void* handle)
   session_add_client (session, client);
   client->session = session;
 
-  //  client->next = session->clients;
-  //  session->clients = client;
-
   client_socket_monitor (client_sock, client);
 }
 

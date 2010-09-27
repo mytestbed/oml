@@ -6,6 +6,7 @@
 #include <text.h>
 #include <binary.h>
 #include "proxy_client_handler.h"
+#include "message_queue.h"
 
 
 /**
@@ -105,7 +106,26 @@ content_from_string (const char *str)
   return CONTENT_NONE;
 }
 
+/**
+ *  Store a received OML message into the client's message queue.
+ *
+ */
+void
+store_received_message (Client *client, struct oml_message *msg, char *buf, size_t length)
+{
+  struct msg_queue *queue = client->messages;
+  struct msg_queue_node *node;
 
+  pthread_mutex_lock (&client->mutex);
+
+  node = msg_queue_add (queue);
+  cbuf_write_cursor (client->cbuf, &node->cursor);
+  cbuf_write (client->cbuf, buf, length);
+
+  node->msg = msg;
+
+  pthread_mutex_unlock (&client->mutex);
+}
 
 void
 proxy_message_loop (const char *client_id, Client *client, void *buf, size_t size)
@@ -183,7 +203,7 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
       mbuf_reset_read (mbuf);
       return;
     }
-    logdebug ("Recieved [strm=%d seqno=%d ts=%f %d bytes]\n",
+    logdebug ("Received [strm=%d seqno=%d ts=%f %d bytes]\n",
               msg.stream, msg.seqno, msg.timestamp, msg.length);
     mbuf_reset_read (mbuf);
     char *s = xstrndup ((char*)mbuf_rdptr (mbuf), msg.length);
@@ -195,6 +215,7 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
       printf ("'%s'\n", s);
     }
 
+    store_received_message (client, &msg, (char*)mbuf_rdptr (mbuf), msg.length);
     mbuf_read_skip (mbuf, msg.length + 1);
     mbuf_consume_message (mbuf);
     break;

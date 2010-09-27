@@ -16,13 +16,13 @@ oml2_proxy_server_SOURCES = \
 	session.h \
 	client.c \
 	client.h \
+	message_queue.c \
+	message_queue.h \
 	proxy_client_handler.c \
 	proxy_client_handler.h \
-	proxy_server.h \
 	version.h
 
 oml2_proxy_server_LDADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \
 	$(top_builddir)/lib/shared/libshared.la \
 	-lpopt
-

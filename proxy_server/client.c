@@ -1,8 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <log.h>
+#include <cbuf.h>
+#include <mbuf.h>
 
 #include "client.h"
+#include "message_queue.h"
 
 static int
 dummy_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
@@ -65,6 +68,10 @@ client_new (Socket* client_sock, int page_size, char* file_name,
   self->headers = NULL;
   self->msg_start = dummy_read_msg_start;
 
+  self->messages = msg_queue_create ();
+
+  self->cbuf = cbuf_create (-1);
+
   //TODO change it to integrate option of the command line
   self->recv_buffer = make_client_buffer (page_size, 0);
 
@@ -84,8 +91,8 @@ client_new (Socket* client_sock, int page_size, char* file_name,
 
   /* FIXME:  Return value checking */
   //  pthread_create(&self->thread, NULL, client_send_thread, (void*)self);
-  //  pthread_mutex_init (&self->mutex, NULL);
-  //  pthread_cond_init (&self->condvar, NULL);
+  pthread_mutex_init (&self->mutex, NULL);
+  pthread_cond_init (&self->condvar, NULL);
 
   return self;
 }
