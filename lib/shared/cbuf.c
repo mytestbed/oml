@@ -183,7 +183,7 @@ cbuf_cursor_page_remaining (struct cbuffer_cursor *cursor)
  * a
  */
 int
-cbuf_consume_cursor (CBuffer *cbuf, struct cbuffer_cursor *cursor, size_t n)
+cbuf_consume_cursor (struct cbuffer_cursor *cursor, size_t n)
 {
   int count = 0;
   do {
@@ -198,10 +198,11 @@ cbuf_consume_cursor (CBuffer *cbuf, struct cbuffer_cursor *cursor, size_t n)
       cursor->page->empty = 1;
       cursor->page->read = cursor->index;
       cursor->page = cursor->page->next;
+      cursor->index = 0;
     }
   } while (n > 0);
 
   cursor->page->read = cursor->index;
-  cbuf->read = cursor->page; /* Not sure about this */
+  //  cbuf->read = cursor->page; /* Not sure about this */
   return count;
 }

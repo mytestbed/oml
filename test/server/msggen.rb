@@ -82,7 +82,6 @@ class Stream
 
   def schema_string
     field_specs = @schema.each_pair.collect { |n, t| "#{n}:#{t}" }.join(" ")
-    @seqno += 1
     "schema: #{@name} #{@index} #{field_specs}"
   end
 
@@ -108,21 +107,21 @@ class Generator
 
   def gen
     val = case @type
-          when :long, :int32 then rand(1<<32) - (1<<31)
-          when :int64  then rand(1<<64) - (1<<63)
-          when :uint32 then rand(1<<32)
-          when :uint64 then rand(1<<64)
+          when :long, :int32 then rand(1 << 32) - (1 << 31)
+          when :int64  then rand(1 << 64) - (1 << 63)
+          when :uint32 then rand(1 << 32)
+          when :uint64 then rand(1 << 64)
           when :double then rand
           when :string then random_string(254)
           end
     case @type
     when :long, :int32 then
-      if val == (1<<32) then
-        val = (1<<32)-1
+      if val == (1 << 32) then
+        val = (1 << 32)-1
       end
     when :int64 then
-      if val == (1<<64) then
-        val = (1<<64)-1
+      if val == (1 << 64) then
+        val = (1 << 64)-1
       end
     end
     val
@@ -144,27 +143,49 @@ def run
 
   headers = c.headers("text")
   packets = []
-  10.times { packets << c.gen(1, "text") }
+  20.times { packets << c.gen(1, "text") }
 
   io = IO.popen("./msgloop", "w+")
 
-#  @test_data.each { |msg|
-#    io.puts msg
-#  }
-
   seqno = 0
-  headers.each { |h| io.write(make_packet(seqno, h + "\n")); seqno += 1 }
-  io.write(make_packet(seqno, "\n")) # Headers/content separator.
+  hstr = headers.join("\n") + "\n\n"
+  io.write(make_packet(seqno, hstr)); seqno += 1
   packets.each { |p| io.write(make_packet(seqno, p)); seqno += 1}
-#  packets.each { |pack| p make_packet(seqno, pack); seqno +=1  }
-
   puts "Wrote all test data to msgloop pipe"
 
+  header_map = {}
+  headers.each { |h|
+    a = h.split(':')
+    header_map[a[0]] = a[1..-1].join(':').strip
+  }
+
+  test_result = 0
   io.close_write
   puts "Reading from pipe"
-  io.readlines.each { |line| puts line }
-  puts "Closed pipe; exiting"
-  exit 0
+  io.readlines.each { |line|
+    res = "--"
+    if line[0] == ?H then
+      a = line.split('>')
+      if headers.include?("#{a[1]}: #{a[2].strip}") then
+        res =  "OK"
+      else
+        puts "E:#{header_map[a[1]]}"
+        puts "A:#{a[2]}"
+        res =  "FAIL"
+        test_result = 1
+      end
+    elsif line[0] == ?T then
+      a = line.split('>')
+      if packets.include?(a[1]) then
+        res =  "OK"
+      else
+        res =  "FAIL"
+        test_result = 1
+      end
+    end
+    puts "#{line.strip} ... #{res}"
+  }
+  exit test_result
 end
 
 if __FILE__ == $PROGRAM_NAME then run; end

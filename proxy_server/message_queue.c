@@ -3,18 +3,7 @@
 #include <message.h>
 #include <cbuf.h>
 #include <mem.h>
-
-struct msg_queue_node {
-  struct oml_message msg;
-  struct cbuffer_cursor cursor;
-  struct msg_queue_node *next;
-};
-
-struct msg_queue {
-  size_t length; /* Number of nodes */
-  struct msg_queue_node *tail;
-};
-
+#include "message_queue.h"
 
 struct msg_queue*
 msg_queue_create (void)

@@ -60,7 +60,12 @@ read_header (Client *self, MBuffer *mbuf)
   if (len == 0) {
     // Empty line denotes separator between header and body
     int skip_count = mbuf_find_not (mbuf, '\n');
-    mbuf_read_skip (mbuf, skip_count);
+    if (skip_count == -1) {
+      while (mbuf_find (mbuf, '\n') != -1)
+        mbuf_read_skip (mbuf, 1);
+    } else {
+      mbuf_read_skip (mbuf, skip_count);
+    }
     self->state = C_CONFIGURE;
     return 0;
   }
@@ -122,7 +127,8 @@ store_received_message (Client *client, struct oml_message *msg, char *buf, size
   cbuf_write_cursor (client->cbuf, &node->cursor);
   cbuf_write (client->cbuf, buf, length);
 
-  node->msg = msg;
+  node->msg = xmalloc (sizeof (struct oml_message));
+  *node->msg = *msg;
 
   pthread_mutex_unlock (&client->mutex);
 }
@@ -186,12 +192,14 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
       break;
     default:
       /* Default is set when client is created (client_new()) */
+      logerror ("Client content is not TEXT or BINARY\n");
       break;
     }
     mbuf_consume_message (mbuf); // Next message starts after the headers.
     client->state = C_DATA;
     break;
   case C_DATA:
+    logdebug ("Trying to find message start\n");
     result = client->msg_start (&msg, mbuf);
     if (result == -1) {
       logerror ("'%s': protocol error in received message\n", client_id);
@@ -209,10 +217,8 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
     char *s = xstrndup ((char*)mbuf_rdptr (mbuf), msg.length);
     if (client->content == CONTENT_BINARY) {
       logdebug ("%s\n", to_octets (s, msg.length));
-      printf ("%s\n", to_octets (s, msg.length));
     } else {
       logdebug ("'%s'\n", s);
-      printf ("'%s'\n", s);
     }
 
     store_received_message (client, &msg, (char*)mbuf_rdptr (mbuf), msg.length);

@@ -100,7 +100,6 @@ read_message (char **line, size_t *size, size_t *length_out, int *seqno_out)
   char *p = *line;
   do {
     result = read (0, p + count, length - count);
-    //    fprintf (stderr, "%s\n", p);
     if (result == -1) {
       fprintf (stderr, "Error reading message payload: %s\n", strerror (errno));
       return -1;
@@ -148,6 +147,7 @@ main (int argc, char **argv)
   client = client_new (NULL, 4096, "dummy.bin", 0, NULL);
 
   do {
+    int i;
     int seqno = 0;
     size_t msg_length = 0;
     result = read_message (&line, &length, &msg_length, &seqno);
@@ -158,8 +158,6 @@ main (int argc, char **argv)
     } else if (result == 0) {
       break;
     }
-
-    printf ("%04d:--->'%s'\n", seqno, line);
 
     switch (test) {
     case TT_PROXY:
@@ -172,6 +170,34 @@ main (int argc, char **argv)
 
     fprintf (stderr, "msgloop:  message %d processed\n", n);
   } while (result == 1);
+
+  fprintf (stderr, "Printing headers:\n");
+
+  struct header *header = client->headers;
+  while (header) {
+    printf ("H>%s>%s\n", tag_to_string (header->tag),
+            header->value);
+    header = header->next;
+  }
+
+  fprintf (stderr, "Messages:  %d\n", client->messages->length);
+  while (client->messages->length > 0) {
+    struct msg_queue_node *head = msg_queue_head (client->messages);
+    struct cbuffer_cursor *cursor = &head->cursor;
+    size_t length = head->msg->length;
+    printf ("T>");
+    while (length > 0) {
+      char *buf = cbuf_cursor_pointer (cursor);
+      size_t page_remaining = cbuf_cursor_page_remaining (cursor);
+      size_t to_write = length < page_remaining ? length : page_remaining;
+      fwrite (buf, 1, to_write, stdout);
+      cbuf_consume_cursor (cursor, to_write);
+      length -= to_write;
+    }
+    printf ("\n");
+    msg_queue_remove (client->messages);
+  }
+  fflush (stdout);
 
   fprintf (stderr, "msgloop:  Exiting\n");
 

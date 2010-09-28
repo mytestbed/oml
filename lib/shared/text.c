@@ -23,11 +23,11 @@
  *  pointer (mbuf_rdptr()) will be modified to point to the first
  *  character following the field.
  *
- *  @mbuf The buffer containing the next field value
- *  @value An OmlValue to store the parse value in. The type of this
+ *  @param mbuf The buffer containing the next field value
+ *  @param value An OmlValue to store the parse value in. The type of this
  *  value on input determines what type of value the function should
  *  attempt to read.
- *  @line_length length of the current line in the buffer, measured
+ *  @param line_length length of the current line in the buffer, measured
  *  from the buffer's current read pointer (mbuf_rdptr()).
  *
  *  @return -1 if an error occurred; otherwise, the length of the
@@ -63,6 +63,8 @@ text_read_value (MBuffer *mbuf, OmlValue *value, size_t line_length)
     return len;
   }
 }
+
+#include <stdio.h>
 
 int
 text_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
