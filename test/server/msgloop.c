@@ -128,7 +128,8 @@ main (int argc, char **argv)
   Client *client = NULL;
 
   setlinebuf (stdout);
-  //  o_set_log_file ("log.txt");
+  o_set_log_file ("log.txt");
+  o_set_log_level (O_LOG_DEBUG);
 
   if (argc > 1) {
     if (strcmp (argv[0], "--proxy") == 0) {
@@ -149,10 +150,8 @@ main (int argc, char **argv)
   do {
     int seqno = 0;
     size_t msg_length = 0;
-    fprintf (stderr, "msgloop:  Reading next message\n");
     result = read_message (&line, &length, &msg_length, &seqno);
     n++;
-    printf ("%d, %d bytes\n", seqno, msg_length);
     if (result == -1) {
       fprintf (stderr, "read_message() failed\n");
       exit (1);
@@ -162,14 +161,20 @@ main (int argc, char **argv)
 
     printf ("%04d:--->'%s'\n", seqno, line);
 
-    fprintf (stderr, "msgloop:  read message %d\n", n);
-    proxy_message_loop ("client", client, line, msg_length);
+    switch (test) {
+    case TT_PROXY:
+      proxy_message_loop ("client", client, line, msg_length);
+      break;
+    case TT_SERVER:
+    default:
+      break;
+    }
+
     fprintf (stderr, "msgloop:  message %d processed\n", n);
   } while (result == 1);
 
   fprintf (stderr, "msgloop:  Exiting\n");
 
-  sleep (3);
   fclose (stdout);
   return 0;
 }
