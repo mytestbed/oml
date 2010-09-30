@@ -31,6 +31,8 @@
 #include <ocomm/o_eventloop.h>
 
 #include "version.h"
+#include "session.h"
+#include "client.h"
 #include "proxy_server.h"
 #include "proxy_client_handler.h"
 #define DEF_PORT 3003
@@ -49,7 +51,7 @@ static int page_size = DEF_PAGE_SIZE;
 static int downstream_port = DEF_PORT;
 static char* downstream_address = DEFAULT_SERVER_ADDRESS;
 
-ProxyServer* proxyServer = NULL;
+Session* session = NULL;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
@@ -75,17 +77,20 @@ on_connect (Socket* client_sock, void* handle)
   (void)handle;  // This parameter is unused
   MString *mstr = mstring_create ();
 
-  mstring_sprintf (mstr,"%s.%d", resultfile_name, proxyServer->client_count);
-  logdebug("New client (index %d) connected\n", proxyServer->client_count);
-  proxyServer->client_count++;
+  mstring_sprintf (mstr,"%s.%d", resultfile_name, session->client_count);
+  logdebug("New client (index %d) connected\n", session->client_count);
+  session->client_count++;
 
   Client* client = client_new(client_sock, page_size, mstring_buf (mstr),
                               downstream_port, downstream_address);
 
   mstring_delete (mstr);
 
-  client->next = proxyServer->first_client;
-  proxyServer->first_client = client;
+  session_add_client (session, client);
+  client->session = session;
+
+  //  client->next = session->clients;
+  //  session->clients = client;
 
   client_socket_monitor (client_sock, client);
 }
@@ -144,7 +149,7 @@ prepare_stdin (void *handle)
 void
 stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
 {
-  ProxyServer *proxy = (ProxyServer*)handle;
+  Session *proxy = (Session*)handle;
   char command[80];
   strncpy (command, buf, 80);
 
@@ -153,7 +158,7 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
 
   printf ("Received command: %s\n", command);
 
-  enum ProxyState old_state = proxyServer->state;
+  enum ProxyState old_state = session->state;
   if ((strcmp (command, "OMLPROXY-RESUME") == 0) ||
       (strcmp (command, "RESUME") == 0)) {
     proxy->state = ProxyState_SENDING;
@@ -168,8 +173,8 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
 
   /* If we switched to sending state, wake up the client sender
      threads so that they will start sending to the downstream server */
-  if (old_state != ProxyState_SENDING && proxyServer->state == ProxyState_SENDING) {
-    Client *current = proxyServer->first_client;
+  if (old_state != ProxyState_SENDING && session->state == ProxyState_SENDING) {
+    Client *current = session->clients;
     while (current) {
       pthread_mutex_lock (&current->mutex);
       pthread_cond_signal (&current->condvar);
@@ -212,15 +217,15 @@ main(int argc, const char *argv[])
   prepare_stdin(NULL);
 
   eventloop_init();
-  proxyServer = (ProxyServer*) malloc(sizeof(ProxyServer));
-  memset(proxyServer, 0, sizeof(ProxyServer));
+  session = (Session*) malloc(sizeof(Session));
+  memset(session, 0, sizeof(Session));
 
-  proxyServer->state = ProxyState_PAUSED;
+  session->state = ProxyState_PAUSED;
 
   Socket* serverSock;
   serverSock = socket_server_new("proxy_server", listen_port, on_connect, NULL);
 
-  eventloop_on_stdin(stdin_handler, proxyServer);
+  eventloop_on_stdin(stdin_handler, session);
   eventloop_run();
 
   return(0);
