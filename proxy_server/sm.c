@@ -1,4 +1,5 @@
 
+#include <mem.h>
 #include <mbuf.h>
 #include <headers.h>
 #include <message.h>
@@ -125,13 +126,18 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
   switch (client->state) {
   case C_HEADER:
     /* Read headers until out of header data to read*/
-    while (read_header (client, mbuf));
+    while (read_header (client, mbuf) == 1);
     if (client->state != C_HEADER)
       goto loop;
     break;
   case C_CONFIGURE:
-    if (client->header_table[H_EXPERIMENT_ID] == H_NONE ||
-        client->header_table[H_CONTENT] == H_NONE) {
+    if (client->header_table[H_EXPERIMENT_ID] == NULL ||
+        client->header_table[H_CONTENT] == NULL ||
+        client->header_table[H_EXPERIMENT_ID]->tag == H_NONE ||
+        client->header_table[H_CONTENT]->tag == H_NONE) {
+      if (client->headers == NULL) {
+        logdebug ("Headers NULL!");
+      }
       client->state = C_PROTOCOL_ERROR;
     } else {
       client->experiment_id = client->header_table[H_EXPERIMENT_ID]->value;
@@ -139,8 +145,13 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
       if (client->content == CONTENT_NONE)
         client->state = C_PROTOCOL_ERROR;
     }
-    logdebug ("%s\n", client->experiment_id);
-    logdebug ("%d\n", client->content);
+    if (client->state != C_PROTOCOL_ERROR) {
+      logdebug ("%s\n", client->experiment_id);
+      logdebug ("%d\n", client->content);
+    } else {
+      logdebug ("Can't write out experiment id and content because of protocol error in input\n");
+      logdebug ("Input is: '%s'\n", buf);
+    }
     for (header = client->headers; header != NULL; header = header->next) {
       logdebug ("HEADER:  '%s' : '%s'\n",
                 tag_to_string(header->tag),
@@ -176,10 +187,13 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
               msg.stream, msg.seqno, msg.timestamp, msg.length);
     mbuf_reset_read (mbuf);
     char *s = xstrndup ((char*)mbuf_rdptr (mbuf), msg.length);
-    if (client->content == CONTENT_BINARY)
+    if (client->content == CONTENT_BINARY) {
       logdebug ("%s\n", to_octets (s, msg.length));
-    else
+      printf ("%s\n", to_octets (s, msg.length));
+    } else {
       logdebug ("'%s'\n", s);
+      printf ("'%s'\n", s);
+    }
 
     mbuf_read_skip (mbuf, msg.length + 1);
     mbuf_consume_message (mbuf);
