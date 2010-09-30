@@ -32,39 +32,70 @@
 #include <pthread.h>
 
 #include <ocomm/o_socket.h>
+#include <headers.h>
+#include <mbuf.h>
+#include <message.h>
 
 struct _clientBuffer;
 
 struct _client;
 
-typedef enum _cstate {
-  C_HEADER,       // processing header info
-  C_BINARY_DATA,  // data is of binary format
-  C_TEXT_DATA
-} CState;
-
 #define MAX_STRING_SIZE 64
 
 typedef struct _clientBuffer{
-    int pageNumber;
+    int page_number;
     unsigned char* current_pointer;
-    unsigned char* buffToSend;
+    unsigned char* buff_to_send;
     int max_length;
-    int currentSize;
-    int byteAlreadySent;
+    int current_size;
+    int bytes_already_sent;
     unsigned char* buff;
     struct _clientBuffer* next;
 } ClientBuffer;
+
+enum ContentType {
+  CONTENT_NONE,
+  CONTENT_BINARY,
+  CONTENT_TEXT
+};
+
+enum ClientState {
+  C_HEADER,
+  C_CONFIGURE,
+  C_DATA,
+  C_PROTOCOL_ERROR
+};
 
 typedef struct _client {
   //! Name used for debugging
   char        name[64];
   int         sender_id;
+  char*       experiment_id;
+
+  /*
+   * The following data members are manipulated without locking in the
+   * main thread; they should not be modified from the reader thread.
+   *
+   * state, content, mbuf, and msg_start should only be manipulated in
+   * the main thread.  headers and header_table can safely be read
+   * from the other threads without locking if state == C_DATA.
+   */
+  enum ClientState state;
+  enum ClientState content;
+  struct header *headers;
+  struct header *header_table[H_max];
+  MBuffer *mbuf;
+  msg_start_fn msg_start; // Pointer to function for reading message boundaries
+
   Socket*     recv_socket;
   Socket*     send_socket;
   int         recv_socket_closed;
   int         send_socket_closed;
 
+  /*
+   * All the data members below must be locked and signalled properly
+   * using the mutex and condvar
+   */
   int         bytes_sent;
   int         current_page;
   struct _clientBuffer* first_buffer;
