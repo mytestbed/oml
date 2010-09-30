@@ -77,8 +77,6 @@ int mbuf_repack (MBuffer* mbuf);
 int mbuf_repack_message (MBuffer* mbuf);
 int mbuf_clear (MBuffer* mbuf);
 
-char* to_octets (unsigned char* buf, int len);
-
 #endif // MBUF_H__
 
 /*

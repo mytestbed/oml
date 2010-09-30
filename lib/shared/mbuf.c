@@ -501,23 +501,6 @@ mbuf_repack_message (MBuffer* mbuf)
   return 0;
 }
 
-char*
-to_octets (unsigned char* buf, int len)
-{
-  const int octet_width = 5;
-  char* out = xmalloc (octet_width * len + 1);
-  int i = 0;
-  int count = 0;
-  for (i = 0; i < len; i++)
-    {
-      int n = snprintf (&out[count], octet_width + 1, "0x%02x ", (unsigned int)buf[i]);
-      count += n;
-    }
-
-  return out;
-}
-
-
 /*
  Local Variables:
  mode: C
