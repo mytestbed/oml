@@ -39,7 +39,6 @@
 
 #define MAX_STRING_SIZE 64
 
-ClientBuffer* make_client_buffer (int size, int number);
 Client* client_new(Socket* sock, int page_size, char *file,
                    int server_port, char *server_address);
 void client_socket_monitor(Socket* sock, Client* client);

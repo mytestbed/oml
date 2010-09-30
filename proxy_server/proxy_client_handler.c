@@ -111,12 +111,10 @@ status_callback(SockEvtSource *source, SocketStatus status, int error, void *han
     case SOCKET_CONN_CLOSED: {
       Client* self = (Client*)handle;
       pthread_mutex_lock (&self->mutex);
-      fwrite(self->recv_buffer->buff,sizeof(char), self->recv_buffer->current_size, self->file);
       fflush(self->file);
       fclose(self->file);
       self->file = NULL;
       /* signal the sender thread that this client closed the connection */
-      self->recv_buffer = NULL;
       pthread_cond_signal (&self->condvar);
       pthread_mutex_unlock (&self->mutex);
       self->recv_socket_closed = 1;

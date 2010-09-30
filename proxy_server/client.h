@@ -9,19 +9,8 @@
 #include <message.h>
 
 #include <ocomm/o_socket.h>
-
+#include <ocomm/o_eventloop.h>
 #include "message_queue.h"
-
-typedef struct _clientBuffer{
-    int page_number;
-    unsigned char* current_pointer;
-    unsigned char* buff_to_send;
-    int max_length;
-    int current_size;
-    int bytes_already_sent;
-    unsigned char* buff;
-    struct _clientBuffer* next;
-} ClientBuffer;
 
 enum ContentType {
   CONTENT_NONE,
@@ -36,7 +25,6 @@ enum ClientState {
   C_PROTOCOL_ERROR
 };
 
-struct _clientBuffer;
 struct _client;
 struct _session;
 
@@ -76,12 +64,6 @@ typedef struct _client {
    */
   CBuffer    *cbuf;
 
-  int         bytes_sent;
-  int         current_page;
-  struct _clientBuffer* first_buffer;
-  struct _clientBuffer* recv_buffer;
-  struct _clientBuffer* send_buffer;
-
   FILE *      file;
   int         fd_file;
   char*       file_name;
@@ -96,11 +78,6 @@ typedef struct _client {
 Client* client_new (Socket* client_sock, int page_size, char* file_name,
                     int server_port, char* server_address);
 void client_free (Client *client);
-
-void free_client_buffer (ClientBuffer *buffer);
-ClientBuffer* make_client_buffer (int size, int number);
-
-
 
 
 #endif /* CLIENT_H__ */
