@@ -45,6 +45,7 @@ struct header {
 };
 
 enum HeaderTag tag_from_string (const char *str, size_t n);
+const char * tag_to_string (enum HeaderTag tag);
 struct header *header_from_string (const char *str, size_t n);
 void header_free (struct header *header);
 

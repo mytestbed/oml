@@ -98,6 +98,16 @@ tag_from_string (const char *str, size_t n)
   return H_NONE;
 }
 
+const char *
+tag_to_string (enum HeaderTag tag)
+{
+  int i = 0;
+  for (i = 0; header_map[i].name != NULL; i++)
+    if (header_map[i].tag == tag)
+      return header_map[i].name;
+  return NULL;
+}
+
 /**
  *  @brief Parse a protocol header line into a struct header.
  *
