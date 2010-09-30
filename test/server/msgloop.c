@@ -144,7 +144,7 @@ main (int argc, char **argv)
     exit (1);
   }
 
-  client = client_new (NULL, 4096, "dummy.bin", 0, NULL);
+  client = client_new (NULL, 4096, "dummy.bin", 0, "dummy.com");
 
   do {
     int i;

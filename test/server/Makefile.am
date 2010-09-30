@@ -1,6 +1,7 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
 TESTS = msggen.rb
+EXTRA_DIST = msggen.rb
 check_PROGRAMS = msgloop
 
 msgloop_SOURCES = \
@@ -28,4 +29,6 @@ AM_CPPFLAGS = \
 	-DOML_TEST
 
 CLEANFILES = \
-	check_oml2.log
+	check_oml2.log \
+	dummy.bin \
+	log.txt
