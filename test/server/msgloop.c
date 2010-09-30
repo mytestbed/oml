@@ -5,6 +5,9 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include <proxy_client_handler.h>
+#include <ocomm/o_log.h>
+
 enum TestType {
   TT_SERVER,
   TT_PROXY
@@ -122,8 +125,10 @@ main (int argc, char **argv)
   char *line = NULL;
   int result = 0;
   int n = 0;
+  Client *client = NULL;
 
   setlinebuf (stdout);
+  //  o_set_log_file ("log.txt");
 
   if (argc > 1) {
     if (strcmp (argv[0], "--proxy") == 0) {
@@ -139,9 +144,12 @@ main (int argc, char **argv)
     exit (1);
   }
 
+  client = client_new (NULL, 4096, "dummy.bin", 0, NULL);
+
   do {
     int seqno = 0;
     size_t msg_length = 0;
+    fprintf (stderr, "msgloop:  Reading next message\n");
     result = read_message (&line, &length, &msg_length, &seqno);
     n++;
     printf ("%d, %d bytes\n", seqno, msg_length);
@@ -153,11 +161,15 @@ main (int argc, char **argv)
     }
 
     printf ("%04d:--->'%s'\n", seqno, line);
+
+    fprintf (stderr, "msgloop:  read message %d\n", n);
+    proxy_message_loop ("client", client, line, msg_length);
+    fprintf (stderr, "msgloop:  message %d processed\n", n);
   } while (result == 1);
 
-  printf ("Exiting\n");
-  fclose (stdin);
+  fprintf (stderr, "msgloop:  Exiting\n");
+
+  sleep (3);
   fclose (stdout);
-  fclose (stderr);
   return 0;
 }
