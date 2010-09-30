@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
-SUBDIRS = lib
+SUBDIRS = lib server
 
 AM_CPPFLAGS = \
 	-I  $(top_srcdir)/lib/client \
