@@ -41,6 +41,7 @@ text_read_value (MBuffer *mbuf, OmlValue *value, size_t line_length)
   int field_length = mbuf_find (mbuf, '\t');
   int len;
   int ret = 0;
+  uint8_t save;
 
   /* No tab '\t' found on this line --> final field */
   if (field_length == -1 || field_length > line_length)
@@ -48,9 +49,11 @@ text_read_value (MBuffer *mbuf, OmlValue *value, size_t line_length)
   else
     len = field_length;
 
+  save = line[len];
   line[len] = '\0';
 
   ret = oml_value_from_s (value, line);
+  line[len] = save;
 
   len++; // Skip the separator
   if (ret == -1) {

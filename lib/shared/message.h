@@ -3,6 +3,9 @@
 #define MESSAGE_H__
 
 #include <stdint.h>
+#include <schema.h>
+#include <oml2/omlc.h>
+#include <mbuf.h>
 
 enum MessageType {
   MSG_BINARY,
@@ -18,5 +21,9 @@ struct oml_message {
   int count;        // Expected/actual count of fields in the measurement
                     // (not including protocol metadata)
 };
+
+typedef int (*msg_start_fn) (struct oml_message *msg, MBuffer *mbuf);
+typedef int (*msg_values_fn) (struct oml_message *msg, MBuffer *mbuf,
+                              struct schema *schema, OmlValue *values);
 
 #endif /* MESSAGE_H__ */

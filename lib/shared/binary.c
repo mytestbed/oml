@@ -47,6 +47,10 @@ bin_find_sync (MBuffer *mbuf)
  * Read the start of the new message; detect which stream it belongs
  * to, what the length of the message is, the sequence number, and the
  * timestamp.  Fill in the msg struct with this information.
+ *
+ * Return value == 0 means "wait for more data"
+ * Return value == -1 means "error in protocol" or memory alloc error
+ * Return value > 0 means "following message length is the many bytes"
  */
 int
 bin_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
@@ -63,7 +67,7 @@ bin_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
   mbuf_begin_read (mbuf);
 
   if (mbuf_remaining (mbuf) < 3) {
-    return -1; // Not enough data to determine packet type
+    return 0; // Not enough data to determine packet type
   }
 
   mbuf_read_skip (mbuf, 2); // Skip the sync bytes
