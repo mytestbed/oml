@@ -28,6 +28,7 @@ libshared_la_SOURCES = \
 	schema.h \
 	headers.c \
 	headers.h \
+	message.h \
 	binary.c \
 	binary.h \
 	text.c \

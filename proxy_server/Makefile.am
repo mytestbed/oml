@@ -11,7 +11,6 @@ oml2_proxy_server_SOURCES = \
 	main.c \
 	sm.c \
 	sender.c \
-	sender.h \
 	session.c \
 	session.h \
 	client.c \
@@ -20,6 +19,7 @@ oml2_proxy_server_SOURCES = \
 	message_queue.h \
 	proxy_client_handler.c \
 	proxy_client_handler.h \
+	proxy_server.h \
 	version.h
 
 oml2_proxy_server_LDADD = \
