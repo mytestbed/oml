@@ -15,13 +15,19 @@ dummy_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
 }
 
 /**
- * \brief Create and initialise a +Client+ structure
- * \param client_sock the socket associated to the client transmition
- * \param page_size the size of the buffers
- * \param file_name the name of the file to save the measurements
- * \param server_port the destination port of the OML server
- * \param server_address the address of the OML Server
- * \return a new Client structure
+ * @brief Create and initialise a +Client+ structure to represent a single client.
+ *
+ * @param client_sock the socket associated to the client transmission
+ *        (from libocomm).  The client_sock should be attached to an active
+ *        client that has been accepted by the server socket.
+ *
+ * @param page_size the page size for the underlying memory store for
+ *        buffering received measurements.
+ * @param file_name save measurements to a file with this name.
+ * @param server_port the port of the downstream OML server
+ * @param server_address the address of the downstream OML Server
+ *
+ * @return a new Client structure
  */
 Client*
 client_new (Socket* client_sock, int page_size, char* file_name,
@@ -38,7 +44,7 @@ client_new (Socket* client_sock, int page_size, char* file_name,
   self->msg_start = dummy_read_msg_start;
 
   self->messages = msg_queue_create ();
-  self->cbuf = cbuf_create (-1);
+  self->cbuf = cbuf_create (page_size);
 
   self->file = fopen(file_name, "wa");
   self->file_name =  xstrndup (file_name, strlen (file_name));
@@ -64,6 +70,13 @@ client_free (Client *client)
   }
 
   xfree (client->file_name);
+  xfree (client->downstream_addr);
+
+  struct header *header = client->headers;
+
+  while (header) {
+    header_free (header);
+  }
 
   msg_queue_destroy (client->messages);
   cbuf_destroy (client->cbuf);

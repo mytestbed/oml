@@ -40,7 +40,7 @@
 #define DEF_PORT_STR "3003"
 #define DEFAULT_LOG_FILE "oml_proxy_server.log"
 #define DEFAULT_RESULT_FILE "oml_result_proxy.res"
-#define DEF_PAGE_SIZE 512
+#define DEF_PAGE_SIZE 1024
 #define DEFAULT_SERVER_ADDRESS "localhost"
 
 static int listen_port = DEF_PORT;
@@ -63,10 +63,10 @@ struct poptOption options[] = {
   { "debug-level", 'd',  POPT_ARG_INT,    &log_level,       0,   "Debug level - error:1 .. debug:4",     NULL},
   { "logfile",     '\0', POPT_ARG_STRING, &logfile_name,    0,   "File to log to",                       DEFAULT_LOG_FILE },
   { "version",     'v',  POPT_ARG_NONE,   NULL,             'v', "Print version information and exit",   NULL},
-  { "resultfile",  'r',  POPT_ARG_STRING, &resultfile_name, 0,   "File to put the result",               DEFAULT_RESULT_FILE},
-  { "size",        's',  POPT_ARG_INT,    &page_size,       0,   "Size of the bufferised data",          NULL},
+  { "resultfile",  'r',  POPT_ARG_STRING, &resultfile_name, 0,   "File name for storing received data",  DEFAULT_RESULT_FILE},
+  { "size",        's',  POPT_ARG_INT,    &page_size,       0,   "Page size for buffering measurements", NULL},
   { "dstport",     'p',  POPT_ARG_INT,    &downstream_port, 0,   "Downstream OML server port",       NULL},
-  { "dstaddress",  'a',  POPT_ARG_STRING, &downstream_address,  0,   "Downstream OML server address",            DEFAULT_SERVER_ADDRESS },
+  { "dstaddress",  'a',  POPT_ARG_STRING, &downstream_address,  0,   "Downstream OML server address",    DEFAULT_SERVER_ADDRESS },
   { NULL,          0,    0,               NULL,             0,   NULL,                                   NULL }
 };
 

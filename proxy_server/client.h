@@ -69,7 +69,7 @@ typedef struct _client {
   int         fd_file;
   char*       file_name;
 
-  pthread_t       thread;
+  pthread_t       thread; // The sender thread, see sender.c
   pthread_mutex_t mutex;
   pthread_cond_t  condvar;
 
