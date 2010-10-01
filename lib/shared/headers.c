@@ -196,3 +196,11 @@ header_free (struct header *header)
     xfree (header);
   }
 }
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 4
+ indent-tabs-mode: nil
+ End:
+*/

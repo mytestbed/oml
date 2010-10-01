@@ -58,7 +58,7 @@ typedef struct _sockEvtSource {
  *  from the eventloop. This reports data read from socket.
  */
 typedef void (*o_el_read_socket_callback)(SockEvtSource* source, void* handle,
-				     void* buffer, int buf_size);
+                     void* buffer, int buf_size);
 
 
 /*! Defines the signature of a socket related callback function
@@ -79,9 +79,9 @@ typedef enum _SockStatus {
  *  from the eventloop. This informs us of any state changes.
  */
 typedef void (*o_el_state_socket_callback)(SockEvtSource* source,
-					   SocketStatus status,
-					   int errno,
-					   void* handle);
+                       SocketStatus status,
+                       int error,
+                       void* handle);
 
 
 

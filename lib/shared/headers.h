@@ -50,3 +50,11 @@ struct header *header_from_string (const char *str, size_t n);
 void header_free (struct header *header);
 
 #endif /* HEADERS_H__ */
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 4
+ indent-tabs-mode: nil
+ End:
+*/
