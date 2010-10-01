@@ -21,8 +21,10 @@
  *
  */
 #include <config.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <signal.h>
 #include <popt.h>
 
@@ -34,7 +36,6 @@
 #include "version.h"
 #include "session.h"
 #include "client.h"
-#include "proxy_client_handler.h"
 
 #define DEF_PORT 3003
 #define DEF_PORT_STR "3003"
@@ -70,6 +71,73 @@ struct poptOption options[] = {
   { NULL,          0,    0,               NULL,             0,   NULL,                                   NULL }
 };
 
+
+/**
+ * \brief function called when the socket receive some data
+ * \param source the socket event
+ * \param handle the cleint handler
+ * \param buf data received from the socket
+ * \param bufsize the size of the data set from the socket
+ */
+void
+client_callback(SockEvtSource *source, void *handle, void *buf, int buf_size)
+{
+  (void)source;
+  Client* self = (Client*)handle;
+
+  //  logdebug ("'%s': received %d octets of data\n", source->name, buf_size);
+  //  logdebug ("'%s': %s\n", source->name, to_octets (buf, buf_size));
+
+  proxy_message_loop (source->name, self, buf, buf_size);
+
+  mbuf_repack_message (self->mbuf);
+
+  if (self->state == C_PROTOCOL_ERROR) {
+    socket_close (self->recv_socket);
+    logerror("'%s': protocol error, proxy server will disconnect upstream client\n", source->name);
+    eventloop_socket_remove (self->recv_event);  // Note:  this free()'s source!
+    self->recv_event = NULL;
+  }
+
+  fwrite (buf, sizeof (char), buf_size, self->file);
+
+  pthread_mutex_lock (&self->mutex);
+  pthread_cond_signal (&self->condvar);
+  pthread_mutex_unlock (&self->mutex);
+}
+
+/**
+ * \brief Call back function when the status of the socket change
+ * \param source the socket event
+ * \param status the status of the socket
+ * \param error the value of the error if there is
+ * \param handle the Client handler structure
+ */
+void
+status_callback(SockEvtSource *source, SocketStatus status, int error, void *handle)
+{
+  (void)error;
+  switch (status) {
+    case SOCKET_CONN_CLOSED: {
+      Client* self = (Client*)handle;
+      if (self->recv_event != NULL) {
+        socket_close (source->socket);
+        logdebug("socket '%s' closed\n", source->name);
+        eventloop_socket_remove (source); // Note:  this free()'s source!
+      }
+
+      /* Signal the sender thread for this client that the client disconnected */
+      pthread_mutex_lock (&self->mutex);
+      self->state = C_DISCONNECTED;
+      pthread_cond_signal (&self->condvar);
+      pthread_mutex_unlock (&self->mutex);
+      break;
+    default:
+      break;
+    }
+  }
+}
+
 /**
  * \brief Called when a node connects via TCP
  * \param
@@ -93,7 +161,8 @@ on_connect (Socket* client_sock, void* handle)
   session_add_client (session, client);
   client->session = session;
 
-  client_socket_monitor (client_sock, client);
+  client->recv_event = eventloop_on_read_in_channel(client_sock, client_callback,
+                                                    status_callback, (void*)client);
 
   pthread_create (&client->thread, NULL, client_send_thread, (void*)client);
 }

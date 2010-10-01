@@ -7,8 +7,9 @@
 #include <message.h>
 #include <text.h>
 #include <binary.h>
-#include "proxy_client_handler.h"
+
 #include "message_queue.h"
+#include "client.h"
 
 
 /**

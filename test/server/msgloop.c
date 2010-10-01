@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include <proxy_client_handler.h>
+#include <client.h>
 #include <ocomm/o_log.h>
 
 enum TestType {
