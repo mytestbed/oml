@@ -78,7 +78,7 @@ text_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
   if (len == -1)
     return 0; // Haven't got a full line
 
-  msg->length = (uint32_t)len;
+  msg->length = (uint32_t)len + 1;
 
   /* Read the timestamp first */
   value.type = OML_DOUBLE_VALUE;

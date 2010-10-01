@@ -194,7 +194,6 @@ main (int argc, char **argv)
       cbuf_consume_cursor (cursor, to_write);
       length -= to_write;
     }
-    printf ("\n");
     msg_queue_remove (client->messages);
   }
   fflush (stdout);

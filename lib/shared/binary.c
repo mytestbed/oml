@@ -107,7 +107,7 @@ bin_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
 
   msg->type = MSG_BINARY;
   msg->stream = stream;
-  msg->length = length;
+  msg->length = length + header_length;
   msg->count = count;
 
   OmlValue value;

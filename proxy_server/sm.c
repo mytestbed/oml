@@ -1,4 +1,6 @@
+#include <string.h>
 
+#include <log.h>
 #include <mem.h>
 #include <mbuf.h>
 #include <headers.h>
@@ -140,6 +142,7 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
   struct header *header;
   struct oml_message msg;
   int result;
+  size_t message_length;
 
   result = mbuf_write (mbuf, buf, size);
   if (result == -1) {
@@ -199,7 +202,6 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
     client->state = C_DATA;
     break;
   case C_DATA:
-    logdebug ("Trying to find message start\n");
     result = client->msg_start (&msg, mbuf);
     if (result == -1) {
       logerror ("'%s': protocol error in received message\n", client_id);
@@ -210,28 +212,23 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
       logdebug ("'%s': need more data\n", client_id);
       mbuf_reset_read (mbuf);
       return;
+    } else {
+      logdebug ("'%s': received message of length %d\n", client_id, result);
+      message_length = result;
     }
     logdebug ("Received [strm=%d seqno=%d ts=%f %d bytes]\n",
               msg.stream, msg.seqno, msg.timestamp, msg.length);
-    mbuf_reset_read (mbuf);
-    char *s = xstrndup ((char*)mbuf_rdptr (mbuf), msg.length);
-    if (client->content == CONTENT_BINARY) {
-      logdebug ("%s\n", to_octets (s, msg.length));
-    } else {
-      logdebug ("'%s'\n", s);
-    }
 
-    store_received_message (client, &msg, (char*)mbuf_rdptr (mbuf), msg.length);
-    mbuf_read_skip (mbuf, msg.length + 1);
+    mbuf_reset_read (mbuf);
+    store_received_message (client, &msg, (char*)mbuf_rdptr (mbuf), message_length);
+    mbuf_read_skip (mbuf, message_length);
     mbuf_consume_message (mbuf);
     break;
   case C_PROTOCOL_ERROR:
     logdebug ("'%s': protocol error!\n");
-    fprintf (stderr, "Protocol error!\n");
     break;
   default:
     logerror ("'%s': unknown client state '%d'\n", client_id, client->state);
-    fprintf (stderr, "Unknown client state '%d'\n");
     mbuf_clear (mbuf);
     return;
   }
