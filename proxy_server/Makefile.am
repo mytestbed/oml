@@ -9,7 +9,7 @@ bin_PROGRAMS = oml2-proxy-server
 
 oml2_proxy_server_SOURCES = \
 	main.c \
-	sm.c \
+	receiver.c \
 	sender.c \
 	session.c \
 	session.h \

@@ -6,7 +6,7 @@ check_PROGRAMS = msgloop
 
 msgloop_SOURCES = \
 	msgloop.c \
-	$(top_srcdir)/proxy_server/sm.c \
+	$(top_srcdir)/proxy_server/receiver.c \
 	$(top_srcdir)/proxy_server/client.c \
 	$(top_srcdir)/proxy_server/client.h \
 	$(top_srcdir)/proxy_server/message_queue.c \
