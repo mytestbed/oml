@@ -109,7 +109,7 @@ cbuf_write (CBuffer *cbuf, char *buf, size_t size)
     page->fill += to_write;
     count += to_write;
 
-    if (size > remain) {
+    if (size > to_write) {
       if (page->next->empty) {
         cbuf->tail = page->next;
       } else {
