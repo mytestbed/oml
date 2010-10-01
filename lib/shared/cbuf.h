@@ -22,22 +22,15 @@ struct cbuffer_cursor {
 };
 
 CBuffer *cbuf_create(int default_size);
+void cbuf_destroy (CBuffer *cbuf);
 int cbuf_add_page (CBuffer *cbuf, int size);
 int cbuf_write (CBuffer *cbuf, char *buf, size_t size);
 struct cbuffer_cursor *cbuf_cursor (CBuffer *cbuf);
-
-void
-cbuf_write_cursor (CBuffer *cbuf, struct cbuffer_cursor *cursor);
-
-int
-cbuf_read_cursor (CBuffer *cbuf, struct cbuffer_cursor *cursor, size_t n);
-
-char*
-cbuf_cursor_pointer (struct cbuffer_cursor *cursor);
-
+void cbuf_write_cursor (CBuffer *cbuf, struct cbuffer_cursor *cursor);
+int cbuf_read_cursor (CBuffer *cbuf, struct cbuffer_cursor *cursor, size_t n);
+char* cbuf_cursor_pointer (struct cbuffer_cursor *cursor);
 size_t cbuf_cursor_page_remaining (struct cbuffer_cursor *cursor);
-
+int cbuf_advance_cursor (struct cbuffer_cursor *cursor, size_t n);
 int cbuf_consume_cursor (struct cbuffer_cursor *cursor, size_t n);
-
 
 #endif /* CBUF_H__ */

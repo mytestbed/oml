@@ -49,6 +49,28 @@ cbuf_create(int default_size)
   return cbuf;
 }
 
+void
+cbuf_destroy (CBuffer *cbuf)
+{
+  if (cbuf == NULL)
+    return;
+
+  if (cbuf->tail != NULL) {
+    struct cbuffer_page *head, *current, *next;
+    current = cbuf->tail;
+    head = cbuf->tail->next;
+
+    do {
+      if (current->buf)
+        xfree (current->buf);
+      next = current->next;
+      xfree (current);
+      current = next;
+    } while (current != NULL && current != head);
+  }
+  xfree (cbuf);
+}
+
 int
 cbuf_add_page (CBuffer *cbuf, int size)
 {
@@ -113,8 +135,9 @@ cbuf_write (CBuffer *cbuf, char *buf, size_t size)
       if (page->next->empty) {
         cbuf->tail = page->next;
       } else {
-        if (cbuf_add_page (cbuf, -1) == -1)
+        if (cbuf_add_page (cbuf, -1) == -1) {
           break;
+        }
       }
     }
     size -= to_write;
@@ -179,6 +202,32 @@ cbuf_cursor_page_remaining (struct cbuffer_cursor *cursor)
   return cursor->page->fill - cursor->index;
 }
 
+
+/*
+ * Advance the cursor, but don't mark the page as empty if we go past the end.
+ */
+int
+cbuf_advance_cursor (struct cbuffer_cursor *cursor, size_t n)
+{
+  int count = 0;
+  do {
+    size_t page_remaining = cbuf_cursor_page_remaining (cursor);
+    size_t to_consume = n < page_remaining ? n : page_remaining;
+    count += to_consume;
+    cursor->index += to_consume;
+    n -= to_consume;
+
+    /* If we've read to the end of this page, skip to the next page */
+    if (cursor->index == cursor->page->fill) {
+      /* Advance to the next page */
+      cursor->page = cursor->page->next;
+      cursor->index = 0;
+    }
+  } while (n > 0);
+
+  return count;
+}
+
 /**
  * a
  */
@@ -195,8 +244,12 @@ cbuf_consume_cursor (struct cbuffer_cursor *cursor, size_t n)
 
     /* If we've read to the end of this page, skip to the next page */
     if (cursor->index == cursor->page->fill) {
+      /* Reset the current page to empty */
       cursor->page->empty = 1;
-      cursor->page->read = cursor->index;
+      cursor->page->read = 0;
+      cursor->page->fill = 0;
+
+      /* Advance to the next page */
       cursor->page = cursor->page->next;
       cursor->index = 0;
     }
