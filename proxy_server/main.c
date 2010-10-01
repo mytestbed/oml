@@ -23,6 +23,7 @@
 #include <config.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include <popt.h>
 
 #include <log.h>
@@ -50,8 +51,11 @@ static char resultfile_name[128] = DEFAULT_RESULT_FILE;
 static int page_size = DEF_PAGE_SIZE;
 static int downstream_port = DEF_PORT;
 static char* downstream_address = DEFAULT_SERVER_ADDRESS;
+int sigpipe_flag = 0; // Set to 'true' by signal handler.
 
 Session* session = NULL;
+extern void *client_send_thread (void* handle);
+
 
 struct poptOption options[] = {
   POPT_AUTOHELP
@@ -90,6 +94,8 @@ on_connect (Socket* client_sock, void* handle)
   client->session = session;
 
   client_socket_monitor (client_sock, client);
+
+  pthread_create (&client->thread, NULL, client_send_thread, (void*)client);
 }
 
 /*
@@ -155,7 +161,6 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
 
   printf ("Received command: %s\n", command);
 
-  enum ProxyState old_state = session->state;
   if ((strcmp (command, "OMLPROXY-RESUME") == 0) ||
       (strcmp (command, "RESUME") == 0)) {
     proxy->state = ProxyState_SENDING;
@@ -167,10 +172,14 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
     proxy->state = ProxyState_PAUSED;
   }
 
-
-  /* If we switched to sending state, wake up the client sender
-     threads so that they will start sending to the downstream server */
-  if (old_state != ProxyState_SENDING && session->state == ProxyState_SENDING) {
+  /*
+   * If we're in sending state, wake up the client sender threads
+   * so that they will start sending to the downstream server.  We do
+   * this even if the state was already ProxyState_SENDING because
+   * some of the clients might have dropped back to idle due to
+   * disconnection from the upstream server.
+   */
+  if (session->state == ProxyState_SENDING) {
     Client *current = session->clients;
     while (current) {
       pthread_mutex_lock (&current->mutex);
@@ -179,6 +188,13 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
       current = current->next;
     }
   }
+}
+
+void
+sigpipe_handler(int signum)
+{
+  if (signum == SIGPIPE)
+    sigpipe_flag = 1;
 }
 
 int
@@ -210,6 +226,14 @@ main(int argc, const char *argv[])
 
   loginfo (V_STRING, VERSION);
   loginfo (COPYRIGHT);
+
+  struct sigaction new_action, old_action;
+  new_action.sa_handler = sigpipe_handler;
+  sigemptyset (&new_action.sa_mask);
+  new_action.sa_flags = 0;
+  sigaction (SIGPIPE, NULL, &old_action);
+  if (old_action.sa_handler != SIG_IGN)
+    sigaction (SIGPIPE, &new_action, NULL);
 
   prepare_stdin(NULL);
 

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <log.h>
+#include <mem.h>
 #include <cbuf.h>
 #include <mbuf.h>
 
@@ -26,20 +27,21 @@ Client*
 client_new (Socket* client_sock, int page_size, char* file_name,
            int server_port, char* server_address)
 {
-  Client* self = (Client *)malloc(sizeof(Client));
+  Client* self = (Client *)xmalloc(sizeof(Client));
   memset(self, 0, sizeof(Client));
 
   self->state = C_HEADER;
+  self->downstream_port = server_port;
+  self->downstream_addr = xstrndup (server_address, strlen (server_address));
   self->mbuf = mbuf_create ();
   self->headers = NULL;
   self->msg_start = dummy_read_msg_start;
 
   self->messages = msg_queue_create ();
-
   self->cbuf = cbuf_create (-1);
 
   self->file = fopen(file_name, "wa");
-  self->file_name =  strdup (file_name);
+  self->file_name =  xstrndup (file_name, strlen (file_name));
 
   self->recv_socket = client_sock;
 
@@ -61,13 +63,15 @@ client_free (Client *client)
     client->file = NULL;
   }
 
-  free (client->file_name);
+  xfree (client->file_name);
+
+  msg_queue_destroy (client->messages);
+  cbuf_destroy (client->cbuf);
 
   pthread_cond_destroy (&client->condvar);
   pthread_mutex_destroy (&client->mutex);
 
-  socket_free (client->send_socket);
   socket_free (client->recv_socket);
 
-  free (client);
+  xfree (client);
 }

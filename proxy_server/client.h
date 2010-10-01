@@ -22,7 +22,8 @@ enum ClientState {
   C_HEADER,
   C_CONFIGURE,
   C_DATA,
-  C_PROTOCOL_ERROR
+  C_PROTOCOL_ERROR,
+  C_DISCONNECTED
 };
 
 struct _client;
@@ -33,11 +34,13 @@ typedef struct _client {
   char        name[64];
   int         sender_id;
   char*       experiment_id;
+  char*       downstream_addr;
+  int         downstream_port;
   struct _session *session;
 
   /*
    * The following data members are manipulated without locking in the
-   * main thread; they should not be modified from the reader thread.
+   * main thread; they should not be modified from the sender thread.
    *
    * state, content, mbuf, and msg_start should only be manipulated in
    * the main thread.  headers and header_table can safely be read
@@ -49,19 +52,17 @@ typedef struct _client {
   struct header *header_table[H_max];
   MBuffer *mbuf;
   msg_start_fn msg_start; // Pointer to function for reading message boundaries
-  struct msg_queue *messages;
 
+  SockEvtSource *recv_event;
   Socket*     recv_socket;
-  Socket*     send_socket;
-  int         recv_socket_closed;
-  int         send_socket_closed;
-
-  int    locking; // True if the client is using locking; mainly for testing (set locking = 0);
+  int         send_socket;
+  int         sender_connected;
 
   /*
    * All the data members below must be locked and signalled properly
    * using the mutex and condvar
    */
+  struct msg_queue *messages;
   CBuffer    *cbuf;
 
   FILE *      file;

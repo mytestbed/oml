@@ -39,11 +39,8 @@
 
 #define MAX_STRING_SIZE 64
 
-Client* client_new(Socket* sock, int page_size, char *file,
-                   int server_port, char *server_address);
 void client_socket_monitor(Socket* sock, Client* client);
 void proxy_message_loop (const char *client_id, Client *client, void *buf, size_t size);
-void *client_send_thread (void* handle);
 
 #endif /*CLIENT_HANDLER_H_*/
 

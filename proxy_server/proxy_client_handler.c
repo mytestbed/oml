@@ -26,6 +26,7 @@
 
 #include <log.h>
 #include <mem.h>
+#include <mbuf.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
 
@@ -50,7 +51,8 @@ status_callback(SockEvtSource* source, SocketStatus status, int err_no,
 void
 client_socket_monitor (Socket* client_sock, Client* client)
 {
-  eventloop_on_read_in_channel(client_sock, client_callback, status_callback, (void*)client);
+  client->recv_event = eventloop_on_read_in_channel(client_sock, client_callback,
+                                                    status_callback, (void*)client);
 }
 
 /**
@@ -66,34 +68,25 @@ client_callback(SockEvtSource *source, void *handle, void *buf, int buf_size)
   (void)source;
   Client* self = (Client*)handle;
 
-  logdebug ("'%s': received %d octets of data\n", source->name, buf_size);
-  logdebug ("'%s': %s\n", source->name, to_octets (buf, buf_size));
+  //  logdebug ("'%s': received %d octets of data\n", source->name, buf_size);
+  //  logdebug ("'%s': %s\n", source->name, to_octets (buf, buf_size));
 
   proxy_message_loop (source->name, self, buf, buf_size);
 
-#if 0
-  pthread_mutex_lock (&self->mutex);
+  mbuf_repack_message (self->mbuf);
 
-  int available = self->recv_buffer->max_length - self->recv_buffer->current_size ;
-
-  if (self->file != NULL) {
-    if (available < buf_size) {
-        fwrite(self->recv_buffer->buff,sizeof(char), self->recv_buffer->current_size, self->file);
-        self->current_page += 1;
-        self->recv_buffer->next = make_client_buffer(self->recv_buffer->max_length,
-                                                     self->current_page);
-        self->recv_buffer = self->recv_buffer->next;
-    }
-    memcpy(self->recv_buffer->current_pointer,  buf, buf_size);
-    self->recv_buffer->current_pointer += buf_size;
-    self->recv_buffer->current_size += buf_size;
+  if (self->state == C_PROTOCOL_ERROR) {
+    socket_close (self->recv_socket);
+    logerror("'%s': protocol error, proxy server will disconnect upstream client\n", source->name);
+    eventloop_socket_remove (self->recv_event);  // Note:  this free()'s source!
+    self->recv_event = NULL;
   }
 
-  if (proxyServer->state == ProxyState_SENDING)
-    pthread_cond_signal (&self->condvar);
+  fwrite (buf, sizeof (char), buf_size, self->file);
 
+  pthread_mutex_lock (&self->mutex);
+  pthread_cond_signal (&self->condvar);
   pthread_mutex_unlock (&self->mutex);
-#endif
 }
 
 /**
@@ -110,17 +103,17 @@ status_callback(SockEvtSource *source, SocketStatus status, int error, void *han
   switch (status) {
     case SOCKET_CONN_CLOSED: {
       Client* self = (Client*)handle;
+      if (self->recv_event != NULL) {
+        socket_close (source->socket);
+        logdebug("socket '%s' closed\n", source->name);
+        eventloop_socket_remove (source); // Note:  this free()'s source!
+      }
+
+      /* Signal the sender thread for this client that the client disconnected */
       pthread_mutex_lock (&self->mutex);
-      fflush(self->file);
-      fclose(self->file);
-      self->file = NULL;
-      /* signal the sender thread that this client closed the connection */
+      self->state = C_DISCONNECTED;
       pthread_cond_signal (&self->condvar);
       pthread_mutex_unlock (&self->mutex);
-      self->recv_socket_closed = 1;
-      socket_close (source->socket);
-      logdebug("socket '%s' closed\n", source->name);
-      eventloop_socket_remove (source); // Note:  this free()'s source!
       break;
     default:
       break;

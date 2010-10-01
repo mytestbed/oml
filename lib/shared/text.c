@@ -64,8 +64,6 @@ text_read_value (MBuffer *mbuf, OmlValue *value, size_t line_length)
   }
 }
 
-#include <stdio.h>
-
 int
 text_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
 {
