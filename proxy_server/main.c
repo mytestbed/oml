@@ -34,8 +34,8 @@
 #include "version.h"
 #include "session.h"
 #include "client.h"
-#include "proxy_server.h"
 #include "proxy_client_handler.h"
+
 #define DEF_PORT 3003
 #define DEF_PORT_STR "3003"
 #define DEFAULT_LOG_FILE "oml_proxy_server.log"
