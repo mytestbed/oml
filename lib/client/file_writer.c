@@ -159,6 +159,17 @@ out(OmlWriter* writer, OmlValue* values, int value_count)
     case OML_UINT64_VALUE: fprintf(f, "\t%" PRIu64,  v->value.uint64Value); break;
     case OML_DOUBLE_VALUE: fprintf(f, "\t%f",  v->value.doubleValue); break;
     case OML_STRING_VALUE: fprintf(f, "\t%s",  v->value.stringValue.ptr); break;
+    case OML_BLOB_VALUE: {
+      const int max_bytes = 6;
+      int bytes = v->value.blobValue.fill < max_bytes ? v->value.blobValue.fill : max_bytes;
+      int i = 0;
+      fprintf (f, "blob ");
+      for (i = 0; i < bytes; i++) {
+        fprintf(f, "%02x", ((uint8_t*)v->value.blobValue.data)[i]);
+      }
+      fprintf (f, " ...");
+      break;
+    }
     default:
       logerror ("Unsupported value type '%d'\n", v->type);
       return 0;

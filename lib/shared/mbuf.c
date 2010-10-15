@@ -210,9 +210,11 @@ mbuf_resize (MBuffer* mbuf, size_t new_length)
 int
 mbuf_check_resize (MBuffer* mbuf, size_t bytes)
 {
-  if (mbuf->wr_remaining < bytes)
-    return mbuf_resize (mbuf, 2 * mbuf->length);
-  else
+  if (mbuf->wr_remaining < bytes) {
+    size_t newlen = 2 * mbuf->length;
+    newlen = (newlen < bytes) ? bytes + mbuf->length: newlen;
+    return mbuf_resize (mbuf, newlen);
+  } else
     return 0;
 }
 

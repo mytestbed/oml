@@ -49,7 +49,7 @@ static void
 client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 
 static void
-status_callback(SockEvtSource* source, SocketStatus status, int errno, void* handle);
+status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle);
 
 /*
  *  Allocate data structures for the client's tables.
@@ -657,10 +657,10 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
  * \param handle the Client handler structure
  */
 void
-status_callback(SockEvtSource* source, SocketStatus status, int errno, void* handle)
+status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle)
 {
   logdebug("'%s': Socket status changed to %s(%d); error code is %d\n",
-           source->name, socket_status_string (status), status, errno);
+           source->name, socket_status_string (status), status, errcode);
   switch (status)
     {
     case SOCKET_WRITEABLE:

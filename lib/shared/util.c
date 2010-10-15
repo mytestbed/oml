@@ -66,7 +66,8 @@ OmlValueT sql_to_oml_type (const char *s)
       { OML_INT64_VALUE,  "BIGINT"  },
       { OML_UINT64_VALUE, "BLOB" }, // FIXME:This is a temporary hack for SQLite3
       { OML_DOUBLE_VALUE, "REAL" },
-      { OML_STRING_VALUE, "TEXT" }
+      { OML_STRING_VALUE, "TEXT" },
+      { OML_BLOB_VALUE,   "BLOB" }
     };
   int i = 0;
   int n = sizeof (type_list) / sizeof (type_list[0]);
@@ -91,6 +92,7 @@ oml_to_sql_type (OmlValueT type)
   case OML_LONG_VALUE:    return "INTEGER"; break;
   case OML_DOUBLE_VALUE:  return "REAL"; break;
   case OML_STRING_VALUE:  return "TEXT"; break;
+  case OML_BLOB_VALUE:    return "BLOB"; break;
   case OML_INT32_VALUE:   return "INTEGER"; break;
   case OML_UINT32_VALUE:  return "UNSIGNED INTEGER"; break;
   case OML_INT64_VALUE:   return "BIGINT"; break;

@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <oml2/omlc.h>
 
 #include "marshal.h"
 #include "mbuf.h"
@@ -51,6 +52,7 @@
 #define UINT32_T 0x6
 #define INT64_T  0x7
 #define UINT64_T 0x8
+#define BLOB_T   0x9
 
 #define SYNC_BYTE 0xAA
 
@@ -64,6 +66,7 @@
 #define UINT32_T_SIZE     4
 #define INT64_T_SIZE      8
 #define UINT64_T_SIZE     8
+#define BLOB_T_MAX_SIZE   UINT32_MAX
 
 #define MAX_STRING_LENGTH STRING_T_MAX_SIZE
 
@@ -83,7 +86,8 @@ static const int oml_type_map [] =
     INT32_T,
     UINT32_T,
     INT64_T,
-    UINT64_T
+    UINT64_T,
+    BLOB_T
   };
 
 /*
@@ -91,7 +95,7 @@ static const int oml_type_map [] =
  *
  * NOTE: This array must be ordered identically to the values of the protocol types.
  */
-static const int protocol_type_map [] =
+static const size_t protocol_type_map [] =
   {
     OML_UNKNOWN_VALUE,
     OML_LONG_VALUE,
@@ -101,7 +105,8 @@ static const int protocol_type_map [] =
     OML_INT32_VALUE,
     OML_UINT32_VALUE,
     OML_INT64_VALUE,
-    OML_UINT64_VALUE
+    OML_UINT64_VALUE,
+    OML_BLOB_VALUE
   };
 
 /*
@@ -109,7 +114,7 @@ static const int protocol_type_map [] =
  *
  * NOTE:  This array must be ordered identically to the values of the protocol types.
  */
-static const int protocol_size_map [] =
+static const size_t protocol_size_map [] =
   {
     -1,
     LONG_T_SIZE,
@@ -119,7 +124,8 @@ static const int protocol_size_map [] =
     INT32_T_SIZE,
     UINT32_T_SIZE,
     INT64_T_SIZE,
-    UINT64_T_SIZE
+    UINT64_T_SIZE,
+    BLOB_T_MAX_SIZE
   };
 
 /*
@@ -127,7 +133,7 @@ static const int protocol_size_map [] =
  *
  * NOTE:  This array must be ordered identically to the OmlValueT enum.
  */
-static const int oml_size_map [] =
+static const size_t oml_size_map [] =
   {
     DOUBLE_T_SIZE,
     LONG_T_SIZE,
@@ -136,7 +142,8 @@ static const int oml_size_map [] =
     INT32_T_SIZE,
     UINT32_T_SIZE,
     INT64_T_SIZE,
-    UINT64_T_SIZE
+    UINT64_T_SIZE,
+    BLOB_T_MAX_SIZE
   };
 
 unsigned char*
@@ -358,6 +365,36 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
        mbuf_reset_write (mbuf);
        return 0;
      }
+   break;
+ }
+ case OML_BLOB_VALUE: {
+   int result = 0;
+   void *blob = val->blobValue.data;
+   size_t length = val->blobValue.fill;
+   if (blob == NULL || length == 0) {
+     logwarn ("Attempting to send NULL or empty blob; blob of length 0 will be sent\n");
+     length = 0;
+   }
+
+   uint8_t buf[5] = { BLOB_T, 0, 0, 0, 0 };
+   size_t n_length = htonl (length);
+   memcpy (&buf[1], &n_length, 4);
+
+   result = mbuf_write (mbuf, buf, sizeof (buf));
+
+   if (result == -1) {
+     logerror ("Failed to marshall OML_BLOB_VALUE type and length (mbuf_write())\n");
+     mbuf_reset_write (mbuf);
+     return 0;
+   }
+
+   result = mbuf_write (mbuf, blob, length);
+
+   if (result == -1) {
+     logerror ("Failed to marshall %d bytes of OML_BLOB_VALUE data\n", length);
+     mbuf_reset_write (mbuf);
+     return 0;
+   }
    break;
  }
  default:
@@ -633,6 +670,32 @@ unmarshal_value(
       }
       strncpy(value->value.stringValue.ptr, (char*)buf, len);
       *(value->value.stringValue.ptr + len) = '\0';
+      break;
+    }
+    case BLOB_T: {
+      uint32_t n_len;
+
+      if (mbuf_read (mbuf, &n_len, 4) == -1) {
+        logerror ("Failed to unmarshal OML_BLOB_VALUE length field; not enough data?\n");
+        return 0;
+      }
+
+      size_t len = ntohl (n_len);
+      size_t remaining = mbuf_remaining (mbuf);
+
+      if (len > remaining) {
+        logerror ("Failed to unmarshal OML_BLOB_VALUE data:  not enough data available "
+                  "(wanted %d, but only have %d bytes\n",
+                  len, remaining);
+        return 0;
+      }
+
+      logdebug ("Unmarshal BLOB (%d bytes)\n", len);
+
+      void *ptr = mbuf_rdptr (mbuf);
+      omlc_set_blob (value->value, ptr, len);
+      value->type = OML_BLOB_VALUE;
+      mbuf_read_skip (mbuf, len);
       break;
     }
     default:
