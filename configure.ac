@@ -123,6 +123,7 @@ AC_CONFIG_FILES([Makefile
 		 test/Makefile
 		 test/lib/Makefile
 		 test/server/Makefile
+		 test/system/blob/Makefile
 		 ])
 
 if test "x$missing_check" != "x"; then
