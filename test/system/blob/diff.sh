@@ -2,15 +2,19 @@
 
 fail=
 
+printf "Checking that server stored blobs match client-generated blobs\n"
+
 for f in g*.hex; do
 	g=$(basename -s .hex $f)
 	s="s${g#g}"
 	if diff -qw $g.hex $s.hex; then
-		echo "$g <==> $s OK"
+		printf "\r$g <==> $s OK      "
 	else
 		fail=yes
-		echo "$g <!=> $s FAIL"
+		printf "\n$g <!=> $s FAIL\n"
 	fi
 done
 
-test "x$fail" = "xyes"
+printf "\r...done         \n"
+
+test "x$fail" != "xyes"

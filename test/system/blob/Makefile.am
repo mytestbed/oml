@@ -1,5 +1,8 @@
 
-noinst_PROGRAMS = blobgen
+TESTS_ENVIRONMENT = top_builddir=$(top_builddir)
+TESTS = run.sh
+
+check_PROGRAMS = blobgen
 
 blobgen_SOURCES = blobgen.c
 
