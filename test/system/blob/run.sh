@@ -1,11 +1,7 @@
 #!/bin/sh
 
-builddir=$1
 port=4004
 exp=blobgen_exp
-
-env | grep dir
-pwd
 
 [ -f ${exp}.sq3 ] && rm -f ${exp}.sq3
 [ -f blobgen-server.log ] && rm -f blobgen-server.log
@@ -15,7 +11,6 @@ echo SERVER=${server_pid}
 
 sleep 1
 
-#blobgen=$builddir/test/system/blob/blobgen
 blobgen=./blobgen
 
 if [ ! -x ${blobgen} ]; then
