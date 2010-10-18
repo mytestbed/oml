@@ -385,13 +385,17 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
   }
   for (i = 0; i < schema->nfields; i++, v++) {
     if (v->type != schema->fields[i].type) {
-      char *expected = oml_type_to_s (schema->fields[i].type);
-      char *received = oml_type_to_s (v->type);
-      logerror("Mismatch in %dth value type for table '%s'\n", i, table->schema->name);
-      logerror("-> Column name='%s', type=%s, but trying to insert a %s\n",
-               schema->fields[i].name, expected, received);
-      sqlite3_reset (stmt);
-      return -1;
+      if (v->type == OML_BLOB_VALUE && schema->fields[i].type == OML_UINT64_VALUE)
+        schema->fields[i].type = OML_BLOB_VALUE; // Dodgy because we map UINT64 -> BLOB for SQLite
+      else {
+        char *expected = oml_type_to_s (schema->fields[i].type);
+        char *received = oml_type_to_s (v->type);
+        logerror("Mismatch in value type for column %d of table '%s'\n", i, table->schema->name);
+        logerror("-> Column name='%s', type=%s, but trying to insert a %s\n",
+                 schema->fields[i].name, expected, received);
+        sqlite3_reset (stmt);
+        return -1;
+      }
     }
     int res;
     int idx = i + 5;
@@ -414,6 +418,13 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
                                  -1, SQLITE_TRANSIENT);
         break;
       }
+    case OML_BLOB_VALUE: {
+      res = sqlite3_bind_blob (stmt, idx,
+                               v->value.blobValue.data,
+                               v->value.blobValue.fill,
+                               SQLITE_TRANSIENT);
+      break;
+    }
     default:
       logerror("Unknown type %d in col '%s'\n", schema->fields[i].type, schema->fields[i].name);
       sqlite3_reset (stmt);

@@ -49,7 +49,7 @@ static void
 client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 
 static void
-status_callback(SockEvtSource* source, SocketStatus status, int errno, void* handle);
+status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle);
 
 /*
  *  Allocate data structures for the client's tables.
@@ -372,6 +372,7 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     // empty line denotes separator between header and body
     int skip_count = mbuf_find_not (mbuf, '\n');
     mbuf_read_skip (mbuf, skip_count + 1);
+    mbuf_consume_message (mbuf);
     self->state = self->content;
     return 0;
   }
@@ -451,10 +452,8 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
  * \return 1 when successfull, 0 otherwise
  */
 static int
-process_bin_message(
-  ClientHandler* self,
-  MBuffer*    mbuf
-) {
+process_bin_message(ClientHandler* self, MBuffer* mbuf)
+{
   OmlBinaryHeader header;
 
   unsigned char* sync = find_sync (mbuf->base, mbuf->fill);
@@ -464,6 +463,11 @@ process_bin_message(
   else
     sync_pos = sync - mbuf->base;
   //logdebug("Received %d octets (sync at %d)\n", mbuf->fill, sync_pos);
+
+  if (sync > mbuf->rdptr) {
+    mbuf_read_skip (mbuf, sync - mbuf->rdptr);
+    mbuf_consume_message (mbuf);
+  }
 
   int res = unmarshal_init(mbuf, &header);
   if (res == 0) {
@@ -657,10 +661,10 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
  * \param handle the Client handler structure
  */
 void
-status_callback(SockEvtSource* source, SocketStatus status, int errno, void* handle)
+status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle)
 {
   logdebug("'%s': Socket status changed to %s(%d); error code is %d\n",
-           source->name, socket_status_string (status), status, errno);
+           source->name, socket_status_string (status), status, errcode);
   switch (status)
     {
     case SOCKET_WRITEABLE:

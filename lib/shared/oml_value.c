@@ -135,8 +135,39 @@ oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to)
             to->value.stringValue.length = length;
             break;
           }
+        case OML_BLOB_VALUE: {
+          if (value->blobValue.data == NULL || value->blobValue.size == 0) {
+            logwarn("Trying to copy OML_BLOB_VALUE from a NULL source\n");
+            to->value.blobValue.fill = 0;
+            return -1;
+          } else {
+            if (to->value.blobValue.data == NULL) {
+              logdebug ("MALLOC to NULL blob\n");
+              void *new = malloc (value->blobValue.fill);
+              if (new == NULL) {
+                logerror ("Failed to allocate memory for new OML_BLOB_VALUE:  %s\n", strerror (errno));
+                return -1;
+              }
+              to->value.blobValue.data = new;
+              to->value.blobValue.size = value->blobValue.fill;
+            } else if (to->value.blobValue.size < value->blobValue.fill) {
+              logdebug ("REALLOC for non-NULL blob (size=%d, fill=%d)\n", to->value.blobValue.size, value->blobValue.fill);
+              void * new = realloc (to->value.blobValue.data, value->blobValue.fill);
+              if (new == NULL) {
+                logerror ("Failed to re-allocate memory for new OML_BLOB_VALUE:  %s\n", strerror (errno));
+                return -1;
+              }
+              to->value.blobValue.data = new;
+              to->value.blobValue.size = value->blobValue.fill;
+            }
+            memcpy (to->value.blobValue.data, value->blobValue.data, value->blobValue.fill);
+            to->value.blobValue.fill = value->blobValue.fill;
+          }
+          logdebug("BREAK!\n");
+          break;
+        }
         default:
-          logerror("Copy for type '%d' not implemented'\n", type);
+          logerror("XCopy for type '%d' not implemented'\n", type);
           return -1;
         }
     }
@@ -170,8 +201,18 @@ oml_value_reset(OmlValue* v)
       }
       break;
     }
+    case OML_BLOB_VALUE: {
+      OmlBlob *blob = &v->value.blobValue;
+      if (blob->data != NULL) {
+        bzero (blob->data, blob->size);
+      } else {
+        blob->size = 0;
+      }
+      blob->fill = 0;
+      break;
+    }
     default:
-      logerror("Copy for type '%d' not implemented'\n", v->type);
+      logerror("Reset for type '%d' not implemented'\n", v->type);
       return -1;
     }
   return 0;
@@ -182,9 +223,8 @@ oml_value_reset(OmlValue* v)
  * \return a string that represent the type +type+
  */
 char*
-oml_type_to_s(
-    OmlValueT type
-) {
+oml_type_to_s (OmlValueT type)
+{
   switch(type) {
   case OML_LONG_VALUE:   return "long";
   case OML_INT32_VALUE:  return "int32";
@@ -193,6 +233,7 @@ oml_type_to_s(
   case OML_UINT64_VALUE: return "uint64";
   case OML_DOUBLE_VALUE: return "double";
   case OML_STRING_VALUE: return "string";
+  case OML_BLOB_VALUE:   return "blob";
   default: return "UNKNOWN";
   }
 }
@@ -212,18 +253,19 @@ oml_type_from_s (const char *s)
       { OML_INT64_VALUE,  "int64"  },
       { OML_UINT64_VALUE, "uint64" },
       { OML_DOUBLE_VALUE, "double" },
-      { OML_STRING_VALUE, "string" }
+      { OML_STRING_VALUE, "string" },
+      { OML_BLOB_VALUE, "blob" }
     };
   int i = 0;
   int n = sizeof (type_list) / sizeof (type_list[0]);
   OmlValueT type = OML_UNKNOWN_VALUE;
 
-  for (i = 0; i < n; i++)
-    if (strcmp (s, type_list[i].name) == 0)
-      {
-        type = type_list[i].type;
-        break;
-      }
+  for (i = 0; i < n; i++) {
+    if (strcmp (s, type_list[i].name) == 0) {
+      type = type_list[i].type;
+      break;
+    }
+  }
 
   return type;
 }
@@ -242,6 +284,18 @@ oml_value_to_s (OmlValueU *value, OmlValueT type, char *buf)
   case OML_UINT64_VALUE: sprintf(buf, "%" PRIu64,  value->uint64Value); break;
   case OML_DOUBLE_VALUE: sprintf(buf, "%f",  value->doubleValue); break;
   case OML_STRING_VALUE: sprintf(buf, "%s",  value->stringValue.ptr); break;
+  case OML_BLOB_VALUE: {
+    const int max_bytes = 6;
+    int bytes = value->blobValue.fill < max_bytes ? value->blobValue.fill : max_bytes;
+    int i = 0;
+    int n = 5;
+    strcpy (buf, "blob ");
+    for (i = 0; i < bytes; i++) {
+      n += sprintf(buf + n, "%02x", ((uint8_t*)value->blobValue.data)[i]);
+    }
+    strcat (buf, " ...");
+    break;
+  }
   default:
     logerror ("Unsupported value type '%d'\n", type);
   }
@@ -250,33 +304,34 @@ oml_value_to_s (OmlValueU *value, OmlValueT type, char *buf)
 int
 oml_value_from_s (OmlValue *value, const char *value_s)
 {
-  switch (value->type)
-    {
-    case OML_STRING_VALUE:
-      {
-        /* Make sure we do a deep copy */
-        OmlValue v;
-        omlc_set_string (v.value, (char*)value_s);
-        oml_value_copy (&v.value, value->type, value);
-        break;
-      }
-    case OML_LONG_VALUE: omlc_set_long (value->value, strtol (value_s, NULL, 0)); break;
-    case OML_INT32_VALUE: omlc_set_int32 (value->value, strtol (value_s, NULL, 0)); break;
-    case OML_UINT32_VALUE: omlc_set_uint32 (value->value, strtoul (value_s, NULL, 0)); break;
-    case OML_INT64_VALUE: omlc_set_int64 (value->value, strtoll (value_s, NULL, 0)); break;
-    case OML_UINT64_VALUE: omlc_set_uint64 (value->value, strtoull (value_s, NULL, 0)); break;
-    case OML_DOUBLE_VALUE: omlc_set_double (value->value, strtod (value_s, NULL)); break;
-    default:
-      {
-        logerror("Unknown type for value converted from string '%s'.\n", value_s);
-        return -1;
-      }
-    }
-  if (errno == ERANGE)
-    {
-      logerror("Underflow or overlow converting value from string '%s'\n", value_s);
-      return -1;
-    }
+  switch (value->type) {
+  case OML_STRING_VALUE: {
+    /* Make sure we do a deep copy */
+    OmlValue v;
+    omlc_set_string (v.value, (char*)value_s);
+    oml_value_copy (&v.value, value->type, value);
+    break;
+  }
+  case OML_BLOB_VALUE: {
+    /* Can't retrieve a blob from a string (yet) */
+    value->value.blobValue.fill = 0;
+    break;
+  }
+  case OML_LONG_VALUE: omlc_set_long (value->value, strtol (value_s, NULL, 0)); break;
+  case OML_INT32_VALUE: omlc_set_int32 (value->value, strtol (value_s, NULL, 0)); break;
+  case OML_UINT32_VALUE: omlc_set_uint32 (value->value, strtoul (value_s, NULL, 0)); break;
+  case OML_INT64_VALUE: omlc_set_int64 (value->value, strtoll (value_s, NULL, 0)); break;
+  case OML_UINT64_VALUE: omlc_set_uint64 (value->value, strtoull (value_s, NULL, 0)); break;
+  case OML_DOUBLE_VALUE: omlc_set_double (value->value, strtod (value_s, NULL)); break;
+  default: {
+    logerror("Unknown type for value converted from string '%s'.\n", value_s);
+    return -1;
+  }
+  }
+  if (errno == ERANGE) {
+    logerror("Underflow or overlow converting value from string '%s'\n", value_s);
+    return -1;
+  }
   return 0;
 }
 
@@ -292,16 +347,15 @@ double
 oml_value_to_double (OmlValue *value)
 {
   OmlValueU *v = &value->value;
-  switch (value->type)
-    {
-    case OML_LONG_VALUE:   return (double) v->longValue;
-    case OML_INT32_VALUE:  return (double) v->int32Value;
-    case OML_UINT32_VALUE: return (double) v->uint32Value;
-    case OML_INT64_VALUE:  return (double) v->int64Value;
-    case OML_UINT64_VALUE: return (double) v->uint64Value;
-    case OML_DOUBLE_VALUE: return (double) v->doubleValue;
-    default: return 0.0;
-    }
+  switch (value->type) {
+  case OML_LONG_VALUE:   return (double) v->longValue;
+  case OML_INT32_VALUE:  return (double) v->int32Value;
+  case OML_UINT32_VALUE: return (double) v->uint32Value;
+  case OML_INT64_VALUE:  return (double) v->int64Value;
+  case OML_UINT64_VALUE: return (double) v->uint64Value;
+  case OML_DOUBLE_VALUE: return (double) v->doubleValue;
+  default: return 0.0;
+  }
 }
 
 /*

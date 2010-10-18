@@ -24,18 +24,18 @@
   \brief Implements an event loop dispatching callbacks
 */
 
-#include "ocomm/o_eventloop.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <poll.h>
 #include <assert.h>
 #include <unistd.h>
-#include <sys/errno.h>
+//#include <sys/errno.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include "ocomm/o_eventloop.h"
 #include "ocomm/o_socket.h"
 #include "ocomm/o_log.h"
 

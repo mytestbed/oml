@@ -89,8 +89,7 @@ create_filter_result_vector (OmlFilterDef* def, OmlValueT type, int count)
     if (result[i].type == OML_INPUT_VALUE)
       result[i].type = type;
 
-    if (result[i].type == OML_STRING_VALUE)
-      {
+    if (result[i].type == OML_STRING_VALUE) {
         // oml_value_reset() doesn't really do a hard reset for
         // strings... it keeps existing memory hanging around, if any.
         // so, we need to set up the string a bit more carefully.
@@ -98,9 +97,9 @@ create_filter_result_vector (OmlFilterDef* def, OmlValueT type, int count)
         result[i].value.stringValue.ptr = NULL;
         result[i].value.stringValue.size = 0;
         result[i].value.stringValue.length = 0;
-      }
-    else
+    } else {
       oml_value_reset(&result[i]);
+    }
   }
 
   return result;

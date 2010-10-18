@@ -28,7 +28,10 @@
 #ifndef OML_OMLC_H_
 #define OML_OMLC_H_
 
+#include <stdlib.h>
+#include <string.h>
 #include <stdint.h>
+#include <errno.h>
 #include <pthread.h>
 #include <ocomm/o_log.h>
 
@@ -36,6 +39,22 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum _omlValueE {
+  /* Meta value types */
+  OML_INPUT_VALUE = -2,
+  OML_UNKNOWN_VALUE = -1,
+  /* Concrete value types */
+  OML_DOUBLE_VALUE = 0,
+  OML_LONG_VALUE,
+  OML_PADDING1_VALUE,
+  OML_STRING_VALUE,
+  OML_INT32_VALUE,
+  OML_UINT32_VALUE,
+  OML_INT64_VALUE,
+  OML_UINT64_VALUE,
+  OML_BLOB_VALUE
+} OmlValueT;
 
 #define omlc_is_integer_type(t)                             \
   (((t) == OML_LONG_VALUE) ||                               \
@@ -50,6 +69,33 @@ extern "C" {
 
 #define omlc_is_integer(v) omlc_is_integer_type((v).type)
 #define omlc_is_numeric(v) omlc_is_numeric_type((v).type)
+
+/**
+ *  Representation of a string measurement value.
+ */
+typedef struct _omlString {
+  char* ptr;
+  int   is_const; // true if ptr references const storage
+  int   size;     // size of string
+  int   length;   // length of internally allocated storage
+} OmlString;
+
+typedef struct _omlBlob {
+  void *data;   // Pointer to blob data storage
+  size_t size;  // The size of the allocated underlying storage
+  size_t fill;  // Number of bytes of actual blob data stored
+} OmlBlob;
+
+typedef union _omlValueU {
+  long      longValue;
+  double    doubleValue;
+  OmlString stringValue;
+  int32_t   int32Value;
+  uint32_t  uint32Value;
+  int64_t   int64Value;
+  uint64_t  uint64Value;
+  OmlBlob   blobValue;
+} OmlValueU;
 
 #define omlc_set_long(var, val) ((var).longValue = (val))
 #define omlc_set_int32(var, val) ((var).int32Value = (val))
@@ -70,43 +116,35 @@ extern "C" {
     (var).stringValue.size = (var).stringValue.length = 0;         \
   } while (0);
 
+static inline void
+omlc_set_blob_ (OmlValueU *var, void *blob, size_t length)
+{
+  if (var->blobValue.data == NULL) {
+    var->blobValue.data = malloc (length);
+    if (var->blobValue.data == NULL) {
+      o_log (O_LOG_ERROR, "Unable to allocate memory for OML_BLOB_VALUE:  %s\n", strerror (errno));
+      return;
+    }
+    var->blobValue.size = length;
+  } else if (length > var->blobValue.size) {
+    void *newp = realloc (var->blobValue.data, length);
+    if (newp == NULL) {
+      o_log (O_LOG_ERROR, "Unable to re-allocate memory for OML_BLOB_VALUE:  %s\n", strerror (errno));
+      return;
+    }
+    var->blobValue.data = newp;
+    var->blobValue.size = length;
+  }
+
+  memcpy (var->blobValue.data, blob, length);
+  var->blobValue.fill = length;
+}
+
+#define omlc_set_blob(var, val, len)            \
+  omlc_set_blob_(&(var),(val),(len))
+
 struct _omlFilter;   // can't include oml_filter.h yet
 struct _omlWriter;   // forward declaration
-
-/**
- *  Representation of a string measurement value.
- */
-typedef struct _omlString {
-  char* ptr;
-  int   is_const; // true if ptr references const storage
-  int   size;     // size of string
-  int   length;   // length of internally allocated storage
-} OmlString;
-
-typedef union _omlValueU {
-  long      longValue;
-  double    doubleValue;
-  OmlString stringValue;
-  int32_t   int32Value;
-  uint32_t  uint32Value;
-  int64_t   int64Value;
-  uint64_t  uint64Value;
-} OmlValueU;
-
-typedef enum _omlValueE {
-  /* Meta value types */
-  OML_INPUT_VALUE = -2,
-  OML_UNKNOWN_VALUE = -1,
-  /* Concrete value types */
-  OML_DOUBLE_VALUE = 0,
-  OML_LONG_VALUE,
-  OML_PADDING1_VALUE,
-  OML_STRING_VALUE,
-  OML_INT32_VALUE,
-  OML_UINT32_VALUE,
-  OML_INT64_VALUE,
-  OML_UINT64_VALUE
-} OmlValueT;
 
 /**
  * \struct

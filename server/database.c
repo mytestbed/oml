@@ -218,12 +218,16 @@ database_find_or_create_table(Database *database, struct schema *schema)
     } else if (same > 0) {
       struct schema_field *client = &schema->fields[same-1];
       struct schema_field *stored = &table->schema->fields[same-1];
-      logerror ("Schema differ at column %d:\n", same);
-      logerror ("Client declared         '%s:%s'\n",
-                client->name, oml_type_to_s (client->type));
-      logerror ("Existing table declared '%s:%s'\n",
-                stored->name, oml_type_to_s (stored->type));
-      return NULL;
+      if (!(((client->type == OML_UINT64_VALUE) || (client->type == OML_BLOB_VALUE)) &&
+            ((stored->type == OML_UINT64_VALUE) || (stored->type == OML_BLOB_VALUE)))) {
+
+        logerror ("Schemas differ at column %d:\n", same);
+        logerror ("Client declared         '%s:%s'\n",
+                  client->name, oml_type_to_s (client->type));
+        logerror ("Existing table declared '%s:%s'\n",
+                  stored->name, oml_type_to_s (stored->type));
+        return NULL;
+      }
     }
   }
   return table;

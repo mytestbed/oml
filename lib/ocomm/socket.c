@@ -134,7 +134,7 @@ socket_get_non_blocking_mode()
 
 int
 socket_is_disconnected (
- Socket* socket;
+ Socket* socket
 ) {
   return ((SocketInt*)socket)->is_disconnected;
 }
@@ -170,7 +170,7 @@ s_socket(
 ) {
   // open a socket
   if((self->sockfd = socket(PF_INET,
-			    self->is_tcp ? SOCK_STREAM : SOCK_DGRAM, IPPROTO_IP)) < 0) {
+                self->is_tcp ? SOCK_STREAM : SOCK_DGRAM, IPPROTO_IP)) < 0) {
     o_log (O_LOG_ERROR, "Socket: Error creating socket\n");
     return 0;
   }
@@ -178,7 +178,7 @@ s_socket(
     fcntl(self->sockfd, F_SETFL, O_NONBLOCK);
   }
   o_log(O_LOG_DEBUG, "Socket(%s): Socket %d successfully created\n",
-	self->name, self->sockfd);
+    self->name, self->sockfd);
   return 1;
 }
 
@@ -214,9 +214,9 @@ socket_in_new(
   self->servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
   if(bind(self->sockfd, (struct sockaddr *)&self->servAddr,
-	  sizeof(struct sockaddr_in)) < 0) {
+      sizeof(struct sockaddr_in)) < 0) {
     o_log(O_LOG_ERROR, "Socket(%s): Error binding socket to interface\n\t%s\n",
-		  name, strerror(errno));
+          name, strerror(errno));
     return NULL;
   }
 
@@ -267,14 +267,14 @@ s_connect(
     self->servAddr.sin_family = PF_INET;
     self->servAddr.sin_port = htons(port);
     bcopy((char *)server->h_addr,
-	  (char *)&self->servAddr.sin_addr.s_addr,
-	  server->h_length);
+      (char *)&self->servAddr.sin_addr.s_addr,
+      server->h_length);
   }
   if (connect(self->sockfd, (struct sockaddr *)&self->servAddr,
-	      sizeof(struct sockaddr_in)) < 0) {
+          sizeof(struct sockaddr_in)) < 0) {
     if (errno != EINPROGRESS) {
       o_log(O_LOG_ERROR, "Socket(%s): Error connecting to %s:%d (%s)\n",
-	    self->name, addr, port, strerror(errno));
+        self->name, addr, port, strerror(errno));
       return 0;
     }
   }
@@ -345,7 +345,7 @@ on_client_connect(
                  &cli_len);
   if (newSock->sockfd < 0) {
     o_log(O_LOG_ERROR, "Socket(%s): Error on accept (%s)\n",
-		  self->name, strerror(errno));
+          self->name, strerror(errno));
     free(newSock);
     return;
   }
@@ -401,7 +401,7 @@ iface2addr(
       || ioctl(ufd, SIOCGIFADDR, &ifr) < 0)
     {
       o_log(O_LOG_ERROR, "Socket(%s): Unable to resolve outgoing interface: %s",
-	    name, iface);
+        name, iface);
       return -1;
     }
   close(ufd);
@@ -431,13 +431,13 @@ socket_mc_in_new(
   self->imreq.imr_interface.s_addr = iface2addr(name, iface);
 
   if (setsockopt(self->sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-		 (const void *)&(self->imreq),
-		 sizeof(struct ip_mreq)) < 0) {
+         (const void *)&(self->imreq),
+         sizeof(struct ip_mreq)) < 0) {
     o_log(O_LOG_ERROR, "Socket(%s): Error while joining a multicast group\n", name);
     return NULL;
   }
   o_log(O_LOG_DEBUG, "Socket(%s): Ready to receive data on multicast address: %s\n",
-	name, addr);
+    name, addr);
   return (Socket*)self;
 }
 
@@ -463,20 +463,20 @@ socket_mc_out_new(
   o_log(O_LOG_DEBUG, "Socket(%s): Binding to %x\n", name, addr.s_addr);
   if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) < 0) {
     o_log (O_LOG_ERROR, "Socket(%s): Setting outgoing interface for socket\n\t%s",
-	   name, strerror(errno));
+       name, strerror(errno));
     return NULL;
   }
 
   if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl,
-		sizeof(unsigned char)) < 0) {
+        sizeof(unsigned char)) < 0) {
     o_log(O_LOG_ERROR, "Socket(%s): While setting TTL parameter for multicast socket\n\t%s",
-	  name, strerror(errno));
+      name, strerror(errno));
     return NULL;
   }
   if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_LOOP,
-		 &one, sizeof(unsigned char)) < 0) {
+         &one, sizeof(unsigned char)) < 0) {
     o_log(O_LOG_ERROR, "Socket: While setting the loopback on multicast socket\n\t%s",
-	  name, strerror(errno));
+      name, strerror(errno));
     return NULL;
   }
 
@@ -484,7 +484,7 @@ socket_mc_out_new(
   self->servAddr.sin_port = htons(mcast_port);
   self->servAddr.sin_addr.s_addr = inet_addr(mcast_addr);
   o_log(O_LOG_DEBUG, "Socket(%s): Ready to send data on: %s:%d\n",
-	name, mcast_addr, mcast_port);
+    name, mcast_addr, mcast_port);
   return (Socket*)self;
 }
 
@@ -534,21 +534,21 @@ socket_sendto(
 
   // TODO: Catch SIGPIPE signal if other side is half broken
   if(sendto(self->sockfd, buf, buf_size, 0,
-			(struct sockaddr *)&(self->servAddr),
-			sizeof(self->servAddr)) < 0)
-	{
-	  if (errno == EPIPE || errno == ECONNRESET)
-		{
-		  // The other end closed the connection.
-		  self->is_disconnected = 1;
-		  o_log(O_LOG_ERROR, "Socket(%s): the remote peer closed the connection\n\t%d: %s\n",
-				self->name, errno, strerror(errno));
-		}
-	  else
-		o_log(O_LOG_ERROR, "Socket(%s): Sending to multicast channel failed\n\t%s\n",
-			  self->name, strerror(errno));
-	  return -1;
-	}
+            (struct sockaddr *)&(self->servAddr),
+            sizeof(self->servAddr)) < 0)
+    {
+      if (errno == EPIPE || errno == ECONNRESET)
+        {
+          // The other end closed the connection.
+          self->is_disconnected = 1;
+          o_log(O_LOG_ERROR, "Socket(%s): the remote peer closed the connection\n\t%d: %s\n",
+                self->name, errno, strerror(errno));
+        }
+      else
+        o_log(O_LOG_ERROR, "Socket(%s): Sending to multicast channel failed\n\t%s\n",
+              self->name, strerror(errno));
+      return -1;
+    }
   return 0;
 }
 
@@ -585,11 +585,11 @@ typedef enum _SockStatus {
 
 static const char* SocketStatus_names [] =
   {
-	"SOCKET_WRITEABLE",
-	"SOCKET_CONN_CLOSED",
-	"SOCKET_CONN_REFUSED",
-	"SOCKET_DROPPED",  //! Socket monitoring dropped by eventloop
-	"SOCKET_UNKNOWN"
+    "SOCKET_WRITEABLE",
+    "SOCKET_CONN_CLOSED",
+    "SOCKET_CONN_REFUSED",
+    "SOCKET_DROPPED",  //! Socket monitoring dropped by eventloop
+    "SOCKET_UNKNOWN"
   };
 
 const char*
@@ -599,13 +599,13 @@ socket_status_string(
   size_t length = sizeof (SocketStatus_names) / sizeof (SocketStatus_names[0]);
 
   if (status < length)
-	{
-	  return SocketStatus_names[status];
-	}
+    {
+      return SocketStatus_names[status];
+    }
   else
-	{
-	  return "SOCKET_UNKNOWN";
-	}
+    {
+      return "SOCKET_UNKNOWN";
+    }
 }
 
 /*

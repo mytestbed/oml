@@ -110,6 +110,7 @@ process(
   oml_value_reset(&self->result[0]);
   if (self->result[0].type == OML_STRING_VALUE)
     omlc_set_const_string (self->result[0].value, "");
+
   return 0;
 }
 
