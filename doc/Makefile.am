@@ -35,7 +35,7 @@ CLEANFILES=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	$(html_docs)
 
 A2X_ARGS = \
-	--destination-dir=$(builddir) --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' -f manpage
+	--destination-dir=. --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' -f manpage
 
 if HAVE_A2X
 man_MANS = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
