@@ -575,6 +575,7 @@ end
 # Local Variables:
 # mode:ruby
 # End:
+# vim: ft=ruby:sw=2
 @
   end
 end
