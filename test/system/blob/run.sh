@@ -2,6 +2,7 @@
 
 port=4004
 exp=blobgen_exp
+long=$1
 
 [ -f ${exp}.sq3 ] && rm -f ${exp}.sq3
 [ -f blobgen-server.log ] && rm -f blobgen-server.log
@@ -18,7 +19,7 @@ if [ ! -x ${blobgen} ]; then
 	exit 1
 fi
 
-$blobgen -n 100 --oml-id a --oml-exp-id ${exp} --oml-server localhost:$port || exit 1
+$blobgen -n 100 $long --oml-id a --oml-exp-id ${exp} --oml-server localhost:$port || exit 1
 
 echo "Blob generating client finished OK"
 sleep 1

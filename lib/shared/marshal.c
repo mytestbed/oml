@@ -168,7 +168,10 @@ find_sync (unsigned char* buf, int len)
 MBuffer*
 marshal_init(MBuffer*  mbuf, OmlMsgType  packet_type)
 {
-  uint8_t buf[PACKET_HEADER_SIZE] = { SYNC_BYTE, SYNC_BYTE, packet_type, 0, 0 };
+  // +2 is an ugly hack to support long packets
+  uint8_t buf[PACKET_HEADER_SIZE + 2] = {
+    0, 0, SYNC_BYTE, SYNC_BYTE, packet_type, 0, 0
+  };
   int result;
 
   if (mbuf == NULL)
@@ -219,7 +222,8 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
   v.doubleValue = now;
   marshal_value(mbuf, OML_DOUBLE_VALUE, &v);
 
-  return marshal_finalize(mbuf);
+  //  return marshal_finalize(mbuf);
+  return 1;
 }
 
 /**
@@ -240,7 +244,7 @@ marshal_values(MBuffer* mbuf, OmlValue* values, int value_count)
   }
 
   uint8_t* buf = mbuf_message (mbuf);
-  buf[5] += value_count;
+  buf[0] += value_count;
   return 1;
 }
 
@@ -414,20 +418,45 @@ int
 marshal_finalize(MBuffer*  mbuf)
 {
   uint8_t* buf = mbuf_message (mbuf);
+  int value_count = buf[0];
 
   size_t len = mbuf_message_length (mbuf);
 
-  if (len > UINT16_MAX)
-    {
-      logwarn("Message length %d longer than maximum packet length (%d); packet will be truncated\n",
-             len, UINT16_MAX);
-      len = UINT16_MAX;
-    }
-  len -= 5;  // 5 is the length of the header... FIXME:  MAGIC NUMBER!
-  uint16_t nlen = htons(len);  // pure data length
+  if (len > UINT32_MAX) {
+    logwarn("Message length %d longer than maximum packet length (%d); "
+            "packet will be truncated\n",
+            len, UINT32_MAX);
+    len = UINT32_MAX;
+  }
 
-  // Store the length of the packet
-  memcpy(&buf[3], &nlen, sizeof (nlen));
+  /*
+   * We pre-allocated 2 extra bytes in case this packet turns out to
+   * be a long packet, so that we have enough space for the 4-byte
+   * length field; but we cunningly started the packet 2 bytes into
+   * the buffer, so if it's just a short packet then we need to adjust
+   * the message start pointer.  If it is a long packet, then we can
+   * happily re-write the header without having to allocate more
+   * memory and copy the payload again.
+   */
+  if (len < UINT16_MAX) {
+    len -= 7; // We pre-allocated a header of length 7
+    uint16_t nlen = htons (len);  // pure data length
+
+    // Store the length of the packet
+    memcpy (&buf[5], &nlen, sizeof (nlen));
+    buf[7] = value_count;
+    mbuf_message_start_advance (mbuf, 2);
+  } else {
+    len -= 7; // 7 is the length of the header...
+    uint32_t nlen = htonl (len); // pure data length
+
+    // Re-write the header
+    uint8_t packet_header[] = { SYNC_BYTE, SYNC_BYTE, OMB_LDATA_P };
+    uint8_t *buf = mbuf_message (mbuf);
+    memcpy (buf, packet_header, sizeof (packet_header));
+    memcpy (&buf[sizeof(packet_header)], &nlen, sizeof (nlen));
+    buf[7] = value_count;
+  }
 
   return 1;
 }
@@ -441,33 +470,52 @@ marshal_finalize(MBuffer*  mbuf)
 int
 unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
 {
-  uint8_t header_str[PACKET_HEADER_SIZE];
+  uint8_t header_str[PACKET_HEADER_SIZE + 2];
   uint8_t stream_header_str[STREAM_HEADER_SIZE];
 
   // Assumption:  msgptr == rdptr at this point
-  int result = mbuf_read (mbuf, header_str, LENGTH (header_str));
+  int result = mbuf_read (mbuf, header_str, 3);
 
   if (result == -1)
-    return mbuf_remaining (mbuf) - PACKET_HEADER_SIZE;
+    return mbuf_remaining (mbuf) - 3;
 
-  if (! (header_str[0] == SYNC_BYTE && header_str[1] == SYNC_BYTE))
-    {
-      logerror("Out of sync. Don't know how to get back\n");
-      return 0;
-    }
+  if (! (header_str[0] == SYNC_BYTE && header_str[1] == SYNC_BYTE)) {
+    logerror("Out of sync.\n");
+    return 0;
+  }
 
   header->type = (OmlMsgType)header_str[2];
-  uint16_t nv = 0;
-  memcpy (&nv, &header_str[3], 2);
-  uint16_t hv = ntohs (nv);
-  header->length = (int)hv;
+
+  if (header->type == OMB_DATA_P) {
+    // Read 2 more bytes of the length field
+    uint16_t nv = 0;
+    result = mbuf_read (mbuf, (uint8_t*)&nv, sizeof (uint16_t));
+    if (result == -1) {
+      int n = mbuf_remaining (mbuf) - 2;
+      mbuf_reset_read (mbuf);
+      return n;
+    }
+    header->length = (int)ntohs (nv);
+  } else if (header->type == OMB_LDATA_P) {
+    // Read 4 more bytes of the length field
+    uint32_t nv = 0;
+    result = mbuf_read (mbuf, (uint8_t*)&nv, sizeof (uint32_t));
+    if (result == -1) {
+      int n = mbuf_remaining (mbuf) - 4;
+      mbuf_reset_read (mbuf);
+      return n;
+    }
+    header->length = (int)ntohl (nv);
+  } else {
+    logwarn ("Unknown packet type %d\n", (int)header->type);
+    return -1;
+  }
 
   int extra = mbuf_remaining (mbuf) - header->length;
-  if (extra < 0)
-    {
-      mbuf_reset_read (mbuf);
-      return extra;
-    }
+  if (extra < 0) {
+    mbuf_reset_read (mbuf);
+    return extra;
+  }
 
   result = mbuf_read (mbuf, stream_header_str, LENGTH (stream_header_str));
   if (result == -1)
@@ -546,7 +594,6 @@ unmarshal_values(
 
   int i;
   OmlValue* val = values;
-   //logdebug("value to analyse'%d'\n", value_count);
   for (i = 0; i < value_count; i++, val++) {
     if (unmarshal_value(mbuf, val) == 0) {
       logwarn("unmarshal_values():  Some kind of ERROR in unmarshal_value() call #%d of %d\n",
@@ -689,8 +736,6 @@ unmarshal_value(
                   len, remaining);
         return 0;
       }
-
-      logdebug ("Unmarshal BLOB (%d bytes)\n", len);
 
       void *ptr = mbuf_rdptr (mbuf);
       omlc_set_blob (value->value, ptr, len);

@@ -20,6 +20,8 @@ struct poptOption options[] = {
   { NULL, 0, 0, NULL, 0 }
 };
 
+#define MAX_BLOB (1024 * 1024)
+
 void*
 randgen (size_t *n)
 {
@@ -27,7 +29,7 @@ randgen (size_t *n)
   int i;
   uint8_t *data = NULL;
   // 10000 bytes lee-way on short blobs
-  size_t max_size = longblob ? LONG_MAX : USHRT_MAX - 10000;
+  size_t max_size = longblob ? MAX_BLOB : USHRT_MAX - 10000;
 
   while ((length = random()) > max_size);
 

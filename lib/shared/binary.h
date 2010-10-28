@@ -28,6 +28,8 @@
 #include "schema.h"
 #include "message.h"
 
+size_t bin_value_size (MBuffer *mbuf, OmlValue *value);
+
 int bin_read_msg_start  (struct oml_message *msg, MBuffer *mbuf);
 int bin_read_msg_values (struct oml_message *msg, MBuffer *mbuf,
                          struct schema *schema, OmlValue *values);

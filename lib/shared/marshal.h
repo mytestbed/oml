@@ -28,7 +28,8 @@
 
 typedef enum _omPktType
 {
-	OMB_DATA_P = 0x1
+  OMB_DATA_P = 0x1,
+  OMB_LDATA_P = 0x2
 } OmlMsgType;
 
 struct _omBuffer;
@@ -37,12 +38,12 @@ typedef struct _omlBinaryHeader OmlBinaryHeader;
 
 struct _omlBinaryHeader
 {
-	OmlMsgType type;
-	int length;
-	int values;
-	int stream;
-	int seqno;
-	double timestamp;
+    OmlMsgType type;
+    size_t length;
+    int values;
+    int stream;
+    int seqno;
+    double timestamp;
 };
 
 int marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now);
@@ -53,9 +54,9 @@ int marshal_finalize(MBuffer*  mbuf);
 
 int unmarshal_init(MBuffer*  mbuf, OmlBinaryHeader* header);
 int unmarshal_measurements(MBuffer* mbuf, OmlBinaryHeader* header,
-							OmlValue*  values, int max_value_count);
+                            OmlValue*  values, int max_value_count);
 int unmarshal_values(MBuffer*  mbuffer, OmlBinaryHeader* header,
-					  OmlValue* values, int max_value_count);
+                      OmlValue* values, int max_value_count);
 int unmarshal_value(MBuffer* mbuffer, OmlValue* value);
 int unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue* value);
 

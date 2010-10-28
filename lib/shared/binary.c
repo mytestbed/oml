@@ -64,6 +64,28 @@ bin_find_sync (MBuffer *mbuf)
   return -1;
 }
 
+size_t
+bin_value_size (OmlValue *value)
+{
+  switch (value->type) {
+  case OML_LONG_VALUE:
+  case OML_INT32_VALUE:
+  case OML_UINT32_VALUE:
+    return sizeof (uint32_t) + 1;
+  case OML_INT64_VALUE:
+  case OML_UINT64_VALUE:
+    return sizeof (uint64_t) + 1;
+  case OML_DOUBLE_VALUE:
+    return 6;
+  case OML_STRING_VALUE:
+    return 2 + value->value.stringValue.length;
+  case OML_BLOB_VALUE:
+    return 1 + sizeof (uint32_t) + value->value.blobValue.fill;
+  default:
+    return 0;
+  }
+}
+
 /*
  * Read the start of the new message; detect which stream it belongs
  * to, what the length of the message is, the sequence number, and the
@@ -154,8 +176,6 @@ bin_read_msg_values (struct oml_message *msg, MBuffer *mbuf, struct schema *sche
 
   if (msg->count != schema->nfields)
     return -1;
-
-
 
   for (i = 0; i < schema->nfields; i++) {
     int bytes;

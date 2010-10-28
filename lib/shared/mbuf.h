@@ -73,6 +73,7 @@ size_t mbuf_find (MBuffer* mbuf, uint8_t c);
 size_t mbuf_find_not (MBuffer* mbuf, uint8_t c);
 
 int mbuf_consume_message (MBuffer* mbuf);
+void mbuf_message_start_advance (MBuffer *mbuf, size_t n);
 int mbuf_repack (MBuffer* mbuf);
 int mbuf_repack_message (MBuffer* mbuf);
 int mbuf_clear (MBuffer* mbuf);

@@ -247,7 +247,7 @@ row_end(OmlWriter* writer, OmlMStream* ms)
   marshal_finalize(self->mbuf);
   int len = mbuf_message_length (self->mbuf);
   logdebug("Sending message of size '%d'\n", len);
-  int result = socket_sendto(self->socket, (char*)mbuf_buffer (self->mbuf), len);
+  int result = socket_sendto(self->socket, (char*)mbuf_message (self->mbuf), len);
 
   if (result == -1 && socket_is_disconnected (self->socket))
     {

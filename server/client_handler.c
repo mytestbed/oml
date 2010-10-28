@@ -483,6 +483,7 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
   }
   switch (header.type) {
     case OMB_DATA_P:
+  case OMB_LDATA_P:
       process_bin_data_message(self, &header);
       break;
     default:

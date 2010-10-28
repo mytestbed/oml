@@ -154,6 +154,14 @@ mbuf_message_length (MBuffer* mbuf)
   return mbuf->wrptr - mbuf->msgptr;
 }
 
+void
+mbuf_message_start_advance (MBuffer *mbuf, size_t n)
+{
+  if (mbuf && n < mbuf->fill - mbuf_message_offset (mbuf)) {
+    mbuf->msgptr += n;
+  }
+}
+
 uint8_t*
 mbuf_message (MBuffer* mbuf)
 {

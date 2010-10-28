@@ -33,6 +33,7 @@
 
 #include "check_util.h"
 
+#define FIRST_VALPTR(mbuf) (mbuf->base + 7)
 
 #define EPSILON 1e-8
 
@@ -245,9 +246,9 @@ START_TEST (test_marshal_init)
   MBuffer* result = marshal_init (mbuf, OMB_DATA_P);
 
   fail_if (mbuf != result);
-  fail_unless (mbuf->base[0] == 0xAA);
-  fail_unless (mbuf->base[1] == 0xAA);
-  fail_unless ((int)mbuf->base[2] == OMB_DATA_P);
+  fail_unless (mbuf->base[2] == 0xAA);
+  fail_unless (mbuf->base[3] == 0xAA);
+  fail_unless ((int)mbuf->base[4] == OMB_DATA_P);
 }
 END_TEST
 
@@ -264,12 +265,12 @@ START_TEST (test_marshal_value_long)
   int result = marshal_value (mbuf, OML_LONG_VALUE, &v);
 
   uint32_t nv = 0;
-  memcpy (&nv, mbuf->base + 6, 4);
+  memcpy (&nv, mbuf->base + 8, 4);
   uint32_t hv = ntohl (nv);
   long val = (int32_t)hv;
 
   fail_if (result != 1);
-  fail_if ((int)*(mbuf->base + 5) != LONG_T); // LONG_T
+  fail_if ((int)*(FIRST_VALPTR(mbuf)) != LONG_T); // LONG_T
   fail_if (val != oml_value_clamp_long (v.longValue));
 }
 END_TEST
@@ -287,12 +288,12 @@ START_TEST (test_marshal_value_int32)
   int result = marshal_value (mbuf, OML_INT32_VALUE, &v);
 
   uint32_t nv = 0;
-  memcpy (&nv, mbuf->base + 6, 4);
+  memcpy (&nv, FIRST_VALPTR(mbuf) + 1, 4);
   uint32_t hv = ntohl (nv);
   int32_t val = (int32_t)hv;
 
   fail_if (result != 1);
-  fail_if ((int)*(mbuf->base + 5) != INT32_T); // INT32_T
+  fail_if ((int)*(FIRST_VALPTR(mbuf)) != INT32_T); // INT32_T
   fail_if (val != v.int32Value);
 }
 END_TEST
@@ -310,12 +311,12 @@ START_TEST (test_marshal_value_uint32)
   int result = marshal_value (mbuf, OML_UINT32_VALUE, &v);
 
   uint32_t nv = 0;
-  memcpy (&nv, mbuf->base + 6, 4);
+  memcpy (&nv, FIRST_VALPTR(mbuf) + 1, 4);
   uint32_t hv = ntohl (nv);
   uint32_t val = (uint32_t)hv;
 
   fail_if (result != 1);
-  fail_if ((int)*(mbuf->base + 5) != UINT32_T); // UINT32_T
+  fail_if ((int)*(FIRST_VALPTR(mbuf)) != UINT32_T); // UINT32_T
   fail_if (val != v.uint32Value);
 }
 END_TEST
@@ -333,12 +334,12 @@ START_TEST (test_marshal_value_int64)
   int result = marshal_value (mbuf, OML_INT64_VALUE, &v);
 
   uint64_t nv = 0;
-  memcpy (&nv, mbuf->base + 6, 8);
+  memcpy (&nv, FIRST_VALPTR (mbuf) + 1, 8);
   uint64_t hv = ntohll (nv);
   int64_t val = (int64_t)hv;
 
   fail_if (result != 1);
-  fail_if ((int)*(mbuf->base + 5) != INT64_T); // INT64_T
+  fail_if ((int)*(FIRST_VALPTR(mbuf)) != INT64_T); // INT64_T
   fail_if (val != v.int64Value);
 }
 END_TEST
@@ -356,12 +357,12 @@ START_TEST (test_marshal_value_uint64)
   int result = marshal_value (mbuf, OML_UINT64_VALUE, &v);
 
   uint64_t nv = 0;
-  memcpy (&nv, mbuf->base + 6, 8);
+  memcpy (&nv, FIRST_VALPTR(mbuf) + 1, 8);
   uint64_t hv = ntohll (nv);
   uint64_t val = (uint64_t)hv;
 
   fail_if (result != 1);
-  fail_if ((int)*(mbuf->base + 5) != UINT64_T); // UINT64_T
+  fail_if ((int)*(FIRST_VALPTR(mbuf)) != UINT64_T); // UINT64_T
   fail_if (val != v.uint64Value);
 }
 END_TEST
@@ -382,10 +383,10 @@ START_TEST (test_marshal_value_double)
 
   int result = marshal_value (mbuf, OML_DOUBLE_VALUE, &v);
 
-  uint8_t type = mbuf->base[5];
+  uint8_t type = *FIRST_VALPTR(mbuf);
   uint32_t nv = 0;
-  memcpy (&nv, &mbuf->base[6], 4);
-  int8_t exp = mbuf->base[10];
+  memcpy (&nv, FIRST_VALPTR(mbuf) + 1, 4);
+  int8_t exp = *(FIRST_VALPTR(mbuf) + 5);
   uint32_t hv = ntohl (nv);
   int mant = (int)hv;
 
@@ -420,21 +421,21 @@ START_TEST (test_marshal_value_string)
   int result = marshal_value (mbuf, OML_STRING_VALUE, &v);
 
   fail_if (result != 1);
-  fail_if (mbuf->base[5] != 0x4); // STRING_T
+  fail_if (*FIRST_VALPTR(mbuf) != 0x4); // STRING_T
 
   memset (string_buf, 0, MAX_MARSHALLED_STRING_LENGTH);
-  memcpy (string_buf, &mbuf->base[7], mbuf->base[6]);
+  memcpy (string_buf, FIRST_VALPTR (mbuf) + 2, *(FIRST_VALPTR (mbuf) + 1));
 
   if (len <= MAX_MARSHALLED_STRING_LENGTH)
     {
-      fail_if (mbuf->base[6] != len); // Length of string
+      fail_if (*(FIRST_VALPTR(mbuf) + 1) != len); // Length of string
       fail_if (strlen ((char*)string_buf) != len);
       fail_if (strcmp ((char*)string_buf, test_string) != 0);
       // FIXME:  Check that the buffer is zero past the last element of the test string.
     }
   else
     {
-      fail_if (mbuf->base[6] != MAX_MARSHALLED_STRING_LENGTH); // Length of string
+      fail_if (*(FIRST_VALPTR(mbuf) + 1) != MAX_MARSHALLED_STRING_LENGTH); // Length of string
       fail_if (strlen((char*)string_buf) != MAX_MARSHALLED_STRING_LENGTH);
       fail_if (strncmp ((char*)string_buf, test_string, MAX_MARSHALLED_STRING_LENGTH) != 0);
       // FIXME:  Check that the buffer doesn't contain more elements of the test string than it should
@@ -444,7 +445,7 @@ END_TEST
 
 START_TEST (test_marshal_unmarshal_long)
 {
-  int VALUES_OFFSET = 5;
+  int VALUES_OFFSET = 7;
   const int UINT32_LENGTH = 5;
   const int UINT32_TYPE_OFFSET = 0;
   const int UINT32_VALUE_OFFSET = 1;
@@ -482,6 +483,10 @@ START_TEST (test_marshal_unmarshal_long)
 
   marshal_finalize (mbuf);
 
+  // Skip over the padding bytes introduced by the kludge for
+  // marshalling possibly long packets.
+  mbuf_read_skip (mbuf, 2);
+
   OmlBinaryHeader header;
   result = unmarshal_init (mbuf, &header);
   fail_if (result == -1);
@@ -511,7 +516,7 @@ END_TEST
 
 START_TEST (test_marshal_unmarshal_int32)
 {
-  int VALUES_OFFSET = 5;
+  int VALUES_OFFSET = 7;
   const int UINT32_LENGTH = 5;
   const int UINT32_TYPE_OFFSET = 0;
   const int UINT32_VALUE_OFFSET = 1;
@@ -549,6 +554,8 @@ START_TEST (test_marshal_unmarshal_int32)
 
   marshal_finalize (mbuf);
 
+  mbuf_read_skip (mbuf, 2);
+
   OmlBinaryHeader header;
   result = unmarshal_init (mbuf, &header);
   fail_if (result == -1);
@@ -573,7 +580,7 @@ END_TEST
 
 START_TEST (test_marshal_unmarshal_uint32)
 {
-  int VALUES_OFFSET = 5;
+  int VALUES_OFFSET = 7;
   const int UINT32_LENGTH = 5;
   const int UINT32_TYPE_OFFSET = 0;
   const int UINT32_VALUE_OFFSET = 1;
@@ -611,6 +618,10 @@ START_TEST (test_marshal_unmarshal_uint32)
 
   marshal_finalize (mbuf);
 
+  // Skip over the padding bytes introduced by the kludge for
+  // marshalling possibly long packets.
+  mbuf_read_skip (mbuf, 2);
+
   OmlBinaryHeader header;
   result = unmarshal_init (mbuf, &header);
   fail_if (result == -1);
@@ -635,7 +646,7 @@ END_TEST
 
 START_TEST (test_marshal_unmarshal_int64)
 {
-  int VALUES_OFFSET = 5;
+  int VALUES_OFFSET = 7;
   const int UINT64_LENGTH = 9;
   const int UINT64_TYPE_OFFSET = 0;
   const int UINT64_VALUE_OFFSET = 1;
@@ -673,6 +684,10 @@ START_TEST (test_marshal_unmarshal_int64)
 
   marshal_finalize (mbuf);
 
+  // Skip over the padding bytes introduced by the kludge for
+  // marshalling possibly long packets.
+  mbuf_read_skip (mbuf, 2);
+
   OmlBinaryHeader header;
   result = unmarshal_init (mbuf, &header);
   fail_if (result == -1);
@@ -697,7 +712,7 @@ END_TEST
 
 START_TEST (test_marshal_unmarshal_uint64)
 {
-  int VALUES_OFFSET = 5;
+  int VALUES_OFFSET = 7;
   const int UINT64_LENGTH = 9;
   const int UINT64_TYPE_OFFSET = 0;
   const int UINT64_VALUE_OFFSET = 1;
@@ -733,6 +748,10 @@ START_TEST (test_marshal_unmarshal_uint64)
       fail_if (val != v.uint64Value);
     }
 
+  // Skip over the padding bytes introduced by the kludge for
+  // marshalling possibly long packets.
+  mbuf_read_skip (mbuf, 2);
+
   marshal_finalize (mbuf);
 
   OmlBinaryHeader header;
@@ -759,7 +778,7 @@ END_TEST
 
 START_TEST (test_marshal_unmarshal_double)
 {
-  int VALUES_OFFSET = 5;
+  int VALUES_OFFSET = 7;
   const int DOUBLE_LENGTH = 6;
   const int DOUBLE_TYPE_OFFSET = 0;
   const int DOUBLE_MANT_OFFSET = 1;
@@ -802,6 +821,10 @@ START_TEST (test_marshal_unmarshal_double)
                val, v.doubleValue);
     }
 
+  // Skip over the padding bytes introduced by the kludge for
+  // marshalling possibly long packets.
+  mbuf_read_skip (mbuf, 2);
+
   marshal_finalize (mbuf);
 
   OmlBinaryHeader header;
@@ -827,7 +850,7 @@ END_TEST
 
 START_TEST (test_marshal_unmarshal_string)
 {
-  int VALUES_OFFSET = 5;
+  int VALUES_OFFSET = 7;
   const int STRING_TYPE_OFFSET = 0;
   const int STRING_LENGTH_OFFSET = 1;
   const int STRING_VALUE_OFFSET = 2;
@@ -885,6 +908,10 @@ START_TEST (test_marshal_unmarshal_string)
     }
 
   marshal_finalize (mbuf);
+
+  // Skip over the padding bytes introduced by the kludge for
+  // marshalling possibly long packets.
+  mbuf_read_skip (mbuf, 2);
 
   OmlBinaryHeader header;
   unmarshal_init (mbuf, &header);

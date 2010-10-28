@@ -1,6 +1,6 @@
 
 TESTS_ENVIRONMENT = top_builddir=$(top_builddir)
-TESTS = run.sh
+TESTS = run.sh run-long.sh
 
 check_PROGRAMS = blobgen
 
