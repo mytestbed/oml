@@ -1,3 +1,25 @@
+2010-10-29  Jolyon White  <jolyon.white@nicta.com.au>
+
+	* OML: New version 2.5.0
+
+	* liboml2, oml2-server: The client and server now support a new
+	type:  OML_BLOB_VALUE.  This type allows for arbitrary binary
+	large objects (BLOBS) to be transmitted and stored in the SQLite
+	database; only the binary protocol supports blobs, not the text
+	protocol.  This change also required a new packet type in the
+	binary protocol, to support measurement packets larger than 64KiB.
+
+	* oml2-proxy-server: Proxy server has been redesigned to support
+	multiple connect->disconnect->reconnect cycles.  The RESUME
+	command initiates connections to the downstream oml2-server, and
+	the PAUSE command closes them.  The proxy server now processes
+	protocol metadata headers at the start of the stream, and parses
+	just enough of each measurement packet to determine the packet
+	boundaries so that it doesn't send partial packets.  It also
+	re-sends the metadata headers each time the RESUME command is
+	given.  (Also, RESUME and PAUSE have been introduced as simpler
+	synonyms for OMLPROXY-RESUME and OMLPROXY-PAUSE.)
+
 2010-09-08  Jolyon White  <jolyon.white@nicta.com.au>
 
 	* OML: New version 2.4.0
