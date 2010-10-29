@@ -1,3 +1,9 @@
+oml2 (2.5.0-ubuntu1) lucid; urgency=low
+
+  * New upstream release OML 2.5.0
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Fri, 29 Oct 2010 12:33:01 +0900
+
 oml2 (2.4.0-ubuntu2) lucid; urgency=low
 
   * Fix library dependencies to be less strict (don't use ${shlibs:Depends}).
