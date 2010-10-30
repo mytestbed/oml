@@ -63,21 +63,22 @@ static struct {
   const char *input;
   struct header header;
   int is_null;
+  int is_null_short; // NULL in the short test
 } vector_headers [] = {
-  { "protocol: 1", { H_PROTOCOL, "1", NULL }, 0 },
-  { "experiment-id: abc", { H_EXPERIMENT_ID, "abc", NULL }, 0 },
-  { "content: binary", { H_CONTENT, "binary", NULL }, 0 },
-  { "content: text  ", { H_CONTENT, "text  ", NULL }, 0 },
-  { "content: t", { H_CONTENT, "t", NULL }, 0 },
-  { "app-name   :  generator", { H_APP_NAME, "generator", NULL }, 0 },
-  { "schema : 1 label:string", { H_SCHEMA, "1 label:string", NULL }, 0 },
-  { "start_time: 123456690", { H_START_TIME, "123456690", NULL }, 0 },
-  { "start-time: 123456690", { H_START_TIME, "123456690", NULL }, 0 },
-  { "", { H_NONE, NULL, NULL }, 1 },
-  { " ", { H_NONE, NULL, NULL }, 1 },
-  { NULL, { H_NONE, NULL, NULL }, 1 },
-  { "not-a-header", { H_NONE, NULL, NULL }, 1 },
-  { "not-a-header : with a value", { H_NONE, NULL, NULL }, 1 },
+  { "protocol: 1", { H_PROTOCOL, "1", NULL }, 0, 1 },
+  { "experiment-id: abc", { H_EXPERIMENT_ID, "abc", NULL }, 0, 0 },
+  { "content: binary", { H_CONTENT, "binary", NULL }, 0, 0 },
+  { "content: text  ", { H_CONTENT, "text  ", NULL }, 0, 0 },
+  { "content: t", { H_CONTENT, "t", NULL }, 0, 1 },
+  { "app-name   :  generator", { H_APP_NAME, "generator", NULL }, 0, 0 },
+  { "schema : 1 label:string", { H_SCHEMA, "1 label:string", NULL }, 0, 0 },
+  { "start_time: 123456690", { H_START_TIME, "123456690", NULL }, 0, 0 },
+  { "start-time: 123456690", { H_START_TIME, "123456690", NULL }, 0, 0 },
+  { "", { H_NONE, NULL, NULL }, 1, 1 },
+  { " ", { H_NONE, NULL, NULL }, 1, 1 },
+  { NULL, { H_NONE, NULL, NULL }, 1, 1 },
+  { "not-a-header", { H_NONE, NULL, NULL }, 1, 1 },
+  { "not-a-header : with a value", { H_NONE, NULL, NULL }, 1, 1 },
 };
 
 
@@ -117,7 +118,7 @@ START_TEST (test_header_from_string_short)
   struct header *header;
   const char *input = vector_headers[_i].input;
   const struct header *expected = &vector_headers[_i].header;
-  const int is_null = vector_headers[_i].is_null;
+  const int is_null = vector_headers[_i].is_null_short;
   size_t len = input ? strlen (input) : 0;
 
   /* Adjust so we don't read the whole string, but only if the string
