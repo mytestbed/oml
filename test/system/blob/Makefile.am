@@ -11,6 +11,9 @@ blobgen_CPPFLAGS = \
 	-I$(top_srcdir)/lib/client \
 	-I$(top_srcdir)/lib/ocomm
 
-blobgen_LDADD = $(top_builddir)/lib/client/liboml2.la -lpopt
+blobgen_LDADD = \
+	$(top_builddir)/lib/ocomm/libocomm.la \
+	$(top_builddir)/lib/client/liboml2.la \
+	-lpopt
 
 CLEANFILES=*.hex *.bin *.sq3 *.log
