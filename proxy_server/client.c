@@ -97,7 +97,9 @@ client_free (Client *client)
   struct header *header = client->headers;
 
   while (header) {
+    struct header *next = header->next;
     header_free (header);
+    header = next;
   }
 
   msg_queue_destroy (client->messages);
