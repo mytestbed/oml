@@ -55,6 +55,7 @@ install: build
 	# Make directories for all debian packages
 	mkdir -p $(CURDIR)/debian/oml2-server/usr/bin
 	mkdir -p $(CURDIR)/debian/oml2-proxy-server/usr/bin
+	mkdir -p $(CURDIR)/debian/oml2-proxycon/usr/bin
 	mkdir -p $(CURDIR)/debian/liboml2-0/usr/lib
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/include
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/bin
@@ -68,6 +69,9 @@ install: build
 
 	# Build the oml2-proxy-server package
 	mv $(CURDIR)/debian/tmp/usr/bin/oml2-proxy-server $(CURDIR)/debian/oml2-proxy-server/usr/bin
+
+	# Build the oml2-proxycon package
+	mv $(CURDIR)/debian/tmp/usr/bin/oml2-proxycon $(CURDIR)/debian/oml2-proxycon/usr/bin
 
 	# Build the liboml2-dev package
 	mv $(CURDIR)/debian/tmp/usr/include/oml2 $(CURDIR)/debian/liboml2-dev/usr/include/

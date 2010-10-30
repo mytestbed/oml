@@ -21,7 +21,7 @@ Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
 Depends: ${misc:Depends}, libc6, libpopt0, libocomm0 (= ${Source-Version})
-Description: OML measurement server
+Description: OML proxy server
  The OML proxy server acts as a buffer for measurements.  It accepts
  connections from OML client applications and then stores them in
  memory and on disk until the user issues a RESUME command, whereupon
@@ -30,6 +30,14 @@ Description: OML measurement server
  the oml2-server, or where the applications generate measurements at
  such a high rate that they can't be sent over the network without
  impacting the outcome experiment itself.
+
+Package: oml2-proxycon
+Architecture: any
+Depends: ${misc:Depends}, ruby
+Description: OML proxy server control script
+ The OML proxy server control script allows a remote user to control an
+ OML proxy server via its socket control interface.  Allows users to PAUSE
+ and RESUME transmission to the downstream server.
 
 Package: liboml2-dev
 Section: libdevel
