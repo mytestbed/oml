@@ -7,7 +7,8 @@
 	large objects (BLOBS) to be transmitted and stored in the SQLite
 	database; only the binary protocol supports blobs, not the text
 	protocol.  This change also required a new packet type in the
-	binary protocol, to support measurement packets larger than 64KiB.
+	binary protocol, to support measurement packets larger than
+	64KiB. Protocol version is now version 3.
 
 	* oml2-proxy-server: Proxy server has been redesigned to support
 	multiple connect->disconnect->reconnect cycles.  The RESUME
@@ -19,6 +20,22 @@
 	re-sends the metadata headers each time the RESUME command is
 	given.  (Also, RESUME and PAUSE have been introduced as simpler
 	synonyms for OMLPROXY-RESUME and OMLPROXY-PAUSE.)
+
+	* oml2-proxy-server: Proxy server now supports a simple
+	socket-based control interface.  It accepts the same commands as
+	standard input, linebuffered.  The script oml2-proxycon provides a
+	remote terminal for this interface.  It can be used as a guide for
+	custom scripting.  The proxy server listens on port n+1 for
+	control connections, where port n is the data port set using the
+	-l option.  Note:  this design is experimental and may change in a
+	future release.
+
+	* oml2-server: Fixed bug #463; the server was sometimes getting
+	confused about packet boundaries and tried to interpret the
+	metadata headers as binary packet data.  This bug seemed to be
+	timing-sensitve as it only happened for high-rate senders.  Server
+	now correctly skips past the headers in all cases and correctly
+	synchronizes on the SYNC_BYTEs (0xAA 0xAA).
 
 2010-09-08  Jolyon White  <jolyon.white@nicta.com.au>
 
