@@ -229,6 +229,7 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
     command[buf_size-1] = '\0';
 
   printf ("Received command: %s\n", command);
+  logdebug ("Received command: %s\n", command);
 
   if ((strcmp (command, "OMLPROXY-RESUME") == 0) ||
       (strcmp (command, "RESUME") == 0)) {
@@ -257,6 +258,14 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
       current = current->next;
     }
   }
+}
+
+void
+on_control_connect (Socket *sock, void *handle)
+{
+  (void)handle; // This parameter is unused
+  logdebug ("New control connection\n");
+  eventloop_on_read_in_channel (sock, stdin_handler, NULL, (void*)session);
 }
 
 void
@@ -312,8 +321,9 @@ main(int argc, const char *argv[])
 
   session->state = ProxyState_PAUSED;
 
-  Socket* serverSock;
+  Socket* serverSock, *controlSock;
   serverSock = socket_server_new("proxy_server", listen_port, on_connect, NULL);
+  controlSock = socket_server_new("proxy_server_control", listen_port + 1, on_control_connect, NULL);
 
   eventloop_on_stdin(stdin_handler, session);
   eventloop_run();

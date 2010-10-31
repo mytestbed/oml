@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+require 'socket'
+
+def run
+  $stdout.write("> ")
+  command = $stdin.gets.chomp.upcase
+
+  s = TCPSocket.open(ARGV[0], ARGV[1])
+
+  while command != "QUIT"
+    puts "GOT:  '#{command}'"
+    s.puts(command)
+    $stdout.write("> ")
+    command = $stdin.gets.chomp.upcase
+  end
+end
+
+if __FILE__ == $PROGRAM_NAME then run; end

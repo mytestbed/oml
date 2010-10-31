@@ -7,6 +7,8 @@ AM_CPPFLAGS = \
 
 bin_PROGRAMS = oml2-proxy-server
 
+bin_SCRIPTS = oml2-proxycon
+
 oml2_proxy_server_SOURCES = \
 	main.c \
 	receiver.c \
