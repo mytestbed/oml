@@ -62,7 +62,7 @@ blob_to_file (int index, void *blob, size_t n)
 
   result = write (fd, blob, n);
   if (result == -1) {
-    fprintf (stderr, "Error writing blob (%lu bytes) to file: %s\n", n, strerror (errno));
+    fprintf (stderr, "Error writing blob (%u bytes) to file: %s\n", n, strerror (errno));
     close (fd);
     exit (1);
   }
