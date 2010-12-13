@@ -19,18 +19,12 @@ if [ ! -x ${blobgen} ]; then
 	exit 1
 fi
 
-$blobgen -n 100 $long --oml-id a --oml-exp-id ${exp} --oml-server localhost:$port || exit 1
+$blobgen -h -n 100 $long --oml-id a --oml-exp-id ${exp} --oml-server localhost:$port || exit 1
 
 echo "Blob generating client finished OK"
 sleep 1
 kill $server_pid
 echo "Analyzing blobs"
-
-# Convert blobs to hex
-for i in g*.bin; do
-	printf "\rConverting binary blobs: $i   "
-	${srcdir}/bin2hex.rb $i
-done
 
 printf "\n...done\n"
 

@@ -10,12 +10,14 @@
 
 static int longblob = 0;
 static int samples = -1;
+static int hex = 0;
 static int quiet = 0;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
   { "long", 'l', POPT_ARG_NONE, &longblob, 0, "Generate long blobs (> 64KiB)"},
   { "samples", 'n', POPT_ARG_INT, &samples, 0, "Number of samples to generate. Default=forever"},
+  { "hex", 'h', POPT_ARG_NONE, &hex, 0, "Generate HEX file output instead of binary"},
   { "quiet", 'q', POPT_ARG_NONE, &quiet, 0, "If set, don't print"},
   { NULL, 0, 0, NULL, 0 }
 };
@@ -47,20 +49,44 @@ randgen (size_t *n)
   return data;
 }
 
+int
+write_blob_bin (int fd, void *blob, size_t n)
+{
+  return write (fd, blob, n);
+}
+
+int
+write_blob_hex (int fd, void *blob, size_t n)
+{
+  char hex [] = "0123456789ABCDEF";
+  int i = 0;
+  uint8_t *hexblob = malloc (2 * n);
+  int result = 0;
+  for (i = 0; i < n; i++) {
+    uint8_t *nybbles = (uint8_t*)hexblob + 2 * i;
+    uint8_t *data = (uint8_t*)blob + i;
+    nybbles[0] = hex[(*data >> 4) & 0xF];
+    nybbles[1] = hex[*data & 0xF];
+  }
+  result = write (fd, hexblob, 2 * n);
+  free (hexblob);
+  return result;
+}
+
 void
 blob_to_file (int index, void *blob, size_t n)
 {
   char s[64];
   int fd, result;
 
-  snprintf (s, sizeof(s), "g%d.bin", index);
+  snprintf (s, sizeof(s), "g%d.%s", index, hex ? "hex" : "bin");
   fd = open (s, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
   if (fd == -1) {
     fprintf (stderr, "Could not open file %s: %s\n", s, strerror (errno));
     exit (1);
   }
 
-  result = write (fd, blob, n);
+  result = (hex ? write_blob_hex : write_blob_bin) (fd, blob, n);
   if (result == -1) {
     fprintf (stderr, "Error writing blob (%u bytes) to file: %s\n", n, strerror (errno));
     close (fd);
