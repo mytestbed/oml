@@ -37,7 +37,7 @@ session_remove_client (Session *session, Client *client)
 {
   if (client == NULL || session == NULL) return;
   Client *current = session->clients;
-  if (current = client)
+  if (current == client)
     session->clients = current->next;
   else
     while (current) {
