@@ -180,8 +180,6 @@ cbuf_write_cursor (CBuffer *cbuf, struct cbuffer_cursor *cursor)
 
   cursor->page = cbuf->tail;
   cursor->index = cursor->page->fill;
-
-  return cursor;
 }
 
 /**

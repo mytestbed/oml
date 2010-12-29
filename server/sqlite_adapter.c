@@ -107,7 +107,7 @@ reopen_transaction (Sq3DB *db)
   return 0;
 }
 
-static int first_row;
+//static int first_row;
 
 const char* SQL_CREATE_EXPT_METADATA = "CREATE TABLE _experiment_metadata (key TEXT PRIMARY KEY, value TEXT);";
 const char* SQL_CREATE_SENDERS       = "CREATE TABLE _senders (name TEXT PRIMARY KEY, id INTEGER UNIQUE);";
@@ -447,6 +447,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
   return sqlite3_reset(stmt);
 }
 
+#if 0 // select_callback is not used anywhere in this translation unit, but it's static!
 static int
 select_callback(void* p_data, int num_fields, char** p_fields, char** p_col_names)
 {
@@ -473,7 +474,9 @@ select_callback(void* p_data, int num_fields, char** p_fields, char** p_col_name
   printf("\n");
   return 0;
 }
+#endif
 
+#if 0 // select_stmt is not used anywhere in this translation unit, but it's static!
 static int
 select_stmt(Sq3DB* self, const char* stmt)
 {
@@ -491,6 +494,8 @@ select_stmt(Sq3DB* self, const char* stmt)
   }
   return nrecs;
 }
+#endif
+
 /**
  * \brief Execute sqlite3 statement
  * \param self the sqlite3 database

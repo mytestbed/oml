@@ -285,7 +285,7 @@ oml_value_to_s (OmlValueU *value, OmlValueT type, char *buf)
   case OML_DOUBLE_VALUE: sprintf(buf, "%f",  value->doubleValue); break;
   case OML_STRING_VALUE: sprintf(buf, "%s",  value->stringValue.ptr); break;
   case OML_BLOB_VALUE: {
-    const int max_bytes = 6;
+    const unsigned int max_bytes = 6;
     int bytes = value->blobValue.fill < max_bytes ? value->blobValue.fill : max_bytes;
     int i = 0;
     int n = 5;

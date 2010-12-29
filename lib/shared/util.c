@@ -21,10 +21,12 @@
  *
  */
 
+#include <stdio.h> // For snprintf
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <log.h>
+#include "mem.h"
 #include "util.h"
 
 void

@@ -378,6 +378,7 @@ set_filter_property(
     const char* pvalue
 ) {
   OmlValue v;
+  (void)ptype;
 
   if (oml_value_from_s (&v, pvalue) == -1) {
     logerror("Error converting property '%s' value from string '%s'\n",

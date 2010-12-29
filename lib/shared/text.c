@@ -59,13 +59,13 @@ static int
 text_read_value (MBuffer *mbuf, OmlValue *value, size_t line_length)
 {
   uint8_t *line = mbuf_rdptr (mbuf);
-  int field_length = mbuf_find (mbuf, '\t');
+  size_t field_length = mbuf_find (mbuf, '\t');
   int len;
   int ret = 0;
   uint8_t save;
 
   /* No tab '\t' found on this line --> final field */
-  if (field_length == -1 || field_length > line_length)
+  if (field_length == (size_t)-1 || field_length > line_length)
     len = line_length;
   else
     len = field_length;
@@ -73,7 +73,7 @@ text_read_value (MBuffer *mbuf, OmlValue *value, size_t line_length)
   save = line[len];
   line[len] = '\0';
 
-  ret = oml_value_from_s (value, line);
+  ret = oml_value_from_s (value, (char*)line);
   line[len] = save;
 
   len++; // Skip the separator
@@ -88,8 +88,6 @@ text_read_value (MBuffer *mbuf, OmlValue *value, size_t line_length)
 int
 text_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
 {
-  uint8_t *line = mbuf_rdptr (mbuf);
-  uint8_t *end;
   int len = mbuf_find (mbuf, '\n'); // Find length of line
   OmlValue value;
   int bytes = 0;

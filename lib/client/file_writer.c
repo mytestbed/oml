@@ -160,7 +160,7 @@ out(OmlWriter* writer, OmlValue* values, int value_count)
     case OML_DOUBLE_VALUE: fprintf(f, "\t%f",  v->value.doubleValue); break;
     case OML_STRING_VALUE: fprintf(f, "\t%s",  v->value.stringValue.ptr); break;
     case OML_BLOB_VALUE: {
-      const int max_bytes = 6;
+      const unsigned int max_bytes = 6;
       int bytes = v->value.blobValue.fill < max_bytes ? v->value.blobValue.fill : max_bytes;
       int i = 0;
       fprintf (f, "blob ");

@@ -227,7 +227,7 @@ socket_in_new(
   instances = self;
   return (Socket*)self;
 }
-
+#if 0 // Suppress compiler warning b/c on_self_connected never used
 static void
 on_self_connected(
   Socket* source,
@@ -245,6 +245,7 @@ on_self_connected(
     o_log(O_LOG_ERROR, "Socket(%s): Unknown socket status '%d'\n", self->name, status);
   }
 }
+#endif
 
 /* Connect to remote addr.
  *  If addr is NULL, assume the servAddr is already populated

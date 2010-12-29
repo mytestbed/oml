@@ -73,11 +73,11 @@ struct poptOption options[] = {
   { "db", 'b', POPT_ARG_STRING, &backend, 0, "Database server backend", DEFAULT_DB_BACKEND},
   { "hostname", 'h', POPT_ARG_STRING, &hostname, 0, "Database server hostname", DEFAULT_DB_HOST},
   { "user", 'u', POPT_ARG_STRING, &user, 0, "Database server username", DEFAULT_DB_USER},
-  { "data-dir", '\0', POPT_ARG_STRING, &g_database_data_dir, 0, "Directory to store database files (sqlite)" },
-  { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level - 1 .. 4"  },
+  { "data-dir", '\0', POPT_ARG_STRING, &g_database_data_dir, 0, "Directory to store database files (sqlite)", "DIR" },
+  { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level", "{1 .. 4}"  },
   { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0, "File to log to", DEFAULT_LOG_FILE },
-  { "version", 'v', 0, 0, 'v', "Print version information and exit" },
-  { NULL, 0, 0, NULL, 0 }
+  { "version", 'v', 0, 0, 'v', "Print version information and exit", NULL },
+  { NULL, 0, 0, NULL, 0, NULL, NULL }
 };
 
 static struct db_backend

@@ -86,7 +86,7 @@ read_header (Client *self, MBuffer *mbuf)
     // Empty line denotes separator between header and body
     int skip_count = mbuf_find_not (mbuf, '\n');
     if (skip_count == -1) {
-      while (mbuf_find (mbuf, '\n') != -1)
+      while (mbuf_find (mbuf, '\n') != (size_t)-1)
         mbuf_read_skip (mbuf, 1);
     } else {
       mbuf_read_skip (mbuf, skip_count);

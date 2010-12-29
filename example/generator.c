@@ -20,18 +20,13 @@ static int quiet = 0;       /* if 1 don't print anything */
 
 struct poptOption options[] = {
   POPT_AUTOHELP
-  { "amplitude", 'b', POPT_ARG_FLOAT, &amplitude, 0,
-        "Amplitude of produce signal"},
-  { "frequency", 'd', POPT_ARG_FLOAT, &frequency, 0,
-        "Frequency of wave generated [Hz]"  },
-  { "samples", 'n', POPT_ARG_INT, &samples, 0,
-        "Number of samples to take. -1 ... forever"},
-  { "sample-interval", 's', POPT_ARG_FLOAT, &sample_interval, 0,
-        "Time between consecutive measurements [sec]"},
-  { "fast", 'f', POPT_ARG_NONE, &fast, 0, "Run fast:  don't actually pause between samples" },
-  { "quiet", 'q', POPT_ARG_NONE, &quiet, 0,
-        "If set, don't print"},
-  { NULL, 0, 0, NULL, 0 }
+  { "amplitude", 'b', POPT_ARG_FLOAT, &amplitude, 0, "Amplitude of produce signal", NULL },
+  { "frequency", 'd', POPT_ARG_FLOAT, &frequency, 0, "Frequency of wave generated [Hz]", NULL },
+  { "samples", 'n', POPT_ARG_INT, &samples, 0, "Number of samples to take. -1 => forever", NULL},
+  { "sample-interval", 's', POPT_ARG_FLOAT, &sample_interval, 0, "Time between consecutive measurements [sec]", NULL},
+  { "fast", 'f', POPT_ARG_NONE, &fast, 0, "Run fast:  don't actually pause between samples", NULL },
+  { "quiet", 'q', POPT_ARG_NONE, &quiet, 0, "If set, don't print", NULL},
+  { NULL, 0, 0, NULL, 0, NULL, NULL }
 };
 
 static OmlMPDef d_lin[] = {

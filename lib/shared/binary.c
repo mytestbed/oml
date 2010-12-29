@@ -124,13 +124,13 @@ bin_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
   switch (packet_type) {
   case OMB_DATA_P:
     // FIXME:  Return type (maybe not enough bytes)
-    mbuf_read (mbuf, &msglen16, 2);
+    mbuf_read (mbuf, (uint8_t*)&msglen16, 2);
     msglen16 = ntohs (msglen16);
     length = (uint32_t)msglen16;
     header_length = 5;
     break;
   case OMB_LDATA_P:
-    mbuf_read (mbuf, &length, 4);
+    mbuf_read (mbuf, (uint8_t*)&length, 4);
     length = ntohl (length);
     header_length = 7;
     break;
@@ -171,7 +171,6 @@ bin_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
 int
 bin_read_msg_values (struct oml_message *msg, MBuffer *mbuf, struct schema *schema, OmlValue *values)
 {
-  int index = mbuf_message_index (mbuf);
   int i = 0;
 
   if (msg->count != schema->nfields)

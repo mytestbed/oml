@@ -722,7 +722,7 @@ unmarshal_value(
     case BLOB_T: {
       uint32_t n_len;
 
-      if (mbuf_read (mbuf, &n_len, 4) == -1) {
+      if (mbuf_read (mbuf, (uint8_t*)&n_len, 4) == -1) {
         logerror ("Failed to unmarshal OML_BLOB_VALUE length field; not enough data?\n");
         return 0;
       }

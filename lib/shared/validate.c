@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "validate.h"
 
 static int
@@ -56,7 +57,7 @@ validate_name (const char* name)
   do {
     if (!valid_name_char (*p))
       return 0;
-  } while ((++p - name) < len);
+  } while ((size_t)(++p - name) < len);
 
   return 1;
 }

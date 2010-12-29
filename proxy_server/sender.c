@@ -126,7 +126,7 @@ client_send_headers (Client *client)
     H_SENDER_ID,
     H_APP_NAME,
   };
-  int i = 0;
+  unsigned int i = 0;
 
   for (i = 0; i < sizeof (header_tags) / sizeof (header_tags[0]); i++) {
     if (client_send_header (client, client->header_table[header_tags[i]]) == -1)

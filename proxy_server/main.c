@@ -71,6 +71,8 @@ struct poptOption options[] = {
   { NULL,          0,    0,               NULL,             0,   NULL,                                   NULL }
 };
 
+void
+proxy_message_loop (const char *client_id, Client *client, void *buf, size_t size);
 
 /**
  * \brief function called when the socket receive some data
@@ -223,6 +225,7 @@ stdin_handler(SockEvtSource* source, void* handle, void* buf, int buf_size)
 {
   Session *proxy = (Session*)handle;
   char command[80];
+  (void)source;
   strncpy (command, buf, 80);
 
   if (buf_size < 80 && command[buf_size-1] == '\n')

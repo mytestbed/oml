@@ -33,6 +33,7 @@
 static int
 dummy_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
 {
+  (void)msg; (void)mbuf;
   return -1;
 }
 

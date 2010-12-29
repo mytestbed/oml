@@ -89,14 +89,14 @@ schema_from_meta (char *meta)
     return NULL; /* no digits found */
   p = q;
 
-  p = skip_white (p);
-  q = find_white (p);
+  p = (char*)skip_white (p);
+  q = (char*)find_white (p);
   name = xstrndup (p, (q - p));
   p = q;
 
   while (q && *q) {
-    p = skip_white (p);
-    q = find_white (p);
+    p = (char*)skip_white (p);
+    q = (char*)find_white (p);
     if (p != q) {
       nfields++;
       fields_size += sizeof (struct schema_field);
@@ -167,9 +167,9 @@ int
 schema_field_from_sql (char *sql, size_t len, struct schema_field *field)
 {
   char *p = sql, *q;
-  q = find_white (p);
+  q = (char*)find_white (p);
   field->name = xstrndup (p, q - p);
-  q = skip_white (q);
+  q = (char*)skip_white (q);
   char *type = xstrndup (q, len - (q - p));
   if (!field->name || !type)
     goto exit;
@@ -232,18 +232,18 @@ schema_from_sql (char *sql)
   char *name;
   char *p = sql + command_len;
   char *q;
-  p = skip_white (p);
-  q = find_white (p);
+  p = (char*)skip_white (p);
+  q = (char*)find_white (p);
   name = xstrndup (p, (q - p));
   p = q;
-  p = skip_white (p);
+  p = (char*)skip_white (p);
 
   if (*p++ != '(') /* Opening paren of colspec */
     goto exit;
 
   q = p;
   while (q && *q && *q != ';') {
-    p = skip_white (p);
+    p = (char*)skip_white (p);
     q = memchr (p, ',', strlen (p));
     if (q == NULL) {
       q = memchr (p, ')', strlen (p));
