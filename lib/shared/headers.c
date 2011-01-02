@@ -130,7 +130,8 @@ tag_to_string (enum HeaderTag tag)
  *
  *  If the tag part is not recognized, NULL is returned.  If memory
  *  can't be allocated for the +struct header+, then NULL is returned
- *  instead.
+ *  instead.  If there is no colon ':' in the first +n+ characters of
+ *  +str+, then NULL is returned.
  *
  *  @param str Input string to parse
  *  @param n Number of characters of str to parse.
@@ -165,9 +166,9 @@ header_from_string (const char *str, size_t n)
 
   char * value = NULL;
   size_t valuelen = n - (q - str);
-  struct header *header;
+  struct header *header = NULL;
 
-  if (valuelen > 0) {
+  if ((int)valuelen > 0) {
     value = xstrndup (q, valuelen);
     if (!value)
       return NULL;
@@ -177,11 +178,12 @@ header_from_string (const char *str, size_t n)
       xfree (value);
       return NULL;
     }
+    header->tag = tag;
+    header->value = value;
+    return header;
   }
 
-  header->tag = tag;
-  header->value = value;
-  return header;
+  return NULL;
 }
 
 /**

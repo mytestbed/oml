@@ -5,7 +5,7 @@ fail=
 printf "Checking that server stored blobs match client-generated blobs\n"
 
 for f in g*.hex; do
-	g=$(basename -s .hex $f)
+	g=$(basename $f .hex)
 	s="s${g#g}"
 	if diff -qw $g.hex $s.hex; then
 		printf "\r$g <==> $s OK      "
