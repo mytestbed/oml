@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/socket.h>
 
 #include <mem.h>
@@ -60,7 +61,8 @@ typedef struct _omlNetOutStream {
 } OmlNetOutStream;
 
 static int open_socket(OmlNetOutStream* self);
-static size_t write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
+static size_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
+static int net_stream_close(OmlOutStream* hdl);
 
 /**
  * \fn OmlOutStream* net_stream_new(char* serverURI)
@@ -90,18 +92,18 @@ net_stream_new(const char *transport, const char *hostname, const char *port)
     return NULL;
   }
 
-  self->write = write;
+  self->write = net_stream_write;
+  self->close = net_stream_close;
   return (OmlOutStream*)self;
 }
 
 /**
- * \fn static int close(OmlWriter* writer)
  * \brief Called to close the socket
  * \param writer the netwriter to close the socket in
  * \return 0
  */
 static int
-close(
+net_stream_close(
   OmlOutStream* stream
 ) {
   OmlNetOutStream* self = (OmlNetOutStream*)stream;
@@ -137,7 +139,7 @@ open_socket(
 
 
 static size_t
-write(
+net_stream_write(
   OmlOutStream* hdl,
   uint8_t* buffer,
   size_t  length
