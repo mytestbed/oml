@@ -456,7 +456,8 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
 {
   OmlBinaryHeader header;
 
-  unsigned char* sync = find_sync (mbuf->base, mbuf->fill);
+  unsigned char* sync = find_sync (mbuf_rdptr (mbuf),
+                                   mbuf_remaining (mbuf));
   int sync_pos;
   if (sync == NULL)
     sync_pos = -1;
