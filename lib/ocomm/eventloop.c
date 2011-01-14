@@ -51,6 +51,10 @@ typedef struct _channel {
   //! If true, is active, otherwise ignore
   int is_active;
 
+  //! If true, this channel can be eventloop_socket_remove()'d
+  //! next time through the poll loop
+  int is_removable;
+
   //! Callback to call when channel is ready
   o_el_read_socket_callback read_cbk;
   o_el_monitor_socket_callback monitor_cbk;
@@ -173,6 +177,27 @@ update_fds(void)
   self.fds_dirty = 0;
 }
 
+static void
+do_read_callback (Channel *ch, void *buffer, int buf_size)
+{
+  if (ch->read_cbk && !ch->is_removable)
+    ch->read_cbk ((SockEvtSource*)ch, ch->handle, buffer, buf_size);
+}
+
+static void
+do_status_callback (Channel *ch, SocketStatus status, int error)
+{
+  if (ch->status_cbk && !ch->is_removable)
+    ch->status_cbk ((SockEvtSource*)ch, status, error, ch->handle);
+}
+
+static void
+do_monitor_callback (Channel *ch)
+{
+  if (ch->monitor_cbk)
+    ch->monitor_cbk((SockEvtSource*)ch, ch->handle);
+}
+
 void
 eventloop_run()
 {
@@ -221,33 +246,31 @@ eventloop_run()
             }
             ch->is_active = 0;
             self.fds_dirty = 1;
-            if (ch->status_cbk) {
-              ch->status_cbk((SockEvtSource*)ch, status, errno, ch->handle);
-            }
+            do_status_callback (ch, status, errno);
           } else {
             o_log(O_LOG_ERROR, "EventLoop: Expected error on socket '%s' but read '%s'\n", ch->name, buf);
           }
         } else if (self.fds[i].revents & POLLHUP) {
           ch->is_active = 0;
           self.fds_dirty = 1;
-          if (ch->status_cbk) {
-            /* Client closed the connection, but there might still be bytes
-               for us to read from our end of the connection. */
-            int len;
-            int fd = self.fds[i].fd;
-            char buf[MAX_READ_BUFFER_SIZE];
-            do {
-              if (fd == 0) {
-                len = read(fd, buf, MAX_READ_BUFFER_SIZE);
-              } else {
-                len = recv(fd, buf, 512, 0);
-              }
-              if (ch->read_cbk) {
-                ch->read_cbk ((SockEvtSource*)ch, ch->handle, buf, len);
-              }
-            } while (len > 0);
-            ch->status_cbk((SockEvtSource*)ch, SOCKET_CONN_CLOSED, 0, ch->handle);
-          }
+
+          /* Client closed the connection, but there might still be bytes
+             for us to read from our end of the connection. */
+          int len;
+          int fd = self.fds[i].fd;
+          char buf[MAX_READ_BUFFER_SIZE];
+          do {
+            if (fd == 0) {
+              len = read(fd, buf, MAX_READ_BUFFER_SIZE);
+            } else {
+              len = recv(fd, buf, 512, 0);
+            }
+            if (len > 0) {
+              o_log(O_LOG_DEBUG3, "Eventloop:  received %i octets\n", len);
+              do_read_callback (ch, buf, len);
+            }
+          } while (len > 0);
+          do_status_callback (ch, SOCKET_CONN_CLOSED, 0);
         } else if (self.fds[i].revents & POLLIN) {
           char buf[MAX_READ_BUFFER_SIZE];
           if (ch->read_cbk) {
@@ -262,17 +285,15 @@ eventloop_run()
             }
             if (len > 0) {
               o_log(O_LOG_DEBUG3, "Eventloop:  received %i octets\n", len);
-              ch->read_cbk((SockEvtSource*)ch, ch->handle, buf, len);
+              do_read_callback (ch, buf, len);
             } else if (len == 0 && ch->socket != NULL) {  // skip stdin
               // closed down
               ch->is_active = 0;
               self.fds_dirty = 1;
-              if (ch->status_cbk) {
-                // expect the callback to handle socket close
-                ch->status_cbk((SockEvtSource*)ch, SOCKET_CONN_CLOSED, 0, ch->handle);
-              } else {
+              // expect the callback to handle socket close
+              do_status_callback (ch, SOCKET_CONN_CLOSED, 0);
+              if (!ch->status_cbk)
                 socket_close(ch->socket);
-              }
             } else if (len < 0) {
               if (errno == ENOTSOCK) {
                 o_log(O_LOG_ERROR,
@@ -286,25 +307,25 @@ eventloop_run()
               }
             }
           } else {
-            if (ch->monitor_cbk) {
-              ch->monitor_cbk((SockEvtSource*)ch, ch->handle);
-            }
+            do_monitor_callback (ch);
           }
         }
-        if (self.fds[i].revents & POLLOUT) {
-          if (ch->status_cbk) {
-            ch->status_cbk((SockEvtSource*)ch, SOCKET_WRITEABLE, 0, ch->handle);
-          }
-        }
+        if (self.fds[i].revents & POLLOUT)
+          do_status_callback(ch, SOCKET_WRITEABLE, 0);
         if (self.fds[i].revents & POLLNVAL) {
+          o_log(O_LOG_DEBUG3, "POLLNVAL\n");
+
           ch->is_active = 0;
           self.fds_dirty = 1;
-          if (ch->status_cbk) {
-            ch->status_cbk((SockEvtSource*)ch, SOCKET_DROPPED, 0, ch->handle);
-          } else {
+          do_status_callback(ch, SOCKET_DROPPED, 0);
+          if (!ch->status_cbk)
             o_log(O_LOG_WARN, "EventLoop: Deactivated socket '%s'\n", ch->name);
-          }
         }
+      }
+      for (i = 0; i < self.size; i++) {
+        Channel* ch = self.fds_channels[i];
+        if (ch->is_removable)
+          eventloop_socket_remove ((SockEvtSource*)ch);
       }
     }
     if (timeout >= 0) {
@@ -346,6 +367,7 @@ channel_new(
   memset(ch, 0, sizeof(Channel));
 
   ch->is_active = 1;
+  ch->is_removable = 0;
 
   ch->fds_fd = fd;
   ch->fds_events = fd_events;
@@ -500,6 +522,31 @@ eventloop_socket_remove(
   free(ch);
   self.fds_dirty = 1;
 }
+
+/**
+ *  @brief Tell the eventloop to release a socket event source.
+ *
+ *  This marks the socket as "removable", but does not remove it
+ *  immediately.  The next time the event loop finishes processing
+ *  events, it will scan the list of channels/sockets for ones that
+ *  are removable, and will call eventloop_socket_remove() on them.
+ *
+ *  At that point, the socket data structure will be destroyed.
+ *
+ *  After this function is called on a socket, the eventloop will no
+ *  longer generate callbacks for that socket, therefore the client
+ *  code must ensure that it has already disposed of the socket's
+ *  @c handle data structure, otherwise a memory leak might occur.
+ */
+void
+eventloop_socket_release(SockEvtSource* source)
+{
+  Channel *ch = (Channel*)source;
+  ch->is_active = 0;
+  ch->is_removable = 1;
+  ch->handle = NULL;
+}
+
 
 TimerEvtSource*
 eventloop_every(
