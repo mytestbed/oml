@@ -166,9 +166,11 @@ schema_from_meta (char *meta)
 int
 schema_field_from_sql (char *sql, size_t len, struct schema_field *field)
 {
-  char *p = sql, *q;
+  char *p = sql, *q, *up, *uq;
   q = find_white (p);
-  field->name = xstrndup (p, q - p);
+  up = *p == '"' ? p+1 : p;
+  uq = *(q-1) == '"' ? q-1 : q;
+  field->name = xstrndup (up, uq - up);
   q = skip_white (q);
   char *type = xstrndup (q, len - (q - p));
   if (!field->name || !type)
@@ -230,11 +232,14 @@ schema_from_sql (char *sql)
   int nfields = 0; /* Different to schema_from_meta () */
   size_t fields_size = 0;
   char *name;
-  char *p = sql + command_len;
-  char *q;
+  char *p = sql + command_len, *up;
+  char *q, *uq;
+
   p = skip_white (p);
   q = find_white (p);
-  name = xstrndup (p, (q - p));
+  up = *p == '"' ? p+1 : p;
+  uq = *(q-1) == '"' ? q-1 : q;
+  name = xstrndup (up, uq - up);
   p = q;
   p = skip_white (p);
 
@@ -393,9 +398,9 @@ schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT))
   }
 
   /* Build SQL "CREATE TABLE" statement */
-  n += mstring_set (mstr, "CREATE TABLE ");
+  n += mstring_set (mstr, "CREATE TABLE \"");
   n += mstring_cat (mstr, schema->name);
-  n += mstring_sprintf (mstr, " (oml_sender_id %s, ", typemap (OML_INT32_VALUE));
+  n += mstring_sprintf (mstr, "\" (oml_sender_id %s, ", typemap (OML_INT32_VALUE));
   n += mstring_sprintf (mstr, "oml_seq %s, ", typemap (OML_INT32_VALUE));
   n += mstring_sprintf (mstr, "oml_ts_client %s, ", typemap (OML_DOUBLE_VALUE));
   n += mstring_sprintf (mstr, "oml_ts_server %s", typemap (OML_DOUBLE_VALUE));
@@ -409,7 +414,7 @@ schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT))
       logerror("Unknown type in column '%s'\n", name);
       goto fail_exit;
     }
-    n += mstring_sprintf (mstr, ", %s %s", name, t);
+    n += mstring_sprintf (mstr, ", \"%s\" %s", name, t);
     i++; max--;
   }
   n += mstring_cat (mstr, ");");
