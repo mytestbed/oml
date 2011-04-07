@@ -162,7 +162,13 @@ eventloop_socket_remove(
   SockEvtSource* source
 );
 
-
+/*! Release 'source' -- this means it can be removed from monitoring
+ *  when the event loop gets around to it.
+ */
+void
+eventloop_socket_release(
+  SockEvtSource* source
+);
 
 TimerEvtSource*
 eventloop_every(

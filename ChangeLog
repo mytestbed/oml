@@ -1,3 +1,33 @@
+2011-03-16  Jolyon White  <jolyon.white@nicta.com.au>
+
+	* OML: New version 2.5.2
+
+	* oml2-server: All strings representing table and column names
+	are now enclosed in double quotes to allow SQL keywords to be
+	used as column names.  Note that the strings are not yet escaped,
+	so including a double quote in the name can be used to do SQL
+	injection.
+
+	* oml2-server: Fix a bug in copying string values from the text
+	protocol parser that resulted in incorrectly terminated
+	strings. This would sometimes add extra garbage to the end of
+	strings stored in the database.
+
+2011-01-29  Jolyon White  <jolyon.white@nicta.com.au>
+
+	* OML: New version 2.5.1
+
+	* libocomm, oml2-server: Fix a bug in the event loop that made it
+	impossible to cleanly free a client's data structures without
+	leaving the possibility of a segfault.  Segfaults were in fact
+	occurring.  This fix provides a clean client shutdown mechanism.
+	See IssueID #496.
+
+	* oml2-server: Fix sync position detection in binary protocol
+	parsing.  This is the second part of the fix to IssueID #463.
+	Search for sync bytes now starts from the end of the last message
+	processed, not the start of the input buffer.
+
 2010-10-29  Jolyon White  <jolyon.white@nicta.com.au>
 
 	* OML: New version 2.5.0

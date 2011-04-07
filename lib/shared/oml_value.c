@@ -131,7 +131,7 @@ oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to)
                 to->value.stringValue.size = length + 1;
               }
 
-            strncpy (to->value.stringValue.ptr, fstr, length);
+            strncpy (to->value.stringValue.ptr, fstr, length + 1);
             to->value.stringValue.length = length;
             break;
           }

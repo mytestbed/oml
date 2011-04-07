@@ -215,9 +215,9 @@ sq3_make_sql_insert (DbTable* table)
   }
 
   /* Build SQL "INSERT INTO" statement */
-  n += mstring_set (mstr, "INSERT INTO ");
+  n += mstring_set (mstr, "INSERT INTO \"");
   n += mstring_cat (mstr, table->schema->name);
-  n += mstring_cat (mstr, " VALUES (?, ?, ?, ?"); /* metadata columns */
+  n += mstring_cat (mstr, "\" VALUES (?, ?, ?, ?"); /* metadata columns */
   while (max-- > 0)
     mstring_cat (mstr, ", ?");
   mstring_cat (mstr, ");");
@@ -683,12 +683,12 @@ sq3_set_key_value (Database* database, const char* table,
   size_t n;
   char* check_value = sq3_get_key_value (database, table, key_column, value_column, key);
   if (check_value == NULL)
-    n = snprintf (stmt, LENGTH(stmt), "INSERT INTO %s (%s, %s) VALUES ('%s', '%s');",
+    n = snprintf (stmt, LENGTH(stmt), "INSERT INTO \"%s\" (\"%s\", \"%s\") VALUES ('%s', '%s');",
                   table,
                   key_column, value_column,
                   key, value);
   else
-    n = snprintf (stmt, LENGTH(stmt), "UPDATE %s SET %s='%s' WHERE %s='%s';",
+    n = snprintf (stmt, LENGTH(stmt), "UPDATE \"%s\" SET \"%s\"='%s' WHERE \"%s\"='%s';",
                   table,
                   value_column, value,
                   key_column, key);

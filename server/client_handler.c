@@ -51,6 +51,18 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 static void
 status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle);
 
+const char *
+client_state_to_s (CState state)
+{
+  static const char *states [] = {
+    "C_HEADER",
+    "C_BINARY_DATA",
+    "C_TEXT_DATA",
+    "C_PROTOCOL_ERROR"
+  };
+  return states[state];
+}
+
 /*
  *  Allocate data structures for the client's tables.
  *
@@ -456,7 +468,8 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
 {
   OmlBinaryHeader header;
 
-  unsigned char* sync = find_sync (mbuf->base, mbuf->fill);
+  unsigned char* sync = find_sync (mbuf_rdptr (mbuf),
+                                   mbuf_remaining (mbuf));
   int sync_pos;
   if (sync == NULL)
     sync_pos = -1;
@@ -601,7 +614,10 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
   ClientHandler* self = (ClientHandler*)handle;
   MBuffer* mbuf = self->mbuf;
 
-  logdebug("'%s': received data\n", source->name);
+  logdebug("'%s': %s: received data, %d\n",
+           source->name,
+           client_state_to_s (self->state),
+           buf_size);
 
   int result = mbuf_write (mbuf, buf, buf_size);
 
@@ -631,16 +647,14 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
       break;
 
     case C_PROTOCOL_ERROR:
-      // Protocol error:  close the client connection and teardown all
-      // of it's allocated data.
+      // Protocol error:  close the client connection
       socket_close (self->socket);
       logerror("'%s': protocol error, server has disconnected the client\n",
                source->name);
-      eventloop_socket_remove (self->event);  // Note: this free()'s source!
+      eventloop_socket_release (self->event);
       client_handler_free (self);
       /*
-       * The mbuf is also freed by client_handler_free(), and there's
-       * no point repacking the buffer in that case, so just return.
+       * Protocol error --> no need to repack buffer, so just return;
        */
       return;
     default:
@@ -648,6 +662,9 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
       mbuf_clear (mbuf);
       return;
     }
+
+  if (self->state == C_PROTOCOL_ERROR)
+    goto process;
 
   // move remaining buffer content to beginning
   mbuf_repack_message (mbuf);
@@ -676,7 +693,7 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
         loginfo("'%s': client closed socket connection\n", source->name);
         ClientHandler* self = (ClientHandler*)handle;
         socket_close (source->socket);
-        eventloop_socket_remove (self->event); // Note:  This free()'s source!
+        eventloop_socket_release (self->event);
         client_handler_free (self);
         break;
       }
@@ -684,7 +701,7 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
       logdebug ("Unhandled condition CONN_REFUSED on socket '%s'\n", source->name);
       break;
     case SOCKET_DROPPED:
-      logdebug ("Unhandled condition CONN_REFUSED on socket '%s'\n", source->name);
+      logdebug ("Unhandled condition DROPPED on socket '%s'\n", source->name);
       break;
     case SOCKET_UNKNOWN:
     default:
