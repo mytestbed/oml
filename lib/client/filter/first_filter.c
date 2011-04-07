@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  *
  */
-/*!\file average_filter.c
+/*!\file first_filter.c
   \brief Implements a filter which captures the first value presented
 */
 
@@ -48,14 +48,21 @@ omlf_first_new(
   OmlValue* result
 ) {
   InstanceData* self = (InstanceData *)malloc(sizeof(InstanceData));
-  memset(self, 0, sizeof(InstanceData));
 
-  self->is_first = 1;
-  self->result = result;
-  self->result[0].type = type;  // FIXME:  Is this needed?
+  if (self) {
+    memset(self, 0, sizeof(InstanceData));
 
-  if (type == OML_STRING_VALUE)
-    omlc_set_const_string (self->result[0].value, "");
+    self->is_first = 1;
+    self->result = result;
+    self->result[0].type = type;  // FIXME:  Is this needed?
+
+    if (type == OML_STRING_VALUE)
+      omlc_set_const_string (self->result[0].value, "");
+  } else {
+    logerror ("Could not allocate %d bytes for first filter instance data\n",
+       sizeof(InstanceData));
+    return NULL;
+  }
 
   return self;
 }
@@ -105,8 +112,9 @@ process(
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
 
+  writer->out(writer, self->result, f->output_count);
+
   self->is_first = 1;
-  writer->out(writer, self->result, 1);
   oml_value_reset(&self->result[0]);
   if (self->result[0].type == OML_STRING_VALUE)
     omlc_set_const_string (self->result[0].value, "");
