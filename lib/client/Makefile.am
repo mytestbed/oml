@@ -55,12 +55,19 @@ liboml2_la_LIBADD = \
 #    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiosyncrasy"
 liboml2_la_LDFLAGS = -version-info $(OML_VER_MINOR):$(OML_VER_PATCH_LT):$(OML_VER_MINOR)
 
-script_src = $(srcdir)/ruby/oml2_scaffold
+scaffold_src = $(srcdir)/ruby/oml2-scaffold
 
-bin_SCRIPTS = oml2_scaffold
+bin_SCRIPTS = oml2-scaffold
 CLEANFILES = $(bin_SCRIPTS)
-EXTRA_DIST = $(script_src)
+EXTRA_DIST = $(scaffold_src)
 
-oml2_scaffold:	$(script_src) Makefile
-	cp $(script_src) oml2_scaffold
-	chmod +x oml2_scaffold
+oml2-scaffold:	$(scaffold_src) Makefile
+	cp $(scaffold_src) oml2-scaffold
+	chmod +x oml2-scaffold
+
+progname=scaffold
+installed_name = oml2-$(progname)
+installed_link_name = $(DESTDIR)$(bindir)/oml2_$(progname)
+install-exec-hook:
+	rm -f $(installed_link_name)
+	$(LN_S) $(installed_name) $(installed_link_name)

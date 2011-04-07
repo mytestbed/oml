@@ -14,9 +14,15 @@ require 'optparse'
 @@integer_alias = :long
 
 def run()
+  if File.basename($PROGRAM_NAME) == 'oml2_scaffold'
+    old = File.basename($PROGRAM_NAME)
+    new = old.gsub('_', '-')
+    $stderr.write("WARNING:  '#{old}' is a deprecated name for this script; use '#{new}' instead.\n")
+  end
+
   opts = OptionParser.new
   opts.banner = %Q|
-Execute an experiment script
+Generate C code for an OML application from an application definition file
 
   Usage: #{$0} [OPTIONS] [app_file]
 
@@ -477,10 +483,10 @@ debug:
 $(OBJ_DIR)/$(PROGRAM).o: version.h $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
 $(PROGRAM)_popt.h: $(PROGRAM).app
-	oml2_scaffold --opts $<
+    oml2-scaffold --opts $<
 
 $(PROGRAM)_oml.h: $(PROGRAM).app
-	oml2_scaffold --oml $<
+    oml2-scaffold --oml $<
 ?
   end
 

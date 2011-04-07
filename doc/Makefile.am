@@ -5,7 +5,7 @@ MAN1_FILES= \
 	oml2-server.txt \
 	oml2-proxy-server.txt \
 	liboml2.txt \
-	oml2_scaffold.txt
+	oml2-scaffold.txt
 
 MAN3_FILES= \
 	omlc_init.txt \
@@ -45,7 +45,8 @@ man_MANS = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	omlc_set_uint64.3 \
 	omlc_set_double.3 \
 	omlc_set_string.3 \
-	omlc_set_const_string.3
+	omlc_set_const_string.3 \
+	oml2_scaffold.1
 
 $(MAN1_FILES:.txt=.1):  %.1: %.txt
 	$(A2X) $(A2X_ARGS) $<
@@ -67,6 +68,9 @@ $(MAN5_FILES:.txt=.5):  %.5: %.txt
 omlc_set_%.3:	omlc_set_int32.txt
 	echo ".so man3/omlc_set_int32.3" > $@
 
+# Set up roff link for oml2_scaffold (renamed to oml2-scaffold)
+oml2_scaffold.1:	oml2-scaffold.txt
+	echo ".so man1/oml2-scaffold.1" > $@
 
 EXTRA_DIST+=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	liboml2.3 \
@@ -75,7 +79,8 @@ EXTRA_DIST+=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	omlc_set_uint64.3 \
 	omlc_set_double.3 \
 	omlc_set_string.3 \
-	omlc_set_const_string.3
+	omlc_set_const_string.3 \
+	oml2_scaffold.1
 
 else
 	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
