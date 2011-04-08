@@ -313,9 +313,8 @@ told OML to use the standard output ('--oml-file -').  Here is what it
 looks like:
 
 --------
-# OML Client V2.4.0 Copyright (c)2007-2010, NICTA
-# OML Protocol V2
-protocol: 2
+INFO   OML Client V2.6.0 [Protocol V3] Copyright 2007-2011, NICTA
+protocol: 3
 experiment-id: count
 start_time: 1283160287
 sender-id: myid

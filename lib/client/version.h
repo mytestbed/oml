@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2011 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 #ifndef OML2_VERSION_H_
 #define OML2_VERSION_H_
 
-#define OMLC_COPYRIGHT "Copyright (c)2007-2010, NICTA"
+#define OMLC_COPYRIGHT "Copyright 2007-2011, NICTA"
 
 #endif /* OML2_VERSION_H_*/
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2010 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2011 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 "OML2 Proxy Server V%s\n"
 
 #define COPYRIGHT \
-"Copyright 2007-2010 NICTA\n"
+"Copyright 2007-2011 NICTA\n"
 
 #endif /*VERSION_H_*/
 
