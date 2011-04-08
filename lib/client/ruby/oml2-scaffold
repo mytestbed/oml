@@ -11,7 +11,7 @@ PROG = 'oml_scaffold'
 require 'stringio'
 require 'optparse'
 
-@@integer_alias = :long
+@@integer_alias = :int32
 
 def run()
   if File.basename($PROGRAM_NAME) == 'oml2_scaffold'
@@ -594,7 +594,7 @@ class Metric < Struct.new(:name, :type, :opts)
     case type.to_sym
     when :int, :integer
       if @@integer_alias == :long and @@warnings[type.to_sym] == nil
-        puts "WARNING:  Type :#{type.to_sym} is currently an alias for :long, but this will be changed to :int32 in OML 2.5.0"
+        puts "WARNING:  Command line switch --long makes :#{type.to_sym} an alias for :long, but :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead"
         @@warnings[type.to_sym] = true
       end
     when :long

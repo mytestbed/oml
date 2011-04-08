@@ -63,12 +63,12 @@ and aborts if it already exists.
 -l::
 --long::
 Use the ':long' type as the underlying type for the ':int' and
-':integer' aliases.  This is the default behaviour.
+':integer' aliases.  This overrides the default of ':int32'
 
 -i::
 --int32::
 Use the ':int32' type as the underlying type for the ':int' and
-':integer' aliases.  This overrides the default of ':long'.
+':integer' aliases. This is the default behaviour.
 
 -v::
 --version::
@@ -284,16 +284,16 @@ programs should use one of ':int32' or ':int64' instead.  See the *OML
 TYPES* section of the linkoml:liboml2[3,api] man page for more information.
 
 The types ':float' and ':real' are synonyms for the type ':double'.
-In OML v2.4 and earlier, the types ':int' and ':integer' were synonyms
-for ':long'.  Because ':long' is deprecated, these aliases will be
-changed to map to ':int32' from OML 2.5 and onwards.  To give
-developers a chance to migrate their applications, we provide switches
-'--int32' and '--long'.  Each one selects what the underlying type
-will be for the ':int' and ':integer' aliases.  In OML 2.4, the
-default behaviour if neither is specified is ':long'.  To override
-this, use the '--int32' switch.  In OML 2.5 the default will be
-changed to ':int32', which developers can override using the '--long'
-switch.
+In OML v2.5 and earlier, the types ':int' and ':integer' were synonyms
+for ':long'.  Because ':long' is deprecated, these aliases are now
+mapped to ':int32' from OML 2.6 and onwards.  To give developers a
+chance to migrate their applications, we provide switches '--int32'
+and '--long'.  Each one selects what the underlying type will be for
+the ':int' and ':integer' aliases.  In OML 2.5, the default behaviour
+if neither was specified was ':long', which could be overridden with
+the --int32 switch.  In OML 2.6 and later the default is for ':int'
+and ':integer' to map to ':int32', which developers can override using
+the '--long' switch.
 
 It is also permissible to use strings to specify the type of a metric,
 i.e. '"int32"' instead of ':int32', '"double"' instead of ':double'.
