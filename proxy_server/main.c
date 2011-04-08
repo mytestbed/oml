@@ -296,6 +296,8 @@ main(int argc, const char *argv[])
   }
   o_set_log_file(logfile_name);
   o_set_log_level(log_level);
+  extern void _o_set_simplified_logging (void);
+  _o_set_simplified_logging ();
 
   if (c < -1) {
     /* an error occurred during option processing */

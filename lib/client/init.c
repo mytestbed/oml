@@ -32,6 +32,7 @@
 #include <sys/time.h>
 
 #include <oml_value.h>
+#include <mem.h>
 #include <validate.h>
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
@@ -52,8 +53,12 @@ static int  write_meta(void);
 static int  write_schema(OmlMStream* ms, int index);
 static void termination_handler(int signum);
 static void install_close_handler(void);
+static void setup_features(const char * const features);
 
 extern int parse_config(char* config_file);
+extern void _o_set_simplified_logging (void);
+extern void _o_set_default_logging (void);
+extern int  _o_oldstyle_logging (void);
 
 /**
  * @brief function called by the application to initialise the oml measurements
@@ -76,16 +81,18 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   double sample_interval = 0.0;
   const char** arg = argv;
 
-  if (!app_name)
-    {
-      logerror("Found illegal whitespace in application name '%s'\n", application);
-      return -1;
-    }
+  if (!app_name) {
+    logerror("Found illegal whitespace in application name '%s'\n", application);
+    return -1;
+  }
 
   omlc_instance = NULL;
 
-  o_set_log((o_log_fn)custom_oml_log);
   o_set_log_level(O_LOG_INFO);
+  if (custom_oml_log)
+    o_set_log (custom_oml_log);
+  else
+    _o_set_default_logging();
 
   if (pargc && arg) {
     int i;
@@ -180,6 +187,8 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   if (local_data_file == NULL && server_uri == NULL)
     server_uri = getenv("OML_SERVER");
 
+  setup_features (getenv ("OML_FEATURES"));
+
   omlc_instance = &instance_storage;
   memset(omlc_instance, 0, sizeof(OmlClient));
 
@@ -201,8 +210,17 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
   register_builtin_filters ();
 
-  loginfo ("OML Client V%s %s\n", VERSION, OMLC_COPYRIGHT);
-  loginfo ("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
+  loginfo ("OML Client V%s [Protocol V%d] %s\n",
+           VERSION,
+           OML_PROTOCOL_VERSION,
+           OMLC_COPYRIGHT);
+
+  if (_o_oldstyle_logging ()) {
+    o_log (O_LOG_WARN,
+           "Old style logging (\"default-log-mixed\") selected; "
+           "OML v2.7.0 will make new style logging the default; "
+           "see man liboml2(1) for details\n");
+  }
 
   return 0;
 }
@@ -751,6 +769,44 @@ validate_app_name (const char* name)
     return p;
   else
     return NULL;
+}
+
+static struct {
+  const char *name;
+  void (*enable)(void);
+} feature_table [] = {
+  { "default-log-simple", _o_set_simplified_logging },
+  { "default-log-mixed", _o_set_default_logging },
+};
+static const size_t feature_count = sizeof (feature_table) / sizeof (feature_table[0]);
+
+/*
+ * Parse features and enable the ones that are recognized.  features
+ * should be a semicolon-separated list of features.
+ *
+ */
+static void
+setup_features (const char * const features)
+{
+  size_t i = 0;
+  const char *p = features, *q;
+
+  if (features == NULL)
+    return;
+
+  while (p && *p) {
+    size_t len;
+    char *name;
+    q    = strchr(p, ';');
+    len  = q ? (size_t)(q - p) : strlen (p);
+    name = xstrndup (p, len);
+    p    = q ? (q + 1) : q;
+
+    for (i = 0; i < feature_count; i++)
+      if (strcmp (name, feature_table[i].name) == 0)
+        feature_table[i].enable();
+    xfree (name);
+  }
 }
 
 /*

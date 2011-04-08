@@ -285,7 +285,39 @@ value of this environment variable should be a URI in the same format
 specified above (*URI FORMAT*).  If the URI specifies the 'file:'
 protocol, the measurements are written to the local text file
 specified in the URI, rather than being sent to an OML server.
-Equivalent to the '--oml-server' and '--oml-file' command line options.
+Equivalent to the '--oml-server' and '--oml-file' command line
+options.
+
+OML_FEATURES::
+A comma-separated list of run-time features to enable.  Currently the
+following are recognized:
+* "default-log-simple": All log output will be sent to stderr if no
+log file was selected using --oml-log-file, or if the argument of
+--oml-log-file was "-", and the logging will use new-style logging to
+stderr.  This means all log messages are prefixed with a label
+indicating the severity, i.e. "ERROR", "WARN", "INFO", "DEBUG",
+"DEBUG2", etc.
+
+* "default-log-mixed" (default): In the case that --oml-log-file was
+not specified, or if the argument of --oml-log-file was "-", then log
+messages emitted with log level ERROR will be sent to stderr, and all
+other log messages will be sent to stdout.  In this case, all log
+messages are prefixed with "# ".  Additionally, INFO level messages
+have no extra adornment, whereas DEBUG messages are prefixed with "# "
+followed by n pairs of dots "..", where n is the debug level set via
+--oml-log-level.  ERROR and WARN level messages are indicated with
+"# ERROR" and "# WARN" respectively.
+
+NOTES
+-----
+
+The style of logging in OML 2.5 and earlier is now deprecated.  In OML
+2.6 the old style is still the default, and the new style of logging
+can be selected by setting OML_FEATURES="default-log-simple".  In OML
+2.7 the default will be the new style, and the old style will be
+available using OML_FEATURES="default-log-mixed".  In OML 2.8 the old
+style will be removed entirely and the "default-log-mixed" feature
+will no longer be recognized.
 
 BUGS
 ----
