@@ -126,7 +126,9 @@ create_filter(
   OmlFilter * f = (OmlFilter*)malloc(sizeof(OmlFilter));
   memset(f, 0, sizeof(OmlFilter));
 
-  strcpy (f->name, instance_name); /* FIXME:  strncpy */
+  strncpy (f->name, instance_name, sizeof(f->name));
+  if (f->name[sizeof(f->name)-1] != '\0')
+    f->name[sizeof(f->name)-1] = '\0';
   f->index = index;
   f->set = ft->set;
   f->input_type = type;
