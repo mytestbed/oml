@@ -162,9 +162,10 @@ the 'radiotap' measurements, three filters are defined: one for the
 one for the 'power' field.  For the 'udp' measurements, a single
 filter is established on the 'udp_len' field.
 
-By default, filters operate on a single scalar input value.  The 'f'
-element establishes a filter and the 'pname' attribute selects the
-field of the MP that should form the input for the filter.
+Filters operate on a single scalar input value.  The 'f' element
+establishes a filter and the 'pname' attribute selects the field of
+the MP that should form the input for the filter.  The 'pname'
+attribute is mandatory.
 
 Without any further attributes, the 'f' element establishes a default
 filter.  The default filter type is 'avg' for numeric values and
@@ -472,11 +473,11 @@ schema in the measurement output compared to other possible
 configurations available from the command line, which use the 'avg'
 filter.  It is not clear whether this is a feature or a bug.
 
-The filter element, 'f', accepts attributes 'pname', 'fname', 'sname',
-and 'multi_pnames'.  These attribute names seemed perfectly logical at
-the time they were invented, but not even the author can keep them
-straight in his head anymore.  More sensible synonyms will be added in
-a future release, without breaking backwards compatibility.
+The filter element, 'f', accepts attributes 'pname', 'fname', and
+'sname'.  These attribute names seemed perfectly logical at the time
+they were invented, but not even the author can keep them straight in
+his head anymore.  More sensible synonyms will be added in a future
+release, without breaking backwards compatibility.
 
 For other outstanding known bugs, please consult
 http://omf.mytestbed.net/projects/oml/issues

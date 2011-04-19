@@ -141,7 +141,7 @@ parse_collector(
 ) {
   xmlChar* url = xmlGetProp(el, (const xmlChar*)"url");
   if (url == NULL) {
-    logerror("Missing 'url' attribute for '%s'.\n", el->name);
+    logerror("Config line %hu: Missing 'url' attribute for <%s ...>'.\n", el->line, el->name);
     return -1;
   }
   OmlWriter* writer;
@@ -174,18 +174,20 @@ parse_mp(
 ) {
   xmlChar* name = xmlGetProp(el, (const xmlChar*)"name");
   if (name == NULL) {
-    logerror("Missing 'name' attribute for '%s'.\n", el->name);
+    logerror("Config line %hu: Missing 'name' attribute for <%s ...>'.\n", el->line, el->name);
     return -1;
   }
   xmlChar* samplesS = xmlGetProp(el, (const xmlChar*)"samples");
   xmlChar* intervalS = xmlGetProp(el, (const xmlChar*)"interval");
   if (samplesS == NULL && intervalS == NULL) {
-    logerror("Missing 'samples' or 'interval' attribute for '%s'.\n", el->name);
+    logerror("Config line %hu: Missing 'samples' or 'interval' attribute for <%s ...>'.\n", el->line, el->name);
     return -2;
   }
   if (samplesS != NULL && intervalS != NULL) {
-    logerror("Only one of 'samples' or 'interval' attribute can be defined for '%s'.\n",
-        el->name);
+    logerror("Config line %hu: Only one of 'samples' or 'interval' attribute can"
+             " be defined for <%s ...>.\n",
+             el->line,
+             el->name);
     return -3;
   }
   OmlMP* mp = omlc_instance->mpoints;
@@ -195,7 +197,7 @@ parse_mp(
     }
   }
   if (mp == NULL) {
-    logerror("Unknown measurement point '%s'.\n", name);
+    logerror("Config line %hu: Unknown measurement point '%s'.\n", el->line, name);
     return -4;
   }
 
@@ -248,27 +250,37 @@ parse_filter(
 
   xmlChar* pname = xmlGetProp(el, (const xmlChar*)FILTER_PARAM_NAME_ATTR);
   if (pname == NULL) {
-    // pname is optional, but issue warning if not declared 'multi_pnames'
-    xmlChar* multi = xmlGetProp(el, (const xmlChar*)FILTER_MULTI_PARAM_ATTR);
-    if (multi == NULL) {
-      logwarn("No '%s' or '%s' found.\n",
-        FILTER_PARAM_NAME_ATTR, FILTER_MULTI_PARAM_ATTR);
+    logerror("Config line %hu: Filter config element <%s ...> must include a '%s' attribute.\n",
+            el->line, FILTER_EL, FILTER_PARAM_NAME_ATTR);
       return NULL;
-    }
   } else {
     // find index
     OmlMPDef* dp = mp->param_defs;
     int i = 0;
     for (; dp->name != NULL; i++, dp++) {
+      if (i >= mp->param_count) {
+        logerror("Attempting to access field '%i' of MP '%s', which only has %i fields\n",
+                 i, mp->name, mp->param_count);
+        return NULL;
+      }
       if (strcmp((char*)pname, dp->name) == 0) {
-        if (i >= mp->param_count) {
-          logerror("Index '%i' out of bounds.\n", i);
-          return NULL;
-        }
         index = i;
         break;
       }
     }
+  }
+
+  /* If index == -1, we didn't find the named field. This is an error, so we should abort. */
+  if (index == -1) {
+    logerror ("Config line %hu: '%s' attribute names unrecognized field name '%s' for MP '%s'\n",
+              el->line, FILTER_PARAM_NAME_ATTR, pname, mp->name);
+    logerror ("  Valid fields for '%s' are:\n", mp->name);
+    OmlMPDef *dp = mp->param_defs;
+    int i;
+    for (i = 0; dp->name != NULL && i < mp->param_count; i++, dp++) {
+      logerror ("      %s\n", dp->name);
+    }
+    return NULL;
   }
 
   xmlChar* fname = xmlGetProp(el, (const xmlChar*)FILTER_NAME_ATTR);
@@ -277,23 +289,14 @@ parse_filter(
   if (fname == NULL) {
     // pick default one
     if (def == NULL) {
-      logerror("Can't create default filter without '%s' declaration.\n",
-               FILTER_PARAM_NAME_ATTR);
+      logerror("Config line %hu: Can't create default filter without '%s' declaration.\n",
+               el->line, FILTER_PARAM_NAME_ATTR);
       return NULL;
     }
     f = create_default_filter(def, ms, index);
   } else {
-    if (def) {
-      const char* name = (sname != NULL) ? (char*)sname : def->name;
-      f = create_filter((const char*)fname, name, def->param_types, index);
-    } else {
-      if (sname == NULL) {
-    logerror("Require '%s' attribute for multi_pname filter '%s'.\n",
-          FILTER_STREAM_NAME_ATTR, fname);
-    return NULL;
-      }
-      f = create_filter((const char*)fname, (const char*)sname, 0, -1);
-    }
+    const char* name = (sname != NULL) ? (char*)sname : def->name;
+    f = create_filter((const char*)fname, name, def->param_types, index);
   }
   if (f != NULL) {
     f = parse_filter_properties(el, f, ms, mp);
