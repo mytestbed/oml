@@ -24,67 +24,207 @@
   \brief Implements the parsing of the configuration file.
 */
 
-
 #include <log.h>
+#include <mem.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <libxml/tree.h>
-//#include <libxml/parser.h>
 #include "filter/factory.h"
 #include "client.h"
 #include "oml_value.h"
 
+enum ConfToken {
+  CT_ROOT,
+  CT_NODE,
+  CT_EXP,
+  CT_COLLECT,
+  CT_URL,
+  CT_STREAM,
+  CT_STREAM_NAME,
+  CT_STREAM_SAMPLES,
+  CT_STREAM_INTERVAL,
+  CT_FILTER,
+  CT_FILTER_FIELD,
+  CT_FILTER_OPER,
+  CT_FILTER_RENAME,
+  CT_FILTER_PROP,
+  CT_FILTER_PROP_NAME,
+  CT_FILTER_PROP_TYPE,
+  CT_Max
+};
+
+struct synonym {
+  const char *name;
+  struct synonym *next;
+};
+
+static struct synonym *tokmap_[CT_Max] = {0};
+static enum ConfToken curtok = CT_ROOT;
+
+void setcurtok (enum ConfToken tok) { curtok = tok; }
+void mksyn (const char * const str)
+{
+  struct synonym *new = xmalloc (sizeof (struct synonym));
+  new->name = xstrndup (str, strlen (str));
+  new->next = tokmap_[curtok];
+  tokmap_[curtok] = new;
+}
+
+static void init_tokens (void)
+{
+  /* The canonical name goes last here, but ends up at the head of the linked list */
+  setcurtok (CT_ROOT),             mksyn ("omlc");
+  setcurtok (CT_NODE),             mksyn ("id");
+  setcurtok (CT_EXP),              mksyn ("exp_id"), mksyn ("experiment");
+  setcurtok (CT_COLLECT),          mksyn ("collect");
+  setcurtok (CT_URL),              mksyn ("url");
+  setcurtok (CT_STREAM),           mksyn ("mp"), mksyn ("stream");
+  setcurtok (CT_STREAM_NAME),      mksyn ("name"), mksyn ("mp");
+  setcurtok (CT_STREAM_SAMPLES),   mksyn ("samples");
+  setcurtok (CT_STREAM_INTERVAL),  mksyn ("interval");
+  setcurtok (CT_FILTER),           mksyn ("f"), mksyn ("filter");
+  setcurtok (CT_FILTER_FIELD),     mksyn ("pname"), mksyn ("field");
+  setcurtok (CT_FILTER_OPER),      mksyn ("fname"), mksyn ("operation");
+  setcurtok (CT_FILTER_RENAME),    mksyn ("sname"), mksyn ("rename");
+  setcurtok (CT_FILTER_PROP),      mksyn ("fp"), mksyn ("property");
+  setcurtok (CT_FILTER_PROP_NAME), mksyn ("name");
+  setcurtok (CT_FILTER_PROP_TYPE), mksyn ("type");
+}
+
+static struct synonym *token_names(enum ConfToken index)
+{
+  if (!tokmap_[0])
+    init_tokens();
+  if (index >= CT_Max)
+    return NULL;
+
+  return tokmap_[index];
+}
+
+/**
+ * @brief Get the string value of an XML attribute identified by a
+ * token.
+ *
+ * The token can map to multiple attribute names; the value of the
+ * first one that is present will be returned.  This mechanism allows
+ * synonyms for each attribute of interest, and was introduced to
+ * allow easier backwards compatibility whilst 'reskinning' the XML
+ * config file itself.  If none of the synonyms is present as an
+ * attribute of the given XML element, NULL is returned.
+ *
+ * @param el the XML element to inspect for the given attribute.
+ * @param tok the token representing the attribute(s) of interest.
+ * @return the string value of the attribute, or NULL if not found..
+ */
 static char*
-getAttr(
-    xmlNodePtr el,
-    const char* attrName
-);
-static int
-parse_collector(
-    xmlNodePtr el
-);
-static int
-parse_mp(
-    xmlNodePtr el,
-    OmlWriter* writer
-);
+get_xml_attr (xmlNodePtr el, enum ConfToken tok)
+{
+  xmlChar *attrVal = NULL;
+  const struct synonym *synonyms = token_names(tok);
+  while (synonyms && !attrVal) {
+    attrVal = xmlGetProp(el, (const xmlChar*)synonyms->name);
+    synonyms = synonyms->next;
+  }
 
-static OmlFilter*
-parse_filter(
-    xmlNodePtr  el,
-    OmlMStream* ms,
-    OmlMP*      mp
-);
+  if (attrVal != NULL) {
+    size_t len = strlen ((char*)attrVal) + 1;
+    char *val = xstrndup ((char*)attrVal, len);
+    xmlFree(attrVal);
+    return val;
+  } else {
+    return NULL;
+  }
+}
 
-static OmlFilter*
-parse_filter_properties(
-    xmlNodePtr  el,
-    OmlFilter*  f,
-    OmlMStream* ms,
-    OmlMP*      mp
-);
+/**
+ * @brief Get the string name of an XML attribute identified by a
+ * token.
+ *
+ * The name returned is the one used in the actual config XML file,
+ * not the canonical name.
+ *
+ * @param el the XML element to inspect for the given attribute.
+ * @param tok the token representing the attribute(s) of interest.
+ * @return the name of the attribute that matches the token, if any,
+ * otherwise NULL.
+ */
+static const char*
+get_xml_attr_name (xmlNodePtr el, enum ConfToken tok)
+{
+  xmlChar *attrVal = NULL;
+  const struct synonym *synonyms = token_names(tok);
 
+  while (synonyms && !attrVal) {
+    attrVal = xmlGetProp(el, (const xmlChar*)synonyms->name);
+    if (attrVal)
+      return synonyms->name;
+    synonyms = synonyms->next;
+  }
+  return NULL;
+}
+
+/**
+ * @brief Check whether an element name matches a given token.
+ *
+ * If the actual name of the element matches one of the synonyms for
+ * the token, return non-zero; otherwise, returns zero (false).
+ *
+ * @param el the element to inspect
+ * @param tok the token to match against.
+ * @return non-zero (true) if the element matches the token, zero
+ * (false) otherwise.
+ */
 static int
-set_filter_property(
-    OmlFilter*  f,
-    const char* pname,
-    const char* ptype,
-    const char* pvalue
-);
+match_xml_elt (xmlNodePtr el, enum ConfToken tok)
+{
+  const struct synonym *synonym = token_names(tok);
+
+  while (synonym) {
+    if (xmlStrcmp (el->name, (const xmlChar*)synonym->name) == 0)
+      return 1;
+    synonym = synonym->next;
+  }
+  return 0;
+}
+
+/**
+ * @brief Get the canonical name for a token.
+ *
+ * The canonical name is the currently blessed "official" name for the
+ * token, as it appears in the config XML file.
+ *
+ * @param tok the token to look up.
+ * @return NULL if the token is not found or has no registered names;
+ * otherwise, the official name for the token.
+ */
+static const char *
+canonical_name (enum ConfToken tok)
+{
+  const struct synonym *synonym = token_names(tok);
+  if (synonym)
+    return synonym->name;
+  else
+    return NULL;
+}
+
+static int parse_collector(xmlNodePtr el);
+static int parse_mp(xmlNodePtr el, OmlWriter* writer);
+static OmlFilter* parse_filter(xmlNodePtr el, OmlMStream* ms, OmlMP* mp);
+static OmlFilter* parse_filter_properties(xmlNodePtr el, OmlFilter* f);
+static int set_filter_property(OmlFilter* f, const char* pname,
+                               const char* ptype, const char* pvalue);
 
 /**************************************************/
 
 /**
- * \fn int parse_config(char* configFile)
- * \brief Parse the config file to configure the oml deaomon
- * \param configFile
- * \return 0 if successful <0 otherwise
+ * @brief Parse the config file to configure liboml2.
+ * @param configFile the name of the config file
+ * @return 0 if successful <0 otherwise
  */
 int
-parse_config(
-  char* configFile
-) {
+parse_config(char* configFile)
+{
   xmlDocPtr doc;
   xmlNodePtr cur;
 
@@ -100,24 +240,23 @@ parse_config(
     return -2;
   }
 
-  if (xmlStrcmp(cur->name, (const xmlChar *)CONFIG_ROOT_NAME)) {
-    logerror("Config file has wrong root, should be '%s'.\n",
-      CONFIG_ROOT_NAME);
+  if (!match_xml_elt (cur, CT_ROOT)) {
+    logerror("Config file has incorrect root '%s', should be '%s'.\n",
+             cur->name, canonical_name (CT_ROOT));
     xmlFreeDoc(doc);
     return -3;
   }
 
   if (omlc_instance->node_name == NULL) {
-    omlc_instance->node_name = getAttr(cur, NODE_ID_ATTR);
+    omlc_instance->node_name = get_xml_attr(cur, CT_NODE);
   }
   if (omlc_instance->experiment_id == NULL) {
-    omlc_instance->experiment_id = getAttr(cur, EXP_ID_ATTR);
+    omlc_instance->experiment_id = get_xml_attr(cur, CT_EXP);
   }
-
 
   cur = cur->xmlChildrenNode;
   while (cur != NULL) {
-    if (!xmlStrcmp(cur->name, (const xmlChar *)COLLECT_EL)) {
+    if (match_xml_elt(cur, CT_COLLECT)) {
       if (parse_collector(cur)) {
         xmlFreeDoc(doc);
         return -4;
@@ -139,7 +278,7 @@ static int
 parse_collector(
     xmlNodePtr el
 ) {
-  xmlChar* url = xmlGetProp(el, (const xmlChar*)"url");
+  char* url = get_xml_attr(el, CT_URL);
   if (url == NULL) {
     logerror("Config line %hu: Missing 'url' attribute for <%s ...>'.\n", el->line, el->name);
     return -1;
@@ -149,7 +288,7 @@ parse_collector(
 
   xmlNodePtr cur = el->xmlChildrenNode;
   while (cur != NULL) {
-    if (!xmlStrcmp(cur->name, (const xmlChar *)MP_EL)) {
+    if (match_xml_elt (cur, CT_STREAM)) {
       if (parse_mp(cur, writer)) {
         return -3;
       }
@@ -172,13 +311,13 @@ parse_mp(
     xmlNodePtr el,
     OmlWriter* writer
 ) {
-  xmlChar* name = xmlGetProp(el, (const xmlChar*)"name");
+  char* name = get_xml_attr(el, CT_STREAM_NAME);
   if (name == NULL) {
     logerror("Config line %hu: Missing 'name' attribute for <%s ...>'.\n", el->line, el->name);
     return -1;
   }
-  xmlChar* samplesS = xmlGetProp(el, (const xmlChar*)"samples");
-  xmlChar* intervalS = xmlGetProp(el, (const xmlChar*)"interval");
+  char* samplesS = get_xml_attr (el, CT_STREAM_SAMPLES);
+  char* intervalS = get_xml_attr (el, CT_STREAM_INTERVAL);
   if (samplesS == NULL && intervalS == NULL) {
     logerror("Config line %hu: Missing 'samples' or 'interval' attribute for <%s ...>'.\n", el->line, el->name);
     return -2;
@@ -209,7 +348,7 @@ parse_mp(
 
   xmlNodePtr el2 = el->children;
   for (; el2 != NULL; el2 = el2->next) {
-    if (!xmlStrcmp(el2->name, (const xmlChar *)FILTER_EL)) {
+    if (match_xml_elt (el2, CT_FILTER)) {
       OmlFilter* f = parse_filter(el2, ms, mp);
       if (f == NULL) {
         // too difficult to reclaim all memory
@@ -240,18 +379,15 @@ parse_mp(
  * \return an OmlFilter if successful NULL otherwise
  */
 static OmlFilter*
-parse_filter(
-    xmlNodePtr  el,
-    OmlMStream* ms,
-    OmlMP*      mp
-) {
+parse_filter(xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
+{
   OmlFilter* f = NULL;
   int index = -1;
 
-  xmlChar* pname = xmlGetProp(el, (const xmlChar*)FILTER_PARAM_NAME_ATTR);
-  if (pname == NULL) {
+  char* field = get_xml_attr (el, CT_FILTER_FIELD);
+  if (field == NULL) {
     logerror("Config line %hu: Filter config element <%s ...> must include a '%s' attribute.\n",
-            el->line, FILTER_EL, FILTER_PARAM_NAME_ATTR);
+             el->line, el->name, canonical_name (CT_FILTER_FIELD));
       return NULL;
   } else {
     // find index
@@ -263,7 +399,7 @@ parse_filter(
                  i, mp->name, mp->param_count);
         return NULL;
       }
-      if (strcmp((char*)pname, dp->name) == 0) {
+      if (strcmp((char*)field, dp->name) == 0) {
         index = i;
         break;
       }
@@ -273,7 +409,7 @@ parse_filter(
   /* If index == -1, we didn't find the named field. This is an error, so we should abort. */
   if (index == -1) {
     logerror ("Config line %hu: '%s' attribute names unrecognized field name '%s' for MP '%s'\n",
-              el->line, FILTER_PARAM_NAME_ATTR, pname, mp->name);
+              el->line, get_xml_attr_name (el, CT_FILTER_FIELD), field, mp->name);
     logerror ("  Valid fields for '%s' are:\n", mp->name);
     OmlMPDef *dp = mp->param_defs;
     int i;
@@ -283,23 +419,23 @@ parse_filter(
     return NULL;
   }
 
-  xmlChar* fname = xmlGetProp(el, (const xmlChar*)FILTER_NAME_ATTR);
-  xmlChar* sname = xmlGetProp(el, (const xmlChar*)FILTER_STREAM_NAME_ATTR);
+  char* operation = get_xml_attr (el, CT_FILTER_OPER);
+  char* rename = get_xml_attr (el, CT_FILTER_RENAME);
   OmlMPDef* def = (index < 0) ? NULL : &mp->param_defs[index];
-  if (fname == NULL) {
+  if (operation == NULL) {
     // pick default one
     if (def == NULL) {
       logerror("Config line %hu: Can't create default filter without '%s' declaration.\n",
-               el->line, FILTER_PARAM_NAME_ATTR);
+               el->line, canonical_name (CT_FILTER_FIELD));
       return NULL;
     }
     f = create_default_filter(def, ms, index);
   } else {
-    const char* name = (sname != NULL) ? (char*)sname : def->name;
-    f = create_filter((const char*)fname, name, def->param_types, index);
+    const char* name = (rename != NULL) ? (char*)rename : def->name;
+    f = create_filter((const char*)operation, name, def->param_types, index);
   }
   if (f != NULL) {
-    f = parse_filter_properties(el, f, ms, mp);
+    f = parse_filter_properties(el, f);
   }
   return f;
 }
@@ -314,32 +450,26 @@ parse_filter(
  * \return an OmlFilter if successful NULL otherwise
  */
 static OmlFilter*
-parse_filter_properties(
-    xmlNodePtr  el,
-    OmlFilter*  f,
-    OmlMStream* ms,
-    OmlMP*      mp
-) {
-  (void)ms; // FIXME:  Are these parameters really not needed?
-  (void)mp;
+parse_filter_properties(xmlNodePtr el, OmlFilter* f)
+{
   xmlNodePtr el2 = el->children;
   for (; el2 != NULL; el2 = el2->next) {
-    if (!xmlStrcmp(el2->name, (const xmlChar *)FILTER_PROPERTY_EL)) {
+    if (match_xml_elt (el2, CT_FILTER_PROP)) {
       if (f->set == NULL) {
-        xmlChar* fname = xmlGetProp(el, (const xmlChar*)FILTER_NAME_ATTR);
+        char *operation = get_xml_attr (el, CT_FILTER_OPER);
         logerror("Filter '%s' doesn't support setting properties.\n",
-                 fname);
+                 operation);
         return NULL;
       }
 
-      xmlChar* pname = xmlGetProp(el2, (const xmlChar*)FILTER_PROPERTY_NAME_ATTR);
+      char* pname = get_xml_attr (el2, CT_FILTER_PROP_NAME);
       if (pname == NULL) {
-        logerror("Can't find property name in filter ('%s') property declaration.\n",
-                 f->name);
+        logerror("Config line %hu: Filter property declared without a name in filter '%s'\n",
+                 el2->line, f->name);
         return NULL;
       }
-      xmlChar* ptype = xmlGetProp(el2, (const xmlChar*)FILTER_PROPERTY_TYPE_ATTR);
-      if (ptype == NULL) ptype = (xmlChar*)"string";
+      char* ptype = get_xml_attr (el2, CT_FILTER_PROP_TYPE);
+      if (ptype == NULL) ptype = "string";
 
       xmlNodePtr vel = el2->children;
       xmlChar* value = NULL;
@@ -350,8 +480,8 @@ parse_filter_properties(
         }
       }
       if (value == NULL) {
-        logerror("Missing property ('%s') value in filter '%s'.\n",
-                 pname, f->name);
+        logerror("Config line %hu: Missing value for property '%s' in filter '%s'.\n",
+                 el2->line, pname, f->name);
         return NULL;
       }
       logdebug("Found filter property: %s:%s = '%s'.\n",
@@ -363,60 +493,31 @@ parse_filter_properties(
 }
 
 /**
- * \fn static int set_filter_property(OmlFilter* f, const char* pname, const char* ptype, const char* pvalue)
-
- * \brief Set property 'pname' on filter to 'pvalue' of type 'ptype'.
- * \param f filter
- * \param pname Name of property
- * \param ptype Type of property value
- * \param pvalue Value to set property to
+ * @brief Set property a property on a filter.
  *
- * \return 1 on success, 0 or less for failure
+ * The property type should be the string representation of one of the
+ * OML_*_VALUE types, as per schema header declarations.
+ *
+ * @param f filter to set the property for.
+ * @param name Name of the property to set.
+ * @param type Type of the property, as a string.
+ * @param value Value to set property to
+ *
+ * @return 1 on success, 0 or less for failure
  */
 static int
-set_filter_property(
-    OmlFilter*  f,
-    const char* pname,
-    const char* ptype,
-    const char* pvalue
-) {
+set_filter_property(OmlFilter* f, const char* name, const char* type, const char* value)
+{
   OmlValue v;
-  (void)ptype;
+  v.type = oml_type_from_s (type);
 
-  if (oml_value_from_s (&v, pvalue) == -1) {
-    logerror("Error converting property '%s' value from string '%s'\n",
-             pname, pvalue);
+  if (oml_value_from_s (&v, value) == -1) {
+    logerror("Could not convert property '%s' value from string '%s'\n",
+             name, value);
     return 0;
   }
 
-  return f->set(f, pname, &v);
-}
-
-
-/**
- * \fn static char* getAttr(xmlNodePtr el, const char* attrName)
- * \brief give a char* representation of the value of an xml node
- * \param el the element the function will retrun the value
- * \param attrName the name of the node
- * \return a char* representing the value of the attribute
- */
-static char*
-getAttr(
-    xmlNodePtr el,
-    const char* attrName
-) {
-  xmlChar* attrVal;
-  char* val = NULL;
-  attrVal = xmlGetProp(el, (const xmlChar*)attrName);
-  if (attrVal != NULL) {
-    size_t len = strlen ((char*)attrVal) + 1;
-    val = (char*)malloc(len * sizeof (char));
-    memset (val, 0, len);
-    strncpy(val, (char*)attrVal, len);
-    xmlFree(attrVal);
-  }
-
-  return val;
+  return f->set(f, name, &v);
 }
 
 /*

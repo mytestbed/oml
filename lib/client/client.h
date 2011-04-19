@@ -33,21 +33,6 @@
 #include "oml2/oml_filter.h"
 #include "oml2/oml_writer.h"
 
-#define CONFIG_ROOT_NAME "omlc"
-#define NODE_ID_ATTR "id"
-#define EXP_ID_ATTR "exp_id"
-
-#define COLLECT_EL "collect"
-#define MP_EL "mp"
-#define FILTER_EL "f"
-#define FILTER_NAME_ATTR "fname"
-#define FILTER_STREAM_NAME_ATTR "sname"
-#define FILTER_PARAM_NAME_ATTR "pname"
-#define FILTER_MULTI_PARAM_ATTR "multi_pnames"
-#define FILTER_PROPERTY_EL "fp"
-#define FILTER_PROPERTY_NAME_ATTR "name"
-#define FILTER_PROPERTY_TYPE_ATTR "type"  // optional [string, long, double]
-
 #define SERVER_URI_MAX_LENGTH 64
 
 typedef struct _omlClient {
