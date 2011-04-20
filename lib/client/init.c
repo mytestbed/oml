@@ -514,9 +514,9 @@ find_mp (const char *name)
 int
 find_mp_field (const char *name, OmlMP *mp)
 {
-  int i;
-  OmlMPDef *fields = mp->param_defs;
+  size_t i;
   size_t len = mp->param_count;
+  OmlMPDef *fields = mp->param_defs;
   for (i = 0; i < len; i++)
     if (strcmp (name, fields[i].name) == 0)
       return i;
@@ -589,7 +589,6 @@ find_mstream_in_mp (const char *name, OmlMP *mp)
 OmlMStream *
 find_mstream (const char *name)
 {
-  size_t len;
   OmlMP *mp = omlc_instance->mpoints;
   OmlMStream *ms = NULL;
   while (mp) {
