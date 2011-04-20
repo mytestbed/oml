@@ -61,9 +61,9 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
   if (mp == NULL || values == NULL) return;
   if (mp_lock(mp) == -1) return;
 
-  ms = mp->firstStream;
+  ms = mp->streams;
   while (ms) {
-    OmlFilter* f = ms->firstFilter;
+    OmlFilter* f = ms->filters;
     for (; f != NULL; f = f->next) {
       OmlValue v;
 

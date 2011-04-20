@@ -444,16 +444,16 @@ parse_stream_filters (xmlNodePtr el, OmlWriter *writer,
         // too difficult to reclaim all memory
         return -5;
       }
-      f->next = ms->firstFilter;
-      ms->firstFilter = f;
+      f->next = ms->filters;
+      ms->filters = f;
     }
   }
 
   // no filters specified - use default
-  if (ms->firstFilter == NULL)
+  if (ms->filters == NULL)
     create_default_filters(mp, ms);
-  ms->next = mp->firstStream;
-  mp->firstStream = ms;
+  ms->next = mp->streams;
+  mp->streams = ms;
   if (interval > 0)
     filter_engine_start(ms);
   return 0;

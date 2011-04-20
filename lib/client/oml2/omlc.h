@@ -183,7 +183,10 @@ typedef struct _omlMStream
 
     OmlValue** values;
 
-    struct _omlFilter* firstFilter; ///< Linked list of filters on this MS.
+    union {
+      struct _omlFilter* firstFilter; ///< Linked list of filters on this MS.
+      struct _omlFilter* filters; ///< Linked list of filters on this MS.
+    };
 
     int index; ///< Index to identify this stream
 

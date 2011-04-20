@@ -693,7 +693,7 @@ default_configuration(void)
   while (mp != NULL) {
     OmlMStream* ms = create_mstream (NULL, mp, writer, sample_interval, sample_count );
     if (ms) {
-      mp->firstStream = ms;
+      mp->streams = ms;
       ms->mp = mp;
       create_default_filters(mp, ms);
       if (sample_interval > 0)
@@ -720,9 +720,9 @@ create_default_filters(OmlMP *mp, OmlMStream *ms)
     OmlFilter* f = create_default_filter(&def, ms, j);
     if (f) {
       if (prev == NULL) {
-    ms->firstFilter = f;
+        ms->filters = f;
       } else {
-    prev->next = f;
+        prev->next = f;
       }
       prev = f;
     } else {
@@ -778,7 +778,7 @@ write_meta(void)
   OmlMP* mp = omlc_instance->mpoints;
   int index = 1;
   while (mp != NULL) {
-    OmlMStream* ms = mp->firstStream;
+    OmlMStream* ms = mp->streams;
     for(; ms != NULL; ms = ms->next) {
       write_schema(ms, index++);
     }
@@ -825,7 +825,7 @@ write_schema(OmlMStream *ms, int index)
   count += n;
 
   // Loop over all the filters
-  OmlFilter* filter = ms->firstFilter;
+  OmlFilter* filter = ms->filters;
   for (; filter != NULL; filter = filter->next) {
     const char* prefix = filter->name;
     int j;

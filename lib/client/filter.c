@@ -118,7 +118,7 @@ filter_process(OmlMStream* ms)
 
   ms->seq_no++;
   writer->row_start(writer, ms, now);
-  OmlFilter* f = ms->firstFilter;
+  OmlFilter* f = ms->filters;
   for (; f != NULL; f = f->next)
     {
       f->output(f, writer);
