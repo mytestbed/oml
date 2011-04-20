@@ -279,9 +279,14 @@ parse_config(char* configFile)
 }
 
 /**
- * \brief Parse the definition of a single collector. A collector is effectively a writer plus an associated set of fiters for a set of measurement points.
- * \param el the element to analyse
- * \return 0 if successful <0 otherwise
+ * @brief Parse the definition of a single collector.
+ *
+ * Extracts the URL for the collector to send its measurement streams
+ * to, then parses its child elements for measurement streams to
+ * build.
+ *
+ * @param el the XML element to analyse
+ * @return 0 if successful <0 otherwise
  */
 static int
 parse_collector(xmlNodePtr el)
@@ -308,10 +313,15 @@ parse_collector(xmlNodePtr el)
 }
 
 /**
- * \brief Parse the collect information for a specific MP
- * \param el the element to analyse
- * \param writer the writer that will be use when creating the stream
- * \return 0 if successful <0 otherwise
+ * @brief Parse an <mp/> or <stream/> element and build a measurement
+ * stream from it.
+ *
+ * <mp/> is the old (badly named) format for describing a stream,
+ * <stream/> is the new one.
+ *
+ * @param el the XML element to analyse
+ * @param writer the writer to which the stream will send its output
+ * @return 0 if successful <0 otherwise
  */
 static int
 parse_stream_or_mp (xmlNodePtr el, OmlWriter* writer)
@@ -328,6 +338,14 @@ parse_stream_or_mp (xmlNodePtr el, OmlWriter* writer)
     return parse_stream (el, writer);
 }
 
+/**
+ * @brief Parse an <mp/> element and build a measurement stream from
+ * it.
+ *
+ * @param el the XML element to analyse
+ * @param writer the writer to which the stream will send its output
+ * @return 0 if successful <0 otherwise
+ */
 static int
 parse_mp (xmlNodePtr el, OmlWriter* writer)
 {
@@ -347,6 +365,14 @@ parse_mp (xmlNodePtr el, OmlWriter* writer)
   return parse_stream_filters (el, writer, source_, name_);
 }
 
+/**
+ * @brief Parse an <stream/> element and build a measurement stream
+ * from it.
+ *
+ * @param el the XML element to analyse
+ * @param writer the writer to which the stream will send its output
+ * @return 0 if successful <0 otherwise
+ */
 static int
 parse_stream (xmlNodePtr el, OmlWriter* writer)
 {
@@ -356,6 +382,18 @@ parse_stream (xmlNodePtr el, OmlWriter* writer)
   return parse_stream_filters (el, writer, source, name);
 }
 
+/**
+ * @brief Parse the <filter/> children of an <mp/> or <stream/>
+ * element and construct a measurement stream together with the
+ * described filters.
+ *
+ * @param el the XML element to analyse
+ * @param writer the writer to which the stream will send its output
+ * @param source the name of the source MP for this stream
+ * @param the name of this stream.  If NULL, the name will be the name
+ * of the source MP.
+ * @return 0 if successful <0 otherwise
+ */
 static int
 parse_stream_filters (xmlNodePtr el, OmlWriter *writer,
                       char *source, char *name)
@@ -422,11 +460,12 @@ parse_stream_filters (xmlNodePtr el, OmlWriter *writer,
 }
 
 /**
- * \brief Parse a filter def and return the configured filter.
- * \param el the xml node
- * \param ms the stream to associate with the filter
- * \param mp the measurement point structure
- * \return an OmlFilter if successful NULL otherwise
+ * @brief Parse a <filter/> element and return the configured filter.
+ *
+ * @param el the XML element to analyze.
+ * @param ms the stream to which the filter is associated.
+ * @param mp the measurement point to which the stream is attached.
+ * @return an OmlFilter if successful NULL otherwise
  */
 static OmlFilter*
 parse_filter (xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
@@ -476,12 +515,21 @@ parse_filter (xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
 }
 
 /**
- * \brief Parse optional filter properties and call the filter's 'set' funtion with the properly cast values.
- * \param el the filer xml node
- * \param f filter
- * \param ms the stream to associate with the filter
- * \param mp the measurement point structure
- * \return an OmlFilter if successful NULL otherwise
+ * @brief Parse optional filter properties and call the filter's 'set'
+ * funtion with the properly cast values.
+ *
+ * A property has a name and a type, which are specified in attributes
+ * on the <property/> element, and a value, which is carried in the
+ * text content of the <property/> element.  The standard OML types
+ * are supported, and are specified using their schema string
+ * representations (i.e. int32, uint32, int64, uint64, double, string,
+ * blob, ...).
+ *
+ * @param el the filer XML element
+ * @param f the filter to set the properties on.
+ * @param ms the stream to which the filter is associated.
+ * @param mp the measurement point to which the filter is associated.
+ * @return an OmlFilter if successful NULL otherwise
  */
 static OmlFilter*
 parse_filter_properties(xmlNodePtr el, OmlFilter* f)
