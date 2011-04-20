@@ -24,6 +24,8 @@
 #ifndef MSTRING_H__
 #define MSTRING_H__
 
+#include <stdlib.h>
+
 typedef struct
 {
   size_t size;   ///< Current allocated size

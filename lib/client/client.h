@@ -33,6 +33,8 @@
 #include "oml2/oml_filter.h"
 #include "oml2/oml_writer.h"
 
+#include <mstring.h>
+
 #define SERVER_URI_MAX_LENGTH 64
 
 typedef struct _omlClient {
@@ -59,6 +61,13 @@ typedef struct _omlClient {
 extern OmlClient* omlc_instance;
 
 // init.c
+
+OmlMP * find_mp (const char *name);
+int find_mp_field (const char *name, OmlMP *mp);
+OmlMStream *find_mstream (const char *name);
+OmlMStream *find_mstream_in_mp (const char *name, OmlMP *mp);
+
+MString *mp_fields_summary (OmlMP *mp);
 
 OmlMStream*
 create_mstream(

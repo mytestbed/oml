@@ -23,6 +23,7 @@
 
 #include <config.h>
 #include <log.h>
+#include <mstring.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -488,8 +489,122 @@ create_writer(char* server_uri)
   }
   return writer;
 }
+
 /**
- * @brief Function called when creating a new stream of measurement
+ * @brief Find a named measurement point.
+ *
+ * @param name The name of the measurement point to search for.
+ * @return the measurement point, or NULL if not found.
+ */
+OmlMP *
+find_mp (const char *name)
+{
+  OmlMP *mp = omlc_instance->mpoints;
+  while (mp && strcmp (name, mp->name))
+    mp = mp->next;
+  return mp;
+}
+
+/**
+ * @brief Find a named field of an MP.
+ *
+ * @param name name of the field to look up.
+ * @return a valid index into the OmlMP's param_defs array, or -1 if not found.
+ */
+int
+find_mp_field (const char *name, OmlMP *mp)
+{
+  int i;
+  OmlMPDef *fields = mp->param_defs;
+  size_t len = mp->param_count;
+  for (i = 0; i < len; i++)
+    if (strcmp (name, fields[i].name) == 0)
+      return i;
+  return -1;
+}
+
+/**
+ * @brief Create an MString containing a comma-separated list of the
+ * fields of the MP.
+ *
+ * @param mp the MP to summarize
+ * @return the fields summary for mp.  The caller is repsonsible for
+ * calling mstring_delete() to deallocate the returned MString.
+ */
+MString *
+mp_fields_summary (OmlMP *mp)
+{
+  int i;
+  OmlMPDef *fields = mp->param_defs;
+  MString *s = mstring_create();
+  mstring_set (s, "'");
+
+  if (!s) return NULL;
+
+  for (i = 0; i < mp->param_count; i++) {
+    mstring_cat (s, fields[i].name);
+    if (i < mp->param_count - 1)
+      mstring_cat (s, "', '");
+  }
+  mstring_cat (s, "'");
+
+  return s;
+}
+
+
+/**
+ * @brief Find a named MStream among the streams attached to an MP.
+ *
+ * @param name the name of the stream to search for.
+ * @param mp the MP in which to search for the stream.
+ * @return a pointer to the OmlMStream if found, or NULL if not.
+ */
+OmlMStream *
+find_mstream_in_mp (const char *name, OmlMP *mp)
+{
+  size_t len;
+  OmlMStream *ms = mp->streams;
+
+  if (name)
+    len = strlen (name);
+  else
+    return NULL;
+
+  while (ms) {
+    if (ms && ms->table_name && strcmp (name, ms->table_name) == 0)
+      break;
+    ms = ms->next;
+  }
+
+  return ms;
+}
+
+/**
+ * @brief Find a measurement stream by name.  All measurement streams
+ * must be named uniquely.
+ *
+ * @param name the name of the measurement stream to search for.
+ * @return a pointer to the measurement stream or NULL if not found.
+ */
+OmlMStream *
+find_mstream (const char *name)
+{
+  size_t len;
+  OmlMP *mp = omlc_instance->mpoints;
+  OmlMStream *ms = NULL;
+  while (mp) {
+    ms = find_mstream_in_mp (name, mp);
+    if (ms)
+      break;
+    mp = mp->next;
+  }
+  return ms;
+}
+
+/**
+ * @brief Create a new stream of measurement samples from the inputs
+ * to a given MP.
+ *
  * @param sample_interval the sample interval for the filter
  * @param sample_thres the threshold for the filter
  * @param mp the measurement point

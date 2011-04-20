@@ -219,7 +219,10 @@ typedef struct _omlMP
 
     //! Link to first stream.
     //! If NULL then nobody is interested in this MP.
-    OmlMStream* firstStream;
+    union {
+      OmlMStream* firstStream;
+      OmlMStream* streams;
+    };
 
     int         active;  ///< Set to 1 if MP is active
 
