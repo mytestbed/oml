@@ -43,6 +43,7 @@ enum ConfToken {
   CT_URL,
   CT_STREAM,
   CT_STREAM_NAME,
+  CT_STREAM_SOURCE,
   CT_STREAM_SAMPLES,
   CT_STREAM_INTERVAL,
   CT_FILTER,
@@ -81,7 +82,9 @@ static void init_tokens (void)
   setcurtok (CT_COLLECT),          mksyn ("collect");
   setcurtok (CT_URL),              mksyn ("url");
   setcurtok (CT_STREAM),           mksyn ("mp"), mksyn ("stream");
-  setcurtok (CT_STREAM_NAME),      mksyn ("name"), mksyn ("mp");
+  setcurtok (CT_STREAM_NAME),      mksyn ("name");
+  /* CT_STREAM_SOURCE is a special case */
+  setcurtok (CT_STREAM_SOURCE),    mksyn ("source"), mksyn ("mp");
   setcurtok (CT_STREAM_SAMPLES),   mksyn ("samples");
   setcurtok (CT_STREAM_INTERVAL),  mksyn ("interval");
   setcurtok (CT_FILTER),           mksyn ("f"), mksyn ("filter");
@@ -209,8 +212,14 @@ canonical_name (enum ConfToken tok)
     return NULL;
 }
 
+/**************************************************/
+
 static int parse_collector(xmlNodePtr el);
+static int parse_stream_or_mp(xmlNodePtr el, OmlWriter* writer);
 static int parse_mp(xmlNodePtr el, OmlWriter* writer);
+static int parse_stream(xmlNodePtr el, OmlWriter* writer);
+static int parse_stream_filters (xmlNodePtr el, OmlWriter* writer,
+                                 char *source, char *name);
 static OmlFilter* parse_filter(xmlNodePtr el, OmlMStream* ms, OmlMP* mp);
 static OmlFilter* parse_filter_properties(xmlNodePtr el, OmlFilter* f);
 static int set_filter_property(OmlFilter* f, const char* pname,
@@ -288,7 +297,7 @@ parse_collector(xmlNodePtr el)
   xmlNodePtr cur = el->xmlChildrenNode;
   while (cur != NULL) {
     if (match_xml_elt (cur, CT_STREAM)) {
-      if (parse_mp(cur, writer)) {
+      if (parse_stream_or_mp(cur, writer)) {
         return -3;
       }
     }
@@ -299,29 +308,81 @@ parse_collector(xmlNodePtr el)
 }
 
 /**
- * \fn static int parse_mp(xmlNodePtr el, OmlWriter* writer)
  * \brief Parse the collect information for a specific MP
  * \param el the element to analyse
  * \param writer the writer that will be use when creating the stream
  * \return 0 if successful <0 otherwise
  */
 static int
-parse_mp(
-    xmlNodePtr el,
-    OmlWriter* writer
-) {
-  char* name = get_xml_attr(el, CT_STREAM_NAME);
-  if (name == NULL) {
-    logerror("Config line %hu: Missing 'name' attribute for <%s ...>'.\n", el->line, el->name);
+parse_stream_or_mp (xmlNodePtr el, OmlWriter* writer)
+{
+  /*
+   * CT_STREAM_SOURCE is a special case because we mix the old names
+   *  with the new: the 'name' attribute identifies the source MP in
+   *  the old <mp ...> naming, but it identifies the created _stream_
+   *  in the new naming.  It requires special handling as a result.
+   */
+  if (xmlStrcmp (el->name, (xmlChar*)"mp") == 0)
+    return parse_mp (el, writer);
+  else
+    return parse_stream (el, writer);
+}
+
+static int
+parse_mp (xmlNodePtr el, OmlWriter* writer)
+{
+  xmlChar *source = xmlGetProp (el, (xmlChar *)"name");
+  xmlChar *name   = xmlGetProp (el, (xmlChar *)"rename");
+
+  char *source_ = xstrndup ((char*)source, strlen ((char*)source));
+  char *name_;
+  if (name) {
+    name_ = xstrndup ((char*)name, strlen ((char*)name));
+    xmlFree (name);
+  } else {
+    name_ = NULL;
+  }
+  xmlFree (source);
+
+  return parse_stream_filters (el, writer, source_, name_);
+}
+
+static int
+parse_stream (xmlNodePtr el, OmlWriter* writer)
+{
+  char *source = get_xml_attr (el, CT_STREAM_SOURCE);
+  char *name   = get_xml_attr (el, CT_STREAM_NAME);
+
+  return parse_stream_filters (el, writer, source, name);
+}
+
+static int
+parse_stream_filters (xmlNodePtr el, OmlWriter *writer,
+                      char *source, char *name)
+{
+  OmlMP* mp;
+  char *samples_str  = get_xml_attr (el, CT_STREAM_SAMPLES);
+  char *interval_str = get_xml_attr (el, CT_STREAM_INTERVAL);
+
+  if (source == NULL) {
+    logerror("Config line %hu: Missing 'name' attribute for <%s ...>'.\n",
+             el->line, el->name);
     return -1;
   }
-  char* samplesS = get_xml_attr (el, CT_STREAM_SAMPLES);
-  char* intervalS = get_xml_attr (el, CT_STREAM_INTERVAL);
-  if (samplesS == NULL && intervalS == NULL) {
-    logerror("Config line %hu: Missing 'samples' or 'interval' attribute for <%s ...>'.\n", el->line, el->name);
+
+  mp = find_mp (source);
+
+  if (mp == NULL) {
+    logerror("Config line %hu: Unknown measurement point '%s'.\n", el->line, source);
+    return -4;
+  }
+
+  if (samples_str == NULL && interval_str == NULL) {
+    logerror("Config line %hu: Missing 'samples' or 'interval' attribute for <%s ...>'.\n",
+             el->line, el->name);
     return -2;
   }
-  if (samplesS != NULL && intervalS != NULL) {
+  if (samples_str != NULL && interval_str != NULL) {
     logerror("Config line %hu: Only one of 'samples' or 'interval' attribute can"
              " be defined for <%s ...>.\n",
              el->line,
@@ -329,16 +390,13 @@ parse_mp(
     return -3;
   }
 
-  OmlMP* mp = find_mp (name);
-  if (mp == NULL) {
-    logerror("Config line %hu: Unknown measurement point '%s'.\n", el->line, name);
-    return -4;
-  }
-
-  int samples = samplesS != NULL ? atoi((char*)samplesS) : -1;
+  int samples = samples_str != NULL ? atoi((char*)samples_str) : -1;
   if (samples == 0) samples = 1;
-  double interval = intervalS != NULL ? atof((char*)intervalS) : -1;
-  OmlMStream* ms = create_mstream(interval, samples, mp, writer);
+  double interval = interval_str != NULL ? atof((char*)interval_str) : -1;
+  OmlMStream* ms = create_mstream(name, mp, writer, interval, samples);
+
+  if (!ms)
+    return -6;
 
   xmlNodePtr el2 = el->children;
   for (; el2 != NULL; el2 = el2->next) {
@@ -352,15 +410,14 @@ parse_mp(
       ms->firstFilter = f;
     }
   }
-  if (ms->firstFilter == NULL) {
-    // no filters specified - use default
+
+  // no filters specified - use default
+  if (ms->firstFilter == NULL)
     create_default_filters(mp, ms);
-  }
   ms->next = mp->firstStream;
   mp->firstStream = ms;
-  if (interval > 0) {
+  if (interval > 0)
     filter_engine_start(ms);
-  }
   return 0;
 }
 
@@ -374,10 +431,13 @@ parse_mp(
 static OmlFilter*
 parse_filter (xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
 {
-  OmlFilter* f = NULL;
+  OmlFilter *f = NULL;
+  OmlMPDef *def = NULL;
+  char* field = get_xml_attr (el, CT_FILTER_FIELD);
+  char* operation = get_xml_attr (el, CT_FILTER_OPER);
+  char* rename = get_xml_attr (el, CT_FILTER_RENAME);
   int index = -1;
 
-  char* field = get_xml_attr (el, CT_FILTER_FIELD);
   if (field == NULL) {
     logerror("Config line %hu: Filter config element <%s ...> must include a '%s' attribute.\n",
              el->line, el->name, canonical_name (CT_FILTER_FIELD));
@@ -396,9 +456,7 @@ parse_filter (xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
     return NULL;
   }
 
-  char* operation = get_xml_attr (el, CT_FILTER_OPER);
-  char* rename = get_xml_attr (el, CT_FILTER_RENAME);
-  OmlMPDef* def = (index < 0) ? NULL : &mp->param_defs[index];
+  def = &mp->param_defs[index];
   if (operation == NULL) {
     // pick default one
     if (def == NULL) {

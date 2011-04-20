@@ -608,16 +608,21 @@ find_mstream (const char *name)
  * @param sample_interval the sample interval for the filter
  * @param sample_thres the threshold for the filter
  * @param mp the measurement point
- * @param writer the oml writer
- * @return the new measurement stream
+ * @param writer the destination for the stream output samples
+ * @return the new measurement stream, or NULL if an error occurred.
  */
 OmlMStream*
-create_mstream(double sample_interval,
-               int    sample_thres,
-               OmlMP* mp,
-               OmlWriter* writer)
+create_mstream (const char *name,
+                OmlMP* mp,
+                OmlWriter* writer,
+                double sample_interval,
+                int sample_thres)
 {
+  if (!mp || !writer)
+    return NULL;
   OmlMStream* ms = (OmlMStream*)malloc(sizeof(OmlMStream));
+  MString *namestr = mstring_create();
+  char *stream_name = NULL;
   memset(ms, 0, sizeof(OmlMStream));
 
   ms->sample_interval = sample_interval;
@@ -625,12 +630,32 @@ create_mstream(double sample_interval,
   ms->mp = mp;
   ms->writer = writer;
   ms->next = NULL;
-  if (mp->table_count++ > 0) {
-    sprintf(ms->table_name, "%s_%s_%d", omlc_instance->app_name,
-              mp->name, mp->table_count);
-  } else {
-    sprintf(ms->table_name, "%s_%s", omlc_instance->app_name, mp->name);
+
+  mstring_set (namestr, omlc_instance->app_name);
+  mstring_cat (namestr, "_");
+  if (name)
+    mstring_cat (namestr, name);
+  else
+    mstring_cat (namestr, mp->name);
+  stream_name = mstring_buf (namestr);
+
+  if (find_mstream (stream_name)) {
+    logerror ("Measurement stream '%s' already exists; cannot create duplicate in MP '%s':  %s\n",
+              name ? name : mp->name,
+              mp->name,
+              name
+              ? " Choose another name in the <stream name=\"...\"> attribute."
+              : " Consider using the <stream name=\"...\"> attribute.");
+
+    free (ms);
+    mstring_delete (namestr);
+    return NULL;
   }
+  const size_t tnlen = sizeof(ms->table_name);
+  strncpy (ms->table_name, stream_name, tnlen);
+  if (ms->table_name[tnlen-1] != '\0')
+    ms->table_name[tnlen-1] = '\0';
+  mstring_delete (namestr);
 
   if (ms->sample_interval > 0) {
     if (mp->mutexP == NULL) {
@@ -660,23 +685,20 @@ default_configuration(void)
   }
 
   int sample_count = omlc_instance->sample_count;
-  if (sample_count == 0) {
+  if (sample_count == 0)
     sample_count = omlc_instance->sample_count = 1;
-  }
   double sample_interval = omlc_instance->sample_interval;
 
   OmlMP* mp = omlc_instance->mpoints;
   while (mp != NULL) {
-    OmlMStream* ms = create_mstream(sample_interval, sample_count, mp, writer);
-    mp->firstStream = ms;
-    ms->mp = mp;
-
-    create_default_filters(mp, ms);
-
-    if (sample_interval > 0) {
-      filter_engine_start(ms);
+    OmlMStream* ms = create_mstream (NULL, mp, writer, sample_interval, sample_count );
+    if (ms) {
+      mp->firstStream = ms;
+      ms->mp = mp;
+      create_default_filters(mp, ms);
+      if (sample_interval > 0)
+        filter_engine_start(ms);
     }
-
     mp = mp->next;
   }
   return 0;

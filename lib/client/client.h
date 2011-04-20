@@ -71,10 +71,11 @@ MString *mp_fields_summary (OmlMP *mp);
 
 OmlMStream*
 create_mstream(
-    double     sample_interval,
-    int        sample_thres,
+    const char * name,
     OmlMP*     mp,
-    OmlWriter* writer
+    OmlWriter* writer,
+    double     sample_interval,
+    int        sample_thres
 );
 
 void

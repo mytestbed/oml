@@ -163,6 +163,19 @@ the 'radiotap' measurements, three filters are defined: one for the
 one for the 'power' field.  For the 'udp' measurements, a single
 filter is established on the 'udp_len' field.
 
+The 'stream' element also accepts a 'name' attribute that allows the
+stream name to be controlled by the user.  If 'name' is omitted then
+the stream is named according to <app-name>_<mp-name>, where
+<app-name> is the application name as set by the application
+developer, and <mp-name> is the name of the MP.  If 'name' is used
+then its value is used to construct the stream name as
+<app-name>_<stream-name>.  A stream must have a unique name, so if the
+user wants to create two streams from the same MP then at least one of
+them must have a 'name' attribute.  Omitting it, or having two streams
+with identical 'name' attributes, will result in the *liboml2*
+configuration process aborting with an error message about the
+duplicate stream in the OML client log file.
+
 Filters operate on a single scalar input value.  The 'filter' element
 establishes a filter and the 'field' attribute selects the field of
 the MP that should form the input for the filter.  The 'field'
@@ -267,31 +280,32 @@ Measurement points are created with a 'schema', as above, a schema
 being an ordered list of (name, type) pairs.
 
 OML filters also generate output with a declared schema. For each
-measurement point, *liboml2* generates a single output measurement
+measurement stream, *liboml2* generates a single output measurement
 that is the union of the outputs of all filters attached to the MP.
 The names of the fields (or columns) of the schema are derived from
 the names of the original MP fields, and the output schemas of the
 filters. The schemas can be observed directly in the file output
 (identical schemas are sent to the server when a server is used). For
-instance, here is the output schema for a simple example MP that
-measures a string ("label") and an integer ("seq_no"):
+instance, here is the output schema for stream that takes its inputs
+from a simple example MP that measures a string ("label") and an
+integer ("seq_no"):
 
 --------
 schema: 1 generator_lin label:string seq_no:uint32
 --------
 
 The schema name is "generator_lin" -- a combination of the application
-name ("generator") and the measurement point name ("lin").  (The
-number '1' on this line is an index used in the output columns to
-identify a line of measurement with the schema to which it conforms.)
-This output can be generated using an 'mp' element with 'samples="1"'
-and no explicit filter:
+name ("generator") and the stream name ("lin").  (The number '1' on
+this line is an index used in the output columns to identify a line of
+measurement with the schema to which it conforms.)  This output can be
+generated using an 'mp' element with 'samples="1"' and no explicit
+filter:
 
 --------
 <omlc exp_id="my_experiment" id="my_source_id">
-  <collect url="file:-">
-    <stream mp="lin" samples="1" />
-  </collect>
+ <collect url="file:-">
+   <stream mp="lin" samples="1" />
+ </collect>
 </omlc>
 --------
 
@@ -338,6 +352,24 @@ represented as a floating point type in the output because the filter
 may output floating point values.  For instance, the average of a set
 of integers is real valued because of the division in the averaging
 operation.
+
+If we use the 'name' attribute of the <stream/> element, the name of
+the schema will follow the 'name' attribute rather than the name of
+the source MP.  For instance consider this configuration file:
+
+--------
+<omlc exp_id="my_experiment" id="my_source_id">
+ <collect url="file:-">
+   <stream mp="lin" samples="1" name="foo"/>
+ </collect>
+</omlc>
+--------
+
+It will generate the following schema declaration:
+
+--------
+schema: 1 generator_foo label:string seq_no:uint32
+--------
 
 AVAILABLE FILTERS
 -----------------
@@ -470,7 +502,7 @@ the new ones:
 |=====================
 ^| OLD     ^| NEW
 |  <omlc exp_id="abc" ...> | <omlc experiment="abc" ... >
-|  <mp name="def" ...> | <stream mp="def" ...>
+|  <mp name="def" rename="bar"...> | <stream mp="def" name="bar"...>
 |  <f fname="avg" ...> | <filter operation="avg" ...>
 |  <f pname="foo" ...> | <filter field="foo" ...>
 |  <f sname="bar" ...> | <filter rename="bar" ...>
