@@ -25,6 +25,7 @@
 */
 
 #include <log.h>
+#include <mstring.h>
 #include <mem.h>
 #include <stdlib.h>
 #include <string.h>
@@ -269,15 +270,13 @@ parse_config(char* configFile)
 }
 
 /**
- * \fn static int parse_collector(xmlNodePtr el)
  * \brief Parse the definition of a single collector. A collector is effectively a writer plus an associated set of fiters for a set of measurement points.
  * \param el the element to analyse
  * \return 0 if successful <0 otherwise
  */
 static int
-parse_collector(
-    xmlNodePtr el
-) {
+parse_collector(xmlNodePtr el)
+{
   char* url = get_xml_attr(el, CT_URL);
   if (url == NULL) {
     logerror("Config line %hu: Missing 'url' attribute for <%s ...>'.\n", el->line, el->name);
@@ -329,18 +328,13 @@ parse_mp(
              el->name);
     return -3;
   }
-  OmlMP* mp = omlc_instance->mpoints;
-  for (; mp != NULL; mp = mp->next) {
-    if (strcmp((char*)name, mp->name) == 0) {
-      break;
-    }
-  }
+
+  OmlMP* mp = find_mp (name);
   if (mp == NULL) {
     logerror("Config line %hu: Unknown measurement point '%s'.\n", el->line, name);
     return -4;
   }
 
-  //OmlMStream* ms = (OmlMStream*)malloc(sizeof(OmlMStream));
   int samples = samplesS != NULL ? atoi((char*)samplesS) : -1;
   if (samples == 0) samples = 1;
   double interval = intervalS != NULL ? atof((char*)intervalS) : -1;
@@ -371,7 +365,6 @@ parse_mp(
 }
 
 /**
- * \fn static OmlFilter* parse_filter(xmlNodePtr  el, OmlMStream* ms, OmlMP* mp)
  * \brief Parse a filter def and return the configured filter.
  * \param el the xml node
  * \param ms the stream to associate with the filter
@@ -379,7 +372,7 @@ parse_mp(
  * \return an OmlFilter if successful NULL otherwise
  */
 static OmlFilter*
-parse_filter(xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
+parse_filter (xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
 {
   OmlFilter* f = NULL;
   int index = -1;
@@ -389,33 +382,17 @@ parse_filter(xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
     logerror("Config line %hu: Filter config element <%s ...> must include a '%s' attribute.\n",
              el->line, el->name, canonical_name (CT_FILTER_FIELD));
       return NULL;
-  } else {
-    // find index
-    OmlMPDef* dp = mp->param_defs;
-    int i = 0;
-    for (; dp->name != NULL; i++, dp++) {
-      if (i >= mp->param_count) {
-        logerror("Attempting to access field '%i' of MP '%s', which only has %i fields\n",
-                 i, mp->name, mp->param_count);
-        return NULL;
-      }
-      if (strcmp((char*)field, dp->name) == 0) {
-        index = i;
-        break;
-      }
-    }
   }
+
+  index = find_mp_field (field, mp);
 
   /* If index == -1, we didn't find the named field. This is an error, so we should abort. */
   if (index == -1) {
-    logerror ("Config line %hu: '%s' attribute names unrecognized field name '%s' for MP '%s'\n",
-              el->line, get_xml_attr_name (el, CT_FILTER_FIELD), field, mp->name);
-    logerror ("  Valid fields for '%s' are:\n", mp->name);
-    OmlMPDef *dp = mp->param_defs;
-    int i;
-    for (i = 0; dp->name != NULL && i < mp->param_count; i++, dp++) {
-      logerror ("      %s\n", dp->name);
-    }
+    MString *s = mp_fields_summary (mp);
+    logerror ("Config line %hu: MP '%s' has no field named '%s'; "
+              "Valid fields for '%s' are: %s\n",
+              el->line, mp->name, field, mp->name, mstring_buf (s));
+    mstring_delete (s);
     return NULL;
   }
 
@@ -441,7 +418,6 @@ parse_filter(xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
 }
 
 /**
- * \fn static OmlFilter* parse_filter_properties(xmlNodePtr  el, OmlFiler* f, OmlMStream* ms, OmlMP* mp)
  * \brief Parse optional filter properties and call the filter's 'set' funtion with the properly cast values.
  * \param el the filer xml node
  * \param f filter
