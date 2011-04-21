@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <popt.h>
 
 #include <oml2/oml_writer.h>
@@ -62,7 +63,7 @@ static int listen_port = DEFAULT_PORT;
 char* g_database_data_dir = ".";
 
 static int log_level = O_LOG_INFO;
-static char* logfile_name = DEFAULT_LOG_FILE;
+static char* logfile_name = NULL;
 static char* hostname = DEFAULT_DB_HOST;
 static char* user = DEFAULT_DB_USER;
 static char* backend = DEFAULT_DB_BACKEND;
@@ -124,6 +125,39 @@ database_create_function ()
 }
 
 /**
+ * @brief Set up the logging system.
+ *
+ * This function sets up the server logging system to log to file
+ * logfile, with the given log verbosity level.  All messages with
+ * severity less than or equal to level will be logged; all others
+ * will be discarded (lower levels are more important).
+ *
+ * If logfile is not NULL then the named file is opened for logging.
+ * If logfile is NULL and the application's stderr stream is not
+ * attached to a tty, then the file DEF_LOG_FILE is opened for
+ * logging; otherwise, if logfile is NULL and stderr is attached to a
+ * tty then log messages will sent to stderr.
+ *
+ * @param logfile the file to open
+ * @param level the severity level at which to log
+ */
+void
+setup_logging (char *logfile, int level)
+{
+  if (!logfile) {
+    if (isatty (fileno (stderr)))
+      logfile = "-";
+    else
+      logfile = DEFAULT_LOG_FILE;
+  }
+
+  o_set_log_file(logfile);
+  o_set_log_level(level);
+  extern void _o_set_simplified_logging (void);
+  _o_set_simplified_logging ();
+}
+
+/**
  * \brief Called when a node connects via TCP
  * \param new_sock
  */
@@ -150,10 +184,8 @@ main(int argc, const char **argv)
       return 0;
     }
   }
-  o_set_log_file(logfile_name);
-  o_set_log_level(log_level);
-  extern void _o_set_simplified_logging (void);
-  _o_set_simplified_logging ();
+
+  setup_logging (logfile_name, log_level);
 
   if (c < -1)
     die ("%s: %s\n", poptBadOption (optCon, POPT_BADOPTION_NOALIAS), poptStrerror (c));
