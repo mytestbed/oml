@@ -253,7 +253,7 @@ table_create (Database* db, DbTable* table, int backend_create)
       return -1;
   }
   if (table->schema == NULL) {
-    logwarn("No schema defined for table '%s'\n");
+    logwarn("No schema defined for table, cannot create\n");
     return -1;
   }
   MString *insert = NULL, *create = NULL;
@@ -561,17 +561,13 @@ sq3_get_table_list (Sq3DB* self, int *num_tables)
 
   int n = 0;
   int j = 0;
-  for (i = name_col + ncols,
-         j = schema_col + ncols;
+  for (i = name_col + ncols, j = schema_col + ncols;
        i < (nrows + 1) * ncols;
-       i += ncols,
-         j+= ncols,
-         n++)
-    {
-      TableDescr* t = table_descr_new (result[i], result[j]);
-      t->next = tables;
-      tables = t;
-    }
+       i += ncols, j+= ncols, n++) {
+    TableDescr* t = table_descr_new (result[i], result[j]);
+    t->next = tables;
+    tables = t;
+  }
 
   sqlite3_free_table (result);
   *num_tables = n;
@@ -628,46 +624,39 @@ sq3_get_key_value (Database* database, const char* table, const char* key_column
     return NULL;
 
   Sq3DB* sq3db = (Sq3DB*) database->adapter_hdl;
-  char s[512];
-  const char* stmt_fmt = "SELECT %s,%s FROM %s WHERE %s='%s';";
+  MString *stmt = mstring_create ();
+  mstring_sprintf (stmt, "SELECT %s,%s FROM %s WHERE %s='%s';",
+                   key_column, value_column, table, key_column, key);
   char* errmsg;
   char** result;
   int nrows;
   int ncols;
 
-  size_t n = snprintf (s, LENGTH(s), stmt_fmt, key_column, value_column, table, key_column, key);
+  int ret = sqlite3_get_table (sq3db->db_hdl, mstring_buf(stmt), &result,
+                               &nrows, &ncols, &errmsg);
 
-  if (n >= LENGTH(s))
-    logwarn("Key-value lookup for key '%s' in %s(%s, %s): SELECT statement had to be truncated\n",
-            key, table, key_column, value_column);
+  if (ret != SQLITE_OK) {
+    logerror("Error in SELECT statement '%s' [%s].\n", mstring_buf (stmt), errmsg);
+    sqlite3_free (errmsg);
+    return NULL;
+  }
 
-  int ret = sqlite3_get_table (sq3db->db_hdl, s, &result, &nrows, &ncols, &errmsg);
-
-  if (ret != SQLITE_OK)
-    {
-      logerror("Error in SELECT statement %s [%s].\n", stmt_fmt, errmsg);
-      sqlite3_free (errmsg);
-      return NULL;
-    }
-
-  if (ncols == 0 || nrows == 0)
-    {
-      sqlite3_free_table (result);
-      return NULL;
-    }
+  if (ncols == 0 || nrows == 0) {
+    sqlite3_free_table (result);
+    return NULL;
+  }
 
   if (nrows > 1)
-      logwarn("Key-value lookup for key '%s' in %s(%s, %s) returned more than one possible key.\n",
-              key, table, key_column, value_column);
+    logwarn("Key-value lookup for key '%s' in %s(%s, %s) returned more than one possible key.\n",
+            key, table, key_column, value_column);
 
   char* value = NULL;
 
-  if (strcmp (key, result[2]) == 0)
-    {
-      size_t len = strlen (result[3]) + 1;
-      value = xmalloc (len);
-      strncpy (value, result[3], len);
-    }
+  if (strcmp (key, result[2]) == 0) {
+    size_t len = strlen (result[3]) + 1;
+    value = xmalloc (len);
+    strncpy (value, result[3], len);
+  }
 
   sqlite3_free_table (result);
   return value;
@@ -696,19 +685,17 @@ sq3_set_key_value (Database* database, const char* table,
   if (check_value != NULL)
     xfree (check_value);
 
-  if (n >= LENGTH (stmt))
-    {
-      logwarn("SQL statement too long trying to update key-value pair %s='%s' in %s(%s, %s)\n",
-              key, value, table, key_column, value_column);
-      return -1;
-    }
+  if (n >= LENGTH (stmt)) {
+    logwarn("SQL statement too long trying to update key-value pair %s='%s' in %s(%s, %s)\n",
+            key, value, table, key_column, value_column);
+    return -1;
+  }
 
-  if (sql_stmt (sq3db, stmt))
-    {
-      logwarn("Key-value update failed for %s='%s' in %s(%s, %s) (database error)\n",
-              key, value, table, key_column, value_column);
-      return -1;
-    }
+  if (sql_stmt (sq3db, stmt)) {
+    logwarn("Key-value update failed for %s='%s' in %s(%s, %s) (database error)\n",
+            key, value, table, key_column, value_column);
+    return -1;
+  }
 
   return 0;
 }
