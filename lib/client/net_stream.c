@@ -29,13 +29,15 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 
+#include <mem.h>
+#include <log.h>
+#include <util.h>
+
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
 #include "oml2/omlc.h"
 #include "client.h"
 #include "oml2/oml_out_stream.h"
-
-#define DEF_PORT 3003
 
 #define REATTEMP_INTERVAL 10    //! Seconds to wait before attempting to reach server again
 
@@ -49,8 +51,8 @@ typedef struct _omlNetOutStream {
 
   Socket*    socket;
 
-  char*       protocol;
-  char*       host;
+  const char*       protocol;
+  const char*       host;
   int         port;
 
   char  storage;                /* ALWAYS last. Holds parsed server URI string and extends
@@ -60,7 +62,6 @@ typedef struct _omlNetOutStream {
 static int open_socket(OmlNetOutStream* self);
 static size_t write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
 
-
 /**
  * \fn OmlOutStream* net_stream_new(char* serverURI)
  * \brief Create a new out stream for sending over the network
@@ -68,40 +69,19 @@ static size_t write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
  * \return a new +OmlOutStream+ instance
  */
 OmlOutStream*
-net_stream_new(
-  char* serverURI
-) {
-  assert(serverURI != NULL);
-  size_t uriSize = strlen(serverURI);
-  OmlNetOutStream* self = (OmlNetOutStream *)malloc(sizeof(OmlNetOutStream) + uriSize);
+net_stream_new(const char *transport, const char *hostname, const char *port)
+{
+  assert(transport != NULL && hostname != NULL && port != NULL);
+  OmlNetOutStream* self = (OmlNetOutStream *)malloc(sizeof(OmlNetOutStream));
   memset(self, 0, sizeof(OmlNetOutStream));
 
-  // Server URI should be of format: proto:host:port with port optional
-  memcpy(&self->storage, serverURI, uriSize);
-  char* p = self->protocol = &self->storage;
-  int i;
-  // Look for protocol (terminated with ':'), should not be longer than 4 char
-  for (i = 0; *p != '\0' && *p != ':' && i <= 4; p++, i++);
-  if (*p != ':') {
-    o_log(O_LOG_ERROR, "Server URI '%s' does not contain protocol identifier.\n", serverURI);
-    free(self);
-    return NULL;
-  }
-  *(p++) = '\0';
+  //  memcpy(&self->storage, serverURI, uriSize);
+  self->protocol = (const char*)xstrndup (transport, strlen (transport));
+  self->host = (const char*)xstrndup (hostname, strlen (hostname));
+  self->port = atoi (port);
 
-  self->host = p;
-  // see if we have a port declaration, too (separated by ':')
-  while (*p != '\0' && *p != ':') p++;
-  if (*p == ':') {
-    // we have a port
-    *(p++) = '\0';
-    self->port = atoi(p);
-  } else {
-    self->port = DEF_PORT;
-  }
-
-  o_log(O_LOG_INFO, "Net proto: <%s> host: <%s> port: <%d>\n",
-        self->protocol, self->host, self->port);
+  loginfo("Net_stream: connecting to host %s://%s:%d\n",
+          self->protocol, self->host, self->port);
   socket_set_non_blocking_mode(0);
 
   // Now see if we can connect to server
@@ -139,7 +119,7 @@ open_socket(
 ) {
   if (strcmp(self->protocol, "tcp") == 0) {
     Socket* sock;
-    if ((sock = socket_tcp_out_new("sock", self->host, self->port)) == NULL) {
+    if ((sock = socket_tcp_out_new("sock", (char*)self->host, self->port)) == NULL) {
       return 0;
     }
     // Don't create a SIGPIPE signal if peer dies, handle in write

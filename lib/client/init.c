@@ -445,6 +445,79 @@ print_filters(void)
   printf ("\n");
 }
 
+int
+parse_dest_uri (const char *uri, const char **protocol, const char **path, const char **port)
+{
+  const int MAX_PARTS = 3;
+  char *parts[3] = { NULL, NULL, NULL };
+  size_t lengths[3] = { 0, 0, 0 };
+  int is_valid = 1;
+
+  if (uri) {
+    int i, j;
+    parts[0] = xstrndup (uri, strlen (uri));
+    for (i = 1, j = 0; i < MAX_PARTS; i++, j = 0) {
+      parts[i] = parts[i-1];
+      while (*parts[i] != ':' && *parts[i] != '\0') {
+        j++;
+        parts[i]++;
+      }
+      if (*parts[i] == ':')
+        *(parts[i]++) = '\0';
+    }
+
+    for (i = 0; i < MAX_PARTS; i++) {
+      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
+    }
+
+#define trydup(i) (parts[(i)] && lengths[(i)]>0 ? xstrndup (parts[(i)], lengths[(i)]) : NULL)
+    *protocol = *path = *port = NULL;
+    if (lengths[0] > 0 && lengths[1] > 0) {
+      /* Case 1:  "abc:xyz" or "abc:xyz:123" -- if abc is a transport, use it; otherwise, it's a hostname/path */
+      if (strcmp (parts[0], "tcp") == 0 || strcmp (parts[0], "udp") == 0) {
+        *protocol = trydup (0);
+        *path = trydup (1);
+        *port = trydup (2);
+      } else if (strcmp (parts[0], "file") == 0) {
+        *protocol = trydup (0);
+        *path = trydup (1);
+        *port = NULL;
+      } else {
+        *protocol = NULL;
+        *path = trydup (0);
+        *port = trydup (1);
+      }
+    } else if (lengths[0] > 0 && lengths[2] > 0) {
+      /* Case 2:  "abc::123" -- not valid, as we can't infer a hostname/path */
+      logwarn ("Server URI '%s' is invalid as it does not contain a hostname/path\n", uri);
+      is_valid = 0;
+    } else if (lengths[0] > 0) {
+      *protocol = NULL;
+      *path = trydup (0);
+      *port = NULL;
+
+      /* Look for potential user errors and issue a warning but proceed as normal */
+      if (strcmp (*path, "tcp") == 0 ||
+          strcmp (*path, "udp") == 0 ||
+          strcmp (*path, "file") == 0) {
+        logwarn ("Server URI with just a hostname of '%s'; did you mean '%s:<hostname>'?\n",
+                 *path, *path);
+      }
+    } else {
+      logerror ("Server URI '%s' seems to be empty\n", uri);
+      is_valid = 0;
+    }
+#undef trydup
+
+    if (parts[0])
+      xfree (parts[0]);
+  }
+  if (is_valid)
+    return 0;
+  else
+    return -1;
+}
+
 /**
  * @brief Creates either a file writer or a network writer
  * @param server_uri the option file or server and the output
@@ -459,28 +532,66 @@ create_writer(char* protocol, char* serverUri)
   }
 
   if (serverUri == NULL) {
-    o_log(O_LOG_ERROR, "Missing server definition (e.g. --oml-server)\n");
+    logerror ("Missing server definition (e.g. --oml-server)\n");
     return NULL;
   }
   if (omlc_instance->node_name == NULL) {
-    o_log(O_LOG_ERROR, "Missing '--oml-id' flag \n");
+    logerror ("Missing '--oml-id' flag \n");
     return NULL;
   }
   if (omlc_instance->experiment_id == NULL) {
-    o_log(O_LOG_ERROR, "Missing '--oml-exp-id' flag \n");
+    logerror ("Missing '--oml-exp-id' flag \n");
     return NULL;
   }
 
+  const char *transport;
+  const char *path;
+  const char *port;
+
+  if (parse_dest_uri (serverUri, &transport, &path, &port) == -1) {
+    logerror ("Error parsing server destination URI '%s'; failed to create stream for this destination\n",
+              serverUri);
+    if (transport) xfree ((void*)transport);
+    if (path) xfree ((void*)path);
+    if (port) xfree ((void*)port);
+    return NULL;
+  }
+
+  const char *filepath = NULL;
+  const char *hostname = NULL;
+  if (transport && strcmp (transport, "file") == 0) {
+    /* 'file://path/to/file' is equivalent to unix path '/path/to/file' */
+    if (strncmp (path, "//", 2) == 0)
+      filepath = &path[1];
+    else
+      filepath = path;
+  } else if (transport) {
+    if (strncmp (path, "//", 2) == 0)
+      hostname = &path[2];
+    else
+      hostname = path;
+  } else {
+    hostname = path; /* If no transport specified, it must be tcp */
+  }
+
+  /* Default transport is tcp if not specified */
+  if (!transport)
+    transport = xstrndup ("tcp", strlen ("tcp"));
+
+  /* If not file transport, use the OML default port if unspecified */
+  if (!port && strcmp (transport, "file") != 0)
+    port = xstrndup (DEF_PORT_STRING, strlen (DEF_PORT_STRING));
+
   OmlOutStream* out_stream;
-  if (strncmp(serverUri, "file:", 5) == 0) {
-    out_stream = file_stream_new(serverUri + 5);
+  if (strcmp(transport, "file") == 0) {
+    out_stream = file_stream_new(filepath);
     if (protocol == NULL) protocol = "text"; /* default protocol */
   } else {
-    out_stream = net_stream_new(serverUri);
+    out_stream = net_stream_new(transport, hostname, port);
     if (protocol == NULL) protocol = "binary"; /* default protocol */
   }
   if (out_stream == NULL) {
-    o_log(O_LOG_ERROR, "Failed to create stream for URI %s\n", serverUri);
+    logerror ("Failed to create stream for URI %s\n", serverUri);
     return NULL;
   }
 
@@ -491,12 +602,12 @@ create_writer(char* protocol, char* serverUri)
   } else if (strcmp(protocol, "binary") == 0) {
     writer = bin_writer_new(out_stream);
   } else {
-    o_log(O_LOG_ERROR, "Unknown protocol '%s', only support 'binary' and 'text'.\n", protocol);
+    logerror ("Unknown protocol '%s', only support 'binary' and 'text'.\n", protocol);
     // should cleanup streams
     return NULL;
   }
   if (writer == NULL) {
-    o_log(O_LOG_ERROR, "Creating writer for protocol '%s' failed.\n", protocol);
+    logerror ("Failed to create writer for protocol '%s'.\n", protocol);
     return NULL;
   }
   writer->next = omlc_instance->first_writer;

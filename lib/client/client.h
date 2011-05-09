@@ -29,13 +29,18 @@
 
 #include <stdio.h>
 #include <time.h>
-#include "oml2/omlc.h"
-#include "oml2/oml_filter.h"
-#include "oml2/oml_writer.h"
+#include <oml2/omlc.h>
+#include <oml2/oml_filter.h>
+#include <oml2/oml_writer.h>
 
 #include <mstring.h>
 
 #define SERVER_URI_MAX_LENGTH 64
+
+#define xstr(s) str(s)
+#define str(s) #s
+#define DEF_PORT 3003
+#define DEF_PORT_STRING  xstr(DEF_PORT)
 
 typedef struct _omlClient {
   const char* app_name;
@@ -131,10 +136,10 @@ extern OmlWriter*
 bin_writer_new(OmlOutStream* out_stream);
 
 extern OmlOutStream*
-file_stream_new(char* fileName);
+file_stream_new(const char *file);
 
 extern OmlOutStream*
-net_stream_new(char* serverURI);
+net_stream_new(const char *transport, const char *hostname, const char *port);
 
 extern int
 filter_process(OmlMStream* mp);

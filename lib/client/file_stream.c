@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2009 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2011 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,8 +20,8 @@
  * THE SOFTWARE.
  *
  */
-/*!\file text_writer.c
-  \brief Implements a writer which stores results in a local file.
+/*!\file file_stream.c
+  \brief Implements a stream writer that writes its input to a file on the local filesystem.
 */
 
 #include <stdio.h>
@@ -29,10 +29,10 @@
 #include <string.h>
 #include <assert.h>
 
-#include <ocomm/o_log.h>
-#include "oml2/omlc.h"
+#include <log.h>
+#include <oml2/omlc.h>
+#include <oml2/oml_out_stream.h>
 #include "client.h"
-#include "oml2/oml_out_stream.h"
 
 
 typedef struct _omlFileOutStream {
@@ -55,17 +55,18 @@ size_t write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
  * \return a new +OmlWriter+
  */
 OmlOutStream*
-file_stream_new(
-  char* fileName
-) {
+file_stream_new(const char *file)
+{
   OmlFileOutStream* self = (OmlFileOutStream *)malloc(sizeof(OmlFileOutStream));
   memset(self, 0, sizeof(OmlFileOutStream));
 
-  if (strcmp(fileName, "stdout") == 0 || strcmp(fileName, "-") == 0) {
+  loginfo ("File_stream: opening local storage file '%s'\n", file);
+
+  if (strcmp(file, "stdout") == 0 || strcmp(file, "-") == 0) {
     self->f = stdout;
   } else {
-    if ((self->f = fopen(fileName, "a+")) == NULL) {
-      o_log(O_LOG_ERROR, "Can't open local storage file '%s'\n", fileName);
+    if ((self->f = fopen(file, "a+")) == NULL) {
+      logerror ("Can't open local storage file '%s'\n", file);
       return 0;
     }
   }
