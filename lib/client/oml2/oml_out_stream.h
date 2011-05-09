@@ -44,7 +44,7 @@ typedef size_t (*oml_outs_write_f)(
  */
 typedef int
 (*oml_outs_close_f)(
-  struct _omlWriter* writer //! pointer to writer instance
+  struct _omlOutStream* writer //! pointer to writer instance
 );
 
 typedef struct _omlOutStream {
