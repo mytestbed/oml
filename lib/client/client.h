@@ -32,6 +32,7 @@
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
 #include <oml2/oml_writer.h>
+#include <oml2/oml_out_stream.h>
 
 #include <mstring.h>
 

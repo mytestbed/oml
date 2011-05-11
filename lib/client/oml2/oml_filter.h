@@ -25,7 +25,6 @@
 
 #include <oml2/omlc.h>
 #include <oml2/oml_writer.h>
-#include <pthread.h>
 
 #ifdef __cplusplus
 extern "C" {

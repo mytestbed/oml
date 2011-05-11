@@ -137,7 +137,7 @@ typedef struct _omlTestWriter
   oml_writer_row_end row_end;
 
   //! Writing the results from a single filter.
-  oml_writer_cols out;
+  oml_writer_out out;
 
   oml_writer_close close;
 

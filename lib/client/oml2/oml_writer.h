@@ -25,7 +25,6 @@
 #define OML_WRITER_H_
 
 #include <oml2/omlc.h>
-#include <oml2/oml_out_stream.h>
 
 #define OML_PROTOCOL_VERSION 3
 
@@ -59,7 +58,7 @@ typedef int
   double now                 //! timestamp
 );
 
-/*! Called after all items in tuple have been sent (via +cols+).
+/*! Called after all items in tuple have been sent (via +out+).
  *
  */
 typedef int
@@ -73,10 +72,10 @@ typedef int
  * Return 0 on success, -1 otherwise
  */
 typedef int
-(*oml_writer_cols)(
+(*oml_writer_out)(
   struct _omlWriter* writer, //! pointer to writer instance
-  OmlValue*  cols,         //! array of column values
-  int        col_count     //! size of above array
+  OmlValue*  values,         //! array of column values
+  int        values_count    //! size of above array
 );
 
 /*! Called to close the writer.
@@ -103,7 +102,7 @@ typedef struct _omlWriter {
   oml_writer_row_end row_end;
 
   //! Writing the results from a single filter.
-  oml_writer_cols out;
+  oml_writer_out out;
 
   oml_writer_close close;
 

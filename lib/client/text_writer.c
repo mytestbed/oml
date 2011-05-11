@@ -51,7 +51,7 @@ typedef struct {
   oml_writer_row_end row_end;
 
   //! Writing a result.
-  oml_writer_cols out;
+  oml_writer_out out;
 
   oml_writer_close close;
 
