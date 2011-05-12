@@ -127,9 +127,10 @@ write_meta(
   OmlBinProtoWriter* self = (OmlBinProtoWriter*)writer;
   if (self->bufferedWriter == NULL) return 0;
 
-  char buf[256];
-  snprintf(buf, 256, "%s\n", str);
-  bw_push(self->bufferedWriter, buf, strlen(buf));
+  MString *mstr = mstring_create();
+  mstring_set (mstr, str);
+  mstring_cat (mstr, "\n");
+  bw_push(self->bufferedWriter, (uint8_t*)mstring_buf (mstr), mstring_len (mstr));
   return 1;
 }
 
