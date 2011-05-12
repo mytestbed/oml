@@ -204,6 +204,7 @@ row_end(
   OmlWriter* writer,
   OmlMStream* ms
 ) {
+  (void)ms;
   OmlBinProtoWriter* self = (OmlBinProtoWriter*)writer;
   MBuffer* mbuf;
   if ((mbuf = self->mbuf) == NULL) return 0; /* previous use of mbuf failed */
@@ -220,6 +221,7 @@ row_end(
 static int
 close(OmlWriter* writer)
 {
+  (void)writer;
   return 1;
 }
 

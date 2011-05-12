@@ -26,7 +26,6 @@ bw_create(
 );
 
 /**
- * \fn buffSocket_destroy(BufferedWriter* self)
  * \brief Destroy or free all allocated resources
  */
 void
@@ -35,7 +34,6 @@ bw_destroy(
 );
 
 /**
- * \fn buffSocket_push(BufferedWriterHdl* buffSocket, void* chunk, long chunkSize)
  * \brief Add a chunk to the end of the queue.
  * \param instance BufferedWriter handle
  * \param chunk Pointer to chunk to add
@@ -46,7 +44,7 @@ int
 bw_push(
   BufferedWriterHdl instance,
   uint8_t*  chunk,
-  long chunkSize
+  size_t size
 );
 
 MBuffer*
@@ -81,7 +79,6 @@ bw_unlock_buf(
 
 
 /**
- * \fn int bw_row_start_text(BufferedWriterHdl* bw, OmlMStream* ms, double now)
  * \brief buffer the beginning of a measurement row in this instance
  * \return 1 if successful, 0 otherwise
  */
@@ -94,7 +91,6 @@ bw_row_start_text(
 
 
 /**
- * \fn int bw_marshall_text(BufferedWriterHdl* bw, OmlValue*  values, int value_count)
  * \brief buffer the results in this instance
  * \return 1 if successful, 0 otherwise
  */

@@ -313,9 +313,9 @@ mbuf_print(MBuffer* mbuf, const char* format, ...)
   do {
     va_list arglist;
     va_start(arglist, format);
-    len = vsnprintf(mbuf->wrptr, mbuf->wr_remaining, format, arglist);
+    len = vsnprintf((char*)mbuf->wrptr, mbuf->wr_remaining, format, arglist);
     va_end(arglist);
-    if (! (success = (len <= mbuf->wr_remaining))) {
+    if (! (success = (len <= (int)mbuf->wr_remaining))) {
       if (mbuf_check_resize(mbuf, len) == -1)
     return -1;
     }

@@ -153,6 +153,7 @@ get_xml_attr (xmlNodePtr el, enum ConfToken tok)
  * @return the name of the attribute that matches the token, if any,
  * otherwise NULL.
  */
+#if 0 // unused
 static const char*
 get_xml_attr_name (xmlNodePtr el, enum ConfToken tok)
 {
@@ -167,6 +168,7 @@ get_xml_attr_name (xmlNodePtr el, enum ConfToken tok)
   }
   return NULL;
 }
+#endif
 
 /**
  * @brief Check whether an element name matches a given token.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 National ICT Australia (NICTA), Australia
+ * Copyright 2011 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +25,14 @@
 */
 
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include <assert.h>
+#include <unistd.h>
 #include <pthread.h>
+#include <oml2/omlc.h>
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
-#include <errno.h>
-#include <string.h>
-#include <oml2/omlc.h>
 
 #include "client.h"
 #include "buffered_writer.h"
@@ -43,7 +44,7 @@ typedef struct _bufChain {
   struct _bufChain*  next;        //! Link to next buffer
 
   MBuffer* mbuf;         //! expandable storage
-  long     targetBufSize;
+  size_t   targetBufSize;
 
   int   reading;                //! set to 1 when reader is processing this chain
 } BufferChain;
@@ -52,7 +53,7 @@ typedef struct {
   int  active;      //! true if buffer is active, false kills thread
 
   long chainsAvailable;         //! Number of chains which can still be allocated
-  long chainLength;             //! Length of buffer in each chain
+  size_t chainLength;           //! Length of buffer in each chain
 
   oml_outs_write_f  writeFunc;        //! Function to drain buffer - can block
   OmlOutStream*     writeFuncHdl;     //! Opaque handler to above function
@@ -153,7 +154,7 @@ int
 bw_push(
   BufferedWriterHdl instance,
   uint8_t*  chunk,
-  long chunkSize
+  size_t size
 ) {
   BufferedWriter* self = (BufferedWriter*)instance;
   if (oml_lock(&self->lock, "bw_push")) return 0;
@@ -162,11 +163,11 @@ bw_push(
   BufferChain* chain = self->writerChain;
   if (chain == NULL) return 0;
 
-  if (chain->mbuf->wr_remaining < chunkSize) {
+  if (chain->mbuf->wr_remaining < size) {
     chain = self->writerChain = getNextWriteChain(self, chain);
   }
 
-  if (mbuf_write(chain->mbuf, chunk, chunkSize) < 0)
+  if (mbuf_write(chain->mbuf, chunk, size) < 0)
     return 0;
 
   pthread_cond_signal(&self->semaphore);
@@ -300,11 +301,9 @@ createBufferChain(
  * \param handle the stream to use the filters on
  */
 static void*
-threadStart(
-  void* handle
-) {
+threadStart(void* handle)
+{
   BufferedWriter* self = (BufferedWriter*)handle;
-
   BufferChain* chain = self->firstChain;
 
   while (self->active) {
@@ -324,6 +323,7 @@ threadStart(
     }
     oml_unlock(&self->lock, "bufferedWriter");
   }
+  return NULL;
 }
 
 // return 1 if chain has been fully sent, 0 otherwise

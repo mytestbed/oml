@@ -116,9 +116,8 @@ net_stream_close(
 }
 
 static int
-open_socket(
-  OmlNetOutStream* self
-) {
+open_socket(OmlNetOutStream* self)
+{
   if (strcmp(self->protocol, "tcp") == 0) {
     Socket* sock;
     if ((sock = socket_tcp_out_new("sock", (char*)self->host, self->port)) == NULL) {
@@ -130,9 +129,11 @@ open_socket(
 
     self->socket = sock;
   } else {
-    o_log(O_LOG_ERROR, "OML: Unsupported net protocol '%s'\n", self->protocol);
+    o_log(O_LOG_ERROR, "Unsupported transport protocol '%s'\n", self->protocol);
     return 0;
   }
+
+
   return 1;
 }
 
@@ -150,19 +151,19 @@ net_stream_write(
     return (size_t)-1;
 
   while (self->socket == NULL) {
-    o_log (O_LOG_INFO, "Attempting to reconnect to server at %s://%s:%d.\n",
-           self->protocol, self->host, self->port);
+    loginfo ("Attempting to reconnect to server at %s://%s:%d.\n",
+             self->protocol, self->host, self->port);
     if (!open_socket(self)) {
       sleep(REATTEMP_INTERVAL);
     }
   }
 
-  int result = socket_sendto(self->socket, buffer, length);
+  int result = socket_sendto(self->socket, (char*)buffer, length);
 
   if (result == -1 && socket_is_disconnected (self->socket)) {
-    o_log (O_LOG_WARN, "Connection to server at %s://%s:%d was lost.\n",
-           self->protocol, self->host, self->port);
-    self->socket = NULL;          // Server closed the connection
+    logwarn ("Connection to server at %s://%s:%d was lost.\n",
+             self->protocol, self->host, self->port);
+    self->socket = NULL;      // Server closed the connection
   }
   return result;
 }

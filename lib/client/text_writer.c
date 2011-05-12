@@ -227,7 +227,7 @@ row_end(OmlWriter* writer, OmlMStream* ms)
   if ((mbuf = self->mbuf) == NULL) return 0; /* previous use of mbuf failed */
 
   int res;
-  if (res = mbuf_write(mbuf, "\n", 1)) {
+  if ((res = mbuf_write(mbuf, (uint8_t*)"\n", 1)) != 0) {
     mbuf_reset_write(mbuf);
   } else {
     // success, lock in message
@@ -246,12 +246,7 @@ row_end(OmlWriter* writer, OmlMStream* ms)
 static int
 close(OmlWriter* writer)
 {
-  OmlTextWriter* self = (OmlTextWriter*)writer;
-
-/*   if (self->f != 0) { */
-/*     fclose(self->f); */
-/*     self->f= NULL; */
-/*   } */
+  (void)writer;
   return 0;
 }
 

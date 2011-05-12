@@ -73,7 +73,7 @@ file_stream_new(const char *file)
 
   self->write = write;
 
-  return (OmlWriter*)self;
+  return (OmlOutStream*)self;
 }
 
 size_t
