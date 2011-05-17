@@ -62,6 +62,7 @@ typedef struct _omlClient {
   // we don't have a config file.
   int         sample_count;  // default sample count
   double      sample_interval; // default sample interval
+  enum StreamEncoding default_encoding; // Default wire encoding for network streams
 } OmlClient;
 
 extern OmlClient* omlc_instance;

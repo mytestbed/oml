@@ -35,8 +35,9 @@
 #include <oml_value.h>
 #include <mem.h>
 #include <validate.h>
-#include "oml2/omlc.h"
-#include "oml2/oml_filter.h"
+#include <oml2/omlc.h>
+#include <oml2/oml_filter.h>
+#include <oml2/oml_writer.h>
 #include "filter/factory.h"
 #include "client.h"
 #include "version.h"
@@ -78,6 +79,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   const char* config_file = NULL;
   const char* local_data_file = NULL;
   const char* server_uri = NULL;
+  enum StreamEncoding default_encoding = SE_None;
   int sample_count = 0;
   double sample_interval = 0.0;
   const char** arg = argv;
@@ -161,6 +163,12 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
         }
         server_uri = (char*)*++arg;
         *pargc -= 2;
+      } else if (strcmp (*arg, "--oml-text") == 0) {
+        *pargc -= 1;
+        default_encoding = SE_Text;
+      } else if (strcmp (*arg, "--oml-binary") == 0) {
+        *pargc -= 1;
+        default_encoding = SE_Binary;
       } else if (strcmp(*arg, "--oml-noop") == 0) {
         *pargc -= 1;
         omlc_instance = NULL;
@@ -198,6 +206,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   omlc_instance->experiment_id = experimentId;
   omlc_instance->sample_count = sample_count;
   omlc_instance->sample_interval = sample_interval;
+  omlc_instance->default_encoding = default_encoding;
 
   if (local_data_file != NULL) {
     // dump every sample into local_data_file
@@ -402,14 +411,15 @@ usage(void)
   printf("  --oml-config file      .. Reads configuration from 'file'\n");
   printf("  --oml-samples count    .. Default number of samples to collect\n");
   printf("  --oml-interval seconds .. Default interval between measurements\n");
+  printf("  --oml-text             .. Use text encoding for all output streams\n");
+  printf("  --oml-binary           .. Use binary encoding for all output streams\n");
   printf("  --oml-log-file file    .. Writes log messages to 'file'\n");
   printf("  --oml-log-level level  .. Log level used (error: -2 .. info: 0 .. debug4: 4)\n");
   printf("  --oml-noop             .. Do not collect measurements\n");
   printf("  --oml-list-filters     .. List the available types of filters\n");
   printf("  --oml-help             .. Print this message\n");
   printf("\n");
-  printf("Valid URI: tcp|udp:host:port:[bindAddr] or file:localPath\n");
-  printf("    The optional 'bindAddr' is used for multicast conections\n");
+  printf("Valid URI: [tcp|udp]:host:port or file:localPath\n");
   printf("\n");
   printf("The following environment variables are recognized:\n");
   printf("  OML_NAME=id            .. Name to identify this app instance (--oml-id)\n");
@@ -520,18 +530,20 @@ parse_dest_uri (const char *uri, const char **protocol, const char **path, const
 
 /**
  * @brief Creates either a file writer or a network writer
- * @param server_uri the option file or server and the output
+ * @param uri the option file or server and the output
+ * @param encoding the encoding to use for the stream output, either
+ * SE_Text or SE_Binary.
  * @return a writer
  */
 OmlWriter*
-create_writer(char* protocol, char* serverUri)
+create_writer(const char* uri, enum StreamEncoding encoding)
 {
   if (omlc_instance == NULL){
     logerror("No omlc_instance:  OML client was not initialized properly.\n");
     return NULL;
   }
 
-  if (serverUri == NULL) {
+  if (uri == NULL) {
     logerror ("Missing server definition (e.g. --oml-server)\n");
     return NULL;
   }
@@ -548,9 +560,9 @@ create_writer(char* protocol, char* serverUri)
   const char *path;
   const char *port;
 
-  if (parse_dest_uri (serverUri, &transport, &path, &port) == -1) {
+  if (parse_dest_uri (uri, &transport, &path, &port) == -1) {
     logerror ("Error parsing server destination URI '%s'; failed to create stream for this destination\n",
-              serverUri);
+              uri);
     if (transport) xfree ((void*)transport);
     if (path) xfree ((void*)path);
     if (port) xfree ((void*)port);
@@ -585,29 +597,29 @@ create_writer(char* protocol, char* serverUri)
   OmlOutStream* out_stream;
   if (strcmp(transport, "file") == 0) {
     out_stream = file_stream_new(filepath);
-    if (protocol == NULL) protocol = "text"; /* default protocol */
+    if (encoding == SE_None) encoding = SE_Text; /* default encoding */
   } else {
     out_stream = net_stream_new(transport, hostname, port);
-    if (protocol == NULL) protocol = "binary"; /* default protocol */
+    if (encoding == SE_None) encoding = SE_Binary; /* default encoding */
   }
   if (out_stream == NULL) {
-    logerror ("Failed to create stream for URI %s\n", serverUri);
+    logerror ("Failed to create stream for URI %s\n", uri);
     return NULL;
   }
 
   // Now create a write on top of the stream
   OmlWriter* writer = NULL;
-  if (strcmp(protocol, "text") == 0) {
-    writer = text_writer_new(out_stream);
-  } else if (strcmp(protocol, "binary") == 0) {
-    writer = bin_writer_new(out_stream);
-  } else {
-    logerror ("Unknown protocol '%s', only support 'binary' and 'text'.\n", protocol);
+
+  switch (encoding) {
+  case SE_Text:   writer = text_writer_new (out_stream); break;
+  case SE_Binary: writer = bin_writer_new (out_stream); break;
+  case SE_None:
+    logerror ("No encoding specified (this should never happen -- please report this as an OML bug)\n");
     // should cleanup streams
     return NULL;
   }
   if (writer == NULL) {
-    logerror ("Failed to create writer for protocol '%s'.\n", protocol);
+    logerror ("Failed to create writer for encoding '%s'.\n", encoding == SE_Binary ? "binary" : "text");
     return NULL;
   }
   writer->next = omlc_instance->first_writer;
@@ -805,7 +817,8 @@ static int
 default_configuration(void)
 {
   OmlWriter* writer;
-  if ((writer = create_writer(NULL, omlc_instance->server_uri)) == NULL) {
+  if ((writer = create_writer(omlc_instance->server_uri,
+                              omlc_instance->default_encoding)) == NULL) {
     return -1;
   }
 

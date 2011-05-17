@@ -299,7 +299,8 @@ parse_collector(xmlNodePtr el)
     return -1;
   }
   OmlWriter* writer;
-  if ((writer = create_writer(NULL, (char*)url)) == NULL) return -2;
+  logwarn ("Creating binary encoded stream because 'encoding' attribute not yet implemented.");
+  if ((writer = create_writer(url, SE_Binary)) == NULL) return -2;
 
   xmlNodePtr cur = el->xmlChildrenNode;
   while (cur != NULL) {

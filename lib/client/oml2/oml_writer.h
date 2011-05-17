@@ -109,21 +109,21 @@ typedef struct _omlWriter {
   struct _omlWriter* next;
 } OmlWriter;
 
+enum StreamEncoding {
+  SE_None, // Not explicitly specified by the user
+  SE_Text,
+  SE_Binary
+};
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-OmlWriter*
-create_writer(
-    char* protocol,
-    char* serverURI
-);
+OmlWriter* create_writer(const char* uri, enum StreamEncoding encoding);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* OML_WRITER_H */
 
