@@ -69,13 +69,10 @@ bw_get_write_buf(
 );
 
 /**
- * \brief Return and unlock MBuffer
+ * \brief Unlock a buffered writer.
  */
 void
-bw_unlock_buf(
-  BufferedWriterHdl instance,
-  MBuffer* mbuf
-);
+bw_unlock_buf(BufferedWriterHdl instance);
 
 
 /**

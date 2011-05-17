@@ -234,7 +234,7 @@ row_end(OmlWriter* writer, OmlMStream* ms)
     mbuf_begin_write (mbuf);
   }
   self->mbuf = NULL;
-  bw_unlock_buf(self->bufferedWriter, mbuf);
+  bw_unlock_buf(self->bufferedWriter);
   return res == 0;
 }
 

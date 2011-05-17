@@ -208,10 +208,8 @@ bw_get_write_buf(
  * \brief Return and unlock MBuffer
  */
 void
-bw_unlock_buf(
-  BufferedWriterHdl instance,
-  MBuffer* mbuf
-) {
+bw_unlock_buf(BufferedWriterHdl instance)
+{
   BufferedWriter* self = (BufferedWriter*)instance;
   pthread_cond_signal(&self->semaphore); /* assume we locked for a reason */
   oml_unlock(&self->lock, "bw_unlock_buf");
