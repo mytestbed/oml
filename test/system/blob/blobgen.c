@@ -147,6 +147,5 @@ main (int argc, const char **argv)
 
   run();
   omlc_close ();
-  sleep (1);
   return 0;
 }

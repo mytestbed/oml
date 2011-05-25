@@ -16,4 +16,4 @@ blobgen_LDADD = \
 	$(top_builddir)/lib/client/liboml2.la \
 	-lpopt
 
-CLEANFILES=*.hex *.bin *.sq3 *.log
+CLEANFILES=short/* long/* *.hex *.bin *.sq3 *.log
