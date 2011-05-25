@@ -72,6 +72,7 @@ typedef struct {
   OmlOutStream* out_stream;
 
   int        is_enabled;
+  OmlBinMsgType msgtype; /* Type of messages to generate */
 } OmlBinProtoWriter;
 
 static int write_meta(OmlWriter* writer, char* str);
@@ -107,8 +108,9 @@ bin_writer_new(
   self->row_start = row_start;
   self->row_end = row_end;
   self->out = row_cols;
-
   self->close = close;
+
+  self->msgtype = OMB_DATA_P; // Short packets.
 
   return (OmlWriter*)self;
 }
@@ -189,7 +191,7 @@ row_start(
   if ((mbuf = self->mbuf = bw_get_write_buf(self->bufferedWriter, 1)) == NULL)
     return 0;
 
-  mbuf_begin_write(mbuf);
+  marshal_init (mbuf, self->msgtype);
   marshal_measurements(mbuf, ms->index, ms->seq_no, now);
   return 1;
 }
@@ -211,6 +213,8 @@ row_end(
   if ((mbuf = self->mbuf) == NULL) return 0; /* previous use of mbuf failed */
 
   marshal_finalize(self->mbuf);
+  if (marshal_get_msgtype (self->mbuf) == OMB_LDATA_P)
+    self->msgtype = OMB_LDATA_P; // Generate long packets from now on.
 
   mbuf_begin_write(mbuf);
 

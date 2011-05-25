@@ -159,39 +159,62 @@ find_sync (unsigned char* buf, int len)
   return NULL;
 }
 
-/**
- * \brief
- * \param mbuf
- * \param packet_type
- * \return
- */
-MBuffer*
-marshal_init(MBuffer*  mbuf, OmlMsgType  packet_type)
+static int marshal_header_short (MBuffer *mbuf)
 {
-  // +2 is an ugly hack to support long packets
-  uint8_t buf[PACKET_HEADER_SIZE + 2] = {
-    0, 0, SYNC_BYTE, SYNC_BYTE, packet_type, 0, 0
+  uint8_t buf[] = {
+    SYNC_BYTE, SYNC_BYTE, OMB_DATA_P, 0, 0
   };
+  return mbuf_write (mbuf, buf, LENGTH (buf));
+}
+
+static int marshal_header_long (MBuffer *mbuf)
+{
+  uint8_t buf[] = {
+    SYNC_BYTE, SYNC_BYTE, OMB_LDATA_P, 0, 0, 0, 0
+  };
+  return mbuf_write (mbuf, buf, LENGTH (buf));
+}
+
+OmlBinMsgType
+marshal_get_msgtype (MBuffer *mbuf)
+{
+  return (OmlBinMsgType)(mbuf_message (mbuf))[2];
+}
+
+/**
+ * @brief Initialize the buffer to serialize a new measurement packet,
+ * starting at the current write pointer.
+ *
+ * @param mbuf The buffer to serialize into.
+ * @param msgtype the type of packet to build.
+ *
+ * @return 0 on success, -1 on failure.  This function can fail if
+ * there is a memory allocation failure or if the buffer is
+ * misconfigured.
+ */
+int
+marshal_init(MBuffer *mbuf, OmlBinMsgType msgtype)
+{
   int result;
+  if (mbuf == NULL) return -1;
 
-  if (mbuf == NULL)
-    return NULL;
+  result = mbuf_begin_write (mbuf);
+  if (result == -1) {
+    logerror("Couldn't start marshalling packet (mbuf_begin_write())\n");
+    return -1;
+  }
 
-  result = mbuf_begin_write(mbuf);
-  if (result == -1)
-    {
-      logerror("Couldn't start marshalling packet (mbuf_begin_write())\n");
-      return NULL;
-    }
+  switch (msgtype) {
+  case OMB_DATA_P:  result = marshal_header_short (mbuf); break;
+  case OMB_LDATA_P: result = marshal_header_long (mbuf); break;
+  }
 
-  result = mbuf_write (mbuf, buf, LENGTH (buf));
-  if (result == -1)
-    {
-      logerror("Error when trying to marshal packet header (mbuf_write())\n");
-      return NULL;
-    }
+  if (result == -1) {
+    logerror("Error when trying to marshal packet header\n");
+    return -1;
+  }
 
-  return mbuf;
+  return 0;
 }
 
 /**
@@ -206,15 +229,13 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
 {
   OmlValueU v;
   uint8_t s[2] = { 0, (uint8_t)stream };
-  mbuf = marshal_init(mbuf, OMB_DATA_P);
   int result = mbuf_write (mbuf, s, LENGTH (s));
 
-  if (result == -1)
-    {
-      logerror("Unable to marshal table number and measurement count (mbuf_write())\n");
-      mbuf_reset_write (mbuf);
-      return -1;
-    }
+  if (result == -1) {
+    logerror("Unable to marshal table number and measurement count (mbuf_write())\n");
+    mbuf_reset_write (mbuf);
+    return -1;
+  }
 
   v.longValue = seqno;
   marshal_value(mbuf, OML_LONG_VALUE, &v);
@@ -222,7 +243,6 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
   v.doubleValue = now;
   marshal_value(mbuf, OML_DOUBLE_VALUE, &v);
 
-  //  return marshal_finalize(mbuf);
   return 1;
 }
 
@@ -244,7 +264,11 @@ marshal_values(MBuffer* mbuf, OmlValue* values, int value_count)
   }
 
   uint8_t* buf = mbuf_message (mbuf);
-  buf[0] += value_count;
+  OmlBinMsgType type = marshal_get_msgtype (mbuf);
+  switch (type) {
+  case OMB_DATA_P: buf[5] += value_count; break;
+  case OMB_LDATA_P: buf[7] += value_count; break;
+  }
   return 1;
 }
 
@@ -418,8 +442,7 @@ int
 marshal_finalize(MBuffer*  mbuf)
 {
   uint8_t* buf = mbuf_message (mbuf);
-  int value_count = buf[0];
-
+  OmlBinMsgType type = marshal_get_msgtype (mbuf);
   size_t len = mbuf_message_length (mbuf);
 
   if (len > UINT32_MAX) {
@@ -429,33 +452,36 @@ marshal_finalize(MBuffer*  mbuf)
     len = UINT32_MAX;
   }
 
-  /*
-   * We pre-allocated 2 extra bytes in case this packet turns out to
-   * be a long packet, so that we have enough space for the 4-byte
-   * length field; but we cunningly started the packet 2 bytes into
-   * the buffer, so if it's just a short packet then we need to adjust
-   * the message start pointer.  If it is a long packet, then we can
-   * happily re-write the header without having to allocate more
-   * memory and copy the payload again.
-   */
-  if (len < UINT16_MAX) {
-    len -= 7; // We pre-allocated a header of length 7
-    uint16_t nlen = htons (len);  // pure data length
 
-    // Store the length of the packet
-    memcpy (&buf[5], &nlen, sizeof (nlen));
-    buf[7] = value_count;
-    mbuf_message_start_advance (mbuf, 2);
-  } else {
-    len -= 7; // 7 is the length of the header...
+  if (type == OMB_DATA_P && len > UINT16_MAX) {
+    /*
+     * We assumed a short packet, but there is too much data, so we
+     * have to shift the whole buffer down by 2 bytes and convert to a
+     * long packet.
+     */
+    uint8_t s[2] = {0};
+    /* Put some padding in the buffer to make sure it has room, and maintains its invariants */
+    mbuf_write (mbuf, s, sizeof (s));
+    memmove (&buf[PACKET_HEADER_SIZE+2], &buf[PACKET_HEADER_SIZE],
+             len - PACKET_HEADER_SIZE);
+    len += 2;
+    buf[2] = type = OMB_LDATA_P;
+  }
+
+
+  switch (type) {
+  case OMB_DATA_P: {
+    len -= PACKET_HEADER_SIZE; // Data length minus header
+    uint16_t nlen = htons (len);
+    memcpy (&buf[3], &nlen, sizeof (nlen));
+    break;
+  }
+  case OMB_LDATA_P: {
+    len -= PACKET_HEADER_SIZE + 2; // Data length minus header
     uint32_t nlen = htonl (len); // pure data length
-
-    // Re-write the header
-    uint8_t packet_header[] = { SYNC_BYTE, SYNC_BYTE, OMB_LDATA_P };
-    uint8_t *buf = mbuf_message (mbuf);
-    memcpy (buf, packet_header, sizeof (packet_header));
-    memcpy (&buf[sizeof(packet_header)], &nlen, sizeof (nlen));
-    buf[7] = value_count;
+    memcpy (&buf[3], &nlen, sizeof (nlen));
+    break;
+  }
   }
 
   return 1;
@@ -484,7 +510,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
     return 0;
   }
 
-  header->type = (OmlMsgType)header_str[2];
+  header->type = (OmlBinMsgType)header_str[2];
 
   if (header->type == OMB_DATA_P) {
     // Read 2 more bytes of the length field
