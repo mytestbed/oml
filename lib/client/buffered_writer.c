@@ -33,6 +33,7 @@
 #include <oml2/omlc.h>
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>
+#include <log.h>
 
 #include "client.h"
 #include "buffered_writer.h"
@@ -133,13 +134,33 @@ bw_create(
  * \param instance Instance handle;
  */
 void
-bw_destroy(
+bw_close(
   BufferedWriterHdl instance
 ) {
   BufferedWriter* self = (BufferedWriter*)instance;
+  if (oml_lock (&self->lock, "bw_close")) return;
   self->active = 0;
 
+  loginfo ("Waiting for buffered queue reader thread to drain...\n");
+
+  pthread_cond_signal (&self->semaphore);
+  oml_unlock (&self->lock, "bw_close");
   //  pthread_cond_destroy(&self->semaphore, NULL);
+  int result = pthread_join (self->readerThread, NULL);
+  if (result != 0) {
+    switch (result) {
+    case EINVAL:
+      logerror ("Buffered queue reader thread is not joinable\n");
+      break;
+    case EDEADLK:
+      logerror ("Buffered queue reader thread shutdown deadlock, or self-join\n");
+      break;
+    case ESRCH:
+      logerror ("Buffered queue reader thread shutdown failed:  could not find the thread\n");
+      break;
+    }
+  }
+  loginfo ("Buffered queue reader thread finished OK...\n");
 }
 
 /**

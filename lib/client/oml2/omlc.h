@@ -361,10 +361,7 @@ omlc_process(
  *  immediately. There may be a few threads which will take some
  *  time to finish.
  */
-int
-omlc_close(
-  void
-);
+int omlc_close(void);
 
 #ifdef __cplusplus
 }

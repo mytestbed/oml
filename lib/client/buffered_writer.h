@@ -29,7 +29,7 @@ bw_create(
  * \brief Destroy or free all allocated resources
  */
 void
-bw_destroy(
+bw_close(
   BufferedWriterHdl instance  //! Instance handle
 );
 

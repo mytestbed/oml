@@ -380,7 +380,7 @@ install_close_handler(void)
  * @return -1 if fails
  */
 int
-omlc_close()
+omlc_close(void)
 {
   if (omlc_instance == NULL) return -1;
 

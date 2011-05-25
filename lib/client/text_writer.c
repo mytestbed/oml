@@ -246,7 +246,11 @@ row_end(OmlWriter* writer, OmlMStream* ms)
 static int
 close(OmlWriter* writer)
 {
-  (void)writer;
+  OmlTextWriter *self = (OmlTextWriter*) writer;
+
+  // Blocks until the buffered writer drains
+  bw_close (self->bufferedWriter);
+
   return 0;
 }
 

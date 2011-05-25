@@ -222,7 +222,11 @@ row_end(
 static int
 close(OmlWriter* writer)
 {
-  (void)writer;
+  OmlBinProtoWriter *self = (OmlBinProtoWriter*) writer;
+
+  // Blocks until the buffered writer drains
+  bw_close (self->bufferedWriter);
+
   return 1;
 }
 
