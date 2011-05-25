@@ -82,6 +82,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   enum StreamEncoding default_encoding = SE_None;
   int sample_count = 0;
   double sample_interval = 0.0;
+  int max_queue = 0;
   const char** arg = argv;
 
   if (!app_name) {
@@ -169,6 +170,13 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
       } else if (strcmp (*arg, "--oml-binary") == 0) {
         *pargc -= 1;
         default_encoding = SE_Binary;
+      } else if (strcmp(*arg, "--oml-bufsize") == 0) {
+        if (--i <= 0) {
+          logerror("Missing argument to '--oml-bufsize'\n");
+          return -1;
+        }
+        max_queue = atoi(*++arg);
+        *pargc -= 2;
       } else if (strcmp(*arg, "--oml-noop") == 0) {
         *pargc -= 1;
         omlc_instance = NULL;
@@ -207,6 +215,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   omlc_instance->sample_count = sample_count;
   omlc_instance->sample_interval = sample_interval;
   omlc_instance->default_encoding = default_encoding;
+  omlc_instance->max_queue = max_queue;
 
   if (local_data_file != NULL) {
     // dump every sample into local_data_file
@@ -413,6 +422,7 @@ usage(void)
   printf("  --oml-interval seconds .. Default interval between measurements\n");
   printf("  --oml-text             .. Use text encoding for all output streams\n");
   printf("  --oml-binary           .. Use binary encoding for all output streams\n");
+  printf("  --oml-bufsize size     .. Set size of internal buffers to 'size' bytes\n");
   printf("  --oml-log-file file    .. Writes log messages to 'file'\n");
   printf("  --oml-log-level level  .. Log level used (error: -2 .. info: 0 .. debug4: 4)\n");
   printf("  --oml-noop             .. Do not collect measurements\n");

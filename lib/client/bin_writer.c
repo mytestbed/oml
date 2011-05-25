@@ -99,7 +99,7 @@ bin_writer_new(
   OmlBinProtoWriter* self = (OmlBinProtoWriter *)malloc(sizeof(OmlBinProtoWriter));
   memset(self, 0, sizeof(OmlBinProtoWriter));
 
-  self->bufferedWriter = bw_create(out_stream->write, out_stream, 0, 0);
+  self->bufferedWriter = bw_create(out_stream->write, out_stream, omlc_instance->max_queue, 0);
   self->out_stream = out_stream;
 
   self->meta = write_meta;
@@ -131,6 +131,7 @@ write_meta(
   mstring_set (mstr, str);
   mstring_cat (mstr, "\n");
   bw_push(self->bufferedWriter, (uint8_t*)mstring_buf (mstr), mstring_len (mstr));
+  mstring_delete (mstr);
   return 1;
 }
 

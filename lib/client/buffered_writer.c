@@ -21,7 +21,7 @@
  *
  */
 /*!\file buffered_socket.c
-  \brief Implements a non-blocking FIFO queue in-front of a socket
+  \brief Implements a non-blocking, self-draining FIFO queue.
 */
 
 #include <stdlib.h>

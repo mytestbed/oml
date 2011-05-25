@@ -78,16 +78,15 @@ static int close(OmlWriter* writer);
  * \return a new +OmlWriter+
  */
 OmlWriter*
-text_writer_new(
-  OmlOutStream* out_stream
-) {
+text_writer_new(OmlOutStream* out_stream)
+{
   assert(out_stream != NULL);
 
   OmlTextWriter* self = (OmlTextWriter *)malloc(sizeof(OmlTextWriter));
   memset(self, 0, sizeof(OmlTextWriter));
   //pthread_mutex_init(&self->lock, NULL);
 
-  self->bufferedWriter = bw_create(out_stream->write, out_stream, 0, 0);
+  self->bufferedWriter = bw_create(out_stream->write, out_stream, omlc_instance->max_queue, 0);
   self->out_stream = out_stream;
 
   self->meta = meta;
@@ -117,6 +116,7 @@ meta(OmlWriter* writer, char* str)
   mstring_cat (mstr, "\n");
   bw_push(self->bufferedWriter, (uint8_t*)mstring_buf (mstr), mstring_len (mstr));
 
+  mstring_delete (mstr);
   return 1;
 }
 
