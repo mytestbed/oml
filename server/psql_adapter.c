@@ -30,8 +30,6 @@ int psql_set_key_value (Database *database, const char *table,
                         const char *key_column, const char *value_column,
                         const char *key, const char *value);
 
-static int first_row;
-
 static MString*
 psql_make_sql_insert (DbTable* table)
 {
@@ -67,9 +65,12 @@ psql_make_sql_insert (DbTable* table)
 }
 
 /**
- * \fn void psql_release(Database* db)
- * \brief Release the psql database
- * \param db the database that contains the psql database
+ * @brief Release the psql database.
+ *
+ * This function closes the connection to the database and frees all
+ * of the allocated memory associated with the database.
+ *
+ * @param db the database that contains the psql database to release.
  */
 void
 psql_release(Database* db)
@@ -82,11 +83,10 @@ psql_release(Database* db)
   db->adapter_hdl = NULL;
 }
 /**
- * \fn static int psql_add_sender_id(Database* db, char* sender_id)
- * \brief  Add sender ID to the table
- * \param db the database that contains the sqlite3 db
- * \param sender_id the sender ID
- * \return the index of the sender
+ * @brief Add sender ID to the table
+ * @param db the database that contains the sqlite3 db
+ * @param sender_id the sender ID
+ * @return the index of the sender
  */
 static int
 psql_add_sender_id(Database* db, char *sender_id)
@@ -307,9 +307,21 @@ table_create (Database* db, DbTable* table, int backend_create)
 }
 
 int
-psql_create_table (Database *database, DbTable *table)
+psql_table_create (Database *database, DbTable *table)
 {
   return table_create (database, table, 1);
+}
+
+int
+psql_table_free (Database *database, DbTable *table)
+{
+  (void)database;
+  PsqlTable *psqltable = (PsqlTable*)table->adapter_hdl;
+  if (psqltable) {
+    mstring_delete (psqltable->insert_stmt);
+    xfree (psqltable);
+  }
+  return 0;
 }
 
 /**
@@ -416,55 +428,6 @@ psql_insert(Database* db,
 }
 
 /**
- * \fn static int select_callback(void*  p_data, int    num_fields, char** p_fields, char** p_col_names)
- * \brief
- * \param p_data
- * \param num_fields
- * \param p_fields
- * \param p_col_names
- * \return
- */
-static int
-select_callback(
-  void*  p_data,
-  int    num_fields,
-  char** p_fields,
-  char** p_col_names
-) {
-
-  int i;
-
-  int* nof_records = (int*) p_data;
-  (*nof_records)++;
-
-  if (first_row) {
-    first_row = 0;
-
-    for (i=0; i < num_fields; i++) {
-      printf("%20s", p_col_names[i]);
-    }
-
-    printf("\n");
-    for (i=0; i< num_fields*20; i++) {
-      printf("=");
-    }
-    printf("\n");
-  }
-
-  for(i=0; i < num_fields; i++) {
-    if (p_fields[i]) {
-      printf("%20s", p_fields[i]);
-    }
-    else {
-      printf("%20s", " ");
-    }
-  }
-
-  printf("\n");
-  return 0;
-}
-
-/**
  * @brief Execute an SQL statement (using PQexec()).
  *
  * This function executes a statement with the assumption that the
@@ -529,7 +492,8 @@ psql_create_database(Database* db)
 
   db->create = psql_create_database;
   db->release = psql_release;
-  db->table_create = psql_create_table;
+  db->table_create = psql_table_create;
+  db->table_free = psql_table_free;
   db->insert = psql_insert;
   db->add_sender_id = psql_add_sender_id;
   db->get_metadata = psql_get_metadata;

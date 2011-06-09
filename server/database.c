@@ -206,6 +206,17 @@ database_find_or_create_table(Database *database, struct schema *schema)
     if (!table)
       return NULL;
     if (database->table_create (database, table)) {
+      logwarn ("Database adapter failed to create table; freeing it now!\n");
+      /* Unlink the table from the experiment's list */
+      DbTable* t = database->first_table;
+      if (t == table)
+        database->first_table = t->next;
+      else {
+        while (t && t->next != table)
+          t = t->next;
+        if (t && t->next)
+          t->next = t->next->next;
+      }
       database_table_free (database, table);
       return NULL;
     }
