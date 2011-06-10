@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pwd.h>
+#include <grp.h>
 #include <popt.h>
 
 #include <oml2/oml_writer.h>
@@ -67,6 +69,8 @@ static char* logfile_name = NULL;
 static char* hostname = DEFAULT_DB_HOST;
 static char* user = DEFAULT_DB_USER;
 static char* backend = DEFAULT_DB_BACKEND;
+static char* uidstr = NULL;
+static char* gidstr = NULL;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
@@ -75,6 +79,8 @@ struct poptOption options[] = {
   { "hostname", 'h', POPT_ARG_STRING, &hostname, 0, "Database server hostname", DEFAULT_DB_HOST},
   { "user", 'u', POPT_ARG_STRING, &user, 0, "Database server username", DEFAULT_DB_USER},
   { "data-dir", '\0', POPT_ARG_STRING, &g_database_data_dir, 0, "Directory to store database files (sqlite)", "DIR" },
+  { "uid", '\0', POPT_ARG_STRING, &uidstr, 0, "User id to assume", "UID" },
+  { "gid", '\0', POPT_ARG_STRING, &gidstr, 0, "Group id to assume", "GID" },
   { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level", "{1 .. 4}"  },
   { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0, "File to log to", DEFAULT_LOG_FILE },
   { "version", 'v', 0, 0, 'v', "Print version information and exit", NULL },
@@ -157,6 +163,45 @@ setup_logging (char *logfile, int level)
   _o_set_simplified_logging ();
 }
 
+void
+drop_privileges (const char *uidstr, const char *gidstr)
+{
+  if (gidstr && !uidstr)
+    die ("--gid supplied without --uid\n");
+
+  if (uidstr) {
+    struct passwd *passwd = getpwnam (uidstr);
+    gid_t gid;
+
+    if (!passwd)
+      die ("User '%s' not found\n", uidstr);
+    if (!gidstr)
+      gid = passwd->pw_gid;
+    else {
+      struct group *group = getgrnam (gidstr);
+      if (!group)
+        die ("Group '%s' not found\n", gidstr);
+      gid = group->gr_gid;
+    }
+
+    struct group *group = getgrgid (gid);
+    const char *groupname = group ? group->gr_name : "??";
+    gid_t grouplist[] = { gid };
+
+    if (setgroups (1, grouplist) == -1)
+      die ("Couldn't restrict group list to just group '%s': %s\n", groupname, strerror (errno));
+
+    if (setgid (gid) == -1)
+      die ("Could not set group id to '%s': %s", groupname, strerror (errno));
+
+    if (setuid (passwd->pw_uid) == -1)
+      die ("Could not set user id to '%s': %s", passwd->pw_name, strerror (errno));
+
+    if (setuid (0) == 0)
+      die ("Tried to drop privileges but we seem able to become superuser still!\n");
+  }
+}
+
 /**
  * \brief Called when a node connects via TCP
  * \param new_sock
@@ -213,6 +258,8 @@ main(int argc, const char **argv)
 
   if (!server_sock)
     die ("Failed to create socket (port %d) to listen for client connections.\n", listen_port);
+
+  drop_privileges (uidstr, gidstr);
 
   eventloop_run();
 

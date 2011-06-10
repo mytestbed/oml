@@ -50,6 +50,18 @@ OPTIONS
 	specified directory. The default directory is the current
 	working directory.
 
+--uid=UID, --gid=GID::
+	Try to change the server's uid and gid before starting to serve
+	clients.  OML only needs access to a single directory in which it
+	has the right to create the SQLite3 experiment database files,
+	plus the right to open and write to its log file (creating it if
+	necessary).  The '--uid' and '--gid' options allow the system
+	administrator to run *oml2-server* under a non-privileged account,
+	thereby lessening its potential as a security risk.  If only
+	'--uid' is given, the gid will be set to the primary group id for
+	the given user. '--uid' and '--gid' accept user and group names as
+	arguments; numeric user and group ids are not supported.
+
 -d::
 --debug-level=level::
 	Set the verbosity of log output to level. The level should be
