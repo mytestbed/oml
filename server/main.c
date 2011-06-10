@@ -62,7 +62,7 @@ die (const char *fmt, ...)
 #define DEFAULT_DB_BACKEND "sqlite"
 
 static int listen_port = DEFAULT_PORT;
-char* g_database_data_dir = ".";
+char* sqlite_database_dir = NULL;
 
 static int log_level = O_LOG_INFO;
 static char* logfile_name = NULL;
@@ -78,7 +78,7 @@ struct poptOption options[] = {
   { "db", 'b', POPT_ARG_STRING, &backend, 0, "Database server backend", DEFAULT_DB_BACKEND},
   { "hostname", 'h', POPT_ARG_STRING, &hostname, 0, "Database server hostname", DEFAULT_DB_HOST},
   { "user", 'u', POPT_ARG_STRING, &user, 0, "Database server username", DEFAULT_DB_USER},
-  { "data-dir", '\0', POPT_ARG_STRING, &g_database_data_dir, 0, "Directory to store database files (sqlite)", "DIR" },
+  { "data-dir", 'D', POPT_ARG_STRING, &sqlite_database_dir, 0, "Directory to store database files (sqlite)", "DIR" },
   { "uid", '\0', POPT_ARG_STRING, &uidstr, 0, "User id to assume", "UID" },
   { "gid", '\0', POPT_ARG_STRING, &gidstr, 0, "Group id to assume", "GID" },
   { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level", "{1 .. 4}"  },
@@ -128,6 +128,32 @@ database_create_function ()
       return backends[i].fn;
 
   return NULL;
+}
+
+/**
+ * @brief Work out which directory to put sqlite databases in, and set
+ * sqlite_database_dir to that directory.
+ *
+ * This works as follows: if the user specified --data-dir on the
+ * command line, we use that value.  Otherwise, if OML_SQLITE_DIR
+ * environment variable is set, use that dir.  Otherwise, use
+ * PKG_LOCAL_STATE_DIR, which is a preprocessor macro set by the build
+ * system (under Autotools defaults this should be
+ * ${prefix}/var/oml2-server, but on a distro it should be something
+ * like /var/lib/oml2-server).
+ *
+ */
+void
+setup_sqlite_database_dir (void)
+{
+  if (!sqlite_database_dir) {
+    const char *oml_sqlite_dir = getenv ("OML_SQLITE_DIR");
+    if (oml_sqlite_dir) {
+      sqlite_database_dir = xstrndup (oml_sqlite_dir, strlen (oml_sqlite_dir));
+    } else {
+      sqlite_database_dir = PKG_LOCAL_STATE_DIR;
+    }
+  }
 }
 
 /**
@@ -231,6 +257,7 @@ main(int argc, const char **argv)
   }
 
   setup_logging (logfile_name, log_level);
+  setup_sqlite_database_dir ();
 
   if (c < -1)
     die ("%s: %s\n", poptBadOption (optCon, POPT_BADOPTION_NOALIAS), poptStrerror (c));
@@ -249,7 +276,9 @@ main(int argc, const char **argv)
   if (!strcmp (backend, pg))
     loginfo ("PostgreSQL backend is still experimental!\n");
   if (strcmp (backend, sq))
-    loginfo ("Database server: %s with %s\n", hostname, user);
+    loginfo ("Database server for %s: %s, user %s\n", backend, hostname, user);
+  if (!strcmp (backend, sq))
+    loginfo ("Creating SQLite3 databases in %s\n", sqlite_database_dir);
 
   eventloop_init();
 

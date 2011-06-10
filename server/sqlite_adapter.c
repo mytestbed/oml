@@ -37,6 +37,8 @@
 #include "table_descr.h"
 #include "sqlite_adapter.h"
 
+extern char *sqlite_database_dir;
+
 typedef struct _sq3DB {
   sqlite3*  db_hdl;
   int       sender_cnt;
@@ -775,7 +777,7 @@ sq3_create_database(Database* db)
   char fname[128];
   sqlite3* db_hdl;
   int rc;
-  snprintf(fname, LENGTH (fname) - 1, "%s/%s.sq3", g_database_data_dir, db->name);
+  snprintf(fname, LENGTH (fname) - 1, "%s/%s.sq3", sqlite_database_dir, db->name);
   rc = sqlite3_open(fname, &db_hdl);
   if (rc) {
     logerror("Can't open database: %s\n", sqlite3_errmsg(db_hdl));

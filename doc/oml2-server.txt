@@ -45,10 +45,11 @@ OPTIONS
 	Listen for measurement client connections on the given
 	port. The default port is 3003.
 
---data-dir=directory::
-	Store measurement databases for all experiments in the
-	specified directory. The default directory is the current
-	working directory.
+-D directory, --data-dir=directory::
+	Store SQLite3 measurement databases for all experiments in the
+	specified directory. The default on this system is
+	{pkglocalstatedir}.  '--data-dir' overrides the *OML_SQLITE_DIR*
+	environment variable.
 
 --uid=UID, --gid=GID::
 	Try to change the server's uid and gid before starting to serve
@@ -77,6 +78,14 @@ OPTIONS
 
 --usage::
 		Print a brief usage message.
+
+ENVIRONMENT VARIABLES
+---------------------
+OML_SQLITE_DIR::
+Create SQLite3 experiment measurement databases in this directory.
+This environment variable is overridden by the '--data-dir' command
+line option.
+
 
 BUGS
 ----

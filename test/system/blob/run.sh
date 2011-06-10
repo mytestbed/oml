@@ -6,7 +6,7 @@ long=$1
 
 [ -f ${exp}.sq3 ] && rm -f ${exp}.sq3
 [ -f blobgen-server.log ] && rm -f blobgen-server.log
-${top_builddir}/server/oml2-server -l $port -d4 --logfile=blobgen-server.log &
+${top_builddir}/server/oml2-server -l $port -d4 --logfile=blobgen-server.log --data-dir=. &
 server_pid=$!
 echo SERVER=${server_pid}
 
