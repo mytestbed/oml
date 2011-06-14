@@ -264,10 +264,6 @@ process_schema(ClientHandler* self, char* value)
   }
 
   self->tables[index] = table;
-  // FIXME:  schema must come after sender-id
-  // Look up the max sequence number for this sender in this table
-  self->seqno_offsets[index] =
-    self->database->get_max_seq_no (self->database, table, self->sender_id);
 
   /* Reallocate the values vector if this schema has more columns than can fit already. */
   if (client_realloc_values (self, index, table->schema->nfields) == -1) {
@@ -449,7 +445,7 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
   self->database->insert(self->database,
                          table,
                          self->sender_id,
-                         header->seqno + self->seqno_offsets[index],
+                         header->seqno,
                          ts,
                          self->values_vectors[index],
                          cnt);
