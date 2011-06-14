@@ -42,6 +42,7 @@
 #include "sqlite_adapter.h"
 #ifdef HAVE_PG
 #include "psql_adapter.h"
+#include <libpq-fe.h>
 #endif
 
 void
@@ -190,6 +191,36 @@ setup_logging (char *logfile, int level)
 }
 
 void
+setup_backend_postgresql (const char *hostname, const char *user)
+{
+  loginfo ("Sending experiment data to PostgreSQL server %s with user %s\n", hostname, user);
+  MString *str = mstring_create ();
+  mstring_sprintf (str, "host=%s user=%s dbname=postgres", hostname, user);
+  PGconn *conn = PQconnectdb (mstring_buf (str));
+
+  if (PQstatus (conn) != CONNECTION_OK)
+    die ("Could not connect to PostgreSQL database %s: %s\n",
+         hostname, PQerrorMessage (conn));
+
+  /* oml2-server must be able to create new databases, so check that
+     our user has the required role attributes */
+  mstring_set (str, "");
+  mstring_sprintf (str, "SELECT rolcreatedb FROM pg_roles WHERE rolname='%s'", user);
+  PGresult *res = PQexec (conn, mstring_buf (str));
+  if (PQresultStatus (res) != PGRES_TUPLES_OK)
+    die ("Failed to determine role privileges for role '%s': %s\n",
+         user, PQerrorMessage (conn));
+  char *has_create = PQgetvalue (res, 0, 0);
+  if (strcmp (has_create, "t") == 0)
+    logdebug ("User '%s' has CREATE DATABASE privileges\n");
+  else
+    die ("User '%s' does not have required role CREATE DATABASE\n");
+
+  PQclear (res);
+  PQfinish (conn);
+}
+
+void
 drop_privileges (const char *uidstr, const char *gidstr)
 {
   if (gidstr && !uidstr)
@@ -275,8 +306,8 @@ main(int argc, const char **argv)
   const char *sq = "sqlite";
   if (!strcmp (backend, pg))
     loginfo ("PostgreSQL backend is still experimental!\n");
-  if (strcmp (backend, sq))
-    loginfo ("Database server for %s: %s, user %s\n", backend, hostname, user);
+  if (!strcmp (backend, pg))
+    setup_backend_postgresql (hostname, user);
   if (!strcmp (backend, sq))
     loginfo ("Creating SQLite3 databases in %s\n", sqlite_database_dir);
 

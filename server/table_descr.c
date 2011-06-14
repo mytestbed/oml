@@ -27,22 +27,22 @@
 #include "table_descr.h"
 
 TableDescr*
-table_descr_new (const char* name, const char* schema)
+table_descr_new (const char* name, struct schema* schema)
 {
-  if (name == NULL || schema == NULL)
+  if (name == NULL)
     return NULL;
 
+  /* schema == NULL means metadata table */
+
   char *new_name = xstrndup (name, strlen (name));
-  char *new_schema = xstrndup (schema, strlen (schema));
 
   TableDescr* t = xmalloc (sizeof(TableDescr));
   if (t == NULL) {
     xfree (new_name);
-    xfree (new_schema);
     return NULL;
   }
   t->name = new_name;
-  t->schema = new_schema;
+  t->schema = schema;
   t->next = NULL;
 
   return t;
@@ -67,7 +67,8 @@ table_descr_array_free (TableDescr* tables, int n)
   for (i = 0; i < n; i++)
     {
       xfree (tables[i].name);
-      xfree (tables[i].schema);
+      if (tables[i].schema)
+        schema_free (tables[i].schema);
     }
 
   xfree(tables);
@@ -82,7 +83,8 @@ table_descr_list_free (TableDescr* tables)
     {
       TableDescr* next = t->next;
       xfree (t->name);
-      xfree (t->schema);
+      if (t->schema)
+        schema_free (t->schema);
       xfree (t);
       t = next;
     }

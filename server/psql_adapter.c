@@ -11,8 +11,6 @@
 #include <sys/time.h>
 #include "database.h"
 
-#define CONN_BUFFER 512
-
 typedef struct _psqlDB {
   PGconn *conn;
   int sender_cnt;
@@ -64,6 +62,28 @@ psql_make_sql_insert (DbTable* table)
   return NULL;
 }
 
+static struct {
+  const char *name;
+  const char *sql;
+} meta_tables [] = {
+  { .name = "_experiment_metadata",
+    .sql = "CREATE TABLE _experiment_metadata (key TEXT PRIMARY KEY, value TEXT);" },
+  { .name = "_senders",
+    .sql = "CREATE TABLE _senders (name TEXT PRIMARY KEY, id INTEGER UNIQUE);" },
+};
+
+
+static int
+psql_table_create_meta (Database *db, const char *name)
+{
+  PsqlDB *self = (PsqlDB*)db->handle;
+  size_t i = 0;
+  for (i = 0; i < LENGTH (meta_tables); i++)
+    if (strcmp (meta_tables[i].name, name) == 0)
+      return sql_stmt (self, meta_tables[i].sql);
+  return -1;
+}
+
 /**
  * @brief Release the psql database.
  *
@@ -75,13 +95,30 @@ psql_make_sql_insert (DbTable* table)
 void
 psql_release(Database* db)
 {
-  PsqlDB* self = (PsqlDB*)db->adapter_hdl;
+  PsqlDB* self = (PsqlDB*)db->handle;
   PQfinish(self->conn);
   // TODO: Release table specific data
 
   xfree(self);
-  db->adapter_hdl = NULL;
+  db->handle = NULL;
 }
+
+static char*
+psql_get_sender_id (Database *database, const char *name)
+{
+  return psql_get_key_value (database, "_senders", "name", "id", name);
+}
+
+static int
+psql_set_sender_id (Database *database, const char *name, int id)
+{
+  MString *mstr = mstring_create();
+  mstring_sprintf (mstr, "%d", id);
+  int ret = psql_set_key_value (database, "_senders", "name", "id", name, mstring_buf (mstr));
+  mstring_delete (mstr);
+  return ret;
+}
+
 /**
  * @brief Add sender ID to the table
  * @param db the database that contains the sqlite3 db
@@ -89,18 +126,36 @@ psql_release(Database* db)
  * @return the index of the sender
  */
 static int
-psql_add_sender_id(Database* db, char *sender_id)
+psql_add_sender_id(Database *db, char *sender_id)
 {
-  (void)db;
-  //PsqlDB* self = (PsqlDB*)db->adapter_hdl;
-  //  int index = ++self->sender_cnt;
+  PsqlDB *self = (PsqlDB*)db->handle;
+  int index = -1;
+  char *id_str = psql_get_sender_id (db, sender_id);
 
-  //char s[512];  // don't check for length
-  // TDEBUG
-  //sprintf(s, "INSERT INTO _senders VALUES (%d, '%s');\0", index, sender_id);
-  //if (sql_stmt(self, s)) return -1;
-  //return index;
-  return atoi(sender_id);
+  if (id_str) {
+    index = atoi (id_str);
+    xfree (id_str);
+  } else {
+    PGresult *res = PQexec (self->conn, "SELECT MAX(id) FROM _senders;");
+    if (PQresultStatus (res) != PGRES_TUPLES_OK) {
+      logerror ("Experiment %s: Failed to get maximum sender id from database: %s\n",
+                db->name, PQerrorMessage (self->conn));
+      PQclear (res);
+      return -1;
+    }
+    int rows = PQntuples (res);
+    if (rows == 0) {
+      logerror ("Experiment %s: Failed to get maximum sender id from database; empty result.\n",
+                db->name);
+      PQclear (res);
+      return -1;
+    }
+    index = atoi (PQgetvalue (res, 0, 0)) + 1;
+    PQclear (res);
+    psql_set_sender_id (db, sender_id, index);
+  }
+
+  return index;
 }
 
 char*
@@ -154,14 +209,14 @@ psql_get_key_value (Database *database, const char *table,
     return NULL;
 
   PGresult *res;
-  PsqlDB *psqldb = (PsqlDB*) database->adapter_hdl;
+  PsqlDB *psqldb = (PsqlDB*) database->handle;
   MString *stmt = mstring_create();
   mstring_sprintf (stmt, "SELECT %s FROM %s WHERE %s='%s';",
                    value_column, table, key_column, key);
 
   res = PQexec (psqldb->conn, mstring_buf (stmt));
 
-  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+  if (PQresultStatus(res) != PGRES_TUPLES_OK) {
     logerror("Error trying to get %s[%s]; (%s).\n",
              table, key, PQerrorMessage(psqldb->conn));
     goto fail_exit;
@@ -197,7 +252,7 @@ psql_set_key_value (Database *database, const char *table,
                     const char *key_column, const char *value_column,
                     const char *key, const char *value)
 {
-  PsqlDB *psqldb = (PsqlDB*) database->adapter_hdl;
+  PsqlDB *psqldb = (PsqlDB*) database->handle;
   MString *stmt = mstring_create ();
   char *check_value = psql_get_key_value (database, table, key_column, value_column, key);
   if (check_value == NULL)
@@ -252,10 +307,18 @@ table_create (Database* db, DbTable* table, int backend_create)
     return -1;
   }
   MString *insert = NULL, *create = NULL;
-  PsqlDB* psqldb = (PsqlDB*)db->adapter_hdl;
+  PsqlDB* psqldb = (PsqlDB*)db->handle;
   PGresult *res;
 
   if (backend_create) {
+    int sindex = table->schema->index;
+    table->schema->index = -1;
+    MString *mstr = mstring_create ();
+    mstring_sprintf (mstr, "table_%s", table->schema->name);
+    const char *meta = schema_to_meta (table->schema);
+    table->schema->index = sindex;
+    logdebug ("SET META: %s\n", meta);
+    psql_set_metadata (db, mstring_buf (mstr), meta);
     create = schema_to_sql (table->schema, oml_to_postgresql_type);
     if (!create) {
       logwarn ("Failed to build SQL CREATE TABLE statement string for table %s.\n",
@@ -276,7 +339,7 @@ table_create (Database* db, DbTable* table, int backend_create)
   }
   /* Prepare the insert statement and update statement  */
   PsqlTable* psqltable = (PsqlTable*)xmalloc(sizeof(PsqlTable));
-  table->adapter_hdl = psqltable;
+  table->handle = psqltable;
 
   MString *insert_name = mstring_create();
   mstring_set (insert_name, "OMLInsert-");
@@ -307,21 +370,96 @@ table_create (Database* db, DbTable* table, int backend_create)
 }
 
 int
-psql_table_create (Database *database, DbTable *table)
+psql_table_create (Database *database, DbTable *table, int shallow)
 {
-  return table_create (database, table, 1);
+  logdebug ("Create %s (shallow=%d)\n", table->schema->name, shallow);
+  return table_create (database, table, !shallow);
 }
 
 int
 psql_table_free (Database *database, DbTable *table)
 {
   (void)database;
-  PsqlTable *psqltable = (PsqlTable*)table->adapter_hdl;
+  PsqlTable *psqltable = (PsqlTable*)table->handle;
   if (psqltable) {
     mstring_delete (psqltable->insert_stmt);
     xfree (psqltable);
   }
   return 0;
+}
+
+TableDescr*
+psql_get_table_list (Database *database, int *num_tables)
+{
+  PsqlDB *self = database->handle;
+  const char *stmt_tablename =
+    "SELECT tablename FROM pg_tables WHERE tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql%';";
+  PGresult *res;
+  TableDescr *tables = NULL;
+  int rows, cols, i;
+
+  res = PQexec (self->conn, stmt_tablename);
+  if (PQresultStatus (res) != PGRES_TUPLES_OK) {
+    logerror ("Couldn't get list of tables from PostgreSQL server: %s\n",
+              PQerrorMessage (self->conn));
+    PQclear (res);
+    return NULL;
+  }
+  rows = PQntuples (res);
+  cols = PQnfields (res);
+
+  loginfo ("Table names %d %d\n", rows, cols);
+
+  if (cols < 1)
+    return NULL;
+
+  int have_meta = 0;
+  for (i = 0; i < rows && !have_meta; i++)
+    if (strcmp (PQgetvalue (res, i, 0), "_experiment_metadata") == 0)
+      have_meta = 1;
+
+  *num_tables = 0;
+
+  for (i = 0; i < rows; i++) {
+    char *val = PQgetvalue (res, i, 0);
+    logdebug ("T %s\n", val);
+    MString *str = mstring_create ();
+    TableDescr *t = NULL;
+
+    if (have_meta) {
+      logdebug ("Have metadata\n");
+      mstring_sprintf (str, "SELECT value FROM _experiment_metadata WHERE key='table_%s';", val);
+      PGresult *schema_res = PQexec (self->conn, mstring_buf (str));
+      if (PQresultStatus (schema_res) != PGRES_TUPLES_OK) {
+        logerror ("Couldn't get schema for table '%s', skipping.  Error was: %s\n",
+                  val, PQerrorMessage (self->conn));
+        mstring_delete (str);
+        continue;
+      }
+      int rows = PQntuples (schema_res);
+      if (rows == 0) {
+        logdebug ("Have metadata but couldn't get table schema\n");
+        t = table_descr_new (val, NULL); // Don't know the schema for this table
+      } else {
+        logdebug ("Stored schema: %s\n", PQgetvalue (schema_res, 0, 0));
+        struct schema *schema = schema_from_meta (PQgetvalue (schema_res, 0, 0));
+        t = table_descr_new (val, schema);
+      }
+      PQclear (schema_res);
+      mstring_delete (str);
+    } else {
+      logdebug ("No meta data\n");
+      t = table_descr_new (val, NULL);
+    }
+
+    if (t) {
+      t->next = tables;
+      tables = t;
+      (*num_tables)++;
+    }
+  }
+
+  return tables;
 }
 
 /**
@@ -344,8 +482,8 @@ psql_insert(Database* db,
             OmlValue* values,
             int       value_count)
 {
-  PsqlDB* psqldb = (PsqlDB*)db->adapter_hdl;
-  PsqlTable* psqltable = (PsqlTable*)table->adapter_hdl;
+  PsqlDB* psqldb = (PsqlDB*)db->handle;
+  PsqlTable* psqltable = (PsqlTable*)table->handle;
   PGresult* res;
   int i;
   double time_stamp_server;
@@ -467,24 +605,68 @@ sql_stmt(PsqlDB* self, const char* stmt)
 int
 psql_create_database(Database* db)
 {
-  char conninfo[CONN_BUFFER];
+  MString *pg_conninfo = mstring_create ();
+  MString *conninfo = mstring_create ();
+  MString *str = mstring_create ();
   PGconn     *conn;
+  PGresult *res;
 
   /* Setup parameters to connect to the database */
   /* Assumes we use a $HOME/.pgpass file:
      http://www.postgresql.org/docs/8.2/interactive/libpq-pgpass.html*/
-  sprintf(conninfo,"host=%s user=%s dbname=%s",db->hostname,db->user,db->name);
+  //  sprintf(conninfo,"host=%s user=%s dbname=%s",db->hostname,db->user,db->name);
 
-  logdebug("Connection info: %s\n",conninfo);
+  mstring_sprintf (pg_conninfo, "host=%s user=%s dbname=postgres", db->hostname,db->user);
 
-  /* Make a connection to the database */
-  conn = PQconnectdb(conninfo);
+  /*
+   * Make a connection to the database server -- check if the
+   * requested database exists or not by connecting to the 'postgres'
+   * database and querying that.
+   */
+  conn = PQconnectdb(mstring_buf (pg_conninfo));
 
   /* Check to see that the backend connection was successfully made */
   if (PQstatus(conn) != CONNECTION_OK) {
-    logerror("Connection to database failed: %s",
-      PQerrorMessage(conn));
-    return -1;
+    logerror("Connection to database server failed: %s", PQerrorMessage(conn));
+    goto fail_exit;
+  }
+
+  mstring_sprintf (str, "SELECT datname from pg_database where datname='%s';", db->name);
+  res = PQexec (conn, mstring_buf (str));
+
+  if (PQresultStatus (res) != PGRES_TUPLES_OK) {
+    logerror ("Could not get list of existing databases. Could not create database '%s'\n",
+              db->name);
+    goto fail_exit;
+  }
+
+  /* No result rows means database doesn't exist, so create it instead */
+  if (PQntuples (res) == 0) {
+    PQclear (res);
+    loginfo ("Database '%s' does not exist, creating it\n", db->name);
+    mstring_set (str, "");
+    mstring_sprintf (str, "CREATE DATABASE \"%s\";", db->name);
+
+    res = PQexec (conn, mstring_buf (str));
+    if (PQresultStatus (res) != PGRES_COMMAND_OK) {
+      logerror ("Could not create database '%s': %s\n", db->name, PQerrorMessage (conn));
+      goto fail_exit;
+    }
+  }
+
+  PQclear (res);
+  PQfinish (conn);
+
+  mstring_sprintf (conninfo, "host=%s user=%s dbname=%s", db->hostname,db->user,db->name);
+  logdebug("Connection info: %s\n", mstring_buf (conninfo));
+
+  /* Make a connection to the database server -- check if the requested database exists or not */
+  conn = PQconnectdb(mstring_buf (conninfo));
+
+  /* Check to see that the backend connection was successfully made */
+  if (PQstatus(conn) != CONNECTION_OK) {
+    logerror("Connection to database server failed: %s", PQerrorMessage(conn));
+    goto fail_exit;
   }
 
   PsqlDB* self = (PsqlDB*)xmalloc(sizeof(PsqlDB));
@@ -493,16 +675,24 @@ psql_create_database(Database* db)
   db->create = psql_create_database;
   db->release = psql_release;
   db->table_create = psql_table_create;
+  db->table_create_meta = psql_table_create_meta;
   db->table_free = psql_table_free;
   db->insert = psql_insert;
   db->add_sender_id = psql_add_sender_id;
   db->get_metadata = psql_get_metadata;
   db->set_metadata = psql_set_metadata;
-  db->get_max_seq_no = psql_get_max_seq_no;
+  db->get_table_list = psql_get_table_list;
 
-  db->adapter_hdl = self;
-
-  /* FIXME:  Do all the reconnect stuff with auto-detecting existing tables and so-on */
+  db->handle = self;
 
   return 0;
+
+ fail_exit:
+  PQclear (res);
+  PQfinish (conn);
+
+  mstring_delete (pg_conninfo);
+  mstring_delete (conninfo);
+  mstring_delete (str);
+  return -1;
 }

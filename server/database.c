@@ -39,8 +39,9 @@
 
 static Database *first_db = NULL;
 
-db_adapter_create
-database_create_function ();
+db_adapter_create database_create_function ();
+
+int database_init (Database *self);
 
 /**
  * \brief create a date with the name +name+
@@ -65,8 +66,7 @@ database_find(char* name, char* hostname, char* user)
 
   // need to create a new one
   Database *self = xmalloc(sizeof(Database));
-  loginfo("Experiment '%s': Opening database '%s' at %s with user '%s'\n",
-          name, name, hostname, user);
+  loginfo("New experiment '%s'\n", name);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
   strncpy(self->hostname, hostname, MAX_DB_NAME_SIZE);
   strncpy(self->user, user, MAX_DB_NAME_SIZE);
@@ -77,6 +77,8 @@ database_find(char* name, char* hostname, char* user)
     xfree(self);
     return NULL;
   }
+
+  database_init (self);
 
   char *start_time_str = self->get_metadata (self, "start_time");
   char *method;
@@ -205,7 +207,7 @@ database_find_or_create_table(Database *database, struct schema *schema)
     table = database_create_table (database, schema);
     if (!table)
       return NULL;
-    if (database->table_create (database, table)) {
+    if (database->table_create (database, table, 0)) {
       logwarn ("Database adapter failed to create table; freeing it now!\n");
       /* Unlink the table from the experiment's list */
       DbTable* t = database->first_table;
@@ -261,6 +263,48 @@ database_table_free(Database *database, DbTable *table)
   }
 }
 
+int
+database_init (Database *database)
+{
+  int num_tables;
+  TableDescr* tables = database->get_table_list (database, &num_tables);
+  TableDescr* td = tables;
+
+  logdebug("Got table list with %d tables in it\n", num_tables);
+  int i = 0;
+  for (i = 0; i < num_tables; i++, td = td->next) {
+    if (td->schema) {
+      struct schema *schema = schema_copy (td->schema);
+      DbTable *table = database_create_table (database, schema);
+
+      if (!table) {
+        logwarn ("Failed to create table '%s': allocation failed\n",
+                 td->name);
+        continue;
+      }
+      /* Create the required table data structures, but don't do SQL CREATE TABLE */
+      if (database->table_create (database, table, 1) == -1) {
+        logwarn ("Failed to create adapter structures for table '%s'\n",
+                 td->name);
+        database_table_free (database, table);
+      }
+    }
+  }
+
+  const char *meta_tables [] = { "_senders", "_experiment_metadata" };
+  size_t j;
+  for (j = 0; j < LENGTH(meta_tables); j++) {
+    if (!table_descr_have_table (tables, meta_tables[j])) {
+      if (database->table_create_meta (database, meta_tables[j])) {
+        table_descr_list_free (tables);
+        return -1;
+      }
+    }
+  }
+
+  table_descr_list_free (tables);
+  return 0;
+}
 
 /*
  Local Variables:

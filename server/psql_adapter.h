@@ -1,6 +1,8 @@
 #ifndef PSQL_ADAPTER_H_
 #define PSQL_ADAPTER_H_
 
+#include "database.h"
+
 int
 psql_create_database(
   Database* db

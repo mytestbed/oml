@@ -24,14 +24,16 @@
 #ifndef TABLE_DESCR_H__
 #define TABLE_DESCR_H__
 
+#include <schema.h>
+
 typedef struct TableDescr
 {
   char* name;
-  char* schema;
+  struct schema *schema;
   struct TableDescr* next;
 } TableDescr;
 
-TableDescr* table_descr_new (const char* name, const char* schema);
+TableDescr* table_descr_new (const char* name, struct schema* schema);
 void table_descr_array_free (TableDescr* tables, int n);
 void table_descr_list_free (TableDescr* tables);
 int  table_descr_have_table (TableDescr* tables, const char* table_name);
