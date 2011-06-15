@@ -547,6 +547,7 @@ sq3_get_table_list (Database *database, int *num_tables)
   int ncols;
   int ret = sqlite3_get_table (self->conn, stmt, &result, &nrows, &ncols, &errmsg);
 
+  *num_tables = -1;
   if (ret != SQLITE_OK) {
     logerror("Error in SELECT statement %s [%s].\n", stmt, errmsg);
     sqlite3_free (errmsg);

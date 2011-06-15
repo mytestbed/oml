@@ -301,6 +301,8 @@ process_meta(ClientHandler* self, char* key, char* value)
       }
   } else if (strcmp(key, "experiment-id") == 0) {
     self->database = database_find(value,self->DbHostname,self->DbUser);
+    if (!self->database)
+      self->state = C_PROTOCOL_ERROR;
   } else if (strcmp(key, "content") == 0) {
     if (strcmp(value, "binary") == 0) {
       self->content = C_BINARY_DATA;
@@ -645,7 +647,7 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
     case C_PROTOCOL_ERROR:
       // Protocol error:  close the client connection
       socket_close (self->socket);
-      logerror("'%s': protocol error, server has disconnected the client\n",
+      logerror("'%s': disconnecting client (fatal error)\n",
                source->name);
       eventloop_socket_release (self->event);
       client_handler_free (self);

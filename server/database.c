@@ -78,7 +78,10 @@ database_find(char* name, char* hostname, char* user)
     return NULL;
   }
 
-  database_init (self);
+  if (database_init (self) == -1) {
+    xfree (self);
+    return NULL;
+  }
 
   char *start_time_str = self->get_metadata (self, "start_time");
   char *method;
@@ -269,6 +272,9 @@ database_init (Database *database)
   int num_tables;
   TableDescr* tables = database->get_table_list (database, &num_tables);
   TableDescr* td = tables;
+
+  if (num_tables == -1)
+    return -1;
 
   logdebug("Got table list with %d tables in it\n", num_tables);
   int i = 0;

@@ -398,6 +398,7 @@ psql_get_table_list (Database *database, int *num_tables)
   TableDescr *tables = NULL;
   int rows, cols, i;
 
+  *num_tables = -1;
   res = PQexec (self->conn, stmt_tablename);
   if (PQresultStatus (res) != PGRES_TUPLES_OK) {
     logerror ("Couldn't get list of tables from PostgreSQL server: %s\n",
