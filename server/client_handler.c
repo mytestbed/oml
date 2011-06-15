@@ -155,7 +155,7 @@ client_realloc_values (ClientHandler *self, int index, int nvalues)
  * \param user
  */
 void*
-client_handler_new(Socket* new_sock, char* hostname, char* user)
+client_handler_new(Socket* new_sock)
 {
   ClientHandler* self = xmalloc(sizeof(ClientHandler));
   if (!self) return NULL;
@@ -164,8 +164,6 @@ client_handler_new(Socket* new_sock, char* hostname, char* user)
   self->content = C_TEXT_DATA;
   self->mbuf = mbuf_create ();
   self->socket = new_sock;
-  self->DbHostname = hostname;
-  self->DbUser = user;
   self->event = eventloop_on_read_in_channel(new_sock, client_callback,
                                              status_callback, (void*)self);
   strncpy (self->name, self->event->name, MAX_STRING_SIZE);
@@ -300,7 +298,7 @@ process_meta(ClientHandler* self, char* key, char* value)
         return;
       }
   } else if (strcmp(key, "experiment-id") == 0) {
-    self->database = database_find(value,self->DbHostname,self->DbUser);
+    self->database = database_find(value);
     if (!self->database)
       self->state = C_PROTOCOL_ERROR;
   } else if (strcmp(key, "content") == 0) {

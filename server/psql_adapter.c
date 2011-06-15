@@ -11,6 +11,9 @@
 #include <sys/time.h>
 #include "database.h"
 
+extern char *pg_conninfo;
+extern char *pg_user;
+
 typedef struct _psqlDB {
   PGconn *conn;
   int sender_cnt;
@@ -498,9 +501,6 @@ psql_insert(Database* db,
   int paramLength[4+value_count];
   int paramFormat[4+value_count];
 
-  //logdebug("insert");
-  logdebug("TDEBUG - into psql_insert - %d \n", seq_no);
-
   sprintf(paramValues[0],"%i",sender_id);
   paramLength[0] = 0;
   paramFormat[0] = 0;
@@ -544,8 +544,6 @@ psql_insert(Database* db,
     paramLength[4+i] = 0;
     paramFormat[4+i] = 0;
   }
-  logdebug("TDEBUG - into psql_insert - %d \n", seq_no);
-
   /* Use stuff from http://www.postgresql.org/docs/current/static/plpgsql-control-structures.html#PLPGSQL-ERROR-TRAPPING */
 
   res = PQexecPrepared(psqldb->conn, insert_stmt,
@@ -606,29 +604,24 @@ sql_stmt(PsqlDB* self, const char* stmt)
 int
 psql_create_database(Database* db)
 {
-  MString *pg_conninfo = mstring_create ();
+  MString *admin_conninfo = mstring_create ();
   MString *conninfo = mstring_create ();
   MString *str = mstring_create ();
   PGconn     *conn;
-  PGresult *res;
+  PGresult *res = NULL;
 
-  /* Setup parameters to connect to the database */
-  /* Assumes we use a $HOME/.pgpass file:
-     http://www.postgresql.org/docs/8.2/interactive/libpq-pgpass.html*/
-  //  sprintf(conninfo,"host=%s user=%s dbname=%s",db->hostname,db->user,db->name);
-
-  mstring_sprintf (pg_conninfo, "host=%s user=%s dbname=postgres", db->hostname,db->user);
+  mstring_sprintf (admin_conninfo, "%s user=%s dbname=postgres", pg_conninfo, pg_user);
 
   /*
    * Make a connection to the database server -- check if the
    * requested database exists or not by connecting to the 'postgres'
    * database and querying that.
    */
-  conn = PQconnectdb(mstring_buf (pg_conninfo));
+  conn = PQconnectdb(mstring_buf (admin_conninfo));
 
   /* Check to see that the backend connection was successfully made */
   if (PQstatus(conn) != CONNECTION_OK) {
-    logerror("Connection to database server failed: %s", PQerrorMessage(conn));
+    logerror("Connection to database server failed: %s\n", PQerrorMessage(conn));
     goto fail_exit;
   }
 
@@ -658,8 +651,7 @@ psql_create_database(Database* db)
   PQclear (res);
   PQfinish (conn);
 
-  mstring_sprintf (conninfo, "host=%s user=%s dbname=%s", db->hostname,db->user,db->name);
-  logdebug("Connection info: %s\n", mstring_buf (conninfo));
+  mstring_sprintf (conninfo, "%s user=%s dbname=%s", pg_conninfo, pg_user, db->name);
 
   /* Make a connection to the database server -- check if the requested database exists or not */
   conn = PQconnectdb(mstring_buf (conninfo));
@@ -689,10 +681,11 @@ psql_create_database(Database* db)
   return 0;
 
  fail_exit:
-  PQclear (res);
+  if (res)
+    PQclear (res);
   PQfinish (conn);
 
-  mstring_delete (pg_conninfo);
+  mstring_delete (admin_conninfo);
   mstring_delete (conninfo);
   mstring_delete (str);
   return -1;

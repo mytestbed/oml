@@ -45,8 +45,6 @@ typedef struct _clientHandler {
   char name[MAX_STRING_SIZE];
 
   Database*   database;
-  char*       DbHostname;
-  char*       DbUser;
   DbTable**   tables;
   int*        seqno_offsets;
   OmlValue**  values_vectors;
@@ -65,7 +63,7 @@ typedef struct _clientHandler {
                             // sync time across all connections
 } ClientHandler;
 
-void *client_handler_new (Socket* new_sock, char* hostname, char* user);
+void *client_handler_new (Socket* new_sock);
 
 #endif /*CLIENT_HANDLER_H_*/
 

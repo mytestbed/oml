@@ -49,15 +49,13 @@ int database_init (Database *self);
  * \return a new database
  */
 Database*
-database_find(char* name, char* hostname, char* user)
+database_find (char* name)
 {
   Database* db = first_db;
   while (db != NULL) {
-    if (!strcmp(name, db->name) &&
-        !strcmp(hostname, db->hostname) &&
-        !strcmp(user, db->user)) {
-      loginfo ("Experiment '%s': Database '%s' already open at %s with user '%s' (%d clients)\n",
-                name, name, hostname, user, db->ref_count);
+    if (!strcmp(name, db->name)) {
+      loginfo ("Experiment '%s': Database '%s' already open (%d clients)\n",
+                name, name, db->ref_count);
       db->ref_count++;
       return db;
     }
@@ -68,8 +66,6 @@ database_find(char* name, char* hostname, char* user)
   Database *self = xmalloc(sizeof(Database));
   loginfo("New experiment '%s'\n", name);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
-  strncpy(self->hostname, hostname, MAX_DB_NAME_SIZE);
-  strncpy(self->user, user, MAX_DB_NAME_SIZE);
   self->ref_count = 1;
   self->create = database_create_function ();
 

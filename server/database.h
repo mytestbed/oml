@@ -58,8 +58,6 @@ struct _dbTable {
 
 struct _database{
   char       name[MAX_DB_NAME_SIZE];
-  char       hostname[MAX_DB_NAME_SIZE];
-  char       user[MAX_DB_NAME_SIZE];
 
   int        ref_count;   // count number of clients using this DB
   DbTable*   first_table;
@@ -85,7 +83,7 @@ struct _database{
  * If no database with this name exists, a new
  * one is created;
  */
-Database *database_find(char* name, char* hostname, char* user);
+Database *database_find(char* name);
 
 /**
  * Client no longer uses this database. If this

@@ -58,17 +58,17 @@ die (const char *fmt, ...)
 #define DEFAULT_PORT 3003
 #define DEFAULT_PORT_STR "3003"
 #define DEFAULT_LOG_FILE "oml_server.log"
-#define DEFAULT_DB_HOST "localhost"
-#define DEFAULT_DB_USER "dbuser"
+#define DEFAULT_PG_CONNINFO "host=localhost"
+#define DEFAULT_PG_USER "oml"
 #define DEFAULT_DB_BACKEND "sqlite"
 
 static int listen_port = DEFAULT_PORT;
-char* sqlite_database_dir = NULL;
+char *sqlite_database_dir = NULL;
+char *pg_conninfo = DEFAULT_PG_CONNINFO;
+char *pg_user = DEFAULT_PG_USER;
 
 static int log_level = O_LOG_INFO;
 static char* logfile_name = NULL;
-static char* hostname = DEFAULT_DB_HOST;
-static char* user = DEFAULT_DB_USER;
 static char* backend = DEFAULT_DB_BACKEND;
 static char* uidstr = NULL;
 static char* gidstr = NULL;
@@ -77,11 +77,13 @@ struct poptOption options[] = {
   POPT_AUTOHELP
   { "listen", 'l', POPT_ARG_INT, &listen_port, 0, "Port to listen for TCP based clients", DEFAULT_PORT_STR},
   { "db", 'b', POPT_ARG_STRING, &backend, 0, "Database server backend", DEFAULT_DB_BACKEND},
-  { "hostname", 'h', POPT_ARG_STRING, &hostname, 0, "Database server hostname", DEFAULT_DB_HOST},
-  { "user", 'u', POPT_ARG_STRING, &user, 0, "Database server username", DEFAULT_DB_USER},
+#if HAVE_PG
+  { "pg-connect", '\0', POPT_ARG_STRING, &pg_conninfo, 0, "PostgreSQL connection info string", "\"" DEFAULT_PG_CONNINFO "\""},
+  { "pg-user", '\0', POPT_ARG_STRING, &pg_user, 0, "PostgreSQL user to connect as", DEFAULT_PG_USER },
+#endif
   { "data-dir", 'D', POPT_ARG_STRING, &sqlite_database_dir, 0, "Directory to store database files (sqlite)", "DIR" },
-  { "uid", '\0', POPT_ARG_STRING, &uidstr, 0, "User id to assume", "UID" },
-  { "gid", '\0', POPT_ARG_STRING, &gidstr, 0, "Group id to assume", "GID" },
+  { "user", '\0', POPT_ARG_STRING, &uidstr, 0, "User name to assume", "UID" },
+  { "group", '\0', POPT_ARG_STRING, &gidstr, 0, "Group name to assume", "GID" },
   { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level", "{1 .. 4}"  },
   { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0, "File to log to", DEFAULT_LOG_FILE },
   { "version", 'v', 0, 0, 'v', "Print version information and exit", NULL },
@@ -221,17 +223,18 @@ setup_backend_sqlite (void)
 }
 
 void
-setup_backend_postgresql (const char *hostname, const char *user)
+setup_backend_postgresql (const char *conninfo, const char *user)
 {
 #if HAVE_PG
-  loginfo ("Sending experiment data to PostgreSQL server %s with user %s\n", hostname, user);
+  loginfo ("Sending experiment data to PostgreSQL server with user '%s'\n",
+           pg_user);
   MString *str = mstring_create ();
-  mstring_sprintf (str, "host=%s user=%s dbname=postgres", hostname, user);
+  mstring_sprintf (str, "%s user=%s dbname=postgres", conninfo, user);
   PGconn *conn = PQconnectdb (mstring_buf (str));
 
   if (PQstatus (conn) != CONNECTION_OK)
-    die ("Could not connect to PostgreSQL database %s: %s\n",
-         hostname, PQerrorMessage (conn));
+    die ("Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
+         conninfo, PQerrorMessage (conn));
 
   /* oml2-server must be able to create new databases, so check that
      our user has the required role attributes */
@@ -243,14 +246,14 @@ setup_backend_postgresql (const char *hostname, const char *user)
          user, PQerrorMessage (conn));
   char *has_create = PQgetvalue (res, 0, 0);
   if (strcmp (has_create, "t") == 0)
-    logdebug ("User '%s' has CREATE DATABASE privileges\n");
+    logdebug ("User '%s' has CREATE DATABASE privileges\n", user);
   else
-    die ("User '%s' does not have required role CREATE DATABASE\n");
+    die ("User '%s' does not have required role CREATE DATABASE\n", user);
 
   PQclear (res);
   PQfinish (conn);
 #else
-  (void)hostname, (void)user;
+  (void)conninfo;
 #endif
 }
 
@@ -268,7 +271,7 @@ setup_backend (void)
   if (!strcmp (backend, pg))
     loginfo ("PostgreSQL backend is still experimental!\n");
   if (!strcmp (backend, pg))
-    setup_backend_postgresql (hostname, user);
+    setup_backend_postgresql (pg_conninfo, pg_user);
   if (!strcmp (backend, sq))
     setup_backend_sqlite ();
 }
@@ -320,7 +323,7 @@ void
 on_connect(Socket* new_sock, void* handle)
 {
   (void)handle;
-  ClientHandler *client = client_handler_new(new_sock,hostname,user);
+  ClientHandler *client = client_handler_new(new_sock);
   loginfo("'%s': new client connected\n", client->name);
 }
 
