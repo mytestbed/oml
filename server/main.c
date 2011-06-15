@@ -40,7 +40,7 @@
 #include "version.h"
 #include "client_handler.h"
 #include "sqlite_adapter.h"
-#ifdef HAVE_PG
+#if HAVE_PG
 #include "psql_adapter.h"
 #include <libpq-fe.h>
 #endif
@@ -191,8 +191,39 @@ setup_logging (char *logfile, int level)
 }
 
 void
+setup_backend_sqlite (void)
+{
+  setup_sqlite_database_dir ();
+
+  /*
+   * The man page says access(2) should be avoided because it creates
+   * a race condition between calls to access(2) and open(2) where an
+   * attacker could swap the underlying file for a link to a file that
+   * the unprivileged user does not have permissions to access, which
+   * the effective user does.  We don't use the access/open sequence
+   * here. We check that we can create files in the
+   * sqlite_database_dir directory, and fail if not (as the server
+   * won't be able to do useful work otherwise).
+   *
+   * An attacker could potentially change the underlying file to a
+   * link and still cause problems if oml2-server is run as root or
+   * setuid root, but this check must happen after drop_privileges()
+   * is called, so if oml2-server is not run with superuser privileges
+   * such an attack would still fail.
+   *
+   * oml2-server should not be run as root or setuid root in any case.
+   */
+  if (access (sqlite_database_dir, R_OK | W_OK | X_OK) == -1)
+    die ("Can't access SQLite database directory %s: %s\n",
+         sqlite_database_dir, strerror (errno));
+
+  loginfo ("Creating SQLite3 databases in %s\n", sqlite_database_dir);
+}
+
+void
 setup_backend_postgresql (const char *hostname, const char *user)
 {
+#if HAVE_PG
   loginfo ("Sending experiment data to PostgreSQL server %s with user %s\n", hostname, user);
   MString *str = mstring_create ();
   mstring_sprintf (str, "host=%s user=%s dbname=postgres", hostname, user);
@@ -218,6 +249,28 @@ setup_backend_postgresql (const char *hostname, const char *user)
 
   PQclear (res);
   PQfinish (conn);
+#else
+  (void)hostname, (void)user;
+#endif
+}
+
+void
+setup_backend (void)
+{
+  if (!database_create_function ())
+    die ("Unknown database backend '%s' (valid backends: %s)\n",
+         backend, valid_backends ());
+
+  loginfo ("Database backend: '%s'\n", backend);
+
+  const char *pg = "postgresql";
+  const char *sq = "sqlite";
+  if (!strcmp (backend, pg))
+    loginfo ("PostgreSQL backend is still experimental!\n");
+  if (!strcmp (backend, pg))
+    setup_backend_postgresql (hostname, user);
+  if (!strcmp (backend, sq))
+    setup_backend_sqlite ();
 }
 
 void
@@ -288,7 +341,6 @@ main(int argc, const char **argv)
   }
 
   setup_logging (logfile_name, log_level);
-  setup_sqlite_database_dir ();
 
   if (c < -1)
     die ("%s: %s\n", poptBadOption (optCon, POPT_BADOPTION_NOALIAS), poptStrerror (c));
@@ -296,20 +348,6 @@ main(int argc, const char **argv)
   loginfo(V_STRING, VERSION);
   loginfo("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
   loginfo(COPYRIGHT);
-
-  if (!database_create_function ())
-      die ("Unknown database backend '%s' (valid backends: %s)\n",
-           backend, valid_backends ());
-
-  loginfo ("Database backend: '%s'\n", backend);
-  const char *pg = "postgresql";
-  const char *sq = "sqlite";
-  if (!strcmp (backend, pg))
-    loginfo ("PostgreSQL backend is still experimental!\n");
-  if (!strcmp (backend, pg))
-    setup_backend_postgresql (hostname, user);
-  if (!strcmp (backend, sq))
-    loginfo ("Creating SQLite3 databases in %s\n", sqlite_database_dir);
 
   eventloop_init();
 
@@ -320,6 +358,9 @@ main(int argc, const char **argv)
     die ("Failed to create socket (port %d) to listen for client connections.\n", listen_port);
 
   drop_privileges (uidstr, gidstr);
+
+  /* Important that this comes after drop_privileges().  See setup_backend_sqlite() */
+  setup_backend ();
 
   eventloop_run();
 
