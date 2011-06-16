@@ -47,7 +47,6 @@ typedef int (*db_adapter_insert)(Database *db, DbTable* table,
 typedef char* (*db_adapter_get_metadata) (Database* db, const char* key);
 typedef int   (*db_adapter_set_metadata) (Database* db, const char* key, const char* value);
 typedef int (*db_add_sender_id)(Database* db, char* sender_id);
-typedef long (*db_get_time_offset)(Database* db, long start_time);
 typedef TableDescr* (*db_adapter_get_table_list) (Database* db, int *num_tables);
 
 struct _dbTable {

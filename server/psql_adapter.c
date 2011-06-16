@@ -298,20 +298,6 @@ psql_set_key_value (Database *database, const char *table,
   return 0;
 }
 
-long
-psql_get_time_offset (Database *db, long start_time)
-{
-  (void)db, (void)start_time;
-  return 0;
-}
-
-long
-psql_get_max_seq_no (Database *db, DbTable *table, int sender_id)
-{
-  (void)db, (void)table, (void)sender_id;
-  return 0;
-}
-
 /**
  * @brief Create a sqlite3 table
  * @param db the database that contains the sqlite3 db
