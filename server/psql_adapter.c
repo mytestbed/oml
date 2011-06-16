@@ -17,6 +17,7 @@ extern char *pg_user;
 typedef struct _psqlDB {
   PGconn *conn;
   int sender_cnt;
+  time_t last_commit;
 } PsqlDB;
 
 typedef struct _pqlTable {
@@ -30,6 +31,28 @@ char* psql_get_key_value (Database *database, const char *table,
 int psql_set_key_value (Database *database, const char *table,
                         const char *key_column, const char *value_column,
                         const char *key, const char *value);
+
+static int
+begin_transaction (PsqlDB *db)
+{
+  const char *sql = "BEGIN TRANSACTION;";
+  return sql_stmt (db, sql);
+}
+
+static int
+end_transaction (PsqlDB *db)
+{
+  const char *sql = "END TRANSACTION";
+  return sql_stmt (db, sql);
+}
+
+static int
+reopen_transaction (PsqlDB *db)
+{
+  if (end_transaction (db) == -1) return -1;
+  if (begin_transaction (db) == -1) return -1;
+  return 0;
+}
 
 static MString*
 psql_make_sql_insert (DbTable* table)
@@ -99,6 +122,7 @@ void
 psql_release(Database* db)
 {
   PsqlDB* self = (PsqlDB*)db->handle;
+  end_transaction (self);
   PQfinish(self->conn);
   // TODO: Release table specific data
 
@@ -517,6 +541,12 @@ psql_insert(Database* db,
   gettimeofday(&tv, NULL);
   time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
 
+  if (tv.tv_sec > psqldb->last_commit) {
+    if (reopen_transaction (psqldb) == -1)
+      return -1;
+    psqldb->last_commit = tv.tv_sec;
+  }
+
   sprintf(paramValues[3],"%.8f",time_stamp_server);
   paramLength[3] = 0;
   paramFormat[3] = 0;
@@ -664,6 +694,7 @@ psql_create_database(Database* db)
 
   PsqlDB* self = (PsqlDB*)xmalloc(sizeof(PsqlDB));
   self->conn = conn;
+  self->last_commit = time (NULL);
 
   db->create = psql_create_database;
   db->release = psql_release;
@@ -678,6 +709,7 @@ psql_create_database(Database* db)
 
   db->handle = self;
 
+  begin_transaction (self);
   return 0;
 
  fail_exit:
