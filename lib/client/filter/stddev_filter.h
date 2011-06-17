@@ -25,11 +25,11 @@
 
 struct _omlStddevFilterInstanceData
 {
-	double m;
-	double s;
-	double sample_count;
+    double m;
+    double s;
+    double sample_count;
 
-	OmlValue* result;
+    OmlValue* result;
 };
 
 #endif // STDDEV_FILTER_H__

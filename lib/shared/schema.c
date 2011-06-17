@@ -129,6 +129,33 @@ schema_from_meta (char *meta)
   return NULL;
 }
 
+const char *
+schema_to_meta (struct schema *schema)
+{
+  if (!schema) return NULL;
+  int i;
+  MString *str = mstring_create ();
+  mstring_sprintf (str, "%d %s", schema->index, schema->name);
+
+  if (schema->fields)
+    for (i = 0; i < schema->nfields; i++) {
+      mstring_sprintf (str, " %s:%s",
+                       schema->fields[i].name,
+                       oml_type_to_s (schema->fields[i].type));
+    }
+  else
+    goto fail_exit;
+
+  const char *s = xstrndup (mstring_buf (str), mstring_len (str));
+  mstring_delete (str);
+  return s;
+
+ fail_exit:
+  if (str)
+    mstring_delete (str);
+  return NULL;
+}
+
 /*
  * Parse an SQL name/type pair into a schema field object.  "sql"
  * points to the start of the column specifier.  The column specifier
@@ -290,10 +317,29 @@ schema_from_sql (char *sql)
     for (; i < nfields; i++)
       if (fields[i].name)
         xfree (fields[i].name);
-      xfree (fields);
+    xfree (fields);
   }
   if (schema) xfree (schema);
   return NULL;
+}
+
+
+struct schema *
+schema_new (const char *name)
+{
+  struct schema *schema = xmalloc (sizeof (struct schema));
+  if (!schema) goto exit;
+
+  schema->name = xstrndup (name, strlen (name));
+  if (!schema->name) goto exit;
+  schema->index = -1;
+  return schema;
+
+ exit:
+  if (schema) {
+    if (schema->name) xfree (schema->name);
+    xfree (schema);
+  }
 }
 
 void
@@ -310,6 +356,21 @@ schema_free (struct schema *schema)
     }
     xfree (schema);
   }
+}
+
+int
+schema_add_field (struct schema *schema, const char *name, OmlValueT type)
+{
+  if (!schema || !name) return -1;
+  size_t fields_size = (schema->nfields + 1) * sizeof (struct schema_field);
+  struct schema_field *new = xrealloc (schema->fields, fields_size);
+  if (!new) return -1;
+  schema->fields = new;
+  schema->fields[schema->nfields].name = xstrndup (name, strlen (name));
+  schema->fields[schema->nfields].type = type;
+  if (!schema->fields[schema->nfields].name) return -1;
+  schema->nfields += 1;
+  return 0;
 }
 
 struct schema*

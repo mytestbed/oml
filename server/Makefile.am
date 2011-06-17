@@ -3,7 +3,9 @@ ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/lib/client \
 	-I $(top_srcdir)/lib/ocomm \
-	-I $(top_srcdir)/lib/shared
+	-I $(top_srcdir)/lib/shared \
+	-DLOCAL_STATE_DIR=\"$(localstatedir)\" \
+	-DPKG_LOCAL_STATE_DIR=\"$(pkglocalstatedir)\"
 
 bin_PROGRAMS = oml2-server
 
@@ -34,4 +36,9 @@ oml2_server_LDADD = \
 	$(top_builddir)/lib/shared/libshared.la \
 	-lpopt -lsqlite3 @LIBPQ_LIBS@
 
+install-data-hook:
+	$(install_sh) -d -m 755 $(DESTDIR)$(pkglocalstatedir)
+
+uninstall-hook:
+	rm -rf $(DESTDIR)$(pkglocalstatedir)
 

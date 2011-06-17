@@ -10,17 +10,19 @@
 #include <oml2/omlc.h>
 
 static int longblob = 0;
+static int fixed_size = 0;
 static int samples = -1;
 static int hex = 0;
 static int quiet = 0;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
-  { "long", 'l', POPT_ARG_NONE, &longblob, 0, "Generate long blobs (> 64KiB)"},
-  { "samples", 'n', POPT_ARG_INT, &samples, 0, "Number of samples to generate. Default=forever"},
-  { "hex", 'h', POPT_ARG_NONE, &hex, 0, "Generate HEX file output instead of binary"},
-  { "quiet", 'q', POPT_ARG_NONE, &quiet, 0, "If set, don't print"},
-  { NULL, 0, 0, NULL, 0 }
+  { "long", 'l', POPT_ARG_NONE, &longblob, 0, "Generate long blobs (> 64KiB)", NULL},
+  { "fixed", 'f', POPT_ARG_INT, &fixed_size, 0, "Used fixed size blobs", "SIZE" },
+  { "samples", 'n', POPT_ARG_INT, &samples, 0, "Number of samples to generate. Default=forever", "SAMPLES"},
+  { "hex", 'h', POPT_ARG_NONE, &hex, 0, "Generate HEX file output instead of binary", NULL},
+  { "quiet", 'q', POPT_ARG_NONE, &quiet, 0, "If set, don't print", NULL},
+  { NULL, 0, 0, NULL, 0, NULL, NULL }
 };
 
 #define MAX_BLOB (1024 * 1024)
@@ -34,7 +36,10 @@ randgen (size_t *n)
   // 10000 bytes lee-way on short blobs
   size_t max_size = longblob ? MAX_BLOB : USHRT_MAX - 10000;
 
-  while ((length = random()) > max_size);
+  if (fixed_size > 0)
+    length = fixed_size;
+  else
+    while ((size_t)(length = random()) > max_size);
 
   data = malloc (length);
 
@@ -60,7 +65,7 @@ int
 write_blob_hex (int fd, void *blob, size_t n)
 {
   char hex [] = "0123456789ABCDEF";
-  int i = 0;
+  unsigned int i = 0;
   uint8_t *hexblob = malloc (2 * n);
   int result = 0;
   for (i = 0; i < n; i++) {
@@ -89,7 +94,7 @@ blob_to_file (int index, void *blob, size_t n)
 
   result = (hex ? write_blob_hex : write_blob_bin) (fd, blob, n);
   if (result == -1) {
-    fprintf (stderr, "Error writing blob (%u bytes) to file: %s\n", n, strerror (errno));
+    fprintf (stderr, "Error writing blob (%lu bytes) to file: %s\n", n, strerror (errno));
     close (fd);
     exit (1);
   }
@@ -142,6 +147,5 @@ main (int argc, const char **argv)
 
   run();
   omlc_close ();
-  sleep (1);
   return 0;
 }

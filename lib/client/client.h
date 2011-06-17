@@ -24,18 +24,24 @@
   \brief Defines various structures and functions used by various parts.
 */
 
-#ifndef CLIENT_H_
-#define CLIENT_H_
+#ifndef OML_CLIENT_H_
+#define OML_CLIENT_H_
 
 #include <stdio.h>
 #include <time.h>
-#include "oml2/omlc.h"
-#include "oml2/oml_filter.h"
-#include "oml2/oml_writer.h"
+#include <oml2/omlc.h>
+#include <oml2/oml_filter.h>
+#include <oml2/oml_writer.h>
+#include <oml2/oml_out_stream.h>
 
 #include <mstring.h>
 
 #define SERVER_URI_MAX_LENGTH 64
+
+#define xstr(s) str(s)
+#define str(s) #s
+#define DEF_PORT 3003
+#define DEF_PORT_STRING  xstr(DEF_PORT)
 
 typedef struct _omlClient {
   const char* app_name;
@@ -56,6 +62,8 @@ typedef struct _omlClient {
   // we don't have a config file.
   int         sample_count;  // default sample count
   double      sample_interval; // default sample interval
+  int         max_queue; // Maximum number of buffers in the buffer queue for each writer
+  enum StreamEncoding default_encoding; // Default wire encoding for network streams
 } OmlClient;
 
 extern OmlClient* omlc_instance;
@@ -110,11 +118,31 @@ mp_unlock(
   OmlMP* mp
 );
 
-extern OmlWriter*
-file_writer_new(char* file);
+int
+oml_lock(
+  pthread_mutex_t* mutexP,
+  const char* mutexName
+);
+
+void
+oml_unlock(
+  pthread_mutex_t* mutexP,
+  const char* mutexName
+);
+
+
 
 extern OmlWriter*
-net_writer_new(char* protocol, char* location);
+text_writer_new(OmlOutStream* out_stream);
+
+extern OmlWriter*
+bin_writer_new(OmlOutStream* out_stream);
+
+extern OmlOutStream*
+file_stream_new(const char *file);
+
+extern OmlOutStream*
+net_stream_new(const char *transport, const char *hostname, const char *port);
 
 extern int
 filter_process(OmlMStream* mp);

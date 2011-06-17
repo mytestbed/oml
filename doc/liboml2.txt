@@ -187,6 +187,31 @@ The format of the 'uri' is described in *URI FORMAT* below.  The 'uri'
 can specify the address and port at which either an *oml2-server* or
 an *oml2-proxy-server* is listening.
 
+--oml-text::
+Encode measurements using text format when writing to either a local
+file or a remote server. Text format is easy for scripts to parse, with
+one measurement per line, and is the default when '--oml-file' is
+used. Only one of '--oml-text' and '--oml-binary' should be used on
+the same command line.
+
+--oml-binary::
+Encode measurements using binary format when writing to either a local
+file or a remote server. The binary format is the default when
+'--oml-server' is given, and provides better performance.  Only one of
+'--oml-text' and '--oml-binary' should be used on the same command
+line.
+
+--oml-bufsize size (bytes)::
+Set the size of internal buffers used by *liboml2*.  There is one
+buffer per output destination, and each one is allowed to grow to
+roughly this size in bytes.  For various reasons the buffers can grow
+a certain amount more than this size, but will still be bounded.
+'--oml-bufsize' specifies the lower bound on the maximum buffer size.
+The default is 2048 bytes.  If the maximum allowed buffer size is
+exceeded, *liboml2* will start dropping measurement data (with a
+message in the client log file).  Increasing the buffer size may
+prevent this from happening, depending on the application design.
+
 --oml-config file::
 Read the contents of 'file' and use them to configure the *liboml2*
 client.  See linkoml:liboml2.conf[5] for details of the configuration file

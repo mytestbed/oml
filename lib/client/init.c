@@ -35,8 +35,9 @@
 #include <oml_value.h>
 #include <mem.h>
 #include <validate.h>
-#include "oml2/omlc.h"
-#include "oml2/oml_filter.h"
+#include <oml2/omlc.h>
+#include <oml2/oml_filter.h>
+#include <oml2/oml_writer.h>
 #include "filter/factory.h"
 #include "client.h"
 #include "version.h"
@@ -78,8 +79,10 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   const char* config_file = NULL;
   const char* local_data_file = NULL;
   const char* server_uri = NULL;
+  enum StreamEncoding default_encoding = SE_None;
   int sample_count = 0;
   double sample_interval = 0.0;
+  int max_queue = 0;
   const char** arg = argv;
 
   if (!app_name) {
@@ -161,6 +164,19 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
         }
         server_uri = (char*)*++arg;
         *pargc -= 2;
+      } else if (strcmp (*arg, "--oml-text") == 0) {
+        *pargc -= 1;
+        default_encoding = SE_Text;
+      } else if (strcmp (*arg, "--oml-binary") == 0) {
+        *pargc -= 1;
+        default_encoding = SE_Binary;
+      } else if (strcmp(*arg, "--oml-bufsize") == 0) {
+        if (--i <= 0) {
+          logerror("Missing argument to '--oml-bufsize'\n");
+          return -1;
+        }
+        max_queue = atoi(*++arg);
+        *pargc -= 2;
       } else if (strcmp(*arg, "--oml-noop") == 0) {
         *pargc -= 1;
         omlc_instance = NULL;
@@ -198,6 +214,8 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   omlc_instance->experiment_id = experimentId;
   omlc_instance->sample_count = sample_count;
   omlc_instance->sample_interval = sample_interval;
+  omlc_instance->default_encoding = default_encoding;
+  omlc_instance->max_queue = max_queue;
 
   if (local_data_file != NULL) {
     // dump every sample into local_data_file
@@ -362,7 +380,7 @@ install_close_handler(void)
  * @return -1 if fails
  */
 int
-omlc_close()
+omlc_close(void)
 {
   if (omlc_instance == NULL) return -1;
 
@@ -402,14 +420,16 @@ usage(void)
   printf("  --oml-config file      .. Reads configuration from 'file'\n");
   printf("  --oml-samples count    .. Default number of samples to collect\n");
   printf("  --oml-interval seconds .. Default interval between measurements\n");
+  printf("  --oml-text             .. Use text encoding for all output streams\n");
+  printf("  --oml-binary           .. Use binary encoding for all output streams\n");
+  printf("  --oml-bufsize size     .. Set size of internal buffers to 'size' bytes\n");
   printf("  --oml-log-file file    .. Writes log messages to 'file'\n");
-  printf("  --oml-log-level level  .. Log level used (error: 1 .. debug:4)\n");
+  printf("  --oml-log-level level  .. Log level used (error: -2 .. info: 0 .. debug4: 4)\n");
   printf("  --oml-noop             .. Do not collect measurements\n");
   printf("  --oml-list-filters     .. List the available types of filters\n");
   printf("  --oml-help             .. Print this message\n");
   printf("\n");
-  printf("Valid URI: tcp|udp:host:port:[bindAddr] or file:localPath\n");
-  printf("    The optional 'bindAddr' is used for multicast conections\n");
+  printf("Valid URI: [tcp|udp]:host:port or file:localPath\n");
   printf("\n");
   printf("The following environment variables are recognized:\n");
   printf("  OML_NAME=id            .. Name to identify this app instance (--oml-id)\n");
@@ -445,48 +465,176 @@ print_filters(void)
   printf ("\n");
 }
 
+int
+parse_dest_uri (const char *uri, const char **protocol, const char **path, const char **port)
+{
+  const int MAX_PARTS = 3;
+  char *parts[3] = { NULL, NULL, NULL };
+  size_t lengths[3] = { 0, 0, 0 };
+  int is_valid = 1;
+
+  if (uri) {
+    int i, j;
+    parts[0] = xstrndup (uri, strlen (uri));
+    for (i = 1, j = 0; i < MAX_PARTS; i++, j = 0) {
+      parts[i] = parts[i-1];
+      while (*parts[i] != ':' && *parts[i] != '\0') {
+        j++;
+        parts[i]++;
+      }
+      if (*parts[i] == ':')
+        *(parts[i]++) = '\0';
+    }
+
+    for (i = 0; i < MAX_PARTS; i++) {
+      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
+    }
+
+#define trydup(i) (parts[(i)] && lengths[(i)]>0 ? xstrndup (parts[(i)], lengths[(i)]) : NULL)
+    *protocol = *path = *port = NULL;
+    if (lengths[0] > 0 && lengths[1] > 0) {
+      /* Case 1:  "abc:xyz" or "abc:xyz:123" -- if abc is a transport, use it; otherwise, it's a hostname/path */
+      if (strcmp (parts[0], "tcp") == 0 || strcmp (parts[0], "udp") == 0) {
+        *protocol = trydup (0);
+        *path = trydup (1);
+        *port = trydup (2);
+      } else if (strcmp (parts[0], "file") == 0) {
+        *protocol = trydup (0);
+        *path = trydup (1);
+        *port = NULL;
+      } else {
+        *protocol = NULL;
+        *path = trydup (0);
+        *port = trydup (1);
+      }
+    } else if (lengths[0] > 0 && lengths[2] > 0) {
+      /* Case 2:  "abc::123" -- not valid, as we can't infer a hostname/path */
+      logwarn ("Server URI '%s' is invalid as it does not contain a hostname/path\n", uri);
+      is_valid = 0;
+    } else if (lengths[0] > 0) {
+      *protocol = NULL;
+      *path = trydup (0);
+      *port = NULL;
+
+      /* Look for potential user errors and issue a warning but proceed as normal */
+      if (strcmp (*path, "tcp") == 0 ||
+          strcmp (*path, "udp") == 0 ||
+          strcmp (*path, "file") == 0) {
+        logwarn ("Server URI with just a hostname of '%s'; did you mean '%s:<hostname>'?\n",
+                 *path, *path);
+      }
+    } else {
+      logerror ("Server URI '%s' seems to be empty\n", uri);
+      is_valid = 0;
+    }
+#undef trydup
+
+    if (parts[0])
+      xfree (parts[0]);
+  }
+  if (is_valid)
+    return 0;
+  else
+    return -1;
+}
+
 /**
  * @brief Creates either a file writer or a network writer
- * @param server_uri the option file or server and the output
+ * @param uri the option file or server and the output
+ * @param encoding the encoding to use for the stream output, either
+ * SE_Text or SE_Binary.
  * @return a writer
  */
 OmlWriter*
-create_writer(char* server_uri)
+create_writer(const char* uri, enum StreamEncoding encoding)
 {
   if (omlc_instance == NULL){
     logerror("No omlc_instance:  OML client was not initialized properly.\n");
     return NULL;
   }
 
+  if (uri == NULL) {
+    logerror ("Missing server definition (e.g. --oml-server)\n");
+    return NULL;
+  }
+  if (omlc_instance->node_name == NULL) {
+    logerror ("Missing '--oml-id' flag \n");
+    return NULL;
+  }
+  if (omlc_instance->experiment_id == NULL) {
+    logerror ("Missing '--oml-exp-id' flag \n");
+    return NULL;
+  }
+
+  const char *transport;
+  const char *path;
+  const char *port;
+
+  if (parse_dest_uri (uri, &transport, &path, &port) == -1) {
+    logerror ("Error parsing server destination URI '%s'; failed to create stream for this destination\n",
+              uri);
+    if (transport) xfree ((void*)transport);
+    if (path) xfree ((void*)path);
+    if (port) xfree ((void*)port);
+    return NULL;
+  }
+
+  const char *filepath = NULL;
+  const char *hostname = NULL;
+  if (transport && strcmp (transport, "file") == 0) {
+    /* 'file://path/to/file' is equivalent to unix path '/path/to/file' */
+    if (strncmp (path, "//", 2) == 0)
+      filepath = &path[1];
+    else
+      filepath = path;
+  } else if (transport) {
+    if (strncmp (path, "//", 2) == 0)
+      hostname = &path[2];
+    else
+      hostname = path;
+  } else {
+    hostname = path; /* If no transport specified, it must be tcp */
+  }
+
+  /* Default transport is tcp if not specified */
+  if (!transport)
+    transport = xstrndup ("tcp", strlen ("tcp"));
+
+  /* If not file transport, use the OML default port if unspecified */
+  if (!port && strcmp (transport, "file") != 0)
+    port = xstrndup (DEF_PORT_STRING, strlen (DEF_PORT_STRING));
+
+  OmlOutStream* out_stream;
+  if (strcmp(transport, "file") == 0) {
+    out_stream = file_stream_new(filepath);
+    if (encoding == SE_None) encoding = SE_Text; /* default encoding */
+  } else {
+    out_stream = net_stream_new(transport, hostname, port);
+    if (encoding == SE_None) encoding = SE_Binary; /* default encoding */
+  }
+  if (out_stream == NULL) {
+    logerror ("Failed to create stream for URI %s\n", uri);
+    return NULL;
+  }
+
+  // Now create a write on top of the stream
   OmlWriter* writer = NULL;
-  char* p = server_uri;
-  if (p == NULL) {
-    logerror("Missing server definition (e.g. --oml-server)\n");
-    return 0;
+
+  switch (encoding) {
+  case SE_Text:   writer = text_writer_new (out_stream); break;
+  case SE_Binary: writer = bin_writer_new (out_stream); break;
+  case SE_None:
+    logerror ("No encoding specified (this should never happen -- please report this as an OML bug)\n");
+    // should cleanup streams
+    return NULL;
   }
-  char* proto = p;
-  while (*p != '\0' && *p != ':') p++;
-  if (*p != '\0') *(p++) = '\0';
-  if (strcmp(proto, "file") == 0) {
-    writer = file_writer_new(p);
-  } else {
-    // Net writer needs NAME and EXPERIMENT_ID
-    if (omlc_instance->node_name == NULL) {
-      logerror("Missing '--oml-id' flag \n");
-      return NULL;
-    }
-    if (omlc_instance->experiment_id == NULL) {
-      logerror("Missing '--oml-exp-id' flag \n");
-      return NULL;
-    }
-    writer = net_writer_new(proto, p);
+  if (writer == NULL) {
+    logerror ("Failed to create writer for encoding '%s'.\n", encoding == SE_Binary ? "binary" : "text");
+    return NULL;
   }
-  if (writer != NULL) {
-    writer->next = omlc_instance->first_writer;
-    omlc_instance->first_writer = writer;
-  } else {
-    logwarn("Failed to create writer for URI %s\n", server_uri);
-  }
+  writer->next = omlc_instance->first_writer;
+  omlc_instance->first_writer = writer;
+
   return writer;
 }
 
@@ -679,7 +827,8 @@ static int
 default_configuration(void)
 {
   OmlWriter* writer;
-  if ((writer = create_writer(omlc_instance->server_uri)) == NULL) {
+  if ((writer = create_writer(omlc_instance->server_uri,
+                              omlc_instance->default_encoding)) == NULL) {
     return -1;
   }
 
@@ -719,7 +868,7 @@ create_default_filters(OmlMP *mp, OmlMStream *ms)
     OmlFilter* f = create_default_filter(&def, ms, j);
     if (f) {
       if (prev == NULL) {
-        ms->filters = f;
+        ms->firstFilter = f;
       } else {
         prev->next = f;
       }

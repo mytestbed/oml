@@ -59,8 +59,6 @@ run_filter_test (TestData* test_data, OmlFilter* f);
 
 #endif // UTIL_H__
 
-
-
 /*
  Local Variables:
  mode: C

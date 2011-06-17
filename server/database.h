@@ -24,6 +24,7 @@
 #define DATABASE_H_
 
 #include <oml2/omlc.h>
+#include "table_descr.h"
 #include "schema.h"
 
 #define MAX_DB_NAME_SIZE 64
@@ -32,56 +33,56 @@
 
 struct _database;
 struct _dbTable;
-extern char* g_database_data_dir;
+typedef struct _dbTable DbTable;
+typedef struct _database Database;
 
-typedef int (*db_adapter_create)(struct _database *db);
-typedef void (*db_adapter_release)(struct _database *db);
-typedef int (*db_adapter_table_create)(struct _database *db, struct _dbTable *table);
-typedef int (*db_adapter_table_free)(struct _database *db, struct _dbTable *table);
-typedef int (*db_adapter_insert)(struct _database* db, struct _dbTable* table,
+typedef int (*db_adapter_create)(Database *db);
+typedef void (*db_adapter_release)(Database *db);
+typedef int (*db_adapter_table_create)(Database *db, DbTable *table, int thin);
+typedef int (*db_adapter_table_create_meta)(Database *db, const char *name);
+typedef int (*db_adapter_table_free)(Database *db, DbTable *table);
+typedef int (*db_adapter_insert)(Database *db, DbTable* table,
                                  int sender_id, int seq_no, double time_stamp,
                                  OmlValue* values, int value_count);
-typedef char* (*db_adapter_get_metadata) (struct _database* db, const char* key);
-typedef int   (*db_adapter_set_metadata) (struct _database* db, const char* key, const char* value);
-typedef int (*db_add_sender_id)(struct _database* db, char* sender_id);
-typedef long (*db_get_time_offset)(struct _database* db, long start_time);
-typedef long (*db_adapter_get_max_seq_no) (struct _database* db, struct _dbTable* table, int sender_id);
+typedef char* (*db_adapter_get_metadata) (Database* db, const char* key);
+typedef int   (*db_adapter_set_metadata) (Database* db, const char* key, const char* value);
+typedef int (*db_add_sender_id)(Database* db, char* sender_id);
+typedef TableDescr* (*db_adapter_get_table_list) (Database* db, int *num_tables);
 
-typedef struct _dbTable {
+struct _dbTable {
   struct schema *schema;
-  void*      adapter_hdl;
+  void*      handle;
   struct _dbTable* next;
-} DbTable;
+};
 
-typedef struct _database{
+struct _database{
   char       name[MAX_DB_NAME_SIZE];
-  char       hostname[MAX_DB_NAME_SIZE];
-  char       user[MAX_DB_NAME_SIZE];
 
   int        ref_count;   // count number of clients using this DB
   DbTable*   first_table;
   time_t     start_time;
-  void*      adapter_hdl;
+  void*      handle;
 
   db_adapter_create create;
   db_adapter_release release;
   db_adapter_table_create table_create;
+  db_adapter_table_create_meta table_create_meta;
   db_adapter_table_free table_free;
   db_adapter_insert  insert;
   db_adapter_get_metadata get_metadata;
   db_adapter_set_metadata set_metadata;
   db_add_sender_id   add_sender_id;
-  db_adapter_get_max_seq_no get_max_seq_no;
+  db_adapter_get_table_list get_table_list;
 
   struct _database* next;
-} Database;
+};
 
 /*
  *  Return the database instance for +name+.
  * If no database with this name exists, a new
  * one is created;
  */
-Database *database_find(char* name, char* hostname, char* user);
+Database *database_find(char* name);
 
 /**
  * Client no longer uses this database. If this

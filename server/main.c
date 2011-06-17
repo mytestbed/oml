@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pwd.h>
+#include <grp.h>
 #include <popt.h>
 
 #include <oml2/oml_writer.h>
@@ -38,8 +40,9 @@
 #include "version.h"
 #include "client_handler.h"
 #include "sqlite_adapter.h"
-#ifdef HAVE_PG
+#if HAVE_PG
 #include "psql_adapter.h"
+#include <libpq-fe.h>
 #endif
 
 void
@@ -55,26 +58,32 @@ die (const char *fmt, ...)
 #define DEFAULT_PORT 3003
 #define DEFAULT_PORT_STR "3003"
 #define DEFAULT_LOG_FILE "oml_server.log"
-#define DEFAULT_DB_HOST "localhost"
-#define DEFAULT_DB_USER "dbuser"
+#define DEFAULT_PG_CONNINFO "host=localhost"
+#define DEFAULT_PG_USER "oml"
 #define DEFAULT_DB_BACKEND "sqlite"
 
 static int listen_port = DEFAULT_PORT;
-char* g_database_data_dir = ".";
+char *sqlite_database_dir = NULL;
+char *pg_conninfo = DEFAULT_PG_CONNINFO;
+char *pg_user = DEFAULT_PG_USER;
 
 static int log_level = O_LOG_INFO;
 static char* logfile_name = NULL;
-static char* hostname = DEFAULT_DB_HOST;
-static char* user = DEFAULT_DB_USER;
 static char* backend = DEFAULT_DB_BACKEND;
+static char* uidstr = NULL;
+static char* gidstr = NULL;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
   { "listen", 'l', POPT_ARG_INT, &listen_port, 0, "Port to listen for TCP based clients", DEFAULT_PORT_STR},
-  { "db", 'b', POPT_ARG_STRING, &backend, 0, "Database server backend", DEFAULT_DB_BACKEND},
-  { "hostname", 'h', POPT_ARG_STRING, &hostname, 0, "Database server hostname", DEFAULT_DB_HOST},
-  { "user", 'u', POPT_ARG_STRING, &user, 0, "Database server username", DEFAULT_DB_USER},
-  { "data-dir", '\0', POPT_ARG_STRING, &g_database_data_dir, 0, "Directory to store database files (sqlite)", "DIR" },
+  { "backend", 'b', POPT_ARG_STRING, &backend, 0, "Database server backend", DEFAULT_DB_BACKEND},
+#if HAVE_PG
+  { "pg-user", '\0', POPT_ARG_STRING, &pg_user, 0, "PostgreSQL user to connect as", DEFAULT_PG_USER },
+  { "pg-connect", '\0', POPT_ARG_STRING, &pg_conninfo, 0, "PostgreSQL connection info string", "\"" DEFAULT_PG_CONNINFO "\""},
+#endif
+  { "data-dir", 'D', POPT_ARG_STRING, &sqlite_database_dir, 0, "Directory to store database files (sqlite)", "DIR" },
+  { "user", '\0', POPT_ARG_STRING, &uidstr, 0, "Change server's user id", "UID" },
+  { "group", '\0', POPT_ARG_STRING, &gidstr, 0, "Change server's group id", "GID" },
   { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level", "{1 .. 4}"  },
   { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0, "File to log to", DEFAULT_LOG_FILE },
   { "version", 'v', 0, 0, 'v', "Print version information and exit", NULL },
@@ -125,6 +134,32 @@ database_create_function ()
 }
 
 /**
+ * @brief Work out which directory to put sqlite databases in, and set
+ * sqlite_database_dir to that directory.
+ *
+ * This works as follows: if the user specified --data-dir on the
+ * command line, we use that value.  Otherwise, if OML_SQLITE_DIR
+ * environment variable is set, use that dir.  Otherwise, use
+ * PKG_LOCAL_STATE_DIR, which is a preprocessor macro set by the build
+ * system (under Autotools defaults this should be
+ * ${prefix}/var/oml2-server, but on a distro it should be something
+ * like /var/lib/oml2-server).
+ *
+ */
+void
+setup_sqlite_database_dir (void)
+{
+  if (!sqlite_database_dir) {
+    const char *oml_sqlite_dir = getenv ("OML_SQLITE_DIR");
+    if (oml_sqlite_dir) {
+      sqlite_database_dir = xstrndup (oml_sqlite_dir, strlen (oml_sqlite_dir));
+    } else {
+      sqlite_database_dir = PKG_LOCAL_STATE_DIR;
+    }
+  }
+}
+
+/**
  * @brief Set up the logging system.
  *
  * This function sets up the server logging system to log to file
@@ -157,6 +192,129 @@ setup_logging (char *logfile, int level)
   _o_set_simplified_logging ();
 }
 
+void
+setup_backend_sqlite (void)
+{
+  setup_sqlite_database_dir ();
+
+  /*
+   * The man page says access(2) should be avoided because it creates
+   * a race condition between calls to access(2) and open(2) where an
+   * attacker could swap the underlying file for a link to a file that
+   * the unprivileged user does not have permissions to access, which
+   * the effective user does.  We don't use the access/open sequence
+   * here. We check that we can create files in the
+   * sqlite_database_dir directory, and fail if not (as the server
+   * won't be able to do useful work otherwise).
+   *
+   * An attacker could potentially change the underlying file to a
+   * link and still cause problems if oml2-server is run as root or
+   * setuid root, but this check must happen after drop_privileges()
+   * is called, so if oml2-server is not run with superuser privileges
+   * such an attack would still fail.
+   *
+   * oml2-server should not be run as root or setuid root in any case.
+   */
+  if (access (sqlite_database_dir, R_OK | W_OK | X_OK) == -1)
+    die ("Can't access SQLite database directory %s: %s\n",
+         sqlite_database_dir, strerror (errno));
+
+  loginfo ("Creating SQLite3 databases in %s\n", sqlite_database_dir);
+}
+
+void
+setup_backend_postgresql (const char *conninfo, const char *user)
+{
+#if HAVE_PG
+  loginfo ("Sending experiment data to PostgreSQL server with user '%s'\n",
+           pg_user);
+  MString *str = mstring_create ();
+  mstring_sprintf (str, "%s user=%s dbname=postgres", conninfo, user);
+  PGconn *conn = PQconnectdb (mstring_buf (str));
+
+  if (PQstatus (conn) != CONNECTION_OK)
+    die ("Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
+         conninfo, PQerrorMessage (conn));
+
+  /* oml2-server must be able to create new databases, so check that
+     our user has the required role attributes */
+  mstring_set (str, "");
+  mstring_sprintf (str, "SELECT rolcreatedb FROM pg_roles WHERE rolname='%s'", user);
+  PGresult *res = PQexec (conn, mstring_buf (str));
+  if (PQresultStatus (res) != PGRES_TUPLES_OK)
+    die ("Failed to determine role privileges for role '%s': %s\n",
+         user, PQerrorMessage (conn));
+  char *has_create = PQgetvalue (res, 0, 0);
+  if (strcmp (has_create, "t") == 0)
+    logdebug ("User '%s' has CREATE DATABASE privileges\n", user);
+  else
+    die ("User '%s' does not have required role CREATE DATABASE\n", user);
+
+  PQclear (res);
+  PQfinish (conn);
+#else
+  (void)conninfo;
+#endif
+}
+
+void
+setup_backend (void)
+{
+  if (!database_create_function ())
+    die ("Unknown database backend '%s' (valid backends: %s)\n",
+         backend, valid_backends ());
+
+  loginfo ("Database backend: '%s'\n", backend);
+
+  const char *pg = "postgresql";
+  const char *sq = "sqlite";
+  if (!strcmp (backend, pg))
+    loginfo ("PostgreSQL backend is still experimental!\n");
+  if (!strcmp (backend, pg))
+    setup_backend_postgresql (pg_conninfo, pg_user);
+  if (!strcmp (backend, sq))
+    setup_backend_sqlite ();
+}
+
+void
+drop_privileges (const char *uidstr, const char *gidstr)
+{
+  if (gidstr && !uidstr)
+    die ("--gid supplied without --uid\n");
+
+  if (uidstr) {
+    struct passwd *passwd = getpwnam (uidstr);
+    gid_t gid;
+
+    if (!passwd)
+      die ("User '%s' not found\n", uidstr);
+    if (!gidstr)
+      gid = passwd->pw_gid;
+    else {
+      struct group *group = getgrnam (gidstr);
+      if (!group)
+        die ("Group '%s' not found\n", gidstr);
+      gid = group->gr_gid;
+    }
+
+    struct group *group = getgrgid (gid);
+    const char *groupname = group ? group->gr_name : "??";
+    gid_t grouplist[] = { gid };
+
+    if (setgroups (1, grouplist) == -1)
+      die ("Couldn't restrict group list to just group '%s': %s\n", groupname, strerror (errno));
+
+    if (setgid (gid) == -1)
+      die ("Could not set group id to '%s': %s", groupname, strerror (errno));
+
+    if (setuid (passwd->pw_uid) == -1)
+      die ("Could not set user id to '%s': %s", passwd->pw_name, strerror (errno));
+
+    if (setuid (0) == 0)
+      die ("Tried to drop privileges but we seem able to become superuser still!\n");
+  }
+}
+
 /**
  * \brief Called when a node connects via TCP
  * \param new_sock
@@ -165,7 +323,7 @@ void
 on_connect(Socket* new_sock, void* handle)
 {
   (void)handle;
-  ClientHandler *client = client_handler_new(new_sock,hostname,user);
+  ClientHandler *client = client_handler_new(new_sock);
   loginfo("'%s': new client connected\n", client->name);
 }
 
@@ -194,18 +352,6 @@ main(int argc, const char **argv)
   loginfo("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
   loginfo(COPYRIGHT);
 
-  if (!database_create_function ())
-      die ("Unknown database backend '%s' (valid backends: %s)\n",
-           backend, valid_backends ());
-
-  loginfo ("Database backend: '%s'\n", backend);
-  const char *pg = "postgresql";
-  const char *sq = "sqlite";
-  if (!strcmp (backend, pg))
-    loginfo ("PostgreSQL backend is still experimental!\n");
-  if (strcmp (backend, sq))
-    loginfo ("Database server: %s with %s\n", hostname, user);
-
   eventloop_init();
 
   Socket* server_sock;
@@ -213,6 +359,11 @@ main(int argc, const char **argv)
 
   if (!server_sock)
     die ("Failed to create socket (port %d) to listen for client connections.\n", listen_port);
+
+  drop_privileges (uidstr, gidstr);
+
+  /* Important that this comes after drop_privileges().  See setup_backend_sqlite() */
+  setup_backend ();
 
   eventloop_run();
 

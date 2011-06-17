@@ -41,15 +41,9 @@ int
 mp_lock(
   OmlMP* mp
 ) {
-  if (mp->mutexP) {
-    if (pthread_mutex_lock(mp->mutexP)) {
-      logwarn("%s: Couldn't get mutex lock (%s)\n",
-          mp->name, strerror(errno));
-      return -1;
-    }
-  }
-  return 0;
+  return oml_lock(mp->mutexP, mp->name);
 }
+
 /**
  * \brief unlock of the measurement point mutex
  * \param mp the measurement point
@@ -58,10 +52,44 @@ void
 mp_unlock(
   OmlMP* mp
 ) {
-  if (mp->mutexP) {
-    if (pthread_mutex_unlock(mp->mutexP)) {
+  oml_unlock(mp->mutexP, mp->name);
+}
+
+/**
+ * \brief locks a mutex
+ * \param mutexP Pointer to mutex
+ * \param mutexName Name of mutex. Used for error reporting inly.
+ * \return 0 if successful, -1 otherwise
+ */
+int
+oml_lock(
+  pthread_mutex_t* mutexP,
+  const char* mutexName
+) {
+  if (mutexP) {
+    if (pthread_mutex_lock(mutexP)) {
+      logwarn("%s: Couldn't get mutex lock (%s)\n",
+          mutexName, strerror(errno));
+      return -1;
+    }
+  }
+  return 0;
+}
+
+/**
+ * \brief unlocks a mutex
+ * \param mutexP Pointer to mutex
+ * \param mutexName Name of mutex. Used for error reporting inly.
+ */
+void
+oml_unlock(
+  pthread_mutex_t* mutexP,
+  const char* mutexName
+) {
+  if (mutexP) {
+    if (pthread_mutex_unlock(mutexP)) {
       logwarn("%s: Couldn't unlock mutex (%s)\n",
-          mp->name, strerror(errno));
+          mutexName, strerror(errno));
     }
   }
 }

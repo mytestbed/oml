@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2011 National ICT Australia (NICTA), Australia
+ * Copyright 2010 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,30 +20,56 @@
  * THE SOFTWARE.
  *
  */
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <math.h>
+#include <check.h>
+#include <mbuf.h>
 
-#ifndef TABLE_DESCR_H__
-#define TABLE_DESCR_H__
+#include "util.h"
 
-#include <schema.h>
-
-typedef struct TableDescr
+START_TEST (test_bw_create)
 {
-  char* name;
-  struct schema *schema;
-  struct TableDescr* next;
-} TableDescr;
+  /*
+  MBuffer* mbuf = mbuf_create ();
 
-TableDescr* table_descr_new (const char* name, struct schema* schema);
-void table_descr_array_free (TableDescr* tables, int n);
-void table_descr_list_free (TableDescr* tables);
-int  table_descr_have_table (TableDescr* tables, const char* table_name);
+  fail_if (mbuf == NULL);
+  fail_if (mbuf->base == NULL);
+  fail_if (mbuf->rdptr != mbuf->base);
+  fail_if (mbuf->wrptr != mbuf->base);
+  fail_if (mbuf->fill != 0);
+  fail_unless (mbuf->length > 0);
+  fail_if (mbuf->wr_remaining != mbuf->length);
+  fail_if ((int)mbuf->rd_remaining != (mbuf->wrptr - mbuf->rdptr));
+  unsigned int i;
+  for (i = 0; i < mbuf->length; i++)
+	fail_if (mbuf->base[i] != 0);
+  */
+}
+END_TEST
 
-#endif // TABLE_DESCR_H__
+
+
+Suite*
+bw_suite (void)
+{
+  Suite* s = suite_create ("BufferedWriter");
+
+  /* Mbuf test cases */
+  TCase* tc_bw = tcase_create ("BfWr");
+
+  /* Add tests to "BfWr" */
+  tcase_add_test (tc_bw, test_bw_create);
+
+
+  suite_add_tcase (s, tc_bw);
+  return s;
+}
 
 /*
  Local Variables:
  mode: C
  tab-width: 4
  indent-tabs-mode: nil
- End:
 */

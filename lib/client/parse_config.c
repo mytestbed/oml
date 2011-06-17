@@ -153,6 +153,7 @@ get_xml_attr (xmlNodePtr el, enum ConfToken tok)
  * @return the name of the attribute that matches the token, if any,
  * otherwise NULL.
  */
+#if 0 // unused
 static const char*
 get_xml_attr_name (xmlNodePtr el, enum ConfToken tok)
 {
@@ -167,6 +168,7 @@ get_xml_attr_name (xmlNodePtr el, enum ConfToken tok)
   }
   return NULL;
 }
+#endif
 
 /**
  * @brief Check whether an element name matches a given token.
@@ -297,7 +299,8 @@ parse_collector(xmlNodePtr el)
     return -1;
   }
   OmlWriter* writer;
-  if ((writer = create_writer((char*)url)) == NULL) return -2;
+  logwarn ("Creating binary encoded stream because 'encoding' attribute not yet implemented.");
+  if ((writer = create_writer(url, SE_Binary)) == NULL) return -2;
 
   xmlNodePtr cur = el->xmlChildrenNode;
   while (cur != NULL) {

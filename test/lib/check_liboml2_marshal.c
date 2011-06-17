@@ -33,7 +33,7 @@
 
 #include "check_util.h"
 
-#define FIRST_VALPTR(mbuf) (mbuf->base + 7)
+#define FIRST_VALPTR(mbuf) (mbuf->base + 5)
 
 #define EPSILON 1e-8
 
@@ -243,21 +243,21 @@ double relative_error (double v1, double v2)
 START_TEST (test_marshal_init)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* result = marshal_init (mbuf, OMB_DATA_P);
+  int result = marshal_init (mbuf, OMB_DATA_P);
 
-  fail_if (mbuf != result);
-  fail_unless (mbuf->base[2] == 0xAA);
-  fail_unless (mbuf->base[3] == 0xAA);
-  fail_unless ((int)mbuf->base[4] == OMB_DATA_P);
+  fail_if (result != 0);
+  fail_unless (mbuf->base[0] == 0xAA);
+  fail_unless (mbuf->base[1] == 0xAA);
+  fail_unless ((int)mbuf->base[2] == OMB_DATA_P);
 }
 END_TEST
 
 START_TEST (test_marshal_value_long)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* pmbuf = marshal_init (mbuf, OMB_DATA_P);
+  int initresult = marshal_init (mbuf, OMB_DATA_P);
 
-  fail_if (mbuf != pmbuf);
+  fail_if (initresult != 0);
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
@@ -265,7 +265,7 @@ START_TEST (test_marshal_value_long)
   int result = marshal_value (mbuf, OML_LONG_VALUE, &v);
 
   uint32_t nv = 0;
-  memcpy (&nv, mbuf->base + 8, 4);
+  memcpy (&nv, FIRST_VALPTR(mbuf) + 1, 4);
   uint32_t hv = ntohl (nv);
   long val = (int32_t)hv;
 
@@ -278,9 +278,9 @@ END_TEST
 START_TEST (test_marshal_value_int32)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* pmbuf = marshal_init (mbuf, OMB_DATA_P);
+  int initresult = marshal_init (mbuf, OMB_DATA_P);
 
-  fail_if (mbuf != pmbuf);
+  fail_if (initresult != 0);
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
@@ -301,9 +301,9 @@ END_TEST
 START_TEST (test_marshal_value_uint32)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* pmbuf = marshal_init (mbuf, OMB_DATA_P);
+  int initresult = marshal_init (mbuf, OMB_DATA_P);
 
-  fail_if (mbuf != pmbuf);
+  fail_if (initresult != 0);
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
@@ -324,9 +324,9 @@ END_TEST
 START_TEST (test_marshal_value_int64)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* pmbuf = marshal_init (mbuf, OMB_DATA_P);
+  int initresult = marshal_init (mbuf, OMB_DATA_P);
 
-  fail_if (mbuf != pmbuf);
+  fail_if (initresult != 0);
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
@@ -347,9 +347,9 @@ END_TEST
 START_TEST (test_marshal_value_uint64)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* pmbuf = marshal_init (mbuf, OMB_DATA_P);
+  int initresult = marshal_init (mbuf, OMB_DATA_P);
 
-  fail_if (mbuf != pmbuf);
+  fail_if (initresult != 0);
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
@@ -370,9 +370,9 @@ END_TEST
 START_TEST (test_marshal_value_double)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* pmbuf = marshal_init (mbuf, OMB_DATA_P);
+  int initresult = marshal_init (mbuf, OMB_DATA_P);
 
-  fail_if (mbuf != pmbuf);
+  fail_if (initresult != 0);
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
@@ -405,9 +405,9 @@ unsigned char string_buf[MAX_MARSHALLED_STRING_LENGTH * 2];
 START_TEST (test_marshal_value_string)
 {
   MBuffer* mbuf = mbuf_create ();
-  MBuffer* pmbuf = marshal_init (mbuf, OMB_DATA_P);
+  int initresult = marshal_init (mbuf, OMB_DATA_P);
 
-  fail_if (mbuf != pmbuf);
+  fail_if (initresult != 0);
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
@@ -453,6 +453,7 @@ START_TEST (test_marshal_unmarshal_long)
   int result;
 
   MBuffer* mbuf = mbuf_create ();
+  marshal_init (mbuf, OMB_DATA_P);
   result = marshal_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
@@ -483,16 +484,9 @@ START_TEST (test_marshal_unmarshal_long)
 
   marshal_finalize (mbuf);
 
-  // Skip over the padding bytes introduced by the kludge for
-  // marshalling possibly long packets.
-  mbuf_read_skip (mbuf, 2);
-
   OmlBinaryHeader header;
   result = unmarshal_init (mbuf, &header);
   fail_if (result == -1);
-
-  //  mbuf->rdptr = mbuf->base + VALUES_OFFSET; // Kludge!
-
   fail_unless (header.type == OMB_DATA_P);
 
   for (i = 0; i < LENGTH (long_values); i++)
@@ -524,6 +518,7 @@ START_TEST (test_marshal_unmarshal_int32)
   int result;
 
   MBuffer* mbuf = mbuf_create ();
+  marshal_init (mbuf, OMB_DATA_P);
   result = marshal_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
@@ -554,13 +549,9 @@ START_TEST (test_marshal_unmarshal_int32)
 
   marshal_finalize (mbuf);
 
-  mbuf_read_skip (mbuf, 2);
-
   OmlBinaryHeader header;
   result = unmarshal_init (mbuf, &header);
   fail_if (result == -1);
-
-  //  mbuf->rdptr = mbuf->base + VALUES_OFFSET; // Kludge!
 
   fail_unless (header.type == OMB_DATA_P);
 
@@ -588,6 +579,7 @@ START_TEST (test_marshal_unmarshal_uint32)
   int result;
 
   MBuffer* mbuf = mbuf_create ();
+  marshal_init (mbuf, OMB_DATA_P);
   result = marshal_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
@@ -618,16 +610,9 @@ START_TEST (test_marshal_unmarshal_uint32)
 
   marshal_finalize (mbuf);
 
-  // Skip over the padding bytes introduced by the kludge for
-  // marshalling possibly long packets.
-  mbuf_read_skip (mbuf, 2);
-
   OmlBinaryHeader header;
   result = unmarshal_init (mbuf, &header);
   fail_if (result == -1);
-
-  //  mbuf->rdptr = mbuf->base + VALUES_OFFSET; // Kludge!
-
   fail_unless (header.type == OMB_DATA_P);
 
   for (i = 0; i < LENGTH (int32_values); i++)
@@ -654,6 +639,7 @@ START_TEST (test_marshal_unmarshal_int64)
   int result;
 
   MBuffer* mbuf = mbuf_create ();
+  marshal_init (mbuf, OMB_DATA_P);
   result = marshal_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
@@ -684,16 +670,9 @@ START_TEST (test_marshal_unmarshal_int64)
 
   marshal_finalize (mbuf);
 
-  // Skip over the padding bytes introduced by the kludge for
-  // marshalling possibly long packets.
-  mbuf_read_skip (mbuf, 2);
-
   OmlBinaryHeader header;
   result = unmarshal_init (mbuf, &header);
   fail_if (result == -1);
-
-  //  mbuf->rdptr = mbuf->base + VALUES_OFFSET; // Kludge!
-
   fail_unless (header.type == OMB_DATA_P);
 
   for (i = 0; i < LENGTH (int64_values); i++)
@@ -720,6 +699,7 @@ START_TEST (test_marshal_unmarshal_uint64)
   int result;
 
   MBuffer* mbuf = mbuf_create ();
+  marshal_init (mbuf, OMB_DATA_P);
   result = marshal_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
@@ -748,18 +728,11 @@ START_TEST (test_marshal_unmarshal_uint64)
       fail_if (val != v.uint64Value);
     }
 
-  // Skip over the padding bytes introduced by the kludge for
-  // marshalling possibly long packets.
-  mbuf_read_skip (mbuf, 2);
-
   marshal_finalize (mbuf);
 
   OmlBinaryHeader header;
   result = unmarshal_init (mbuf, &header);
   fail_if (result == -1);
-
-  //  mbuf->rdptr = mbuf->base + VALUES_OFFSET; // Kludge!
-
   fail_unless (header.type == OMB_DATA_P);
 
   for (i = 0; i < LENGTH (int64_values); i++)
@@ -787,6 +760,7 @@ START_TEST (test_marshal_unmarshal_double)
   int result;
 
   MBuffer* mbuf = mbuf_create ();
+  marshal_init (mbuf, OMB_DATA_P);
   result = marshal_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
@@ -821,17 +795,10 @@ START_TEST (test_marshal_unmarshal_double)
                val, v.doubleValue);
     }
 
-  // Skip over the padding bytes introduced by the kludge for
-  // marshalling possibly long packets.
-  mbuf_read_skip (mbuf, 2);
-
   marshal_finalize (mbuf);
 
   OmlBinaryHeader header;
   unmarshal_init (mbuf, &header);
-
-  //  umbuf.curr_p = umbuf.buffer + VALUES_OFFSET; // Kludge!
-
   fail_unless (header.type == OMB_DATA_P);
 
   for (i = 0; i < LENGTH (double_values); i++)
@@ -858,6 +825,7 @@ START_TEST (test_marshal_unmarshal_string)
   char string[MAX_MARSHALLED_STRING_LENGTH + 16];
 
   MBuffer* mbuf = mbuf_create ();
+  marshal_init (mbuf, OMB_DATA_P);
   result = marshal_measurements (mbuf, 42, 43, 42.0);
 
   fail_if (mbuf->base == NULL);
@@ -909,42 +877,31 @@ START_TEST (test_marshal_unmarshal_string)
 
   marshal_finalize (mbuf);
 
-  // Skip over the padding bytes introduced by the kludge for
-  // marshalling possibly long packets.
-  mbuf_read_skip (mbuf, 2);
-
   OmlBinaryHeader header;
   unmarshal_init (mbuf, &header);
-
-  //  umbuf.curr_p = umbuf.buffer + VALUES_OFFSET; // Kludge!
-
   fail_unless (header.type == OMB_DATA_P);
 
-  for (i = 0; i < LENGTH (string_values); i++)
-    {
-      OmlValue value;
+  for (i = 0; i < LENGTH (string_values); i++) {
+    OmlValue value;
+    unmarshal_value (mbuf, &value);
 
-      unmarshal_value (mbuf, &value);
+    fail_unless (value.type == OML_STRING_VALUE);
+    fail_if (value.value.stringValue.ptr == NULL);
 
-      fail_unless (value.type == OML_STRING_VALUE);
-
-      int original_length = strlen (string_values[i]);
-      int len = strlen (value.value.stringValue.ptr);
-      if (original_length <= MAX_MARSHALLED_STRING_LENGTH)
-        {
-          fail_unless (len == original_length, "Expected length %d, unmarshalled length %d\n", original_length, len);
-          fail_unless (strcmp (value.value.stringValue.ptr, string_values[i]) == 0,
-                       "Expected string:\n%s\nUnmarshalled string:\n%s\n",
-                       value.value.stringValue.ptr, string_values[i]);
-        }
-      else
-        {
-          fail_unless (len == MAX_MARSHALLED_STRING_LENGTH);
-          fail_unless (strncmp (value.value.stringValue.ptr, string_values[i], MAX_MARSHALLED_STRING_LENGTH) == 0,
-                       "Expected string:\n%s\nUnmarshalled string:\n%s\n",
-                       value.value.stringValue.ptr, string_values[i]);
-        }
+    int original_length = strlen (string_values[i]);
+    int len = value.value.stringValue.ptr ? strlen (value.value.stringValue.ptr) : 0;
+    if (original_length <= MAX_MARSHALLED_STRING_LENGTH) {
+      fail_unless (len == original_length, "Expected length %d, unmarshalled length %d\n", original_length, len);
+      fail_unless (strcmp (value.value.stringValue.ptr, string_values[i]) == 0,
+                   "Expected string:\n%s\nUnmarshalled string:\n%s\n",
+                   value.value.stringValue.ptr, string_values[i]);
+    } else {
+      fail_unless (len == MAX_MARSHALLED_STRING_LENGTH);
+      fail_unless (strncmp (value.value.stringValue.ptr, string_values[i], MAX_MARSHALLED_STRING_LENGTH) == 0,
+                   "Expected string:\n%s\nUnmarshalled string:\n%s\n",
+                   value.value.stringValue.ptr, string_values[i]);
     }
+  }
 }
 END_TEST
 

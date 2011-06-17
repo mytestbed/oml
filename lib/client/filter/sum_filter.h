@@ -27,10 +27,10 @@
 
 struct _omlSumFilterInstanceData
 {
-	// Keep the sum and sample count to calculate average
-	double  sample_sum;
+    // Keep the sum and sample count to calculate average
+    double  sample_sum;
 
-	OmlValue* result;
+    OmlValue* result;
 };
 
 #endif /* SUM_FILTER_H__ */

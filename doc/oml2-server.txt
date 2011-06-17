@@ -26,17 +26,16 @@ client library), and then sends a stream of measurement packets.  The
 measurements for each client are stored in the experiment database
 belonging to the client's experiment.
 
-If the client declares that it belongs to experiment EXP, then
-*oml2-server* will look for an existing experiment database named
-EXP.sq3 in the data directory (see the --data-dir option).  Currently
-*oml2-server* uses SQLite3 as the database backend, hence the .sq3
-file name extension. If the database exists already, *oml2-server*
-will open it and append new measurements from the client to it.  If
-EXP.sq3 does not exist, *oml2-server* will attempt to create the
-measurement database, initialize it for use, and then append new
-measurements from the client to it.  Measurement streams from
-subsequent clients belonging to the same experiment EXP will also be
-written to EXP.sq3.
+If the client declares that it belongs to experiment 'A', then
+*oml2-server* will look for an existing experiment database named 'A'
+and add measurement data to that database. Otherwise it will attempt
+to create a new database of that name, initialize it for use, and
+append new measurements to it.  Measurement streams from subsequent
+clients for experiment 'A' will also be appended to the new database.
+
+*oml2-server* can store measurements in either an SQLite3 database on
+disk or in a PostgreSQL database.  See the '--backend' option for
+details.
 
 OPTIONS
 -------
@@ -45,10 +44,54 @@ OPTIONS
 	Listen for measurement client connections on the given
 	port. The default port is 3003.
 
---data-dir=directory::
-	Store measurement databases for all experiments in the
-	specified directory. The default directory is the current
-	working directory.
+-b db, --backend=db::
+    Select which database backend to use for storing experiment
+    databases. The default is 'sqlite' which stores databases as
+    SQLite3 files.  The other option os 'postgresql' which will
+    attempt to connect to a PostgreSQL database server.
+
+-D directory, --data-dir=directory::
+	Store SQLite3 measurement databases for all experiments in the
+	specified directory, when the SQLite3 backend is selected. The
+	default on this system is {pkglocalstatedir}.  '--data-dir'
+	overrides the *OML_SQLITE_DIR* environment variable.  If
+	*oml2-server* is run with an effective user id that does not have
+	the right to create files in the directory, the server will exit
+	with an error message in its log file.  The SQLite3 database file
+	name for an experiment is chosen by appending the suffix ".sq3" to
+	the experiment name.
+
+--pg-user=user::
+	Specify the PostgreSQL database user to use when the PostgreSQL
+	database backend is selected.  The specified user must have the
+	PostgreSQL CREATEDB role so that it can create a new database for
+	each new experiment.
+
+--pg-connect=conninfo::
+For the PostgreSQL backend, this option gives a way to control the
+database authentication scheme to use.  It is passed to the
+PostgreSQL connection API with the user name and database name
+appended.  For instance, for an experiment named "myexp" and
+'--pg-user=joe', a conninfo string of
+"host=postgres.mycompany.com password=secret" will result in the
+following being passed to the server:
+------
+  "host=postgres.mycompany.com password=secret user=joe dbname=myexp"
+------
+  The default connection info string is "host=localhost" and the
+  default database user is "oml".
+
+--user=UID, --group=GID::
+	Try to change the server's user id and group id before starting to
+	serve clients.  OML only needs access to a single directory in
+	which it has the right to create the SQLite3 experiment database
+	files, plus the right to open and write to its log file (creating
+	it if necessary).  The '--user' and '--group' options allow the
+	system administrator to run *oml2-server* under a non-privileged
+	account, thereby lessening its potential as a security risk.  If
+	only '--user' is given, the gid will be set to the primary group id
+	for the given user. '--user' and '--group' accept user and group
+	names as arguments; numeric user and group ids are not supported.
 
 -d::
 --debug-level=level::
@@ -65,6 +108,14 @@ OPTIONS
 
 --usage::
 		Print a brief usage message.
+
+ENVIRONMENT VARIABLES
+---------------------
+OML_SQLITE_DIR::
+Create SQLite3 experiment measurement databases in this directory.
+This environment variable is overridden by the '--data-dir' command
+line option.
+
 
 BUGS
 ----

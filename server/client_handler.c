@@ -155,7 +155,7 @@ client_realloc_values (ClientHandler *self, int index, int nvalues)
  * \param user
  */
 void*
-client_handler_new(Socket* new_sock, char* hostname, char* user)
+client_handler_new(Socket* new_sock)
 {
   ClientHandler* self = xmalloc(sizeof(ClientHandler));
   if (!self) return NULL;
@@ -164,8 +164,6 @@ client_handler_new(Socket* new_sock, char* hostname, char* user)
   self->content = C_TEXT_DATA;
   self->mbuf = mbuf_create ();
   self->socket = new_sock;
-  self->DbHostname = hostname;
-  self->DbUser = user;
   self->event = eventloop_on_read_in_channel(new_sock, client_callback,
                                              status_callback, (void*)self);
   strncpy (self->name, self->event->name, MAX_STRING_SIZE);
@@ -264,10 +262,6 @@ process_schema(ClientHandler* self, char* value)
   }
 
   self->tables[index] = table;
-  // FIXME:  schema must come after sender-id
-  // Look up the max sequence number for this sender in this table
-  self->seqno_offsets[index] =
-    self->database->get_max_seq_no (self->database, table, self->sender_id);
 
   /* Reallocate the values vector if this schema has more columns than can fit already. */
   if (client_realloc_values (self, index, table->schema->nfields) == -1) {
@@ -304,7 +298,9 @@ process_meta(ClientHandler* self, char* key, char* value)
         return;
       }
   } else if (strcmp(key, "experiment-id") == 0) {
-    self->database = database_find(value,self->DbHostname,self->DbUser);
+    self->database = database_find(value);
+    if (!self->database)
+      self->state = C_PROTOCOL_ERROR;
   } else if (strcmp(key, "content") == 0) {
     if (strcmp(value, "binary") == 0) {
       self->content = C_BINARY_DATA;
@@ -449,7 +445,7 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
   self->database->insert(self->database,
                          table,
                          self->sender_id,
-                         header->seqno + self->seqno_offsets[index],
+                         header->seqno,
                          ts,
                          self->values_vectors[index],
                          cnt);
@@ -495,7 +491,7 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
     return 0;
   }
   switch (header.type) {
-    case OMB_DATA_P:
+  case OMB_DATA_P:
   case OMB_LDATA_P:
       process_bin_data_message(self, &header);
       break;
@@ -649,7 +645,7 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
     case C_PROTOCOL_ERROR:
       // Protocol error:  close the client connection
       socket_close (self->socket);
-      logerror("'%s': protocol error, server has disconnected the client\n",
+      logerror("'%s': disconnecting client (fatal error)\n",
                source->name);
       eventloop_socket_release (self->event);
       client_handler_free (self);

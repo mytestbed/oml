@@ -5,7 +5,8 @@ oml2incdir = $(includedir)/oml2
 oml2inc_HEADERS = \
 	oml2/omlc.h \
 	oml2/oml_filter.h \
-	oml2/oml_writer.h
+	oml2/oml_writer.h \
+	oml2/oml_out_stream.h
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/lib/client \
@@ -18,11 +19,14 @@ lib_LTLIBRARIES = liboml2.la
 liboml2_la_SOURCES = \
 	api.c \
 	client.h \
-	file_writer.c \
 	filter.c \
 	init.c \
 	misc.c \
-	net_writer.c \
+	text_writer.c \
+	bin_writer.c \
+	file_stream.c \
+	net_stream.c \
+	buffered_writer.c \
 	parse_config.c \
 	version.h \
 	writer.h \
@@ -42,9 +46,7 @@ liboml2_la_SOURCES = \
 	filter/stddev_filter.h \
 	filter/sum_filter.h \
 	filter/delta_filter.h \
-	oml2/omlc.h \
-	oml2/oml_filter.h \
-	oml2/oml_writer.h
+	$(oml2inc_HEADERS)
 
 liboml2_la_LIBADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \

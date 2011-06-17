@@ -29,7 +29,7 @@
 #include "mbuf.h"
 
 #define DEF_BUF_SIZE 512
-
+#define DEF_MIN_BUF_RESIZE (size_t)(0.1 * DEF_BUF_SIZE)
 /*
  *  mbuf->base : base address of the underlying storage
  *
@@ -66,10 +66,17 @@ mbuf_check_invariant (MBuffer* mbuf)
 MBuffer*
 mbuf_create (void)
 {
+  return mbuf_create2(DEF_BUF_SIZE, DEF_MIN_BUF_RESIZE);
+}
+
+MBuffer*
+mbuf_create2 (size_t buffer_length, size_t min_resize)
+{
   MBuffer* mbuf = xmalloc (sizeof (MBuffer));
   if (mbuf == NULL) return NULL;
 
-  mbuf->length = DEF_BUF_SIZE;
+  mbuf->length = buffer_length > 0 ? buffer_length : DEF_BUF_SIZE;
+  mbuf->min_resize = min_resize > 0 ? min_resize : DEF_MIN_BUF_RESIZE;
   mbuf->base = xmalloc (mbuf->length);
 
   if (mbuf->base == NULL)
@@ -83,7 +90,8 @@ mbuf_create (void)
   mbuf->msgptr = mbuf->base;
   mbuf->fill = 0;
   mbuf->wr_remaining = mbuf->length;
-  mbuf->rd_remaining = mbuf->wrptr - mbuf->rdptr;
+  mbuf->rd_remaining = 0;
+  mbuf->allow_resizing = 1;
 
   mbuf_check_invariant(mbuf);
 
@@ -119,6 +127,12 @@ size_t
 mbuf_fill (MBuffer* mbuf)
 {
   return mbuf->fill;
+}
+
+size_t
+mbuf_fill_excluding_msg (MBuffer* mbuf)
+{
+  return mbuf->msgptr - mbuf->rdptr;
 }
 
 size_t
@@ -192,6 +206,14 @@ mbuf_resize (MBuffer* mbuf, size_t new_length)
   if (new_length <= mbuf->length)
     return 0;
 
+  if (! mbuf->allow_resizing)
+    return -1;
+
+/*   // Make sure we grow at leat by a minimum delta */
+/*   if ((new_length - mbuf->length) < mbuf->min_resize) { */
+/*     new_length = mbuf->length + mbuf->min_resize; */
+/*   } */
+
   int wr_offset = mbuf->wrptr - mbuf->base;
   int rd_offset = mbuf->rdptr - mbuf->base;
   int msg_offset = mbuf->msgptr - mbuf->base;
@@ -207,6 +229,7 @@ mbuf_resize (MBuffer* mbuf, size_t new_length)
   mbuf->rdptr = mbuf->base + rd_offset;
   mbuf->msgptr = mbuf->base + msg_offset;
 
+  mbuf->resized += (new_length - mbuf->length);
   mbuf->length = new_length;
   mbuf->wr_remaining = mbuf->length - mbuf->fill;
 
@@ -219,11 +242,13 @@ int
 mbuf_check_resize (MBuffer* mbuf, size_t bytes)
 {
   if (mbuf->wr_remaining < bytes) {
-    size_t newlen = 2 * mbuf->length;
-    newlen = (newlen < bytes) ? bytes + mbuf->length: newlen;
-    return mbuf_resize (mbuf, newlen);
-  } else
+    size_t inc = bytes - mbuf->wr_remaining;
+    size_t min_resize = mbuf->min_resize > 0 ? mbuf->min_resize : mbuf->length;
+    inc = min_resize * (inc / min_resize + 1);
+    return mbuf_resize (mbuf, mbuf->length + inc);
+  } else {
     return 0;
+  }
 }
 
 /**
@@ -259,6 +284,49 @@ mbuf_write (MBuffer* mbuf, const uint8_t* buf, size_t len)
 
   mbuf_check_invariant (mbuf);
 
+  return 0;
+}
+
+/**
+ *  Append the printed string described by +format+ to the mbuff
+ *
+ *  Write len bytes from the raw buffer pointed to by buf into the
+ *  mbuf.  If the mbuf doen't have enough remaining space to fit len
+ *  bytes, no bytes are written to mbuf and the function will fail.
+ *
+ *  If the function succeeds, the bytes are written starting at the
+ *  mbuf's write pointer, and the write pointer is advanced by len
+ *  bytes.
+ *
+ *  @return 0 on success, -1 on failure.
+ *
+ */
+int
+mbuf_print(MBuffer* mbuf, const char* format, ...)
+{
+  if (mbuf == NULL || format == NULL) return -1;
+  mbuf_check_invariant (mbuf);
+
+  int len;
+  int success = 0;
+
+  do {
+    va_list arglist;
+    va_start(arglist, format);
+    len = vsnprintf((char*)mbuf->wrptr, mbuf->wr_remaining, format, arglist);
+    va_end(arglist);
+    if (! (success = (len <= (int)mbuf->wr_remaining))) {
+      if (mbuf_check_resize(mbuf, len) == -1)
+    return -1;
+    }
+  } while (! success);
+
+  mbuf->wrptr += len;
+  mbuf->fill += len;
+  mbuf->wr_remaining -= len;
+  mbuf->rd_remaining += len;
+
+  mbuf_check_invariant (mbuf);
   return 0;
 }
 
@@ -400,11 +468,19 @@ mbuf_begin_write (MBuffer* mbuf)
 int
 mbuf_clear (MBuffer* mbuf)
 {
+  return mbuf_clear2(mbuf, 1);
+}
+
+int
+mbuf_clear2 (MBuffer* mbuf, int zero_buffer)
+{
   mbuf_check_invariant (mbuf);
 
   if (mbuf == NULL) return -1;
 
-  memset (mbuf->base, 0, mbuf->length);
+  if (zero_buffer) {
+    memset (mbuf->base, 0, mbuf->length);
+  }
 
   mbuf->rdptr = mbuf->wrptr = mbuf->msgptr = mbuf->base;
   mbuf->fill = 0;
@@ -490,6 +566,7 @@ mbuf_repack (MBuffer* mbuf)
 }
 
 // Preserve the rdptr relative to the msgptr
+// Max: I don't understand what this message is doing
 int
 mbuf_repack_message (MBuffer* mbuf)
 {
@@ -506,6 +583,27 @@ mbuf_repack_message (MBuffer* mbuf)
   mbuf->wrptr = mbuf->base + mbuf->fill;
   mbuf->msgptr = mbuf->base;
   mbuf->rdptr = mbuf->wrptr - mbuf->rd_remaining;
+
+  mbuf_check_invariant (mbuf);
+  return 0;
+}
+
+int
+mbuf_repack_message2 (MBuffer* mbuf)
+{
+  mbuf_check_invariant (mbuf);
+
+  if (mbuf == NULL) return -1;
+
+  size_t msg_size = mbuf->wrptr - mbuf->msgptr;
+  if (msg_size > 0)
+    memmove (mbuf->base, mbuf->msgptr, msg_size);
+
+  mbuf->fill = msg_size;
+  mbuf->wr_remaining = mbuf->length - msg_size;
+  mbuf->rd_remaining = msg_size;
+  mbuf->wrptr = mbuf->base + msg_size;
+  mbuf->msgptr = mbuf->rdptr = mbuf->base;
 
   mbuf_check_invariant (mbuf);
   return 0;

@@ -56,7 +56,7 @@ omlf_last_new(
 
   } else {
     logerror ("Could not allocate %d bytes for last filter instance data\n",
-	sizeof(InstanceData));
+    sizeof(InstanceData));
     return NULL;
   }
 

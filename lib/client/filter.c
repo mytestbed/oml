@@ -116,15 +116,21 @@ filter_process(OmlMStream* ms)
   gettimeofday(&tv, NULL);
   double now = tv.tv_sec - omlc_instance->start_time + 0.000001 * tv.tv_usec;
 
+  // Be aware that +row_start+ is obtaining a lock on the writer
+  // which is released in +row_end+. Always ensure that +row_end+ is
+  // called, even if there is a problem somewhere along the way.
+  //
   ms->seq_no++;
   writer->row_start(writer, ms, now);
-  OmlFilter* f = ms->filters;
+  OmlFilter* f = ms->firstFilter;
   for (; f != NULL; f = f->next)
     {
       f->output(f, writer);
     }
   writer->row_end(writer, ms);
   ms->sample_size = 0;
+  //  oml_unlock(&writer->lock, "filter");
+
   return 0;
 }
 

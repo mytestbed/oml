@@ -58,8 +58,8 @@ typedef int
   double now                 //! timestamp
 );
 
-/*! Called after calling 'out' for every result
- *  in this stream.
+/*! Called after all items in tuple have been sent (via +out+).
+ *
  */
 typedef int
 (*oml_writer_row_end)(
@@ -67,15 +67,15 @@ typedef int
   OmlMStream* ms
 );
 
-/*! Called for every result value.
+/*! Called for every result value (column).
  *
  * Return 0 on success, -1 otherwise
  */
 typedef int
 (*oml_writer_out)(
   struct _omlWriter* writer, //! pointer to writer instance
-  OmlValue*  values,         //! type of sample
-  int        value_count     //! size of above array
+  OmlValue*  values,         //! array of column values
+  int        values_count    //! size of above array
 );
 
 /*! Called to close the writer.
@@ -101,7 +101,7 @@ typedef struct _omlWriter {
   oml_writer_row_start row_start;
   oml_writer_row_end row_end;
 
-  //! Writing the results froma single filter.
+  //! Writing the results from a single filter.
   oml_writer_out out;
 
   oml_writer_close close;
@@ -109,19 +109,21 @@ typedef struct _omlWriter {
   struct _omlWriter* next;
 } OmlWriter;
 
+enum StreamEncoding {
+  SE_None, // Not explicitly specified by the user
+  SE_Text,
+  SE_Binary
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-OmlWriter*
-create_writer(
-    char* serverUri
-);
+OmlWriter* create_writer(const char* uri, enum StreamEncoding encoding);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* OML_WRITER_H */
 

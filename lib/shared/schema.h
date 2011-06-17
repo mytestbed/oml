@@ -42,11 +42,15 @@ struct schema
 };
 
 struct schema* schema_from_meta (char *meta);
+const char *schema_to_meta (struct schema *schema);
 struct schema* schema_from_sql (char *sql);
-struct schema* schema_copy (struct schema *schema);
+struct schema *schema_new (const char *name);
 void schema_free (struct schema *schema);
+int schema_add_field (struct schema *schema, const char *name, OmlValueT type);
+struct schema* schema_copy (struct schema *schema);
 int schema_diff (struct schema *s1, struct schema *s2);
 MString* schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT));
+
 
 #endif /* SCHEMA_H__ */
 

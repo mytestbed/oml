@@ -1,0 +1,9 @@
+OML : Orbit Measurment Library : Instructions for developers
+------------------------------------------------------------
+
+
+Emacs
+-----
+
+M-x gdb
+Run gdb (like this): ../../build/libtool --mode=execute gdb --annotate=3 ../../build/example/oml_example

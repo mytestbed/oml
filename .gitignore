@@ -1,7 +1,12 @@
 *~
 *.bak
 *.swp
+*.o
+*.lo
+*.Plo
+*.Po
 Makefile.in
+Makefile
 aclocal.m4
 config.h.in
 config.guess
@@ -13,5 +18,3 @@ ltmain.sh
 missing
 autom4te.cache
 m4/*.m4
-*.o
-*.lo

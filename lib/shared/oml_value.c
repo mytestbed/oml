@@ -142,7 +142,6 @@ oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to)
             return -1;
           } else {
             if (to->value.blobValue.data == NULL) {
-              logdebug ("MALLOC to NULL blob\n");
               void *new = malloc (value->blobValue.fill);
               if (new == NULL) {
                 logerror ("Failed to allocate memory for new OML_BLOB_VALUE:  %s\n", strerror (errno));
@@ -151,7 +150,6 @@ oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to)
               to->value.blobValue.data = new;
               to->value.blobValue.size = value->blobValue.fill;
             } else if (to->value.blobValue.size < value->blobValue.fill) {
-              logdebug ("REALLOC for non-NULL blob (size=%d, fill=%d)\n", to->value.blobValue.size, value->blobValue.fill);
               void * new = realloc (to->value.blobValue.data, value->blobValue.fill);
               if (new == NULL) {
                 logerror ("Failed to re-allocate memory for new OML_BLOB_VALUE:  %s\n", strerror (errno));
@@ -163,7 +161,6 @@ oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to)
             memcpy (to->value.blobValue.data, value->blobValue.data, value->blobValue.fill);
             to->value.blobValue.fill = value->blobValue.fill;
           }
-          logdebug("BREAK!\n");
           break;
         }
         default:

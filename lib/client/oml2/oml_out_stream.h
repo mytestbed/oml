@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2011 National ICT Australia (NICTA), Australia
+ * Copyright 2011 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,39 +21,51 @@
  *
  */
 
-#ifndef OML_WRITER_H_
-#define OML_WRITER_H_
+#ifndef OML_OUT_STREAM_H_
+#define OML_OUT_STREAM_H_
 
-struct _omlWriter;
+#include <stdint.h>
 
-/*! Called for every result value.
+struct _omlOutStream;
+
+/*! Called to write a chunk to the lower level out stream
+ *
+ * Return number of sent bytes on success, -1 otherwise
+ */
+typedef size_t (*oml_outs_write_f)(
+  struct _omlOutStream* outs,
+  uint8_t* buffer,
+  size_t  length
+);
+
+/*! Called to close the stream.
  *
  * Return 0 on success, -1 otherwise
  */
-typedef int (*oml_writer_out)(
-  struct _omlWriter* writer, //! pointer to writer instance
-  OmlValue*  values,         //! type of sample
-  int        value_count     //! size of above array
+typedef int
+(*oml_outs_close_f)(
+  struct _omlOutStream* writer //! pointer to writer instance
 );
 
-typedef struct _omlWriter {
+typedef struct _omlOutStream {
+  oml_outs_write_f write;
+  oml_outs_close_f close;
+} OmlOutStream;
 
-  //! Writing a result.
-  oml_writer_out out;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-} OmlWriter;
+OmlOutStream*
+create_stream(
+  char* serverUri
+);
 
+#ifdef __cplusplus
+}
+#endif
 
-extern OmlWriter*
-file_writer_new(char* fileName);
-
-extern OmlWriter*
-net_writer_new(char* protocol, char* location);
-
-
-
-
-#endif /* OML_WRITER_H */
+#endif /* OML_OUT_STREAM_H */
 
 /*
  Local Variables:
