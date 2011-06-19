@@ -18,7 +18,7 @@ configure-stamp:
 	# Add here commands to configure the package.
 	debian/fetch-source-tree.rb
 	autoreconf --install
-	./configure --prefix /usr --with-doc
+	./configure --prefix /usr --with-doc --with-postgresql --localstatedir=/var/lib
 	touch configure-stamp
 
 
@@ -54,6 +54,7 @@ install: build
 
 	# Make directories for all debian packages
 	mkdir -p $(CURDIR)/debian/oml2-server/usr/bin
+	mkdir -p $(CURDIR)/debian/oml2-server/var/lib
 	mkdir -p $(CURDIR)/debian/oml2-proxy-server/usr/bin
 	mkdir -p $(CURDIR)/debian/oml2-proxycon/usr/bin
 	mkdir -p $(CURDIR)/debian/liboml2-0/usr/lib
@@ -66,6 +67,7 @@ install: build
 
 	# Build the oml2-server package
 	mv $(CURDIR)/debian/tmp/usr/bin/oml2-server $(CURDIR)/debian/oml2-server/usr/bin
+	mv $(CURDIR)/debian/tmp/var/lib/oml2 $(CURDIR)/debian/oml2-server/var/lib/oml2
 
 	# Build the oml2-proxy-server package
 	mv $(CURDIR)/debian/tmp/usr/bin/oml2-proxy-server $(CURDIR)/debian/oml2-proxy-server/usr/bin

@@ -1,3 +1,9 @@
+oml2 (2.6.0-ubuntu1) maverick; urgency=low
+
+  * New upstream release OML 2.6.0
+
+ -- Jolyon White <jolyon.white@nicta.com.au>  Sun, 19 Jun 2011 19:59:28 +1000
+
 oml2 (2.5.2-ubuntu1) maverick; urgency=low
 
   * New upstream release OML 2.5.2

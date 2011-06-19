@@ -2,14 +2,14 @@ Source: oml2
 Section: net
 Priority: extra
 Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
-Build-Depends: debhelper (>= 5), libxml2-dev, libpopt-dev, libsqlite3-dev, autoconf, check, automake, libtool, ruby, pkg-config, asciidoc, texinfo
+Build-Depends: debhelper (>= 5), libxml2-dev, libpopt-dev, libsqlite3-dev, libpq-dev, autoconf, check, automake, libtool, ruby, pkg-config, asciidoc, texinfo
 Standards-Version: 3.7.2
 
 Package: oml2-server
 Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
-Depends: ${misc:Depends}, libc6, libsqlite3-0, libpopt0, libocomm0 (= ${Source-Version})
+Depends: ${misc:Depends}, libc6, libsqlite3-0, libpq5, libpopt0, libocomm0 (= ${Source-Version}), adduser
 Description: OML measurement server
  The OML server accepts connections from client applications and
  stores measurements that they transmit in a database.  Currently the

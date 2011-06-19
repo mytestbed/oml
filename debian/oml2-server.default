@@ -1,1 +1,1 @@
-OPTS="-l 3003 --logfile=/var/log/oml2-server.log --data-dir=/tmp/"
+OPTS="-l 3003 --logfile=/var/log/oml2-server.log --user=oml2 --group=oml2"
