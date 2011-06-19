@@ -422,8 +422,6 @@ psql_get_table_list (Database *database, int *num_tables)
   rows = PQntuples (res);
   cols = PQnfields (res);
 
-  loginfo ("Table names %d %d\n", rows, cols);
-
   if (cols < 1)
     return NULL;
 
