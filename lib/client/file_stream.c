@@ -45,7 +45,7 @@ typedef struct _omlFileOutStream {
 
 } OmlFileOutStream;
 
-size_t write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
+size_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
 
 
 /**
@@ -71,13 +71,13 @@ file_stream_new(const char *file)
     }
   }
 
-  self->write = write;
+  self->write = file_stream_write;
 
   return (OmlOutStream*)self;
 }
 
 size_t
-write(
+file_stream_write(
   OmlOutStream* hdl,
   uint8_t* buffer,
   size_t  length
