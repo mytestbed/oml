@@ -27,9 +27,9 @@ liboml2_la_SOURCES = \
 	file_stream.c \
 	net_stream.c \
 	buffered_writer.c \
+	buffered_writer.h \
 	parse_config.c \
 	version.h \
-	writer.h \
 	filter/factory.c \
 	filter/factory.h \
 	filter/first_filter.c \
