@@ -123,9 +123,6 @@ open_socket(OmlNetOutStream* self)
     if ((sock = socket_tcp_out_new("sock", (char*)self->host, self->port)) == NULL) {
       return 0;
     }
-    // Don't create a SIGPIPE signal if peer dies, handle in write
-    int set = 1;
-    setsockopt(sock->get_sockfd(sock), SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
 
     self->socket = sock;
   } else {
