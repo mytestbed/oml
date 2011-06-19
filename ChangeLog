@@ -1,3 +1,47 @@
+2011-06-19  Jolyon White  <jolyon.white@nicta.com.au>
+
+	* lib/client/init.c (create_writer): The output encoding is now
+	independent of the output transport.  Text encoding can be sent to
+	network, and binary encoding can be sent to local file, as well as
+	the existing options (text->file, binary->network).  Encoding is
+	selectable using --oml-text and --oml-binary.
+
+	* lib/client/buffered_writer.c: Add new output serialization and
+	buffering scheme to the client library to decouple backend
+	processing from application-thread sample injects.  This should
+	make measurements have less impact on the main thread.  New client
+	lib command line option --oml-bufsize controls the amount of
+	buffer space available in the buffer that sits between the inject
+	thread and the output stage thread.
+
+	* server/main.c (drop_privileges): oml2-server now drops
+	privileges if the --user and/or --group command line options.
+	Privileges are dropped as soon as possible, namely after the
+	socket has been set up (in case the admin wants to run it on a
+	privileged port) and after the log file has been opened.
+	(setup_backend_sqlite): oml2-server now writes databases to a
+	subdirectory of $(localstatedir), which can be configured at
+	compile time using the --localstatedir=DIR option of configure.
+	If the server can't write to that directory, it will abort with an
+	error message in the log.  The default is overridden by the
+	OML_SQLITE_DIR environment variable, which is overridden by the
+	--data-dir option (now available as -D as well).
+
+	* server/psql_adapter.c (psql_create_database): PostgreSQL support
+	is not complete and considered to be supported.  oml2-server now
+	supports --pg-connect and --pg-user to help configure the
+	connection to the PostgreSQL server.
+
+	* server/main.c (setup_logging): Make oml2-server and
+	oml2-proxy-server log to stderr when stderr is attached to a tty
+	if --logfile is not used.  If --logfile is not used and stderr is
+	NOT attached to a tty, the servers log to their default log file
+	names instead.
+
+	* lib/client/parse_config.c: reskin the XML configuration file
+	format to make the element and attribute names more meaningful,
+	and more easily remembered.
+
 2011-03-16  Jolyon White  <jolyon.white@nicta.com.au>
 
 	* OML: New version 2.5.2
