@@ -1,5 +1,7 @@
 2011-06-19  Jolyon White  <jolyon.white@nicta.com.au>
 
+	* OML: New version 2.6.0
+
 	* lib/client/init.c (create_writer): The output encoding is now
 	independent of the output transport.  Text encoding can be sent to
 	network, and binary encoding can be sent to local file, as well as
