@@ -1,3 +1,9 @@
+oml2 (2.6.0-ubuntu2) maverick; urgency=low
+
+  * fixed broken oml2_scaffold symlink
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Wed, 13 Jul 2011 17:48:27 +1000
+
 oml2 (2.6.0-ubuntu1) maverick; urgency=low
 
   * New upstream release OML 2.6.0

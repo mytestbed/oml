@@ -60,10 +60,8 @@ install: build
 	mkdir -p $(CURDIR)/debian/liboml2-0/usr/lib
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/include
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/bin
-	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/lib
 	mkdir -p $(CURDIR)/debian/libocomm0/usr/lib
 	mkdir -p $(CURDIR)/debian/libocomm-dev/usr/include
-	mkdir -p $(CURDIR)/debian/libocomm-dev/usr/lib
 
 	# Build the oml2-server package
 	mv $(CURDIR)/debian/tmp/usr/bin/oml2-server $(CURDIR)/debian/oml2-server/usr/bin
@@ -77,17 +75,13 @@ install: build
 
 	# Build the liboml2-dev package
 	mv $(CURDIR)/debian/tmp/usr/include/oml2 $(CURDIR)/debian/liboml2-dev/usr/include/
-	mv $(CURDIR)/debian/tmp/usr/bin/oml2_scaffold $(CURDIR)/debian/liboml2-dev/usr/bin
-	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so $(CURDIR)/debian/liboml2-dev/usr/lib
-	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.a $(CURDIR)/debian/liboml2-dev/usr/lib
+	mv $(CURDIR)/debian/tmp/usr/bin $(CURDIR)/debian/liboml2-dev/usr
 
 	# Build the liboml2 package
 	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so.* $(CURDIR)/debian/liboml2-0/usr/lib/
 
 	# Build the libocomm0-dev package
 	mv $(CURDIR)/debian/tmp/usr/include/ocomm $(CURDIR)/debian/libocomm-dev/usr/include/
-	mv $(CURDIR)/debian/tmp/usr/lib/libocomm.so $(CURDIR)/debian/libocomm-dev/usr/lib
-	mv $(CURDIR)/debian/tmp/usr/lib/libocomm.a $(CURDIR)/debian/libocomm-dev/usr/lib
 
 	# Build the liboml2 package
 	mv $(CURDIR)/debian/tmp/usr/lib/libocomm.so.* $(CURDIR)/debian/libocomm0/usr/lib/
