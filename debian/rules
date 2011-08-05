@@ -78,13 +78,13 @@ install: build
 	mv $(CURDIR)/debian/tmp/usr/bin $(CURDIR)/debian/liboml2-dev/usr
 
 	# Build the liboml2 package
-	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so.* $(CURDIR)/debian/liboml2-0/usr/lib/
+	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so* $(CURDIR)/debian/liboml2-0/usr/lib/
 
 	# Build the libocomm0-dev package
 	mv $(CURDIR)/debian/tmp/usr/include/ocomm $(CURDIR)/debian/libocomm-dev/usr/include/
 
 	# Build the liboml2 package
-	mv $(CURDIR)/debian/tmp/usr/lib/libocomm.so.* $(CURDIR)/debian/libocomm0/usr/lib/
+	mv $(CURDIR)/debian/tmp/usr/lib/libocomm.so* $(CURDIR)/debian/libocomm0/usr/lib/
 
 
 # Build architecture-independent files here.
