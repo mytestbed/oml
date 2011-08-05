@@ -1,3 +1,9 @@
+oml2 (2.6.0-ubuntu3) natty; urgency=low
+
+  * moving to natty
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Fri, 05 Aug 2011 17:16:35 +1000
+
 oml2 (2.6.0-ubuntu2) maverick; urgency=low
 
   * fixed broken oml2_scaffold symlink
