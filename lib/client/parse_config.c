@@ -40,7 +40,8 @@ enum ConfToken {
   CT_NODE,
   CT_EXP,
   CT_COLLECT,
-  CT_URL,
+  CT_COLLECT_URL,
+  CT_COLLECT_ENCODING,
   CT_STREAM,
   CT_STREAM_NAME,
   CT_STREAM_SOURCE,
@@ -80,7 +81,8 @@ static void init_tokens (void)
   setcurtok (CT_NODE),             mksyn ("id");
   setcurtok (CT_EXP),              mksyn ("exp_id"), mksyn ("experiment");
   setcurtok (CT_COLLECT),          mksyn ("collect");
-  setcurtok (CT_URL),              mksyn ("url");
+  setcurtok (CT_COLLECT_URL),      mksyn ("url");
+  setcurtok (CT_COLLECT_ENCODING), mksyn ("encoding");
   setcurtok (CT_STREAM),           mksyn ("mp"), mksyn ("stream");
   setcurtok (CT_STREAM_NAME),      mksyn ("name");
   /* CT_STREAM_SOURCE is a special case */
@@ -293,14 +295,23 @@ parse_config(char* configFile)
 static int
 parse_collector(xmlNodePtr el)
 {
-  char* url = get_xml_attr(el, CT_URL);
+  char* url = get_xml_attr(el, CT_COLLECT_URL);
   if (url == NULL) {
     logerror("Config line %hu: Missing 'url' attribute for <%s ...>'.\n", el->line, el->name);
     return -1;
   }
   OmlWriter* writer;
-  logwarn ("Creating binary encoded stream because 'encoding' attribute not yet implemented.");
-  if ((writer = create_writer(url, SE_Binary)) == NULL) return -2;
+  char* encoding_s = get_xml_attr(el, CT_COLLECT_ENCODING);
+  enum StreamEncoding encoding;
+  if (encoding_s == NULL || strcmp(encoding_s, "binary") == 0) {
+    encoding = SE_Binary;
+  } else if (strcmp(encoding_s, "text") == 0) {
+    encoding = SE_Text;
+  } else {
+    logerror("Config line %hu: Unknown 'encoding' value '%s' for <%s ...>'.\n", el->line, encoding_s, el->name);
+    return -1;
+  }
+  if ((writer = create_writer(url, encoding)) == NULL) return -2;
 
   xmlNodePtr cur = el->xmlChildrenNode;
   while (cur != NULL) {
