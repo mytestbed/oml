@@ -1,3 +1,9 @@
+oml2 (2.6.1-ubuntu1) natty; urgency=low
+
+  * New upstream release OML 2.6.1
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Mon, 08 Aug 2011 18:19:53 +1000
+
 oml2 (2.6.0-ubuntu3) natty; urgency=low
 
   * moving to natty
