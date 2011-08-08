@@ -5,7 +5,7 @@
 @c %**end of header
 
 @copying
-Copyright @copyright{} 2009, NICTA
+Copyright @copyright{} 2009-11, NICTA
 
 Locked Bag 9013 @*
 Alexandria NSW 1430 @*
@@ -543,8 +543,7 @@ application.
 @end itemize
 
 The destination is specified using the @code{url} attribute of the
-@code{<collect/>} element.  The structure of the URL determines the type
-of data store.  The following protocols are available:
+@code{<collect/>} element.  The following protocols are available:
 
 @enumerate
 @item
@@ -553,7 +552,7 @@ filesystem.  For instance @code{<collect
 url="file:/tmp/my-data.txt"/>} will write to the file
 @file{/tmp/my-data.txt}.  Relative file names are interpreted relative
 to the current working directory of the OML client application when it
-launched.  A URL of @code{file:-} sends the outut to the client
+launched.  A URL of @code{file:-} sends the output to the client
 application's standard output stream.
 
 @item
@@ -570,13 +569,30 @@ in the URL.  For instance, @code{<collect
 url="udp://10.42.54.3:3004"/>}.
 @end enumerate
 
-The client library communicates with the server using a binary line
-protocol.  The regular OML server and the OML proxy server both
+The @code{url} attribute is a required attribute; it is an error to
+omit it.  
+
+The other (non-mandatory) attribute is @code{encoding} which specifies 
+the protocol encoding to use when communicating with the destination. 
+The regular OML server and the OML proxy server both
 understand the same protocol, and are interchangeable from the point
 of view of the OML client application.
 
-The @code{url} attribute is a required attribute; it is an error to
-omit it.  @code{<collect/>} has no other attributes.
+There are currently two types available:
+
+@enumerate
+@item
+@code{text} -- where tuples are separated by newlines and each element in 
+a tuple is separated by a comma. 
+
+@item
+@code{binary} -- tuples and their values are encoded with a more efficient TLV-like protocol.
+@end enumerate
+
+If the encoding is not specifcially specified, the @code{binary} encoding is used for all
+urls except the @code{file} type.
+
+
 
 @node Definining measurement points
 @subsubsection Defining measurement points

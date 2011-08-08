@@ -1,3 +1,17 @@
+libtool
+.deps
+stamp-h1
+.DS_Store
+.cproject
+.project
+Debug/
+build/
+buildx/
+config.h
+config.log
+config.status
+.libs
+*.la
 *~
 *.bak
 *.swp
@@ -18,3 +32,5 @@ ltmain.sh
 missing
 autom4te.cache
 m4/*.m4
+
+buildxx
