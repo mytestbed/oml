@@ -11,4 +11,4 @@ oml_example_SOURCES = generator.c
 oml_example_LDADD = \
 	$(top_builddir)/lib/client/liboml2.la \
 	$(top_builddir)/lib/ocomm/libocomm.la \
-	-lpopt
+	-lpopt -lm
