@@ -1,10 +1,13 @@
 #!/bin/bash
 
+# make sure you install the build dependencies from the .spec file
+# before using this script
+
 autoreconf --install
 ./configure
 make dist
 
-version=`grep "PACKAGE_VERSION =" Makefile | awk '{print $3;}'`
+version=`grep AC_INIT configure.ac |  sed -n -e 's/[^[]*\[\([^]]*\)][^[]*\[\([^]]*\)].*/\2/p'`
 tmp=/tmp/oml2-rpmbuild
 
 if [ -d $tmp ]; then rm -rf $tmp; fi
@@ -14,7 +17,7 @@ cd $tmp
 mkdir -p BUILD RPMS SOURCES SPECS SRPMS
 cd -
 ln -s `pwd`/oml2-$version.tar.gz $tmp/SOURCES/
-rpmbuild -v -bb --clean oml2.spec --define "_topdir $tmp"
+rpmbuild -v -bb --clean oml2.spec --define "_topdir $tmp" --nodeps
 find $tmp -type f -name "*.rpm" -exec cp -v {} . \;
 rm -rf $tmp
 
