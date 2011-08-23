@@ -41,6 +41,8 @@ make %{?_smp_mflags}
 
 %install
 make install prefix=%{buildroot}/usr
+sed -i 's,%{buildroot},/,g' %{buildroot}/usr/lib/liboml2.la
+sed -i 's,%{buildroot},/,g' %{buildroot}/usr/lib/libocomm.la
 
 %clean
 rm -rf %{buildroot}
