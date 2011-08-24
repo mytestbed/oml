@@ -36,13 +36,11 @@ This package contains necessary header files for liboml2 development.
 %setup -q
 
 %build
-./configure --prefix=%{buildroot}/usr --with-doc
+./configure --prefix /usr --with-doc --localstatedir=/var/lib
 make %{?_smp_mflags}
 
 %install
-make install prefix=%{buildroot}/usr
-sed -i 's,%{buildroot},/,g' %{buildroot}/usr/lib/liboml2.la
-sed -i 's,%{buildroot},/,g' %{buildroot}/usr/lib/libocomm.la
+make DESTDIR=%{buildroot} install-strip
 
 %clean
 rm -rf %{buildroot}
