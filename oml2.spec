@@ -8,8 +8,7 @@ URL:                    http://oml.mytestbed.net
 Name:                   %{name}
 Version:                %{version}
 Release:		1
-#Source:                 http://oml.mytestbed.net/attachments/download/583/oml2-2.6.1.tar.gz
-Source:			http://pkg.mytestbed.net/test/oml2-2.6.1.tar.gz
+Source:                 http://oml.mytestbed.net/attachments/download/583/oml2-2.6.1.tar.gz
 Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Prefix:                 /usr
 Group:                  System/Libraries
@@ -64,6 +63,7 @@ rm -rf %{buildroot}
 %doc /usr/share/man/man1/oml2-proxy-server.1.gz
 %doc /usr/share/man/man1/oml2-server.1.gz
 %doc /usr/share/man/man5
+%dir /var/lib/oml2
 
 %files devel
 /usr/lib/liboml2.so
@@ -74,7 +74,4 @@ rm -rf %{buildroot}
 %doc /usr/share/man/man1/oml2_scaffold.1.gz
 %doc /usr/share/man/man1/oml2-scaffold.1.gz
 %doc /usr/share/man/man3
-
-%post
-mkdir -p /var/lib/oml2
 
