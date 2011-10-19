@@ -2,20 +2,19 @@
 
 import math
 import sys
-import types
 
 def vector_type(v):
     tv = [ type(x) for x in v ]
 
-    if types.FloatType in tv:
-        return types.FloatType
-    elif types.IntType in tv:
-        return types.IntType
+    if float in tv:
+        return float
+    elif int in tv:
+        return int
 
 def type_strings(t):
-    if t == types.FloatType:
+    if t == float:
         return ("double", "OML_DOUBLE_VALUE")
-    elif t == types.IntType:
+    elif t == int:
         return ("long", "OML_LONG_VALUE")
     else:
         return ("int", "OML_BAD_VALUE")
