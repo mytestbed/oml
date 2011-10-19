@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <time.h>
 
 #include <oml_value.h>
 #include <mem.h>
@@ -56,6 +57,8 @@ static int  write_schema(OmlMStream* ms, int index);
 static void termination_handler(int signum);
 static void install_close_handler(void);
 static void setup_features(const char * const features);
+
+static char *default_uri(const char *app_name, const char *name, const char *experimentId);
 
 extern int parse_config(char* config_file);
 extern void _o_set_simplified_logging (void);
@@ -203,6 +206,9 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
     config_file = getenv("OML_CONFIG");
   if (local_data_file == NULL && server_uri == NULL)
     server_uri = getenv("OML_SERVER");
+  if(server_uri == NULL) {
+    server_uri = default_uri(app_name, name, experimentId);
+  }
 
   setup_features (getenv ("OML_FEATURES"));
 
@@ -1092,6 +1098,58 @@ setup_features (const char * const features)
         feature_table[i].enable();
     xfree (name);
   }
+}
+
+/* 
+ * Generate default file name to use when no output parameters are given.
+ *
+ * @param app_ame	the name of the application
+ * @param name		the OML ID of the instance
+ * @param experimentId	the ID of the experiment
+ *
+ * @return	A statically allocated buffer containing the URI of the output
+ */
+static char*
+default_uri(const char *app_name, const char *name, const char *experimentId)
+{
+  /* Use a statically allocated buffer to avoid having to free it,
+   * just like other URI sources in omlc_init() */
+  static char uri[256];
+  int remaining = sizeof(uri) - 1; /* reserve 1 for the terminating null byte */
+  char *protocol = "file:";
+  char time[25];
+  struct timeval tv;
+
+  gettimeofday(&tv, NULL);
+  strftime(time, sizeof(time), "%Y-%m-%dt%H.%M.%S%z", localtime(&tv.tv_sec));
+
+  *uri = 0;
+  strncat(uri, protocol, remaining);
+  remaining -= sizeof(protocol);
+
+  strncat(uri, app_name, remaining);
+  remaining -= strlen(app_name);
+
+  if (name) {
+    strncat(uri, "_", remaining);
+    remaining--;
+    strncat(uri, name, remaining);
+    remaining -= strlen(name);
+  }
+
+  if (experimentId) {
+    strncat(uri, "_", remaining);
+    remaining--;
+    strncat(uri, experimentId, remaining);
+  }
+
+  strncat(uri, "_", remaining);
+  remaining--;
+  strncat(uri, time, remaining);
+
+  printf("%s, %d\n", uri, remaining);
+
+  return uri;
 }
 
 /*
