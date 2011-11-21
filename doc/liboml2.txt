@@ -249,7 +249,7 @@ If this option is given, no measurements are collected, and the
 application does not attempt to connect to an OML server or write
 measurements to file.
 
---oml-filters::
+--oml-list-filters::
 This option prints the available filters to the console and then
 quits the application.
 
