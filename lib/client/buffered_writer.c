@@ -396,4 +396,5 @@ oml_lock_persistent(
  tab-width: 2
  indent-tabs-mode: nil
  End:
+ vim: sw=2:sts=2:expandtab
 */

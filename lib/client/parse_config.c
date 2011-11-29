@@ -619,7 +619,8 @@ set_filter_property(OmlFilter* f, const char* name, const char* type, const char
 /*
  Local Variables:
  mode: C
- tab-width: 4
+ tab-width: 2
  indent-tabs-mode: nil
  End:
+ vim: sw=2:sts=2:expandtab
 */

@@ -57,7 +57,8 @@ MString* schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT
 /*
  Local Variables:
  mode: C
- tab-width: 4
+ tab-width: 2
  indent-tabs-mode: nil
  End:
+ vim: sw=2:sts=2:expandtab
 */

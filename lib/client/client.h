@@ -158,7 +158,8 @@ validate_mp_name (const char* name);
 /*
  Local Variables:
  mode: C
- tab-width: 4
+ tab-width: 2
  indent-tabs-mode: nil
  End:
+ vim: sw=2:sts=2:expandtab
 */

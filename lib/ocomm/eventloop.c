@@ -586,7 +586,8 @@ eventloop_now(void)
 /*
  Local Variables:
  mode: C
- tab-width: 4
+ tab-width: 2
  indent-tabs-mode: nil
  End:
+ vim: sw=2:sts=2:expandtab
 */
