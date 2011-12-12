@@ -1,3 +1,9 @@
+oml2 (2.6.1-ubuntu2) oneiric; urgency=low
+
+  * Oneiric build
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Mon, 12 Dec 2011 18:44:06 +1100
+
 oml2 (2.6.1-ubuntu1) natty; urgency=low
 
   * New upstream release OML 2.6.1
