@@ -73,3 +73,7 @@ installed_link_name = $(DESTDIR)$(bindir)/oml2_$(progname)
 install-exec-hook:
 	rm -f $(installed_link_name)
 	$(LN_S) $(installed_name) $(installed_link_name)
+
+sharedir = $(datadir)/@PACKAGE@
+share_DATA = $(srcdir)/ruby/oml4r.rb \
+             $(srcdir)/ruby/oml4r-example.rb
