@@ -1,3 +1,9 @@
+oml2 (2.6.1-ubuntu3) oneiric; urgency=low
+
+  * added oml4r.rb and oml4r example
+
+ -- Christoph Dwertmann <christoph.dwertmann@nicta.com.au>  Mon, 09 Jan 2012 16:26:34 +1100
+
 oml2 (2.6.1-ubuntu2) oneiric; urgency=low
 
   * Oneiric build

@@ -61,6 +61,8 @@ install: build
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/include
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/lib
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/bin
+	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/share/liboml2-dev
+	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/share/doc/liboml2-dev/examples
 	mkdir -p $(CURDIR)/debian/libocomm0/usr/lib
 	mkdir -p $(CURDIR)/debian/libocomm-dev/usr/lib
 	mkdir -p $(CURDIR)/debian/libocomm-dev/usr/include
@@ -79,6 +81,8 @@ install: build
 	mv $(CURDIR)/debian/tmp/usr/include/oml2 $(CURDIR)/debian/liboml2-dev/usr/include/
 	mv $(CURDIR)/debian/tmp/usr/bin $(CURDIR)/debian/liboml2-dev/usr
 	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so $(CURDIR)/debian/liboml2-dev/usr/lib/
+	mv $(CURDIR)/debian/tmp/usr/share/oml2/oml4r.rb $(CURDIR)/debian/liboml2-dev/usr/share/liboml2-dev/
+	mv $(CURDIR)/debian/tmp/usr/share/oml2/oml4r-example.rb $(CURDIR)/debian/liboml2-dev/usr/share/doc/liboml2-dev/examples/
 
 	# Build the liboml2 package
 	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so.* $(CURDIR)/debian/liboml2-0/usr/lib/
