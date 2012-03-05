@@ -355,6 +355,21 @@ oml_value_to_double (OmlValue *value)
   }
 }
 
+int
+oml_value_to_int (OmlValue *value)
+{
+  OmlValueU *v = &value->value;
+  switch (value->type) {
+  case OML_LONG_VALUE:   return (int) v->longValue;
+  case OML_INT32_VALUE:  return (int) v->int32Value;
+  case OML_UINT32_VALUE: return (int) v->uint32Value;
+  case OML_INT64_VALUE:  return (int) v->int64Value;
+  case OML_UINT64_VALUE: return (int) v->uint64Value;
+  case OML_DOUBLE_VALUE: return (int) v->doubleValue;
+  default: return 0;
+  }
+}
+
 /*
  Local Variables:
  mode: C
