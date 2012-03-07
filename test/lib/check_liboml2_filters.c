@@ -96,8 +96,7 @@ START_TEST (test_filter_create)
   fail_unless (f->index == 2);
   fail_unless (f->input_type == OML_LONG_VALUE);
 
-  // TBD:  Check result vector
-  // TBD:  destroy the filter
+  fail_unless (destroy_filter(f) == 0);
 }
 END_TEST
 
@@ -129,8 +128,7 @@ START_TEST (test_filter_avg_create)
   fail_unless (data->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, data->sample_min);
   fail_unless (data->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, data->sample_max);
 
-  // TBD:  Check result vector
-  // TBD:  destroy the filter
+  fail_unless (destroy_filter(f) == 0);
 }
 END_TEST
 
@@ -167,6 +165,8 @@ START_TEST (test_filter_avg_output)
   fail_unless (instdata->sample_count == 0);
   fail_unless (instdata->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, instdata->sample_min);
   fail_unless (instdata->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, instdata->sample_max);
+
+  fail_unless (destroy_filter(f) == 0);
 }
 END_TEST
 /********************************************************************************/
@@ -193,8 +193,7 @@ START_TEST (test_filter_first_create)
   // Sample count and accumulator should be 0; min and max should be v. -ve and v. +ve respectively.
   fail_unless (data->is_first == 1);
 
-  // TBD:  Check result vector
-  // TBD:  destroy the filter
+  fail_unless (destroy_filter(f) == 0);
 }
 END_TEST
 
@@ -227,8 +226,7 @@ START_TEST (test_filter_hist_create)
   fail_unless (data->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, data->sample_min);
   fail_unless (data->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, data->sample_max);
 
-  /* TBD:  Check result vector */
-  /* TBD:  destroy the filter */
+  fail_unless (destroy_filter(f) == 0);
 }
 END_TEST
 
@@ -258,8 +256,7 @@ START_TEST(test_filter_stddev_create)
   fail_unless (data->s == 0);
   fail_unless (data->sample_count == 0);
 
-  // TBD:  Check result vector
-  // TBD:  Destroy filter
+  fail_unless (destroy_filter(f) == 0);
 }
 END_TEST
 

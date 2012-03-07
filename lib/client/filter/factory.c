@@ -143,6 +143,18 @@ create_filter(
   return f;
 }
 
+/** Destroy a filter and free its memory
+ * @param[in] f The filter to destroy
+ * @returns 0 on success, -1 if filter pointer was NULL
+ */
+int destroy_filter(OmlFilter* f) {
+  if (f) {
+    free(f);
+  } else
+    return -1;
+  return 0;
+}
+
 static int
 default_filter_set (OmlFilter* filter,
             const char* name,
