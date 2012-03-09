@@ -303,7 +303,7 @@ START_TEST (test_filter_stddev_1)
 END_TEST
 
 /********************************************************************************/
-/*                         SUM FILTER TESTS                               */
+/*                         SUM FILTER TESTS                                     */
 /********************************************************************************/
 
 START_TEST (test_filter_sum_create)
@@ -368,7 +368,7 @@ START_TEST (test_filter_sum_output)
 END_TEST
 
 /********************************************************************************/
-/*                         DELTA FILTER TESTS                               */
+/*                         DELTA FILTER TESTS                                   */
 /********************************************************************************/
 
 START_TEST (test_filter_delta_create)
@@ -432,6 +432,10 @@ START_TEST (test_filter_delta_output)
   fail_unless (destroy_filter(f) == 0);
 }
 END_TEST
+
+/********************************************************************************/
+/*                         MAIN TEST SUITE                                      */
+/********************************************************************************/
 
 Suite*
 filters_suite (void)
