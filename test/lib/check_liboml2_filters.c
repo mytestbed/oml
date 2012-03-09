@@ -74,7 +74,7 @@ START_TEST (test_filter_create)
   OmlFilterDef* def = NULL;
 
   // TBD:  turn this into a loop with a check for every different type of filter.
-  f = create_filter ("avg", "inst", OML_LONG_VALUE, 2);
+  f = create_filter ("avg", "inst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for averaging filter");
 
@@ -98,7 +98,7 @@ START_TEST (test_filter_create)
   fail_unless (def[2].type == OML_DOUBLE_VALUE, "Filter definition error: def[2].type = %s, should be OML_DOUBLE_VALUE", def[2].type);
 
   fail_unless (f->index == 2);
-  fail_unless (f->input_type == OML_LONG_VALUE);
+  fail_unless (f->input_type == OML_INT32_VALUE);
 
   fail_unless (destroy_filter(f) == 0);
 }
@@ -116,13 +116,13 @@ START_TEST (test_filter_avg_create)
   OmlFilter* f = NULL;
   AvgInstanceData* data = NULL;
 
-  f = create_filter ("avg", "inst", OML_LONG_VALUE, 2);
+  f = create_filter ("avg", "inst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for `avg' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
 
   fail_unless (f->index == 2);
-  fail_unless (f->input_type == OML_LONG_VALUE);
+  fail_unless (f->input_type == OML_INT32_VALUE);
 
   data = (AvgInstanceData*)f->instance_data;
 
@@ -144,17 +144,17 @@ START_TEST (test_filter_avg_output)
   OmlFilter* f = NULL;
   AvgInstanceData* instdata = NULL;
 
-  f = create_filter ("avg", "inst", OML_LONG_VALUE, 2);
+  f = create_filter ("avg", "inst", OML_INT32_VALUE, 2);
 
   instdata = (AvgInstanceData*)f->instance_data;
 
-  long input [] = { 1, 2, 3, 4, 5, 6 };
+  int32_t input [] = { 1, 2, 3, 4, 5, 6 };
   double output [] = { 3.5, 1, 6 };
 
   TestVector** v_input = (TestVector**)malloc(1 * sizeof(TestVector));
   TestVector** v_output = (TestVector**)malloc(1 * sizeof(TestVector));
 
-  v_input[0] = make_test_vector (input, OML_LONG_VALUE, 6);
+  v_input[0] = make_test_vector (input, OML_INT32_VALUE, 6);
   v_output[0] = make_test_vector (output, OML_DOUBLE_VALUE, 3);
 
   TestData* data = (TestData*) malloc (sizeof(TestData));
@@ -185,12 +185,12 @@ START_TEST (test_filter_first_create)
   OmlFilter* f = NULL;
   FirstInstanceData* data = NULL;
 
-  f = create_filter ("first", "inst", OML_LONG_VALUE, 2);
+  f = create_filter ("first", "inst", OML_INT32_VALUE, 2);
   fail_if (f == NULL, "Filter creation failed for `first' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
 
   fail_unless (f->index == 2);
-  fail_unless (f->input_type == OML_LONG_VALUE);
+  fail_unless (f->input_type == OML_INT32_VALUE);
 
   data = (FirstInstanceData*)f->instance_data;
 
@@ -214,13 +214,13 @@ START_TEST (test_filter_hist_create)
   OmlFilter* f = NULL;
   HistInstanceData* data = NULL;
 
-  f = create_filter ("histogram", "inst", OML_LONG_VALUE, 2);
+  f = create_filter ("histogram", "inst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for `histogram' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
 
   fail_unless (f->index == 2);
-  fail_unless (f->input_type == OML_LONG_VALUE);
+  fail_unless (f->input_type == OML_INT32_VALUE);
 
   data = (HistInstanceData*)f->instance_data;
 
@@ -246,13 +246,13 @@ START_TEST(test_filter_stddev_create)
   OmlFilter* f = NULL;
   StddevInstanceData* data = NULL;
 
-  f = create_filter ("stddev", "inst", OML_LONG_VALUE, 2);
+  f = create_filter ("stddev", "inst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for `histogram' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
 
   fail_unless (f->index == 2);
-  fail_unless (f->input_type == OML_LONG_VALUE);
+  fail_unless (f->input_type == OML_INT32_VALUE);
 
   data = (StddevInstanceData*)f->instance_data;
 
@@ -280,7 +280,7 @@ stddev_1_data (void)
 START_TEST (test_filter_stddev_0)
 {
   TestData* test_data = stddev_0_data ();
-  OmlFilter* f = create_filter ("stddev", "inst", OML_LONG_VALUE, 2);
+  OmlFilter* f = create_filter ("stddev", "inst", OML_INT32_VALUE, 2);
   fail_if (f == NULL);
   StddevInstanceData* instance_data = (StddevInstanceData*)f->instance_data;
   fail_if (instance_data == NULL);
@@ -293,7 +293,7 @@ END_TEST
 START_TEST (test_filter_stddev_1)
 {
   TestData* test_data = stddev_1_data ();
-  OmlFilter* f = create_filter ("stddev", "inst", OML_LONG_VALUE, 2);
+  OmlFilter* f = create_filter ("stddev", "inst", OML_INT32_VALUE, 2);
   fail_if (f == NULL);
   StddevInstanceData* instance_data = (StddevInstanceData*)f->instance_data;
   fail_if (instance_data == NULL);
@@ -314,13 +314,13 @@ START_TEST (test_filter_sum_create)
   OmlFilter* f = NULL;
   SumInstanceData* data = NULL;
 
-  f = create_filter ("sum", "inst", OML_LONG_VALUE, 2);
+  f = create_filter ("sum", "inst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for `sum' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
 
   fail_unless (f->index == 2);
-  fail_unless (f->input_type == OML_LONG_VALUE);
+  fail_unless (f->input_type == OML_INT32_VALUE);
 
   data = (SumInstanceData*)f->instance_data;
 
@@ -339,11 +339,11 @@ START_TEST (test_filter_sum_output)
   OmlFilter* f = NULL;
   SumInstanceData* instdata = NULL;
 
-  f = create_filter ("sum", "inst", OML_LONG_VALUE, 2);
+  f = create_filter ("sum", "inst", OML_INT32_VALUE, 2);
 
   instdata = (SumInstanceData*)f->instance_data;
 
-  long input [] = { 1, -2, 3, 4, 5, 6 };
+  int32_t input [] = { 1, -2, 3, 4, 5, 6 };
   double output [] = { 17. };
   double input2 [] = { 1.1, -2.2, 3.3, 4.4, 5.5, 6.6 };
   double output2 [] = { 18.7 };
@@ -351,7 +351,7 @@ START_TEST (test_filter_sum_output)
   TestVector** v_input = (TestVector**)malloc(2 * sizeof(TestVector));
   TestVector** v_output = (TestVector**)malloc(2 * sizeof(TestVector));
 
-  v_input[0] = make_test_vector (input, OML_LONG_VALUE, 6);
+  v_input[0] = make_test_vector (input, OML_INT32_VALUE, 6);
   v_output[0] = make_test_vector (output, OML_DOUBLE_VALUE, 1);
   v_input[1] = make_test_vector (input2, OML_DOUBLE_VALUE, 6);
   v_output[1] = make_test_vector (output2, OML_DOUBLE_VALUE, 1);
@@ -379,13 +379,13 @@ START_TEST (test_filter_delta_create)
   OmlFilter* f = NULL;
   DeltaInstanceData* data = NULL;
 
-  f = create_filter ("delta", "inst", OML_LONG_VALUE, 2);
+  f = create_filter ("delta", "inst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for `delta' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
 
   fail_unless (f->index == 2);
-  fail_unless (f->input_type == OML_LONG_VALUE);
+  fail_unless (f->input_type == OML_INT32_VALUE);
 
   data = (DeltaInstanceData*)f->instance_data;
 
@@ -405,11 +405,11 @@ START_TEST (test_filter_delta_output)
   OmlFilter* f = NULL;
   DeltaInstanceData* instdata = NULL;
 
-  f = create_filter ("delta", "inst", OML_LONG_VALUE, 2);
+  f = create_filter ("delta", "inst", OML_INT32_VALUE, 2);
 
   instdata = (DeltaInstanceData*)f->instance_data;
 
-  long input [] = { 1, -2, 3, 4, 5, 6 };
+  int32_t input [] = { 1, -2, 3, 4, 5, 6 };
   double output [] = { 6., 6. };
   double input2 [] = { 1.1, -2.2, 3.3, 4.4, 5.5, 6.6 };
   double output2 [] = { 0.6, 6.6 }; /* delta carried over from the previous output */
@@ -417,7 +417,7 @@ START_TEST (test_filter_delta_output)
   TestVector** v_input = (TestVector**)malloc(2 * sizeof(TestVector));
   TestVector** v_output = (TestVector**)malloc(2 * sizeof(TestVector));
 
-  v_input[0] = make_test_vector (input, OML_LONG_VALUE, 6);
+  v_input[0] = make_test_vector (input, OML_INT32_VALUE, 6);
   v_output[0] = make_test_vector (output, OML_DOUBLE_VALUE, 2);
   v_input[1] = make_test_vector (input2, OML_DOUBLE_VALUE, 6);
   v_output[1] = make_test_vector (output2, OML_DOUBLE_VALUE, 2);

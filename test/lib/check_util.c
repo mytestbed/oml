@@ -49,6 +49,22 @@ make_vector (void* v, OmlValueT type, int n)
           for (i = 0; i < n; i++)
             result[i].doubleValue = ((double*)v)[i];
           break;
+        case OML_INT32_VALUE:
+          for (i = 0; i < n; i++)
+            result[i].int32Value = ((int32_t*)v)[i];
+          break;
+        case OML_UINT32_VALUE:
+          for (i = 0; i < n; i++)
+            result[i].uint32Value = ((uint32_t*)v)[i];
+          break;
+        case OML_INT64_VALUE:
+          for (i = 0; i < n; i++)
+            result[i].int64Value = ((int64_t*)v)[i];
+          break;
+        case OML_UINT64_VALUE:
+          for (i = 0; i < n; i++)
+            result[i].uint64Value = ((uint64_t*)v)[i];
+          break;
         default:
           // Can't do non-numeric types yet
           return NULL;
@@ -117,6 +133,22 @@ vector_values_check (OmlValue* values, OmlValueU* expected, OmlValueT type, int 
           if (values[i].value.stringValue.size != expected[i].stringValue.size)
             return 0;
           if (strcmp (values[i].value.stringValue.ptr, expected[i].stringValue.ptr) != 0)
+            return 0;
+          break;
+        case OML_INT32_VALUE:
+          if (values[i].value.int32Value != expected[i].int32Value)
+            return 0;
+          break;
+        case OML_UINT32_VALUE:
+          if (values[i].value.uint32Value != expected[i].uint32Value)
+            return 0;
+          break;
+        case OML_INT64_VALUE:
+          if (values[i].value.int64Value != expected[i].int64Value)
+            return 0;
+          break;
+        case OML_UINT64_VALUE:
+          if (values[i].value.uint64Value != expected[i].uint64Value)
             return 0;
           break;
         default:
