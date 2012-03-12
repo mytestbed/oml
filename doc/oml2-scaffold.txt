@@ -67,8 +67,8 @@ Use the ':long' type as the underlying type for the ':int' and
 
 -i::
 --int32::
-Use the ':int32' type as the underlying type for the ':int' and
-':integer' aliases. This is the default behaviour.
+Use the ':int32' type as the underlying type for the ':int', ':integer'
+and ':long' aliases. This is the default behaviour.
 
 -v::
 --version::

@@ -62,11 +62,11 @@ Generate C code for an OML application from an application definition file
     force = true
   end
   opts.on('-l', "--long",
-      "Alias :int and :integer to underlying :long (default)") do
+      "Alias :int and :integer to underlying :long") do
     @@integer_alias = :long
   end
   opts.on('-i', "--int32",
-      "Alias :int and :integer to underyling :int32") do
+      "Alias :int and :integer and :long to underyling :int32 (default)") do
     @@integer_alias = :int32
   end
   opts.on(nil, "--oml",
@@ -634,7 +634,12 @@ class Metric < Struct.new(:name, :type, :opts)
         "OML_INT32_VALUE"
       end
     when :long
-      "OML_LONG_VALUE"
+      case @@integer_alias
+      when :long
+        "OML_LONG_VALUE"
+      when :int32
+        "OML_INT32_VALUE"
+      end
     when :float, :double, :real
       "OML_DOUBLE_VALUE"
     when :int32
