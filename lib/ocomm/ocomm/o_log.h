@@ -48,13 +48,6 @@ typedef void (*o_vlog_fn)(int log_level, const char* format, va_list va);
 extern o_log_fn o_log;
 extern o_vlog_fn o_vlog;
 
-/*! \fn o_log_fn o_set_log(o_log_fn log_fn)
-  \brief Set the log function, or if NULL return the default function.
-  \param log_fn Function to use for logging
-*/
-o_log_fn
-o_set_log(o_log_fn log_fn);
-
 /*! \fn void o_set_log_file(char* name)
   \brief Set the file to send log messages to, '-' for stdout
   \param name Name of logfile
@@ -68,6 +61,9 @@ o_set_log_file(char* name);
 */
 void
 o_set_log_level(int level);
+
+void o_set_simplified_logging (void);
+void o_set_mixed_logging (void);
 
 #ifdef __cplusplus
 }

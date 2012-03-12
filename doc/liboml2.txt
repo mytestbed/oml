@@ -336,13 +336,11 @@ followed by n pairs of dots "..", where n is the debug level set via
 NOTES
 -----
 
-The style of logging in OML 2.5 and earlier is now deprecated.  In OML
-2.6 the old style is still the default, and the new style of logging
-can be selected by setting OML_FEATURES="default-log-simple".  In OML
-2.7 the default will be the new style, and the old style will be
-available using OML_FEATURES="default-log-mixed".  In OML 2.8 the old
-style will be removed entirely and the "default-log-mixed" feature
-will no longer be recognized.
+The mixed style of logging in OML 2.6 and earlier is now deprecated.  In
+OML 2.7 upwards the default is the new style, and the old style will be
+available using OML_FEATURES="default-log-mixed". In OML 2.8 the old
+style will be removed entirely and the "default-log-mixed" feature will
+no longer be recognized.
 
 BUGS
 ----

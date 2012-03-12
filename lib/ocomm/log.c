@@ -34,16 +34,16 @@
 
 extern int errno;
 
-static void o_log_default(int level, const char* format, ...);
-static void o_vlog_default(int level, const char* format, va_list va);
+static void o_log_mixed(int level, const char* format, ...);
+static void o_vlog_mixed(int level, const char* format, va_list va);
 static void o_log_simplified(int level, const char* format, ...);
 static void o_vlog_simplified(int level, const char* format, va_list va);
 
 static FILE* logfile;
 int o_log_level = O_LOG_INFO;
 
-o_log_fn o_log = o_log_default;
-o_vlog_fn o_vlog = o_vlog_default;
+o_log_fn o_log = o_log_simplified;
+o_vlog_fn o_vlog = o_vlog_simplified;
 
 void
 o_set_log_file (char* name)
@@ -71,42 +71,22 @@ o_set_log_level (int level)
   o_log_level = level;
 }
 
-o_log_fn
-o_set_log (o_log_fn new_log_fn)
-{
-  if ((o_log = new_log_fn) == NULL) {
-    o_log = o_log_default;
-    o_vlog = o_vlog_default;
-  } else {
-    fprintf (stderr,
-             "WARNING:  using custom log functions is now deprecated;\n"
-             "WARNING:  this feature will be removed in OML v2.7.0\n");
-  }
-  return o_log;
-}
-
 void
-_o_set_simplified_logging (void)
+o_set_simplified_logging (void)
 {
   o_log = o_log_simplified;
   o_vlog = o_vlog_simplified;
 }
 
 void
-_o_set_default_logging (void)
+o_set_mixed_logging (void)
 {
-  o_log = o_log_default;
-  o_vlog = o_vlog_default;
-}
-
-int
-_o_oldstyle_logging (void)
-{
-  return (o_vlog == o_vlog_default);
+  o_log = o_log_mixed;
+  o_vlog = o_vlog_mixed;
 }
 
 void
-o_vlog_default (int level, const char *format, va_list va)
+o_vlog_mixed (int level, const char *format, va_list va)
 {
   if (level > o_log_level) return;
 
@@ -220,14 +200,14 @@ o_vlog_simplified (int level, const char *format, va_list va)
 }
 
 void
-o_log_default(int level, const char* format, ...)
+o_log_mixed(int level, const char* format, ...)
 {
   if (level > o_log_level) return;
 
   va_list va;
   va_start(va, format);
 
-  o_vlog_default (level, format, va);
+  o_vlog_mixed (level, format, va);
 
   va_end(va);
 }

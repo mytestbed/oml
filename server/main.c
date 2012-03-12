@@ -188,8 +188,7 @@ setup_logging (char *logfile, int level)
 
   o_set_log_file(logfile);
   o_set_log_level(level);
-  extern void _o_set_simplified_logging (void);
-  _o_set_simplified_logging ();
+  o_set_simplified_logging ();
 }
 
 void

@@ -61,9 +61,6 @@ static void setup_features(const char * const features);
 static char *default_uri(const char *app_name, const char *name, const char *experimentId);
 
 extern int parse_config(char* config_file);
-extern void _o_set_simplified_logging (void);
-extern void _o_set_default_logging (void);
-extern int  _o_oldstyle_logging (void);
 
 /**
  * @brief function called by the application to initialise the oml measurements
@@ -92,14 +89,15 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
     logerror("Found illegal whitespace in application name '%s'\n", application);
     return -1;
   }
+  if (custom_oml_log) {
+    logerror("Use of custom_oml_log in omlc_init() is deprecated since 2.7.0; the last parameter MUST be NULL\n");
+    return -1;
+  }
 
   omlc_instance = NULL;
 
   o_set_log_level(O_LOG_INFO);
-  if (custom_oml_log)
-    o_set_log (custom_oml_log);
-  else
-    _o_set_default_logging();
+  o_set_simplified_logging();
 
   if (pargc && arg) {
     int i;
@@ -239,13 +237,6 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
            VERSION,
            OML_PROTOCOL_VERSION,
            OMLC_COPYRIGHT);
-
-  if (_o_oldstyle_logging ()) {
-    o_log (O_LOG_WARN,
-           "Old style logging (\"default-log-mixed\") selected; "
-           "OML v2.7.0 will make new style logging the default; "
-           "see man liboml2(1) for details\n");
-  }
 
   return 0;
 }
@@ -1066,8 +1057,8 @@ static struct {
   const char *name;
   void (*enable)(void);
 } feature_table [] = {
-  { "default-log-simple", _o_set_simplified_logging },
-  { "default-log-mixed", _o_set_default_logging },
+  { "default-log-simple", o_set_simplified_logging },
+  { "default-log-mixed", o_set_mixed_logging },
 };
 static const size_t feature_count = sizeof (feature_table) / sizeof (feature_table[0]);
 
