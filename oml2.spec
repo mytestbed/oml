@@ -57,13 +57,13 @@ rm -rf %{buildroot}
 /usr/lib/liboml2.la
 /usr/lib/liboml2.so.0
 /usr/lib/liboml2.so.0.6.1
-/usr/share/info/dir
 /usr/share/info/oml-user-manual.info.gz
 %doc /usr/share/man/man1/liboml2.1.gz
 %doc /usr/share/man/man1/oml2-proxy-server.1.gz
 %doc /usr/share/man/man1/oml2-server.1.gz
 %doc /usr/share/man/man5
 %dir /var/lib/oml2
+%exclude /usr/share/info/dir
 
 %files devel
 /usr/lib/liboml2.so

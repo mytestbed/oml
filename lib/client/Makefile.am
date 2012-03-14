@@ -68,7 +68,7 @@ oml2-scaffold:	$(scaffold_src) Makefile
 	chmod +x oml2-scaffold
 
 progname=scaffold
-installed_name = oml2-$(progname)
+installed_name = $(bindir)/oml2-$(progname)
 installed_link_name = $(DESTDIR)$(bindir)/oml2_$(progname)
 install-exec-hook:
 	rm -f $(installed_link_name)
