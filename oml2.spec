@@ -7,8 +7,8 @@ License:                MIT
 URL:                    http://oml.mytestbed.net
 Name:                   %{name}
 Version:                %{version}
-Release:		1
-Source:                 http://oml.mytestbed.net/attachments/download/583/oml2-2.6.1.tar.gz
+Release:                1
+Source:                 http://mytestbed.net/attachments/download/641/oml2-2.6.1.tar.gz
 Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Prefix:                 /usr
 Group:                  System/Libraries
@@ -71,6 +71,8 @@ rm -rf %{buildroot}
 /usr/include
 /usr/bin/oml2_scaffold
 /usr/bin/oml2-scaffold
+/usr/share/oml2/oml4r-example.rb
+/usr/share/oml2/oml4r.rb
 %doc /usr/share/man/man1/oml2_scaffold.1.gz
 %doc /usr/share/man/man1/oml2-scaffold.1.gz
 %doc /usr/share/man/man3

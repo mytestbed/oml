@@ -75,5 +75,5 @@ install-exec-hook:
 	$(LN_S) $(installed_name) $(installed_link_name)
 
 sharedir = $(datadir)/@PACKAGE@
-share_DATA = $(srcdir)/ruby/oml4r.rb \
+dist_share_DATA = $(srcdir)/ruby/oml4r.rb \
              $(srcdir)/ruby/oml4r-example.rb
