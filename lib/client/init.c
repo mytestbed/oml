@@ -1138,8 +1138,6 @@ default_uri(const char *app_name, const char *name, const char *experimentId)
   remaining--;
   strncat(uri, time, remaining);
 
-  printf("%s, %d\n", uri, remaining);
-
   return uri;
 }
 
