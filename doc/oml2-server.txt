@@ -9,7 +9,7 @@ SYNOPSIS
 --------
 [verse]
 *oml2-server* [--version | -v] [-d loglevel | --debug-level=loglevel]
-	  [-l port | --listen=port] [--data-dir] [--logfile=file]
+	  [-l port | --listen=port] [--data-dir=dir] [--logfile=file]
 	  [-? | --help]
 
 DESCRIPTION
