@@ -341,7 +341,8 @@ process_meta(ClientHandler* self, char* key, char* value)
 
 /**
  * \brief analyse the header
- * \param self the client handler
+ * \param line_p a pointer to the line to read into the buffer
+ * \param length_p a pointer to the length of the line
  * \param mbuf the buffer that contain the header and the data
  * \return 1 if successful, 0 otherwise
  */
@@ -600,7 +601,7 @@ process_text_message(
 /**
  * \brief function called when the socket receive some data
  * \param source the socket event
- * \param handle the cleint handler
+ * \param handle the client handler
  * \param buf data received from the socket
  * \param bufsize the size of the data set from the socket
  */
