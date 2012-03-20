@@ -30,10 +30,9 @@ check_server_SOURCES = \
 check_liboml2_CFLAGS = @CHECK_CFLAGS@
 check_server_CFLAGS = @CHECK_CFLAGS@
 
-check_liboml2_LDADD = \
+check_liboml2_LDADD = @CHECK_LIBS@ \
 	$(top_builddir)/lib/client/liboml2.la \
-	$(top_builddir)/lib/ocomm/libocomm.la \
-	@CHECK_LIBS@
+	$(top_builddir)/lib/ocomm/libocomm.la
 
 check_server_LDADD = @CHECK_LIBS@ \
 	$(top_builddir)/lib/shared/libshared.la \
