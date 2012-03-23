@@ -45,7 +45,8 @@
 
 #define DEF_TABLE_COUNT 10
 
-static void
+/* XXX: This cannot be static anymore if we want to test it... */
+void
 client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 
 static void
