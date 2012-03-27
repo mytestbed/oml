@@ -262,6 +262,9 @@ mbuf_check_resize (MBuffer* mbuf, size_t bytes)
  *  mbuf's write pointer, and the write pointer is advanced by len
  *  bytes.
  *
+ *  @param mbuf the mbuf to write bytes into
+ *  @param buf the bytes to write
+ *  @param len the length of the buffer of bytes (not including \0 for strings)
  *  @return 0 on success, -1 on failure.
  *
  */
