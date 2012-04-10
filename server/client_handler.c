@@ -575,6 +575,7 @@ process_text_message(
     if (read_line(&line, &len, mbuf) == 0) {
       return 0;
     }
+    mbuf_read_skip(mbuf, len+1);
 
     // split line into array
     char* a[DEF_NUM_VALUES];
