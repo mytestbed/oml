@@ -80,25 +80,13 @@ database_find (char* name)
   }
 
   char *start_time_str = self->get_metadata (self, "start_time");
-  char *method;
 
-  if (start_time_str == NULL)
-    {
-      struct timeval tv;
-      gettimeofday(&tv, NULL);
-      self->start_time = tv.tv_sec;
-      char s[64];
-      snprintf (s, LENGTH(s), "%lu", self->start_time);
-      self->set_metadata (self, "start_time", s);
-      method = "Set";
-    }
-  else
+  if (start_time_str != NULL)
     {
       self->start_time = strtol (start_time_str, NULL, 0);
       xfree (start_time_str);
-      method = "Retrieved";
+      loginfo("Experiment '%s': Retrieved DB start-time = %lu\n", name, self->start_time);
     }
-  loginfo("Experiment '%s': %s DB start-time = %lu\n", name, method, self->start_time);
 
   // hook this one into the list of active databases
   self->next = first_db;

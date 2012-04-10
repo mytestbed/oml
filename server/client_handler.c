@@ -331,7 +331,10 @@ process_meta(ClientHandler* self, char* key, char* value)
       long start_time = atol(value);
       if (self->database->start_time == 0) {
         // seed it with a time in the past
-        self->database->start_time = start_time - 100;
+        self->database->start_time = start_time;// - 100;
+        char s[64];
+        snprintf (s, LENGTH(s), "%lu", start_time);
+        self->database->set_metadata (self->database, "start_time", s);
       }
       self->time_offset = start_time - self->database->start_time;
     }
