@@ -421,6 +421,12 @@ mbuf_find (MBuffer* mbuf, uint8_t c)
   return result;
 }
 
+/**
+ * \brief find the first byte in MBuf different from given byte
+ * \param mbuf MBuffer to search
+ * \param c byte to *not* find
+ * \return number of bytes to skip to find a byte different than c
+ */
 size_t
 mbuf_find_not (MBuffer* mbuf, uint8_t c)
 {

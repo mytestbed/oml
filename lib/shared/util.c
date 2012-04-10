@@ -29,6 +29,10 @@
 #include "mem.h"
 #include "util.h"
 
+/**
+ * \brief Remove trailing space from a string
+ * \param[in,out] str the string to chomp, with the first trailing space replaced by '\0'
+ */
 void
 chomp (char* str)
 {
