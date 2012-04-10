@@ -441,7 +441,7 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
     self->state = C_PROTOCOL_ERROR;
     return;
   }
-  logdebug("'%s': bin - sender '%s' insert into table %d, seq no: %d \n",
+  logdebug("'%s': bin - sender '%s' insert into table %d, seq no: %d, ts: %f\n",
            self->name, self->sender_name, index, header->seqno);
   self->database->insert(self->database,
                          table,
@@ -550,6 +550,8 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
       logerror("Error converting value of type %d from string '%s'\n", v->type, val);
   }
 
+  logdebug("'%s': text - sender '%s' insert into table %d, seq no: %d, ts: %f\n",
+           self->name, self->sender_name, index, seq_no, ts);
   self->database->insert(self->database, table, self->sender_id, seq_no,
                          ts, self->values_vectors[table_index], size - 3);
 }
