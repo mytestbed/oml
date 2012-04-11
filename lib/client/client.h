@@ -140,6 +140,8 @@ bin_writer_new(OmlOutStream* out_stream);
 
 extern OmlOutStream*
 file_stream_new(const char *file);
+int file_stream_set_buffered(OmlOutStream* hdl, int buffered);
+int file_stream_get_buffered(OmlOutStream* hdl); 
 
 extern OmlOutStream*
 net_stream_new(const char *transport, const char *hostname, const char *port);

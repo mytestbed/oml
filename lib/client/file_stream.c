@@ -107,11 +107,83 @@ file_stream_write(
 ) {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
 
+  if (!self) return -1;
   FILE* f = self->f;
   if (f == NULL) return -1;
 
   size_t count = _file_stream_write(hdl, buffer, length);
   return count;
+}
+
+/**
+ * \brief write data to a file and flush it afterwards
+ *
+ * Use fflush(3) after each right.
+ *
+ * \param hdl pointer to the OmlOutStream
+ * \param buffer pointer to the buffer containing the data to write
+ * \param buffer length of the buffer to write
+ * \return amount of data written, or -1 on error
+ */
+size_t
+file_stream_write_flush(
+  OmlOutStream* hdl,
+  uint8_t* buffer,
+  size_t  length
+) {
+  OmlFileOutStream* self = (OmlFileOutStream*)hdl;
+
+  if (!self) return -1;
+  FILE* f = self->f;
+  if (f == NULL) return -1;
+
+  size_t count = _file_stream_write(hdl, buffer, length);
+  fflush(f);
+
+  return count;
+}
+
+/**
+ * Set the buffering startegy of an +OmlOutStream+
+ *
+ * Tell whether fflush(3) should be used after each write.
+ *
+ * \param hdl the +OmlOutStream+
+ * \param buffered if 0, unbuffered operation is used, otherwise buffered operation is
+ * \parame return 0 on success, -1 on failure (+hdl+ was NULL)
+ */
+int file_stream_set_buffered(
+    OmlOutStream* hdl,
+    int buffered
+) {
+  OmlFileOutStream* self = (OmlFileOutStream*)hdl;
+
+  if (self == NULL) return -1;
+
+  if(buffered)
+    hdl->write=file_stream_write;
+  else
+    hdl->write=file_stream_write_flush;
+
+  return 0;
+}
+
+/**
+ * Get the buffering startegy of an +OmlOutStream+
+ *
+ * Returns 0 if fflush(3) is used after each write, 1 otherwise.
+ *
+ * \param hdl the +OmlOutStream+
+ * \parame return 0 if unbuffered, 1 if buffered, -1 on failure (+hdl+ was NULL)
+ */
+int file_stream_get_buffered(
+    OmlOutStream* hdl
+) {
+  OmlFileOutStream* self = (OmlFileOutStream*)hdl;
+
+  if (self == NULL) return -1;
+
+  return (hdl->write==file_stream_write);
 }
 
 /*
