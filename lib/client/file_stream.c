@@ -76,6 +76,29 @@ file_stream_new(const char *file)
   return (OmlOutStream*)self;
 }
 
+/**
+ * \brief write data to a file without any sanity check
+ * \param hdl pointer to the OmlOutStream
+ * \param buffer pointer to the buffer containing the data to write
+ * \param buffer length of the buffer to write
+ * \return amount of data written, or -1 on error
+ */
+static inline size_t
+_file_stream_write(
+  OmlOutStream* hdl,
+  uint8_t* buffer,
+  size_t  length
+) {
+  return fwrite(buffer, 1, length, (FILE*)((OmlFileOutStream*)hdl)->f);
+}
+
+/**
+ * \brief write data to a file
+ * \param hdl pointer to the OmlOutStream
+ * \param buffer pointer to the buffer containing the data to write
+ * \param buffer length of the buffer to write
+ * \return amount of data written, or -1 on error
+ */
 size_t
 file_stream_write(
   OmlOutStream* hdl,
@@ -87,7 +110,7 @@ file_stream_write(
   FILE* f = self->f;
   if (f == NULL) return -1;
 
-  size_t count = fwrite(buffer, 1, length, f);
+  size_t count = _file_stream_write(hdl, buffer, length);
   return count;
 }
 
