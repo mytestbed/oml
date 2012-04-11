@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2012 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,50 +20,51 @@
  * THE SOFTWARE.
  *
  */
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <math.h>
 #include <check.h>
-#include <mbuf.h>
-
 #include "util.h"
 
-START_TEST (test_bw_create)
+#define N_URI_TEST 5
+START_TEST (test_util_uri)
 {
-  /*
-  MBuffer* mbuf = mbuf_create ();
+  int i;
+  OmlURIType res;
+  struct {
+    char *uri;
+    OmlURIType expect;
+  } test_data[N_URI_TEST];
 
-  fail_if (mbuf == NULL);
-  fail_if (mbuf->base == NULL);
-  fail_if (mbuf->rdptr != mbuf->base);
-  fail_if (mbuf->wrptr != mbuf->base);
-  fail_if (mbuf->fill != 0);
-  fail_unless (mbuf->length > 0);
-  fail_if (mbuf->wr_remaining != mbuf->length);
-  fail_if ((int)mbuf->rd_remaining != (mbuf->wrptr - mbuf->rdptr));
-  unsigned int i;
-  for (i = 0; i < mbuf->length; i++)
-	fail_if (mbuf->base[i] != 0);
-  */
+  test_data[0].uri = "blah";
+  test_data[0].expect = OML_URI_UNKNOWN;
+  test_data[1].uri = "file://blah";
+  test_data[1].expect = OML_URI_FILE;
+  test_data[2].uri = "flush://blah";
+  test_data[2].expect = OML_URI_FILE_FLUSH;
+  test_data[3].uri = "tcp://blah";
+  test_data[3].expect = OML_URI_TCP;
+  test_data[4].uri = "udp://blah";
+  test_data[4].expect = OML_URI_UDP;
+
+  for (i=0; i<N_URI_TEST; i++) {
+    fail_unless(
+        (res=oml_uri_type(test_data[i].uri)) == test_data[i].expect,
+        "Invalid type for `%s': %d instead of %d", test_data[i].uri, res, test_data[i].expect); 
+  }
 }
 END_TEST
 
-
-
 Suite*
-bw_suite (void)
+util_suite (void)
 {
-  Suite* s = suite_create ("BufferedWriter");
+  Suite* s = suite_create ("Util");
 
-  /* Mbuf test cases */
-  TCase* tc_bw = tcase_create ("BfWr");
+  /* Parser test cases */
+  TCase* tc_util = tcase_create ("Util");
 
-  /* Add tests to "BfWr" */
-  tcase_add_test (tc_bw, test_bw_create);
+  /* Add tests to test case "Parser" */
+  tcase_add_test (tc_util, test_util_uri);
 
+  suite_add_tcase (s, tc_util);
 
-  suite_add_tcase (s, tc_bw);
   return s;
 }
 
@@ -72,4 +73,6 @@ bw_suite (void)
  mode: C
  tab-width: 2
  indent-tabs-mode: nil
+ End:
+ vim: sw=2:sts=2:expandtab
 */

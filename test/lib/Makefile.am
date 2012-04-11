@@ -15,7 +15,7 @@ check_liboml2_SOURCES = \
 	check_liboml2_marshal.c \
 	check_liboml2_mbuf.c \
 	check_liboml2_cbuf.c \
-	check_liboml2_buffered_writer.c \
+	check_liboml2_writers.c \
 	check_liboml2_suites.h \
 	$(top_srcdir)/lib/client/oml2/omlc.h \
 	$(top_srcdir)/lib/client/oml2/oml_filter.h
@@ -53,7 +53,8 @@ BUILT_SOURCES = \
 CLEANFILES = \
 	stddev_0.c \
 	stddev_1.c \
-	check_oml2.log
+	check_oml2.log \
+	test_fw_create_buffered
 
 STDDEV = $(srcdir)/stddev.py
 
