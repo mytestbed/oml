@@ -8,6 +8,7 @@ check_liboml2_SOURCES = \
 	check_util.c \
 	check_util.h \
 	check_liboml2.c \
+	check_liboml2_util.c \
 	check_liboml2_api.c \
 	check_liboml2_filters.c \
 	check_liboml2_parser.c \

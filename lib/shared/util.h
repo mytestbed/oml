@@ -39,6 +39,18 @@ const char* oml_to_postgresql_type (OmlValueT type);
 
 char* to_octets (unsigned char* buf, int len);
 
+typedef enum {
+  OML_URI_UNKNOWN = -1,
+  OML_URI_FILE = 0,
+  OML_URI_FILE_FLUSH,
+  OML_URI_TCP,
+  OML_URI_UDP,
+} OmlURIType;
+
+OmlURIType oml_uri_type(const char* uri);
+#define oml_uri_is_file(t) (t>=OML_URI_FILE && t<=OML_URI_FILE_FLUSH)
+#define oml_uri_is_network(t) (t>=OML_URI_TCP && t<=OML_URI_UDP)
+
 #endif // UTIL_H__
 
 /*

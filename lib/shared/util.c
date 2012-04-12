@@ -151,6 +151,25 @@ to_octets (unsigned char* buf, int len)
   return out;
 }
 
+/**
+ * Parse the scheme of na URI and return its type as an +OmlURIType+
+ * \param [in] uri the URI to parse
+ * \return an +OmlURIType+ indicating the type of the URI
+ */
+OmlURIType oml_uri_type(const char* uri) {
+  int len = strlen(uri);
+  
+  if(len>5 && !strncmp(uri, "flush", 5)) 
+    return OML_URI_FILE_FLUSH;
+  else if(len>4 && !strncmp(uri, "file", 4))
+    return OML_URI_FILE;
+  else if(len>3 && !strncmp(uri, "tcp", 3))
+      return OML_URI_TCP;
+  else if(len>3 && !strncmp(uri, "udp", 3))
+      return OML_URI_UDP;
+  return OML_URI_UNKNOWN;
+}
+
 /*
  Local Variables:
  mode: C

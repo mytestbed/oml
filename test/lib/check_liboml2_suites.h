@@ -26,6 +26,7 @@
 #include <check.h>
 
 extern Suite* filters_suite (void);
+extern Suite* util_suite (void);
 extern Suite* api_suite (void);
 extern Suite* parser_suite (void);
 extern Suite* marshal_suite (void);
