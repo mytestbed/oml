@@ -40,6 +40,7 @@
 #include <oml2/oml_filter.h>
 #include <oml2/oml_writer.h>
 #include "filter/factory.h"
+#include "util.h"
 #include "client.h"
 #include "version.h"
 
@@ -426,7 +427,7 @@ usage(void)
   printf("  --oml-list-filters     .. List the available types of filters\n");
   printf("  --oml-help             .. Print this message\n");
   printf("\n");
-  printf("Valid URI: [tcp|udp]:host:port or file:localPath\n");
+  printf("Valid URI: [tcp|udp]:host:port, file:localPath or flush:localPath\n");
   printf("\n");
   printf("The following environment variables are recognized:\n");
   printf("  OML_NAME=id            .. Name to identify this app instance (--oml-id)\n");
@@ -469,9 +470,11 @@ parse_dest_uri (const char *uri, const char **protocol, const char **path, const
   char *parts[3] = { NULL, NULL, NULL };
   size_t lengths[3] = { 0, 0, 0 };
   int is_valid = 1;
+  OmlURIType uri_type;
 
   if (uri) {
     int i, j;
+    uri_type = oml_uri_type(uri);
     parts[0] = xstrndup (uri, strlen (uri));
     for (i = 1, j = 0; i < MAX_PARTS; i++, j = 0) {
       parts[i] = parts[i-1];
@@ -491,11 +494,11 @@ parse_dest_uri (const char *uri, const char **protocol, const char **path, const
     *protocol = *path = *port = NULL;
     if (lengths[0] > 0 && lengths[1] > 0) {
       /* Case 1:  "abc:xyz" or "abc:xyz:123" -- if abc is a transport, use it; otherwise, it's a hostname/path */
-      if (strcmp (parts[0], "tcp") == 0 || strcmp (parts[0], "udp") == 0) {
+      if (oml_uri_is_network(uri_type)) {
         *protocol = trydup (0);
         *path = trydup (1);
         *port = trydup (2);
-      } else if (strcmp (parts[0], "file") == 0) {
+      } else if (oml_uri_is_file(uri_type)) {
         *protocol = trydup (0);
         *path = trydup (1);
         *port = NULL;
@@ -514,11 +517,9 @@ parse_dest_uri (const char *uri, const char **protocol, const char **path, const
       *port = NULL;
 
       /* Look for potential user errors and issue a warning but proceed as normal */
-      if (strcmp (*path, "tcp") == 0 ||
-          strcmp (*path, "udp") == 0 ||
-          strcmp (*path, "file") == 0) {
-        logwarn ("Server URI with just a hostname of '%s'; did you mean '%s:<hostname>'?\n",
-                 *path, *path);
+      if (uri_type != OML_URI_UNKNOWN) {
+        logwarn ("Server URI with unknown scheme, assuming 'tcp:%s'\n",
+                 *path);
       }
     } else {
       logerror ("Server URI '%s' seems to be empty\n", uri);
@@ -545,6 +546,8 @@ parse_dest_uri (const char *uri, const char **protocol, const char **path, const
 OmlWriter*
 create_writer(const char* uri, enum StreamEncoding encoding)
 {
+  OmlURIType uri_type = oml_uri_type(uri);
+
   if (omlc_instance == NULL){
     logerror("No omlc_instance:  OML client was not initialized properly.\n");
     return NULL;
@@ -578,7 +581,7 @@ create_writer(const char* uri, enum StreamEncoding encoding)
 
   const char *filepath = NULL;
   const char *hostname = NULL;
-  if (transport && strcmp (transport, "file") == 0) {
+  if (oml_uri_is_file(uri_type)) {
     /* 'file://path/to/file' is equivalent to unix path '/path/to/file' */
     if (strncmp (path, "//", 2) == 0)
       filepath = &path[1];
@@ -598,13 +601,16 @@ create_writer(const char* uri, enum StreamEncoding encoding)
     transport = xstrndup ("tcp", strlen ("tcp"));
 
   /* If not file transport, use the OML default port if unspecified */
-  if (!port && strcmp (transport, "file") != 0)
+  if (!port && oml_uri_is_network(uri_type))
     port = xstrndup (DEF_PORT_STRING, strlen (DEF_PORT_STRING));
 
   OmlOutStream* out_stream;
-  if (strcmp(transport, "file") == 0) {
+  if (oml_uri_is_file(uri_type)) {
     out_stream = file_stream_new(filepath);
     if (encoding == SE_None) encoding = SE_Text; /* default encoding */
+    if(OML_URI_FILE_FLUSH == uri_type) {
+      file_stream_set_buffered(out_stream, 0);
+    }
   } else {
     out_stream = net_stream_new(transport, hostname, port);
     if (encoding == SE_None) encoding = SE_Binary; /* default encoding */

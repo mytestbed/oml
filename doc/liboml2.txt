@@ -175,10 +175,11 @@ OML OPTIONS
 	collection will not occur (although the application may still
 	run).
 
---oml-file file::
-Write measurements to 'file', in a human readable text format.
-Only one of '--oml-file' and '--oml-server' can be active at a
-time.
+--oml-file filename::
+Write measurements to file 'filename', in a human readable text
+format.  This is an exact equivalent to '--oml-server file:filename',
+see below.  Only one of '--oml-file' and '--oml-server' can be
+specified at a time.
 
 --oml-server uri::
 Send measurements to the OML server specified by the 'uri'.  Only
@@ -266,9 +267,9 @@ filesystem path.  The format of the network server version is:
 ---------------------------
 		[tcp|udp]:[//]<host>:<port>
 ---------------------------
-The format for the local file version is:
+The formats for the local file version is:
 ---------------------------
-		file:<local-path>
+		[file|flush]:<local-path>
 ---------------------------
 
 For instance, 'tcp:10.0.0.200:3003' or 'tcp://10.0.0.200:3003' will
@@ -283,7 +284,12 @@ file in the local filesystem. Relative paths are also accepted. There
 should be no double-slash after the colon: 'file://myfile.txt' is
 treated the same as 'file:/myfile.txt', i.e. it will try to write the
 output in the root directory. The special file URL 'file:-' will write
-output to the standard output.
+output to the standard output. The 'flush:' scheme behaves exactly in
+the same way as 'file:' except the file descriptor is flushed after
+each a measurement line is written out. This allows to prevent any
+size-based buffering in the C library from delaying the recording of
+samples. This is useful in case of, e.g., real time graphing of the
+data based on the contents of the file.
 
 ENVIRONMENT VARIABLES
 ---------------------
