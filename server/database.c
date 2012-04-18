@@ -187,48 +187,84 @@ DbTable*
 database_find_or_create_table(Database *database, struct schema *schema)
 {
   if (database == NULL) return NULL;
-  DbTable *table = database_find_table (database, schema->name);
-  int found = table ? 1 : 0;
+  if (schema == NULL) return NULL;
 
-  if (!found) {
-    table = database_create_table (database, schema);
-    if (!table)
-      return NULL;
-    if (database->table_create (database, table, 0)) {
-      logwarn ("Database adapter failed to create table; freeing it now!\n");
-      /* Unlink the table from the experiment's list */
-      DbTable* t = database->first_table;
-      if (t == table)
-        database->first_table = t->next;
-      else {
-        while (t && t->next != table)
-          t = t->next;
-        if (t && t->next)
-          t->next = t->next->next;
-      }
-      database_table_free (database, table);
-      return NULL;
-    }
-  } else {
-    /* If the table already exists, validate the client's schema against existing */
-    int same = schema_diff (schema, table->schema);
-    if (same == -1) {
-      logerror ("Schemas differ for table '%s'\n", schema->name);
-      return NULL;
-    } else if (same > 0) {
-      struct schema_field *client = &schema->fields[same-1];
-      struct schema_field *stored = &table->schema->fields[same-1];
-      if (!(((client->type == OML_UINT64_VALUE) || (client->type == OML_BLOB_VALUE)) &&
-            ((stored->type == OML_UINT64_VALUE) || (stored->type == OML_BLOB_VALUE)))) {
+  DbTable *table = NULL;
+  struct schema *s = schema_copy(schema);
+  int i = 1;
+  int diff, tnlen;
 
-        logerror ("Schemas differ at column %d:\n", same);
-        logerror ("Client declared         '%s:%s'\n",
-                  client->name, oml_type_to_s (client->type));
-        logerror ("Existing table declared '%s:%s'\n",
-                  stored->name, oml_type_to_s (stored->type));
-        return NULL;
+  tnlen = strlen(schema->name);
+  
+  do {
+    table = database_find_table (database, s->name);
+
+    if (table) {
+      diff = schema_diff (s, table->schema);
+      if (!diff) {
+        schema_free(s);
+        return table;
+
+      } else if (diff == -1) {
+        loginfo ("Schemas differ for table '%s'\n", s->name);
+
+      } else if (diff > 0) {
+        struct schema_field *client = &s->fields[diff-1];
+        struct schema_field *stored = &table->schema->fields[diff-1];
+        if (!(((client->type == OML_UINT64_VALUE) || (client->type == OML_BLOB_VALUE)) &&
+              ((stored->type == OML_UINT64_VALUE) || (stored->type == OML_BLOB_VALUE)))) {
+
+          loginfo ("Schemas differ for table '%s', at column %d:\n", s->name, diff);
+          loginfo ("Client declared         '%s:%s'\n",
+              client->name, oml_type_to_s (client->type));
+          loginfo ("Existing table declared '%s:%s'\n",
+              stored->name, oml_type_to_s (stored->type));
+        }
       }
+
+      if (i == 1) {
+        /* First time we need to increase the size */
+        /* Add space for 2 characters and null byte, that is up to '_9', with MAX_TABLE_RENAME = 10 */
+        s->name = xrealloc(s->name, tnlen + 3);
+        strncpy(s->name, schema->name, tnlen);
+      }
+      snprintf(&s->name[tnlen], 3, "_%d", ++i);
     }
+
+  } while(table && diff && (i < MAX_TABLE_RENAME));
+
+  if (table && diff) {
+    logerror ("Too many (>%d) tables named '%s_x', giving up. Please use the rename attribute of <mp /> tags.\n", MAX_TABLE_RENAME, schema->name);
+    schema_free(s);
+    return NULL;
+  }
+
+  if(i>1) {
+    /* We had to change the table name*/
+    logwarn("Creating table '%s' for new stream '%s' with incompatible schema\n", s->name, schema->name);
+    xfree(schema->name);
+    schema->name = xstrndup(s->name, tnlen+3);
+  }
+  schema_free(s);
+
+  /* No table by that name exists, so we create it */
+  table = database_create_table (database, schema);
+  if (!table)
+    return NULL;
+  if (database->table_create (database, table, 0)) {
+    logwarn ("Database adapter failed to create table; freeing it now!\n");
+    /* Unlink the table from the experiment's list */
+    DbTable* t = database->first_table;
+    if (t == table)
+      database->first_table = t->next;
+    else {
+      while (t && t->next != table)
+        t = t->next;
+      if (t && t->next)
+        t->next = t->next->next;
+    }
+    database_table_free (database, table);
+    return NULL;
   }
   return table;
 }

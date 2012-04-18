@@ -155,6 +155,17 @@ may output floating point values.  For instance, the average of a set
 of integers is real valued because of the division in the averaging
 operation.
 
+Another situation may arise when a table by the same name, but with a
+different schema, already exists in the target database. In this case,
+the linkoml:oml2-server[1] tries to incrementally number the new
+table's name (e.g., 'mymp_2', 'mymp_3',... for stream 'mymp'). It
+makes 9 attempts at renaming the table before failing. Indeed, it
+would be unwise for experiments that use a large number of instances
+of the same application with different filter configuration to not
+explicitely name each of them. This can be done through the use of a
+configuration file, with these 'rename' attribute of the relevant 'mp'
+element, see linkoml:liboml2.conf[5].
+
 OML OPTIONS
 -----------
 --oml-id id::

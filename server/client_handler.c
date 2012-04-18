@@ -248,7 +248,7 @@ process_schema(ClientHandler* self, char* value)
   int index = schema->index;
   DbTable* table = database_find_or_create_table(self->database, schema);
   if (table == NULL) {
-    logerror("'%s': Can't find table '%s' or client schema doesn't match the existing table.\n",
+    logerror("'%s': Can't find table '%s' or client schema doesn't match any of the existing tables.\n",
              self->name, schema->name);
     logerror("'%s': Failed schema: %s\n", self->name, value);
     self->state = C_PROTOCOL_ERROR;

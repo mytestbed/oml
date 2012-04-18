@@ -31,6 +31,16 @@
 #define MAX_TABLE_NAME_SIZE 64
 #define MAX_COL_NAME_SIZE 64
 
+/**
+ * Limit on the number of times the server tries to generate a table name for
+ * a different schema.
+ *
+ * XXX: If this is changed, make sure enough memory is allocated in
+ * database_find_or_create_table() to hold the new table name in the schema
+ * structure.
+ */
+#define MAX_TABLE_RENAME 10
+
 struct _database;
 struct _dbTable;
 typedef struct _dbTable DbTable;
