@@ -601,7 +601,7 @@ create_writer(const char* uri, enum StreamEncoding encoding)
     transport = xstrndup ("tcp", strlen ("tcp"));
 
   /* If not file transport, use the OML default port if unspecified */
-  if (!port && oml_uri_is_network(uri_type))
+  if (!port && !oml_uri_is_file(uri_type))
     port = xstrndup (DEF_PORT_STRING, strlen (DEF_PORT_STRING));
 
   OmlOutStream* out_stream;
