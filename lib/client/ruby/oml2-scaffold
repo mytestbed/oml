@@ -318,6 +318,12 @@ class AppDefinition
     end
   end
 
+  def write_oml_helper_functions(s)
+    @mps.each do |mp|
+      mp.write_oml_helper_function(s)
+    end
+  end
+
   def write_opts_default(s)
     a = []
     @properties.each do |p|
@@ -355,6 +361,8 @@ class AppDefinition
       write_oml_mps_t(s)
     when :oml_register
       write_oml_register(s)
+    when :oml_helpers
+      write_oml_helper_functions(s)
     else
       raise "Undefined template '#{name}'"
     end
@@ -370,6 +378,7 @@ class AppDefinition
 #ifndef #{template(:app_name).upcase}_OML_H
 #  define #{template(:app_name).upcase}_OML_H
 
+#include <stdint.h>
 #include <oml2/omlc.h>
 
 typedef struct {
@@ -393,6 +402,9 @@ oml_register_mps()
 {
 #{template(:oml_register)}
 }
+
+#{template(:oml_helpers)}
+
 #endif /* OML_FROM_MAIN */
 #endif
 |
@@ -681,34 +693,73 @@ class MeasurementPoint
     stream.puts "};"
   end
 
-  def write_inject_example(stream)
+  def write_oml_helper_function(stream)
+    if @@integer_alias == :long
+      integerval = "long"
+      integertype = "long"
+    else
+      integerval = "int32";
+      integertype = "int32_t";
+    end
+    ctypes = {
+      :string => "const char*",
+      :long => "long",
+      :integer => integertype,
+      :int32 => "int32_t",
+      :uint32 => "uint32_t",
+      :int64 => "int64_t",
+      :uint64 => "uint64_t",
+      :float => "double",
+    }
     sets = {
-      "string" => "const_string",
-      "long" => "long",
-      "int32" => "int32",
-      "uint32" => "uint32",
-      "int64" => "int64",
-      "uint64" => "uint64",
-      "double" => "double"
-    }
-    vals = {
-      "string" => '"foo"',
-      "long" => "val",
-      "int32" => "(int32_t)-val",
-      "uint32" => "(uint32_t)val",
-      "int64" => "(int64_t)-val",
-      "uint64" => "(uint64_t)val",
-      "double" => "1.0 / val"
+      :string => "const_string",
+      :long => "long",
+      :integer => integerval,
+      :int32 => "int32",
+      :uint32 => "uint32",
+      :int64 => "int64",
+      :uint64 => "uint64",
+      :float => "double",
     }
 
-
-    stream.puts "    OmlValueU v_#{@name}[#{@ms.length}];\n\n"
+    stream.print "inline void oml_inject_#{@name}(OmlMP* mp"
+    @ms.each do |m|
+      stream.print ", #{ctypes[m.type]} #{m.name}"
+    end
+    stream.puts ")\n{"
+    stream.puts "  OmlValueU v[#{@ms.length}];\n\n"
     i = 0
     @ms.each do |m|
-      stream.puts "    omlc_set_#{sets[m.type]}(v_#{@name}[#{i}], #{vals[m.type]});"
+      stream.puts "  omlc_set_#{sets[m.type]}(v[#{i}], #{m.name});"
       i = i + 1
     end
-    stream.puts "    omlc_inject(oml_mps->#{@name}, v_#{@name});"
+    stream.puts "\n  omlc_inject(mp, v);\n}\n\n"
+  end
+
+  def write_inject_example(stream)
+    if @@integer_alias == :long
+      integerval = "val"
+    else
+      integerval = "(int32_t)-val";
+    end
+    vals = {
+      :string => '"foo"',
+      :long => "val",
+      :integer => integerval,
+      :int32 => "(int32_t)-val",
+      :uint32 => "(uint32_t)val",
+      :int64 => "(int64_t)-val",
+      :uint64 => "(uint64_t)val",
+      :float => "1.0 / val",
+    }
+
+    stream.print "    oml_inject_#{@name}(oml_mps->#{@name}"
+    i = 0
+    @ms.each do |m|
+      stream.print ", #{vals[m.type]}"
+      i = i + 1
+    end
+    stream.print ");"
   end
 
 
