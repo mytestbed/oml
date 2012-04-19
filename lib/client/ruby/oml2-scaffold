@@ -720,3 +720,5 @@ def defApplication(uri, name = nil, &block)
 end
 
 run
+
+# vim: sw=2
