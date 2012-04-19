@@ -112,7 +112,7 @@ typedef union _omlValueU {
 
 #define omlc_set_const_string(var, val)                            \
   do {                                                             \
-    (var).stringValue.ptr = (val); (var).stringValue.is_const = 1; \
+    (var).stringValue.ptr = (char *)(val); (var).stringValue.is_const = 1; \
     (var).stringValue.size = (var).stringValue.length = 0;         \
   } while (0);
 
