@@ -21,10 +21,10 @@ measurement database.
 
 *oml2-server* listens for connections from clients.  It is normally
 started at boot as a system service.  Each client declares which
-experiment it belongs to (using the --oml-exp-id option of the liboml2
-client library), and then sends a stream of measurement packets.  The
-measurements for each client are stored in the experiment database
-belonging to the client's experiment.
+experiment it belongs to (using the --oml-exp-id option of the
+linkoml:liboml2 client library), and then sends a stream of
+measurement packets.  The measurements for each client are stored in
+the experiment database belonging to the client's experiment.
 
 If the client declares that it belongs to experiment 'A', then
 *oml2-server* will look for an existing experiment database named 'A'
