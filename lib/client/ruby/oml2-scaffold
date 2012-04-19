@@ -651,7 +651,8 @@ class Metric < Struct.new(:name, :type, :opts)
     when :uint64
       "OML_UINT64_VALUE"
     else
-      "OML_UNKNOWN"
+      puts "ERROR: Unknown type #{type}"
+      exit -1
     end
   end
 end
