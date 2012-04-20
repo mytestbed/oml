@@ -33,6 +33,7 @@ CLEANFILES=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	omlc_set_string.3 \
 	omlc_set_const_string.3 \
 	oml_inject_MPNAME.3 \
+	oml2_scaffold.1
 	$(html_docs)
 
 A2X_ARGS = \
