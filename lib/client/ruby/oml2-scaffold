@@ -116,7 +116,7 @@ Generate C code for an OML application from an application definition file
     end
     uri = "#{ENV['USER']}:app:#{app_name}"
     ad = AppDefinition.new uri, app_name
-    app_file = "#{app_name}.app"
+    app_file = "#{app_name}.rb"
     if File.exists?(app_file) && !force
       $stderr.puts "'#{app_file}' already exists. Use --force to overwrite"
     else
@@ -513,10 +513,10 @@ debug:
 
 $(OBJ_DIR)/$(PROGRAM).o: version.h $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
-$(PROGRAM)_popt.h: $(PROGRAM).app
+$(PROGRAM)_popt.h: $(PROGRAM).rb
     oml2-scaffold --opts $<
 
-$(PROGRAM)_oml.h: $(PROGRAM).app
+$(PROGRAM)_oml.h: $(PROGRAM).rb
     oml2-scaffold --oml $<
 ?
   end

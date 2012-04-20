@@ -54,7 +54,7 @@ Create a skeleton main file for this application.
 -a::
 --app 'name'::
 Create a skeleton OMF application definition file for an application
-with the given 'name'.  This creates a file called 'name'.app.
+with the given 'name'.  This creates a file called 'name'.rb.
 
 -f::
 --force::
@@ -402,7 +402,7 @@ application.
 Makefile;;  A Makefile for building the program with *make*(1).
 
 '--app' <app-name>::
-<app-name>.app;;  A skeleton application definition file.
+<app-name>.rb;;  A skeleton application definition file.
 
 NOTES
 -----
