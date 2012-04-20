@@ -1,9 +1,9 @@
 <omlc exp_id="my_experiment" id="my_source_id">
 	<collect url="tcp://localhost:3003">
-		<stream source="sin" samples="1" />
+		<stream source="d_sin" samples="1" />
 	</collect>
 
-	<collect url="tcp://localhost:3004"  encoding="text">
-		<stream source="sin" name="sin2" samples="1" />
+	<collect url="tcp://localhost:3003"  encoding="text">
+		<stream source="d_sin" name="avg" samples="10" />
 	</collect>	
 </omlc>

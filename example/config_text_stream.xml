@@ -1,5 +1,5 @@
 <omlc exp_id="my_experiment" id="my_source_id">
-	<collect url="tcp://localhost:3000"  encoding="text">
-		<stream source="sin" name="sin" samples="1" />
+	<collect url="tcp://localhost:3003"  encoding="text">
+		<stream source="d_sin" name="d_sin" samples="1" />
 	</collect>	
 </omlc>

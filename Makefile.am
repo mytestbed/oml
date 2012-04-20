@@ -19,6 +19,5 @@ pkgdata_DATA = example/README \
 	       example/version.h \
 	       example/Makefile \
 	       example/config.xml \
-	       example/config2.xml \
 	       example/config_text_stream.xml \
 	       example/config_two_streams.xml
