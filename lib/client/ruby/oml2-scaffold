@@ -741,6 +741,7 @@ class MeasurementPoint
   end
 
   def write_oml_helper_function(stream)
+    # FIXME: Duplicated code
     if @@integer_alias == :long
       integerval = "long"
       integertype = "long"
@@ -763,8 +764,12 @@ class MeasurementPoint
       "int64" => "int64_t",
       :uint64 => "uint64_t",
       "uint64" => "uint64_t",
+      :double => "double",
+      "double" => "double",
       :float => "double",
       "float" => "double",
+      :real => "double",
+      "real" => "double",
     }
     sets = {
       :string => "const_string",
@@ -781,8 +786,12 @@ class MeasurementPoint
       "int64" => "int64",
       :uint64 => "uint64",
       "uint64" => "uint64",
+      :double => "double",
+      "double" => "double",
       :float => "double",
       "float" => "double",
+      :real => "double",
+      "real" => "double",
     }
 
     stream.print "inline void oml_inject_#{@name}(OmlMP* mp"
@@ -820,8 +829,12 @@ class MeasurementPoint
       "int64" => "(int64_t)-val",
       :uint64 => "(uint64_t)val",
       "uint64" => "(uint64_t)val",
+      :double => "1.0 / val",
+      "double" => "1.0 / val",
       :float => "1.0 / val",
       "float" => "1.0 / val",
+      :real => "1.0 / val",
+      "real" => "1.0 / val",
     }
 
     stream.print "    oml_inject_#{@name}(oml_mps->#{@name}"
