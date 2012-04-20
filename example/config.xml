@@ -3,7 +3,7 @@
         <mp name="sin" interval="2" > <!-- interval="" -->
             <f pname="value" /> <!-- default filter -->
             
-            <f sname="foo" fname="histogram" multi_pnames="t"> 
+            <f sname="foo" fname="avg" multi_pnames="t"> 
               <!-- 'multi_pnames' ... filter looks at multiples paramters -->
               <!-- 'fp' .. filter parameters -->
               <fp name="key">1,3</fp> 

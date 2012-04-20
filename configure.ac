@@ -132,7 +132,6 @@ AC_CONFIG_FILES([Makefile
 		 server/Makefile
 		 proxy_server/Makefile
 		 doc/Makefile
-		 example/Makefile
 		 test/Makefile
 		 test/lib/Makefile
 		 test/server/Makefile

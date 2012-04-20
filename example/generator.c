@@ -1,79 +1,36 @@
-
-/*
- * This programs implements a simple sin-wave generator with
- * the output measured by OML.
- */
-
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <popt.h>
-#include <oml2/omlc.h>
-#include <ocomm/o_log.h>
 
-static float amplitude = 1.0;
-static float frequency = 0.1;
-static float sample_interval = 1;
-static float samples = -1;
+#define USE_OPTS
+#include "generator_popt.h"
 
-struct poptOption options[] = {
-  POPT_AUTOHELP
-  { "amplitude", 'b', POPT_ARG_FLOAT, &amplitude, 0,
-        "Amplitude of produce signal"},
-  { "frequency", 'd', POPT_ARG_FLOAT, &frequency, 0,
-        "Frequency of wave generated [Hz]"  },
-  { "samples", 'n', POPT_ARG_INT, &samples, 0,
-        "Number of samples to take. -1 ... forever"},
-  { "sample-interval", 's', POPT_ARG_FLOAT, &sample_interval, 0,
-        "Time between consecutive measurements [sec]"},
-  { NULL, 0, 0, NULL, 0 }
-};
+#define OML_FROM_MAIN
+#include "generator_oml.h"
 
-static OmlMPDef d_lin[] = {
-    {"label", OML_STRING_VALUE},
-    {"seq_no", OML_UINT32_VALUE},
-    {NULL, 0}
-};
-static OmlMP* m_lin;
-
-static OmlMPDef d_sin[] = {
-    {"label", OML_STRING_VALUE},
-    {"phase", OML_DOUBLE_VALUE},
-    {"value", OML_DOUBLE_VALUE},
-    {NULL, 0}
-};
-static OmlMP* m_sin;
+#include "version.h"
 
 void
-run()
-{
-  float angle = 0;
-  float delta = frequency * sample_interval * 2 * M_PI;
-  unsigned long sleep = (unsigned long)(sample_interval * 1E6);
+run(
+  opts_t* opts,
+  oml_mps_t* oml_mps
+) {
+  double angle = 0;
+  double delta = opts->frequency * opts->sample_interval * 2 * M_PI;
+  unsigned long sleep = (unsigned long)(opts->sample_interval * 1E6);
 
-  // this loop should never end if samples = -1
-  int i = samples;
+  printf("%f, %f, %f\n", M_PI,  delta, sleep);
+
+  int i = opts->samples;
   unsigned int count = 1;
   for (; i != 0; i--, count++) {
     char label[64];
     sprintf(label, "sample-%d", count);
-    {
-      // "lin" measurement point
-      OmlValueU v[2];
-      omlc_set_const_string(v[0], label);
-      omlc_set_uint32(v[1], count);
-      omlc_inject(m_lin, v);
-    }
 
-    float value = amplitude * sin(angle);
-    {
-      // "sin" measurement point
-      OmlValueU v[3];
-      omlc_set_const_string(v[0], label);
-      omlc_set_double(v[1], angle);
-      omlc_set_double(v[2], value);
-      omlc_inject(m_sin, v);
-    }
+    oml_inject_d_lin(oml_mps->d_lin, label, count);
+
+    double value = opts->amplitude * sin(angle);
+    oml_inject_d_sin(oml_mps->d_sin, label, angle, value);
 
     printf("%s %d | %f %f\n", label, count, angle, value);
 
@@ -87,18 +44,19 @@ main(
   int argc,
   const char *argv[]
 ) {
-  char c;
-
-  // registering OML measurement points
-  omlc_init("generator", &argc, argv, NULL);
-  m_lin = omlc_add_mp("lin", d_lin);
-  m_sin = omlc_add_mp("sin", d_sin);
-  omlc_start();
+  omlc_init(argv[0], &argc, argv, NULL);
 
   // parsing command line arguments
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
-  while ((c = poptGetNextOpt(optCon)) >= 0);
+  int c;
+  while ((c = poptGetNextOpt(optCon)) > 0) {}
 
-  run();
+  // Initialize measurment points
+  oml_register_mps();  // defined in xxx_oml.h
+  omlc_start();
+
+  // Do some work
+  run(g_opts, g_oml_mps);
+
   return(0);
 }
