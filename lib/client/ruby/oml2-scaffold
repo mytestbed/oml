@@ -184,36 +184,74 @@ end
 class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
 
   def write_opts_t(s)
-    case opts[:type]
-    when :int, :flag
-      type = 'int'
-    when :string
-      type = 'char*'
+    # FIXME: Duplicated code
+    if @@integer_alias == :long
+      integerval = "long"
+      integertype = "long"
     else
-      raise "Unknown type '#{opts[:type]}' for property '#{long_name}'"
+      integerval = "int32";
+      integertype = "int32_t";
     end
+    ctypes = {
+      :flag => "int",
+      "flag" => "int",
+      :string => "char*",
+      "string" => "char*",
+      :long => "long",
+      "long" => "long",
+      :integer => "int",
+      "integer" => "int",
+      :int => "int",
+      "int" => "int",
+      :int32 => "int",
+      "int32" => "int",
+      :uint32 => "unsigned int",
+      "uint32" => "unsigned int",
+      :int64 => "int",
+      "int64" => "int",
+      :uint64 => "unsigned int",
+      "uint64" => "unsigned int",
+      :double => "double",
+      "double" => "double",
+      # XXX: Deprecated
+      :float => "double",
+      "float" => "double",
+      :real => "double",
+      "real" => "double",
+    }
     var_name = (@impl[:var_name] ||= long_name)
-    s.puts "  #{type} #{var_name};"
+    s.puts "  #{ctypes[opts[:type]]} #{var_name};"
   end
 
   def default_value()
-    v = opts[:default]
-    if v
-      if opts[:type] == :string
-    v = "\"#{v}\""
-      end
-      return v
-    end
-
-    case opts[:type]
-    when :int, :flag
-      v = 0
-    when :string
-      v = '\'\0\''
-    else
-      raise "Unknown type '#{opts[:type]}' for property '#{long_name}'"
-    end
-    v
+    defaults = {
+      :flag => "0",
+      "flag" => "0",
+      :string => "\"\"",
+      "string" => "\"\"",
+      :long => "0",
+      "long" => "0",
+      :integer => "0",
+      "integer" => "0",
+      :int => "0",
+      "int" => "0",
+      :int32 => "0",
+      "int32" => "0",
+      :uint32 => "0",
+      "uint32" => "0",
+      :int64 => "0",
+      "int64" => "0",
+      :uint64 => "0",
+      "uint64" => "0",
+      :double => "0.",
+      "double" => "0.",
+      # XXX: Deprecated
+      :float => "0.",
+      "float" => "0.",
+      :real => "0.",
+      "real" => "0.",
+    }
+    return defaults[opts[:type]]
   end
 
   def popt_def()
@@ -233,25 +271,34 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
   end
 
   def arg_info()
-    case opts[:type]
-    when :flag
-      v = 'POPT_ARG_NONE'
-    when :string
-      v = 'POPT_ARG_STRING'
-    when :int
-      v = 'POPT_ARG_INT'
-    when :long
-      v = 'POPT_ARG_LONG'
-    when :long_long
-      v = 'POPT_ARG_LONGLONG'
-    when :float
-      v = 'POPT_ARG_FLOAT'
-    when :double
-      v = 'POPT_ARG_DOUBLE'
-    else
-      raise "Unknown type '#{opts[:type]}' for property '#{long_name}'"
-    end
-    v
+    opttypes = {
+      :flag => "POPT_ARG_NONE",
+      "flag" => "POPT_ARG_NONE",
+      :string => "POPT_ARG_STRING",
+      "string" => "POPT_ARG_STRING",
+      :long => "POPT_ARG_LONG",
+      "long" => "POPT_ARG_LONG",
+      :integer => "POPT_ARG_INT",
+      "integer" => "POPT_ARG_INT",
+      :int => "POPT_ARG_INT",
+      "int" => "POPT_ARG_INT",
+      :int32 => "POPT_ARG_INT",
+      "int32" => "POPT_ARG_INT",
+      :uint32 => "POPT_ARG_INT",
+      "uint32" => "POPT_ARG_INT",
+      :int64 => "POPT_ARG_INT",
+      "int64" => "POPT_ARG_INT",
+      :uint64 => "POPT_ARG_INT",
+      "uint64" => "POPT_ARG_INT",
+      :double => "POPT_ARG_DOUBLE",
+      "double" => "POPT_ARG_DOUBLE",
+      # XXX: Deprecated
+      :float => "POPT_ARG_DOUBLE",
+      "float" => "POPT_ARG_DOUBLE",
+      :real => "POPT_ARG_DOUBLE",
+      "real" => "POPT_ARG_DOUBLE",
+    }
+    return opttypes[opts[:type]]
   end
 
   def initialize(long_name, descr, letter_name, opts = {})
