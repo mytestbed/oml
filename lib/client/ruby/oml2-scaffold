@@ -500,7 +500,7 @@ struct poptOption options[] = {
 
 PROGRAM = #{template(:app_name)}
 
-INSTALL_DIR = $(DESTDIR)/usr/bin
+INSTALL_DIR = $(DESTDIR)/usr/local/bin
 
 #### FOR EXPERTS ONLY  ###
 TOP = .
@@ -561,10 +561,10 @@ debug:
 $(OBJ_DIR)/$(PROGRAM).o: version.h $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
 $(PROGRAM)_popt.h: $(PROGRAM).rb
-    oml2-scaffold --opts $<
+	oml2-scaffold --opts $<
 
 $(PROGRAM)_oml.h: $(PROGRAM).rb
-    oml2-scaffold --oml $<
+	oml2-scaffold --oml $<
 ?
   end
 
