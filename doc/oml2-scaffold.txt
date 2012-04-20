@@ -17,15 +17,16 @@ DESCRIPTION
 *oml2-scaffold* generates skeleton OML application source code based
 on a template provided by the user (the file named 'appfile'). When
 invoked with the '--oml' options, a C header is generated describing
-the application's OML measurement points; when '--opts' is used,
-another C header is generated that describes the command line options
-that the program accepts, using the functions and data structures
-provided by the *popt*(3) library; when '--main' is used, a C file is
-generated that provides a skeleton *main*() function and run loop,
-with an example of how to inject measurement samples
-using linkoml:omlc_inject[3] for every defined measurement point; and when
-'--make' is used, *oml2-scaffold* creates a Makefile that can be used
-to build the generated program.
+the application's OML measurement points and providing helper
+functions based on linkoml:omlc_inject[3] for each of them; when
+'--opts' is used, another C header is generated that describes the
+command line options that the program accepts, using the functions and
+data structures provided by the *popt*(3) library; when '--main' is
+used, a C file is generated that provides a skeleton *main*() function
+and run loop, with an example of how to inject measurement samples
+using the helpers functions defined in the header for every defined
+measurement point; and when '--make' is used, *oml2-scaffold* creates
+a Makefile that can be used to build the generated program.
 
 In fact, the generated program can be built and run as-is with no
 further modifications required.  This can serve as an example OML
@@ -38,7 +39,8 @@ OPTIONS
 *oml2-scaffold* recognizes the following command line options:
 
 --oml::
-Create the oml header file defining all measurement points.
+Create the oml header file defining all measurement points and
+injection helper functions.
 
 --opts::
 Create the popt header file for all application properties.
@@ -384,7 +386,8 @@ The *oml2-scaffold* program generates a single output file for each
 possible command.  The files generated are named as follows:
 
 '--oml'::
-<app-name>_oml.h;;  The header defining the OML measurement points.
+<app-name>_oml.h;;  The header defining the OML measurement points and helper
+functions.
 
 '--opts'::
 <app-name>_popt.h;;  The header file defining the command line options

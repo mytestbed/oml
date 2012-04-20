@@ -24,6 +24,8 @@ SYNOPSIS
 'void'   *omlc_set_double*('OmlValueU' value, 'double' doubleval); +
 'void'   *omlc_set_string*('OmlValueU' value, 'char*' stringval); +
 'void'   *omlc_set_const_string*('OmlValueU' value, 'const char*' stringval); +
+[verse]
+'inline void' *oml_inject_MPNAME*('OmlMP*' mp, ...); +
 
 
 DESCRIPTION
@@ -55,9 +57,12 @@ Initialization::
 First the library is initialized and measurement points are defined.
 
 Measurement::
-Second, the filters are constructed and enabled by
-calling linkoml:omlc_start[3]. Measurement can proceed, with as many calls
-to linkoml:omlc_inject[3] as required.
+Second, the filters are constructed and enabled by calling
+linkoml:omlc_start[3]. Measurement can proceed, with as many calls to
+linkoml:omlc_inject[3] as required. For convenience,
+linkoml:oml2-scaffold[1] generates helper functions
+(*oml_inject_MPNAME*) which take care of preparing the data and
+passing it to linkoml:omlc_inject[3].
 
 It is also best to call linkoml:omlc_close[3] to shut down the measurement
 library cleanly once measurement tasks are completed, such as when the
@@ -135,8 +140,8 @@ if (mp == NULL) {
 ----
 
 This function returns a handle to the internal 'MP' object, which
-should be used in subsequent calls to linkoml:omlc_inject[3], and should be
-treated as opaque.
+should be used in subsequent calls to linkoml:omlc_inject[3], and
+should be treated as opaque.
 
 Measurement
 ~~~~~~~~~~~
@@ -192,8 +197,19 @@ char *protocol;
 
 The vector must be loaded with values in the same order as the
 original definition of the fields of the 'MP' in the call to
-linkoml:omlc_add_mp[3]. The call to linkoml:omlc_inject[3] can be repeated as many
-times as the program wants to make measurements for a given 'MP'.
+linkoml:omlc_add_mp[3]. The call to linkoml:omlc_inject[3] can be
+repeated as many times as the program wants to make measurements for a
+given 'MP'.
+
+Alternatively, linkoml:oml2-scaffold[1] can generate similar helper
+injection functions as part of the OML header ('--oml'). Their
+prototype is  of the form *oml_inject_MPNAME*('OmlMP*' mp, ...), where
+*MPNAME* is the name of the 'MP' that is passed as *mp*. The remaining
+arguments are C-typed variables constituting the sample to be injected
+in the 'MP'. Apart from safe manipulation of the 'OmlValueU' array,
+this also allows to rely on the C compiler to do type-checking and
+ensure data of the right type is injected in each field. It is
+therefore the recommended approach.
 
 OML Types
 ~~~~~~~~~
