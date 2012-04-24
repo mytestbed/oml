@@ -16,10 +16,10 @@ msgloop_SOURCES = \
 
 check_server_SOURCES = \
 	check_server.c \
-	check_check_server_suites.h \
+	check_server_suites.h \
 	check_text_protocol.c \
-	$(top_srcdir)/lib/client/shared/mem.h \
-	$(top_srcdir)/lib/client/shared/mbuf.h \
+	$(top_srcdir)/lib/shared/mem.h \
+	$(top_srcdir)/lib/shared/mbuf.h \
 	$(top_srcdir)/server/client_handler.c \
 	$(top_srcdir)/server/sqlite_adapter.c \
 	$(top_srcdir)/server/sqlite_adapter.h \
