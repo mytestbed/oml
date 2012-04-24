@@ -1,3 +1,21 @@
+2012-04-24  Olivier Mehani <olivier.mehani@nicta.com.au>
+	* OML: Version 2.7.0-rc1
+	* manpages: Fix manpage wrt --oml-list-filters
+	            Fix server's data-dir option prototype
+	* liboml2: Output to local file by default if nothing specified
+	           Use simplified logging style by default
+	           Unify some debug messages between bin and text
+	           Implement the flush:// scheme for the file URI
+	           Avoid compiler warning with omlc_set_const_string()
+	* oml2-scaffold: Use OML_INT32_VALUE by default
+		         Exit with an error on unknown types
+		         Generate per-MP injector functions
+		         Generate .rb app files
+		         Fix popt.h generation
+		         Fix Makefile generation
+	                 Handle both :type and "type"
+			 Brand new example oml2-scaffold-generated generator
+
 2011-06-19  Jolyon White  <jolyon.white@nicta.com.au>
 
 	* OML: New version 2.6.0
