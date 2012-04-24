@@ -68,11 +68,13 @@ oml2-scaffold:	$(scaffold_src) Makefile
 	chmod +x oml2-scaffold
 
 progname=scaffold
-installed_name = $(bindir)/oml2-$(progname)
+installed_name = $(shell echo oml2-$(progname) | sed '$(transform)')
 installed_link_name = $(DESTDIR)$(bindir)/oml2_$(progname)
 install-exec-hook:
 	rm -f $(installed_link_name)
 	$(LN_S) $(installed_name) $(installed_link_name)
+uninstall-hook:
+	rm -f $(installed_link_name)
 
 sharedir = $(datadir)/@PACKAGE@
 dist_share_DATA = $(srcdir)/ruby/oml4r.rb \
