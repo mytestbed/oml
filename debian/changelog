@@ -1,3 +1,9 @@
+oml2 (2.7.0-ubuntu1) oneiric; urgency=low
+
+  * New upstream release 2.7.0
+
+ -- Olivier Mehani <olivier.mehani@nicta.com.au>  Tue, 24 Apr 2012 14:42:03 +1000
+
 oml2 (2.6.1-ubuntu3) oneiric; urgency=low
 
   * added oml4r.rb and oml4r example
