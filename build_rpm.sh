@@ -3,6 +3,11 @@
 # make sure you install the build dependencies from the .spec file
 # before using this script
 
+# If this is a Git repo, git-archive the right tag, and do some sanity check
+if [ -d .git ]; then
+	./fetch-source-tree.rb
+fi
+
 autoreconf --install
 ./configure
 make dist
