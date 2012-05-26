@@ -32,6 +32,9 @@
 # found in the file oml4r-example.rb
 #
 require 'socket'
+require 'monitor'
+require 'thread'
+
 
 #
 # This is the OML4R module, which should be required by ruby applications
@@ -54,7 +57,7 @@ module OML4R
 
     # Some Class variables
     @@defs = {}
-    @@channels = {}
+    @@streams = {}
     @@frozen = false
     @@useOML = false
     @@start_time = nil
@@ -84,12 +87,12 @@ module OML4R
       __def__()[:name] = name
     end
     
-    # Set the channel these measurements should be sent out on.
+    # Set the stream these measurements should be sent out on.
     # Multiple declarations are allowed, and ':default' identifies
-    # the channel defined by the command line arguments or environment variables.
+    # the stream defined by the command line arguments or environment variables.
     #
-    def self.channel(channel)
-      (@@channels[self] ||= []) << channel
+    def self.stream(stream)
+      (@@streams[self] ||= []) << stream
     end
 
     # Set a metric for this MP
@@ -128,10 +131,10 @@ module OML4R
       end
       # ...and inject it!
       msg = a.join("\t")
-      @@channels[self].each do |ca|
-        channel = ca[0]
+      @@streams[self].each do |ca|
+        stream = ca[0]
         index = ca[1]
-        channel.send "#{t}\t#{index}\t#{msg}"
+        stream.send "#{t}\t#{index}\t#{msg}"
       end
     end
 
@@ -143,15 +146,15 @@ module OML4R
     #
     def self.__freeze__(appID, start_time)
       @@frozen = true
-      # replace channel names with channel object
+      # replace stream names with stream object
       self.each_mp do |klass, defs|
-        cna = @@channels[klass] || []
+        cna = @@streams[klass] || []
         ca = cna.collect do |name|
-          # return it in an array as we need to add the channel specific index  
-          [Channel[name.to_sym]]
+          # return it in an array as we need to add the stream specific index  
+          [Stream[name.to_sym]]
         end
-        #puts "Using channels '#{ca.inspect}"
-        @@channels[klass] = ca.empty? ? [[Channel[]]] : ca
+        #puts "Using streams '#{ca.inspect}"
+        @@streams[klass] = ca.empty? ? [[Stream[]]] : ca
       end
       @@start_time = start_time
       
@@ -178,8 +181,8 @@ module OML4R
 	      mp_name = "#{name_prefix}_#{mp_name}"
       end
       
-      @@channels[self].each do |ca|
-        #puts "Setting up channel '#{ca.inspect}"
+      @@streams[self].each do |ca|
+        #puts "Setting up stream '#{ca.inspect}"
         index = ca[0].send_schema(mp_name, defs[:p_def])
         ca << index
       end
@@ -206,7 +209,7 @@ module OML4R
     nodeID = opts[:nodeID] || ENV['OML_NAME']
     appID = opts[:appID]
     omlUrl = ENV['OML_URL']
-    noop = false
+    noop = opts[:noop] || false
 
     # Create a new Parser for the command line
     require 'optparse'
@@ -227,7 +230,7 @@ module OML4R
     rest = opts.parse(argv)
     return if noop
 
-    Channel.create(:default, omlUrl) if omlUrl
+    Stream.create(:default, omlUrl) if omlUrl
     
     unless expID && nodeID && appID
       raise 'OML4R: Missing values for parameters expID, nodeID, or appID!'
@@ -235,11 +238,12 @@ module OML4R
     
     # Handle the defined Measurement Points
     startTime = Time.now
-    Channel.init_all(expID, nodeID, appID, startTime)
+    Stream.init_all(expID, nodeID, appID, startTime)
     MPBase.__freeze__(appID, startTime)
 
     MPBase.__useOML__()
-    puts "OML4R: OML enabled."
+    msg = "OML4R enabled."
+    Module.const_get(:MObject) ? MObject.debug(:oml4r, msg) : puts("OML4R: #{msg}")
 
     rest || []
   end
@@ -250,15 +254,15 @@ module OML4R
   # to define their own Measurement Point (see the example at the end of
   # this file)
   #
-  class Channel
-    @@channels = {}
+  class Stream
+    @@streams = {}
     
     def self.create(name, url)
-      if channel = @@channels[name]
-        if url != channel.url
-          raise "OML4R: Channel '#{name}' already defined with different url"
+      if stream = @@streams[name]
+        if url != stream.url
+          raise "OML4R: Stream '#{name}' already defined with different url"
         end
-        return channel
+        return stream
       end
 
       #oml_opts = {:exp_id => 'image_load', :node_id => 'n1', :app_name => 'img_load'}
@@ -273,18 +277,18 @@ module OML4R
       else
         raise "OML4R: Unknown transport in server url '#{url}'"
       end
-      @@channels[name] = self.new(url, out)      
+      @@streams[name] = self.new(url, out)      
     end
     
     def self.[](name = :default)
-      unless (@@channels.key?(name = name.to_sym))
-        raise "OML4R: Unknown channel '#{name}'"
+      unless (@@streams.key?(name = name.to_sym))
+        raise "OML4R: Unknown stream '#{name}'"
       end
-      @@channels[name]
+      @@streams[name]
     end
     
     def self.init_all(expID, nodeID, appID, startTime)
-      @@channels.values.each { |c| c.init(expID, nodeID, appID, startTime) }
+      @@streams.values.each { |c| c.init(expID, nodeID, appID, startTime) }
     end
     
     attr_reader :url
@@ -302,7 +306,7 @@ module OML4R
     end
       
     def send(msg)
-      @out.puts msg
+      @queue.push msg
     end
   
     def init(expID, nodeID, appID, startTime)
@@ -315,18 +319,34 @@ module OML4R
       @url = url
       @out = out_stream
       @index = 0
+      @queue = Queue.new
+      start_runner
     end
 
     
     def send_protocol_header(expID, nodeID, appID, startTime)
-      @out.puts "protocol: 1"
-      @out.puts "experiment-id: #{expID}"
-      @out.puts "start_time: #{startTime.tv_sec}"
-      @out.puts "sender-id: #{nodeID}"
-      @out.puts "app-name: #{appID}"
-      @out.puts "content: text"
+      @queue.push "protocol: 1"
+      @queue.push "experiment-id: #{expID}"
+      @queue.push "start_time: #{startTime.tv_sec}"
+      @queue.push "sender-id: #{nodeID}"
+      @queue.push "app-name: #{appID}"
+      @queue.push "content: text"
     end
-  end # Channel
+    
+    def start_runner
+      Thread.new do
+        begin
+          while (msg = @queue.pop)
+            @out.puts msg
+          end
+        rescue Exception => ex
+          msg = "Exception while sending message to stream '#{@url}' (#{ex})"
+          Module.const_get(:MObject) ? MObject.warn(:oml4r, msg) : puts("OML4R: #{msg}")
+        end
+      end
+    end
+
+  end # Stream
 
 end # module OML4R
 
@@ -340,7 +360,7 @@ if $0 == __FILE__
   # Define your own Measurement Point
   class MyMP < OML4R::MPBase
     name :sin
-    #channel :default
+    #stream :default
     
     param :label
     param :angle, :type => :long
@@ -350,15 +370,15 @@ if $0 == __FILE__
   # Define your own Measurement Point
   class MyMP2 < OML4R::MPBase
     name :cos
-    channel :ch1
-    channel :default
+    stream :ch1
+    stream :default
 
     param :label
     param :value, :type => :double
   end
 
   puts "Check 'test.db' for outputs as well"
-  OML4R::Channel.create(:ch1, 'file:test.db')
+  OML4R::Stream.create(:ch1, 'file:test.db')
   
   # Initialise the OML4R module for your application
   args = ["--oml-expid", "foo",
@@ -366,7 +386,7 @@ if $0 == __FILE__
 	  "--oml-appid", "app1",
 #	  "--oml-file", "-"
 	  ]
-  OML4R::Channel.create(:default, 'file:-')	  
+  OML4R::Stream.create(:default, 'file:-')	  
 	  
   OML4R::init(args)
 
