@@ -86,13 +86,13 @@ module OML4R
     def self.name(name)
       __def__()[:name] = name
     end
-    
+
     # Set the stream these measurements should be sent out on.
     # Multiple declarations are allowed, and ':default' identifies
     # the stream defined by the command line arguments or environment variables.
     #
-    def self.stream(stream)
-      (@@streams[self] ||= []) << stream
+    def self.stream(stream, domain = :default)
+      (@@streams[self] ||= []) << [stream, domain]
     end
 
     # Set a metric for this MP
@@ -119,7 +119,7 @@ module OML4R
       defs = __def__()
       pdef = defs[:p_def]
       if args.size != pdef.size
-        raise "OML4R: Size mismatch between the measurement and the MP definition!"
+        raise "OML4R: Size mismatch between the measurement (#{args.size}) and the MP definition (#{pdef.size})!"
       end
 
       # Now prepare the measurement...
@@ -145,25 +145,20 @@ module OML4R
     # Freeze the definition of further MPs
     #
     def self.__freeze__(appID, start_time)
+      return if @@frozen
       @@frozen = true
       # replace stream names with stream object
       self.each_mp do |klass, defs|
         cna = @@streams[klass] || []
-        ca = cna.collect do |name|
+        #puts "OML4R: '#{cna.inspect}', '#{klass}'"
+        ca = cna.collect do |cname, domain|
           # return it in an array as we need to add the stream specific index  
-          [Stream[name.to_sym]]
+          [Stream[cname.to_sym, domain.to_sym]]
         end
         #puts "Using streams '#{ca.inspect}"
         @@streams[klass] = ca.empty? ? [[Stream[]]] : ca
       end
       @@start_time = start_time
-      
-      #i = 1
-      self.each_mp do |klass, defs|
-        #defs[:index] = i
-        klass.__print_meta__(appID)
-        #i += 1
-      end
       
     end
 
@@ -205,10 +200,15 @@ module OML4R
   #
   def self.init(argv, opts = {}, &block)
 
-    expID = opts[:expID] || ENV['OML_EXP_ID']
-    nodeID = opts[:nodeID] || ENV['OML_NAME']
+    if ENV['OML_EXP_ID'] || opts[:expID]
+      puts "OML4R: Depreciated - ENV['OML_EXP_ID'] || opts[:expID]"
+      opts[:domain] ||= (ENV['OML_EXP_ID'] || opts[:expID])
+    end
+
+    domain = ENV['OML_DOMAIN'] || opts[:domain]
+    nodeID = ENV['OML_NAME'] || opts[:nodeID] 
     appID = opts[:appID]
-    omlUrl = ENV['OML_URL']
+    omlUrl = ENV['OML_URL'] || opts[:omlURL] 
     noop = opts[:noop] || false
 
     # Create a new Parser for the command line
@@ -217,7 +217,7 @@ module OML4R
     # Include the definition of application's specific arguments
     yield(opts) if block
     # Include the definition of OML specific arguments
-    opts.on("--oml-expid EXPID", "Experiment ID for OML [#{expID || 'undefined'}]") { |name| expID = name }
+    opts.on("--oml-domain DOMAIN", "Domain for OML collection [#{domain || 'undefined'}]") { |name| domain = name }
     opts.on("--oml-nodeid NODEID", "Node ID for OML [#{nodeID || 'undefined'}]") { |name| nodeID = name }
     opts.on("--oml-appid APPID", "Application ID for OML [#{appID || 'undefined'}]") { |name| appID = name }
     opts.on("--oml-server SERVER", "URL for the OML Server (tcp:host:port)") { |u|  omlUrl = u }
@@ -232,18 +232,15 @@ module OML4R
 
     Stream.create(:default, omlUrl) if omlUrl
     
-    unless expID && nodeID && appID
-      raise 'OML4R: Missing values for parameters expID, nodeID, or appID!'
+    unless domain && nodeID && appID
+      raise 'OML4R: Missing values for parameters domain, nodeID, or appID!'
     end
     
     # Handle the defined Measurement Points
     startTime = Time.now
-    Stream.init_all(expID, nodeID, appID, startTime)
-    MPBase.__freeze__(appID, startTime)
-
-    MPBase.__useOML__()
+    Stream.init_all(domain, nodeID, appID, startTime)
     msg = "OML4R enabled."
-    Module.const_get(:MObject) ? MObject.debug(:oml4r, msg) : puts("OML4R: #{msg}")
+    Object.const_defined?(:MObject) ? MObject.debug(:oml4r, msg) : puts("OML4R: #{msg}")
 
     rest || []
   end
@@ -256,15 +253,20 @@ module OML4R
   #
   class Stream
     @@streams = {}
+    @@default_domain = nil
     
-    def self.create(name, url)
-      if stream = @@streams[name]
+    def self.create(name, url, domain = :default)
+      key = "#{name}:#{domain}"
+      if stream = @@streams[key]
         if url != stream.url
           raise "OML4R: Stream '#{name}' already defined with different url"
         end
         return stream
       end
+      return self._create(key, domain, url)
+    end
 
+    def self._create(key, domain, url)
       #oml_opts = {:exp_id => 'image_load', :node_id => 'n1', :app_name => 'img_load'}
       if url.start_with? 'file:'
         proto, fname = url.split(':')
@@ -277,20 +279,42 @@ module OML4R
       else
         raise "OML4R: Unknown transport in server url '#{url}'"
       end
-      @@streams[name] = self.new(url, out)      
+      @@streams[key] = self.new(url, domain, out)
     end
     
-    def self.[](name = :default)
-      unless (@@streams.key?(name = name.to_sym))
+    def self.[](name = :default, domain = :default)
+      key = "#{name}:#{domain}"
+      unless (@@streams.key?(key))
+	# If domain != :default and we have one for :default, create a new one
+	if (domain != :default)
+	  if (dc = @@streams["#{name}:default"])
+	    return self._create(key, domain, dc.url)
+	  end
+	end
         raise "OML4R: Unknown stream '#{name}'"
       end
-      @@streams[name]
+      @@streams[key]
     end
     
-    def self.init_all(expID, nodeID, appID, startTime)
-      @@streams.values.each { |c| c.init(expID, nodeID, appID, startTime) }
+    def self.init_all(domain, nodeID, appID, startTime)
+      @@default_domain = domain
+
+      MPBase.__freeze__(appID, startTime)
+
+      # send stream header
+      @@streams.values.each { |c| c.init(nodeID, appID, startTime) }
+
+      # send schema definitions
+      MPBase.each_mp do |klass, defs|
+        klass.__print_meta__(appID)
+      end
+
+      # add empty line to separate header form MP stream
+      @@streams.values.each { |c| c.send "\n" }
+
+      MPBase.__useOML__()
     end
-    
+
     attr_reader :url
     
     def send_schema(mp_name, pdefs) # defs[:p_def]
@@ -309,13 +333,13 @@ module OML4R
       @queue.push msg
     end
   
-    def init(expID, nodeID, appID, startTime)
-      send_protocol_header(expID, nodeID, appID, startTime)
+    def init(nodeID, appID, startTime)
+      send_protocol_header(nodeID, appID, startTime)
     end
 
     protected
-    
-    def initialize(url, out_stream)
+    def initialize(url, domain, out_stream)
+      @domain = domain
       @url = url
       @out = out_stream
       @index = 0
@@ -324,9 +348,11 @@ module OML4R
     end
 
     
-    def send_protocol_header(expID, nodeID, appID, startTime)
+    def send_protocol_header(nodeID, appID, startTime)
       @queue.push "protocol: 1"
-      @queue.push "experiment-id: #{expID}"
+      d = (@domain == :default) ? @@default_domain : @domain
+      raise "Missing domain name" unless d
+      @queue.push "experiment-id: #{d}"
       @queue.push "start_time: #{startTime.tv_sec}"
       @queue.push "sender-id: #{nodeID}"
       @queue.push "app-name: #{appID}"
@@ -337,11 +363,20 @@ module OML4R
       Thread.new do
         begin
           while (msg = @queue.pop)
-            @out.puts msg
+	    if !@queue.empty?
+	      ma = [msg]
+	      while !@queue.empty?
+		ma << @queue.pop
+	      end
+	      msg = ma.join("\n")
+	    end
+	    #puts ">>>>>>#{@domain}: <#{msg}>"
+	    @out.puts msg
+	    @out.flush
           end
         rescue Exception => ex
           msg = "Exception while sending message to stream '#{@url}' (#{ex})"
-          Module.const_get(:MObject) ? MObject.warn(:oml4r, msg) : puts("OML4R: #{msg}")
+          Object.const_defined?(:MObject) ? MObject.warn(:oml4r, msg) : puts("OML4R: #{msg}")
         end
       end
     end
@@ -370,23 +405,23 @@ if $0 == __FILE__
   # Define your own Measurement Point
   class MyMP2 < OML4R::MPBase
     name :cos
-    stream :ch1
-    stream :default
+    # stream :ch1
+    # stream :default
 
     param :label
     param :value, :type => :double
   end
 
-  puts "Check 'test.db' for outputs as well"
-  OML4R::Stream.create(:ch1, 'file:test.db')
+  # puts "Check 'test.db' for outputs as well"
+  # OML4R::Stream.create(:ch1, 'file:test.db')
   
   # Initialise the OML4R module for your application
-  args = ["--oml-expid", "foo",
+  args = ["--oml-domain", "foo",
 	  "--oml-nodeid", "n1",
 	  "--oml-appid", "app1",
-#	  "--oml-file", "-"
+	  "--oml-file", "-"
 	  ]
-  OML4R::Stream.create(:default, 'file:-')	  
+#  OML4R::Stream.create(:default, 'file:-')	  
 	  
   OML4R::init(args)
 

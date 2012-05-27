@@ -34,3 +34,6 @@ autom4te.cache
 m4/*.m4
 
 buildxx
+example/generator
+example/generator_oml.h
+example/generator_popt.h
