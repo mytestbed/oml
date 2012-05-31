@@ -57,14 +57,14 @@ module OML4R
 
     # Some Class variables
     @@defs = {}
-    @@streams = {}
+    @@channels = {}
     @@frozen = false
     @@useOML = false
     @@start_time = nil
 
     # Execute a block for each defined MP
     def self.each_mp(&block)
-      @@defs.each &block
+      @@defs.each(&block)
     end
 
     # Set the useOML flag. If set to false, make 'inject' a NOOP
@@ -87,12 +87,12 @@ module OML4R
       __def__()[:name] = name
     end
 
-    # Set the stream these measurements should be sent out on.
+    # Set the channel these measurements should be sent out on.
     # Multiple declarations are allowed, and ':default' identifies
-    # the stream defined by the command line arguments or environment variables.
+    # the channel defined by the command line arguments or environment variables.
     #
-    def self.stream(stream, domain = :default)
-      (@@streams[self] ||= []) << [stream, domain]
+    def self.channel(channel, domain = :default)
+      (@@channels[self] ||= []) << [channel, domain]
     end
 
     # Set a metric for this MP
@@ -131,10 +131,10 @@ module OML4R
       end
       # ...and inject it!
       msg = a.join("\t")
-      @@streams[self].each do |ca|
-        stream = ca[0]
+      @@channels[self].each do |ca|
+        channel = ca[0]
         index = ca[1]
-        stream.send "#{t}\t#{index}\t#{msg}"
+        channel.send "#{t}\t#{index}\t#{msg}"
       end
     end
 
@@ -147,16 +147,16 @@ module OML4R
     def self.__freeze__(appID, start_time)
       return if @@frozen
       @@frozen = true
-      # replace stream names with stream object
+      # replace channel names with channel object
       self.each_mp do |klass, defs|
-        cna = @@streams[klass] || []
+        cna = @@channels[klass] || []
         #puts "OML4R: '#{cna.inspect}', '#{klass}'"
         ca = cna.collect do |cname, domain|
-          # return it in an array as we need to add the stream specific index  
-          [Stream[cname.to_sym, domain.to_sym]]
+          # return it in an array as we need to add the channel specific index  
+          [Channel[cname.to_sym, domain.to_sym]]
         end
-        #puts "Using streams '#{ca.inspect}"
-        @@streams[klass] = ca.empty? ? [[Stream[]]] : ca
+        #puts "Using channels '#{ca.inspect}"
+        @@channels[klass] = ca.empty? ? [[Channel[]]] : ca
       end
       @@start_time = start_time
       
@@ -170,14 +170,14 @@ module OML4R
 
       # Do some sanity checks...
       unless (mp_name = defs[:name])
-	       raise "Missing 'name' declaration for '#{self}'"
+         raise "Missing 'name' declaration for '#{self}'"
       end
       unless (name_prefix.nil?)
-	      mp_name = "#{name_prefix}_#{mp_name}"
+        mp_name = "#{name_prefix}_#{mp_name}"
       end
       
-      @@streams[self].each do |ca|
-        #puts "Setting up stream '#{ca.inspect}"
+      @@channels[self].each do |ca|
+        #puts "Setting up channel '#{ca.inspect}"
         index = ca[0].send_schema(mp_name, defs[:p_def])
         ca << index
       end
@@ -213,24 +213,26 @@ module OML4R
 
     # Create a new Parser for the command line
     require 'optparse'
-    opts = OptionParser.new
+    op = OptionParser.new
     # Include the definition of application's specific arguments
-    yield(opts) if block
+    yield(op) if block
     # Include the definition of OML specific arguments
-    opts.on("--oml-domain DOMAIN", "Domain for OML collection [#{domain || 'undefined'}]") { |name| domain = name }
-    opts.on("--oml-nodeid NODEID", "Node ID for OML [#{nodeID || 'undefined'}]") { |name| nodeID = name }
-    opts.on("--oml-appid APPID", "Application ID for OML [#{appID || 'undefined'}]") { |name| appID = name }
-    opts.on("--oml-server SERVER", "URL for the OML Server (tcp:host:port)") { |u|  omlUrl = u }
-    opts.on("--oml-file FILENAME", "Filename for local storage of measurement") { |name| omlUrl = "file:#{name}" }
-    opts.on("--oml-noop", "Do not collect measurements") { noop = true }    
+    op.on("--oml-domain DOMAIN", "Domain for OML collection [#{domain || 'undefined'}]") { |name| domain = name }
+    op.on("--oml-nodeid NODEID", "Node ID for OML [#{nodeID || 'undefined'}]") { |name| nodeID = name }
+    op.on("--oml-appid APPID", "Application ID for OML [#{appID || 'undefined'}]") { |name| appID = name }
+    op.on("--oml-server SERVER", "URL for the OML Server (tcp:host:port)") { |u|  omlUrl = u }
+    op.on("--oml-file FILENAME", "Filename for local storage of measurement") { |name| omlUrl = "file:#{name}" }
+    op.on("--oml-noop", "Do not collect measurements") { noop = true }    
 
-    opts.on_tail("-h", "--help", "Show this message") { puts opts; exit }
+    op.on_tail("--oml-help", "Show this message") { puts op; exit }
 
     # Now parse the command line
-    rest = opts.parse(argv)
+    #puts "ARGV:>>> #{argv.inspect}"
+    rest = op.parse(argv)
     return if noop
 
-    Stream.create(:default, omlUrl) if omlUrl
+
+    Channel.create(:default, omlUrl) if omlUrl
     
     unless domain && nodeID && appID
       raise 'OML4R: Missing values for parameters domain, nodeID, or appID!'
@@ -238,7 +240,7 @@ module OML4R
     
     # Handle the defined Measurement Points
     startTime = Time.now
-    Stream.init_all(domain, nodeID, appID, startTime)
+    Channel.init_all(domain, nodeID, appID, startTime)
     msg = "OML4R enabled."
     Object.const_defined?(:MObject) ? MObject.debug(:oml4r, msg) : puts("OML4R: #{msg}")
 
@@ -246,22 +248,38 @@ module OML4R
   end
   
   #
+  # Create a new channel over which to send measurement channels.
+  #
+  def self.create_channel(name, url)
+    Channel.create(name.to_s, url)
+  end
+  
+  #
+  # Close the OML collection. This will block until all outstanding data have been sent out.
+  # 
+  def self.close()
+    Channel.close_all
+  end
+  
+  
+  
+  #
   # Measurement Point Class
   # Ruby applications using this module should sub-class this MPBase class
   # to define their own Measurement Point (see the example at the end of
   # this file)
   #
-  class Stream
-    @@streams = {}
+  class Channel
+    @@channels = {}
     @@default_domain = nil
     
     def self.create(name, url, domain = :default)
       key = "#{name}:#{domain}"
-      if stream = @@streams[key]
-        if url != stream.url
-          raise "OML4R: Stream '#{name}' already defined with different url"
+      if channel = @@channels[key]
+        if url != channel.url
+          raise "OML4R: Channel '#{name}' already defined with different url"
         end
-        return stream
+        return channel
       end
       return self._create(key, domain, url)
     end
@@ -279,21 +297,22 @@ module OML4R
       else
         raise "OML4R: Unknown transport in server url '#{url}'"
       end
-      @@streams[key] = self.new(url, domain, out)
+      #puts "Created channel for '#{key}'"
+      @@channels[key] = self.new(url, domain, out)
     end
     
     def self.[](name = :default, domain = :default)
       key = "#{name}:#{domain}"
-      unless (@@streams.key?(key))
-	# If domain != :default and we have one for :default, create a new one
-	if (domain != :default)
-	  if (dc = @@streams["#{name}:default"])
-	    return self._create(key, domain, dc.url)
-	  end
-	end
-        raise "OML4R: Unknown stream '#{name}'"
+      unless (@@channels.key?(key))
+        # If domain != :default and we have one for :default, create a new one
+        if (domain != :default)
+          if (dc = @@channels["#{name}:default"])
+            return self._create(key, domain, dc.url)
+          end
+        end
+        raise "OML4R: Unknown channel '#{name}'"
       end
-      @@streams[key]
+      @@channels[key]
     end
     
     def self.init_all(domain, nodeID, appID, startTime)
@@ -301,20 +320,24 @@ module OML4R
 
       MPBase.__freeze__(appID, startTime)
 
-      # send stream header
-      @@streams.values.each { |c| c.init(nodeID, appID, startTime) }
+      # send channel header
+      @@channels.values.each { |c| c.init(nodeID, appID, startTime) }
 
       # send schema definitions
       MPBase.each_mp do |klass, defs|
         klass.__print_meta__(appID)
       end
 
-      # add empty line to separate header form MP stream
-      @@streams.values.each { |c| c.send "\n" }
+      # add empty line to separate header form MP channel
+      @@channels.values.each { |c| c.send "\n" }
 
       MPBase.__useOML__()
     end
-
+    
+    def self.close_all()
+      @@channels.values.each { |c| c.close }
+    end
+      
     attr_reader :url
     
     def send_schema(mp_name, pdefs) # defs[:p_def]
@@ -336,12 +359,17 @@ module OML4R
     def init(nodeID, appID, startTime)
       send_protocol_header(nodeID, appID, startTime)
     end
+    
+    def close()
+      @queue.push nil  # indicate end of work
+      @runner.join()
+    end
 
     protected
-    def initialize(url, domain, out_stream)
+    def initialize(url, domain, out_channel)
       @domain = domain
       @url = url
-      @out = out_stream
+      @out = out_channel
       @index = 0
       @queue = Queue.new
       start_runner
@@ -360,28 +388,35 @@ module OML4R
     end
     
     def start_runner
-      Thread.new do
+      @runner = Thread.new do
+        active = true
         begin
-          while (msg = @queue.pop)
-	    if !@queue.empty?
-	      ma = [msg]
-	      while !@queue.empty?
-		ma << @queue.pop
-	      end
-	      msg = ma.join("\n")
-	    end
-	    #puts ">>>>>>#{@domain}: <#{msg}>"
-	    @out.puts msg
-	    @out.flush
+          while (active)
+            msg = @queue.pop
+            active = !msg.nil?
+            if !@queue.empty?
+              ma = [msg]
+              while !@queue.empty?
+                msg = @queue.pop
+                if (active = !msg.nil?)
+                  ma << msg
+                end 
+              end
+              msg = ma.join("\n")
+            end
+            #puts ">>>>>>#{@domain}: <#{msg}>"
+            @out.puts msg unless msg.nil?
+            @out.flush
           end
+          @out.close
         rescue Exception => ex
-          msg = "Exception while sending message to stream '#{@url}' (#{ex})"
+          msg = "Exception while sending message to channel '#{@url}' (#{ex})"
           Object.const_defined?(:MObject) ? MObject.warn(:oml4r, msg) : puts("OML4R: #{msg}")
         end
       end
     end
 
-  end # Stream
+  end # Channel
 
 end # module OML4R
 
@@ -395,7 +430,7 @@ if $0 == __FILE__
   # Define your own Measurement Point
   class MyMP < OML4R::MPBase
     name :sin
-    #stream :default
+    #channel :default
     
     param :label
     param :angle, :type => :long
@@ -405,31 +440,29 @@ if $0 == __FILE__
   # Define your own Measurement Point
   class MyMP2 < OML4R::MPBase
     name :cos
-    # stream :ch1
-    # stream :default
+    # channel :ch1
+    # channel :default
 
     param :label
     param :value, :type => :double
   end
 
   # puts "Check 'test.db' for outputs as well"
-  # OML4R::Stream.create(:ch1, 'file:test.db')
+  # OML4R::Channel.create(:ch1, 'file:test.db')
   
   # Initialise the OML4R module for your application
-  args = ["--oml-domain", "foo",
-	  "--oml-nodeid", "n1",
-	  "--oml-appid", "app1",
-	  "--oml-file", "-"
-	  ]
-#  OML4R::Stream.create(:default, 'file:-')	  
-	  
-  OML4R::init(args)
+  opts = {:domain => 'foo', :nodeID => 'n1', :appID => 'test', :omlURL => 'file:-'}
+#  OML4R::create_channel(:default, 'file:-')    
+    
+  OML4R::init(ARGV, opts)
 
   # Now collect and inject some measurements
-  10.times do |i|
+  5.times do |i|
+    sleep 0.5
     angle = 15 * i
     MyMP.inject("label_#{angle}", angle, Math.sin(angle))
     MyMP2.inject("lebal_#{angle}", Math.cos(angle))    
-    sleep 1
   end
+  
+  OML4R::close()
 end
