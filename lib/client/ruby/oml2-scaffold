@@ -134,6 +134,11 @@ Generate C code for an OML application from an application definition file
   end
 
 #  eval(File.read(app_file))
+  app_file = File.expand_path(app_file)
+  unless File.readable?(app_file)
+    $stderr.puts "Can't find or open app file '#{app_file}'"
+    exit -1
+  end
   load(app_file)
   AppDefinition.each do |app|
     output.each do |type|
