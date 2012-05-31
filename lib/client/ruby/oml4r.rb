@@ -200,15 +200,15 @@ module OML4R
   #
   def self.init(argv, opts = {}, &block)
 
-    if ENV['OML_EXP_ID'] || opts[:expID]
+    if d = (ENV['OML_EXP_ID'] || opts[:expID])
       puts "OML4R: Depreciated - ENV['OML_EXP_ID'] || opts[:expID]"
-      opts[:domain] ||= (ENV['OML_EXP_ID'] || opts[:expID])
+      opts[:domain] ||= d
     end
 
     domain = ENV['OML_DOMAIN'] || opts[:domain]
-    nodeID = ENV['OML_NAME'] || opts[:nodeID] 
-    appID = opts[:appID]
-    omlUrl = ENV['OML_URL'] || opts[:omlURL] 
+    nodeID = ENV['OML_NAME'] || ENV['OML_ID'] || opts[:id] 
+    appID = opts[:app]
+    omlUrl = ENV['OML_URL'] || opts[:omlURL] || opts[:url] 
     noop = opts[:noop] || false
 
     # Create a new Parser for the command line
@@ -218,7 +218,8 @@ module OML4R
     yield(op) if block
     # Include the definition of OML specific arguments
     op.on("--oml-domain DOMAIN", "Domain for OML collection [#{domain || 'undefined'}]") { |name| domain = name }
-    op.on("--oml-nodeid NODEID", "Node ID for OML [#{nodeID || 'undefined'}]") { |name| nodeID = name }
+    op.on("--oml-exp-id DOMAIN", "Domain for OML collection [#{domain || 'undefined'}]") { |name| domain = name }
+    op.on("--oml-id NODEID", "ID of this node sending measurements [#{nodeID || 'undefined'}]") { |name| nodeID = name }
     op.on("--oml-appid APPID", "Application ID for OML [#{appID || 'undefined'}]") { |name| appID = name }
     op.on("--oml-server SERVER", "URL for the OML Server (tcp:host:port)") { |u|  omlUrl = u }
     op.on("--oml-file FILENAME", "Filename for local storage of measurement") { |name| omlUrl = "file:#{name}" }
@@ -451,7 +452,7 @@ if $0 == __FILE__
   # OML4R::Channel.create(:ch1, 'file:test.db')
   
   # Initialise the OML4R module for your application
-  opts = {:domain => 'foo', :nodeID => 'n1', :appID => 'test', :omlURL => 'file:-'}
+  opts = {:domain => 'foo', :id => 'n1', :app => 'test', :url => 'file:-'}
 #  OML4R::create_channel(:default, 'file:-')    
     
   OML4R::init(ARGV, opts)

@@ -37,3 +37,4 @@ buildxx
 example/generator
 example/generator_oml.h
 example/generator_popt.h
+.settings/org.eclipse.ltk.core.refactoring.prefs
