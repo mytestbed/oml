@@ -11,7 +11,7 @@ AC_CONFIG_HEADERS([config.h])
 m4_pattern_allow([AM_PROG_AR]) 
 AM_PROG_AR
 
-AC_PROG_LIBTOOL([1.4])
+AC_PROG_LIBTOOL
 
 # Checks for programs.
 AC_PROG_CXX
@@ -129,6 +129,8 @@ else
    AM_CONDITIONAL([HAVE_A2X], [false])
    AM_CONDITIONAL([HAVE_ASCIIDOC], [false])
 fi
+
+AC_SUBST([scaffold_installed_name], [`echo oml2-scaffold | sed "${program_transform_name}"`])
 
 AC_CONFIG_FILES([Makefile
 		 lib/Makefile
