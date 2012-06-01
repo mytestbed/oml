@@ -6,11 +6,17 @@ AC_INIT([oml2], [2.8.pre0], [oml-user@lists.nicta.com.au])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
+
+# automake 1.12 seems to require this, but automake 1.11 doesn't recognize it
+m4_pattern_allow([AM_PROG_AR]) 
+AM_PROG_AR
+
 AC_PROG_LIBTOOL([1.4])
 
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
