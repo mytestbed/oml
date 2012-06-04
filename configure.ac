@@ -92,14 +92,34 @@ AX_PROG_RUBY_VERSION([1.9],
 		     [
 		      missing_rubyge19=no
 		      AX_WITH_PROG([GEM],[gem])
-		      dnl XXX Detect bundler: gem list | grep -q bundler
-		      ],
+		      AS_IF(test -z "$GEM",[
+					    AC_MSG_WARN([Ruby found, but not the corresponding gem utility; the OML4r gem will not be built])
+					   ],
+					   [
+					    dnl Hack to avoid nesting AS_IFs:
+					    dnl We actually do the bundler check befor telling the user
+					    ${GEM} list | grep -q "^bundler\s"
+					   ],
+					   [
+					    AC_MSG_CHECKING(whether the bundler gem is available)
+					    have_bundler=yes
+					    AC_MSG_RESULT([${have_bundler}])
+					   ],
+					   [
+					    AC_MSG_CHECKING(whether the bundler gem is available)
+					    have_bundler=no
+					    AC_MSG_RESULT([${have_bundler}])
+					    AC_MSG_WARN([The OML4r gem will not be built; you can run \`gem install bundler' and rerun configure to fix this issue])
+					   ]
+			   )
+		     ],
 		     [
-		      AC_MSG_WARN([No Ruby>=1.9 found. Some tests will be skipped.])
+		      AC_MSG_WARN([No Ruby>=1.9 found; the OML4r gem will not be built, and some tests will be skipped.])
 		      missing_rubyge19=yes
 		     ]
 		    )
 AM_CONDITIONAL([HAVE_RUBY_MIN_1_9], [test x"${missing_rubyge19}" != xyes])
+AM_CONDITIONAL([HAVE_GEM_BUNDLER], [test x$have_bundler = xyes])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
