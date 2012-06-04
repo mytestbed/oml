@@ -144,9 +144,6 @@ net_stream_write(
 ) {
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;
 
-  if (self->socket == NULL)
-    return (size_t)-1;
-
   while (self->socket == NULL) {
     loginfo ("Attempting to reconnect to server at %s://%s:%d.\n",
              self->protocol, self->host, self->port);
