@@ -110,9 +110,8 @@ AC_C_BIGENDIAN
 
 AC_ARG_WITH([doc],
 		[AS_HELP_STRING([--with-doc],
-		  [build documentation (man pages, manual) @<:@default=no@:>@])],
-		[],
-		[with_doc=no])
+		  [build documentation (man pages, manual) @<:@default=yes@:>@])]
+		[with_doc=yes])
 
 if test "x$with_doc" != "xno"; then
    # Check for asciidoc (for generating manpages).
