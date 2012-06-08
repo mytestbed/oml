@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# vim: sw=2
 
 @test_data = [
               "OML000000420000000CHello World",
