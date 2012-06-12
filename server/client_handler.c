@@ -585,20 +585,24 @@ process_text_message(
     int    a_size = 0;
     char* p = line;
     int rem = len;
+    int lastempty = 0;
 
-    while (rem > 0) {
+    while (rem > 0 || lastempty) {
       char* param = p;
+      lastempty = 0;
       for (; rem > 0; rem--, p++) {
-    if (*p == '\t') {
-      *(p++) = '\0';
-      rem--;
-      break;
-    }
+        if (*p == '\t') {
+          *(p++) = '\0';
+          rem--;
+          // Set if there was an empty string at the end of the line
+          lastempty = (0 == rem && '\0' == *(p-1) && !lastempty);
+          break;
+        }
       }
       a[a_size++] = param;
       if (a_size >= DEF_NUM_VALUES) {
-    logerror("Too many parameters in data message <%s>\n", line);
-    return 0;
+        logerror("Too many parameters in data message <%s>\n", line);
+        return 0;
       }
     }
     process_text_data_message(self, a, a_size);
