@@ -101,7 +101,7 @@ module OML4R
       o[:name] = name
       o[:type] ||= :string
       if o[:type] == :long
-	puts "OML4R: WARN: :long is deprecated use, :int32 instead"
+	$stderr.puts "OML4R: WARN: :long is deprecated use, :int32 instead"
 	o[:type] = :int32
       end
       __def__()[:p_def] << o
@@ -151,12 +151,12 @@ module OML4R
       # replace channel names with channel object
       self.each_mp do |klass, defs|
 	cna = @@channels[klass] || []
-	#puts "OML4R: '#{cna.inspect}', '#{klass}'"
+	#$stderr.puts "OML4R: '#{cna.inspect}', '#{klass}'"
 	ca = cna.collect do |cname, domain|
 	  # return it in an array as we need to add the channel specific index  
 	  [Channel[cname.to_sym, domain.to_sym]]
 	end
-	#puts "Using channels '#{ca.inspect}"
+	#$stderr.puts "OML4R: Using channels '#{ca.inspect}"
 	@@channels[klass] = ca.empty? ? [[Channel[]]] : ca
       end
       @@start_time = start_time
@@ -178,7 +178,7 @@ module OML4R
       end
 
       @@channels[self].each do |ca|
-	#puts "Setting up channel '#{ca.inspect}"
+	#$stderr.puts "OML4R: Setting up channel '#{ca.inspect}"
 	index = ca[0].send_schema(mp_name, defs[:p_def])
 	ca << index
       end
@@ -204,7 +204,7 @@ module OML4R
     if d = (ENV['OML_EXP_ID'] || opts[:expID])
       # XXX: It is still too early to complain about that. We need to be sure
       # of the nomenclature before making user-visible changes.
-      #puts "OML4R: Depreciated - ENV['OML_EXP_ID'] || opts[:expID]"
+      #$stderr.puts "OML4R: WARN: ENV['OML_EXP_ID'] and opts[:expID] are deprecated, use #DOMAIN or opts[:domain] instead"
       opts[:domain] ||= d
     end
     domain ||= ENV['OML_DOMAIN'] || opts[:domain]
@@ -241,13 +241,13 @@ module OML4R
     op.on("--oml-domain expId", "Name to experiment DB [#{domain || 'undefined'}] *EXPERIMENTAL*") { |name| domain = name }
     op.on("--oml-server uri", "URI of server to send measurements to (tcp:host:port)") { |u|  omlCollectUri = u }
     op.on("--oml-noop", "Do not collect measurements") { noop = true }    
-    op.on_tail("--oml-help", "Show this message") { puts op; exit }
+    op.on_tail("--oml-help", "Show this message") { $stderr.puts op; exit }
     # XXX: This should be set by the application writer, not the command line
     #op.on("--oml-appid APPID", "Application ID for OML [#{appName || 'undefined'}] *EXPERIMENTAL*") { |name| appID = name }
 
 
     # Now parse the command line
-    #puts "ARGV:>>> #{argv.inspect}"
+    #$stderr.puts "OML4R: ARGV:>>> #{argv.inspect}"
     rest = op.parse(argv)
     return if noop
 
@@ -262,7 +262,7 @@ module OML4R
     startTime = Time.now
     Channel.init_all(domain, nodeID, appName, startTime)
     msg = "OML4R enabled."
-    Object.const_defined?(:MObject) ? MObject.debug(:oml4r, msg) : puts("OML4R: #{msg}")
+    Object.const_defined?(:MObject) ? MObject.debug(:oml4r, msg) : $stderr.puts("OML4R: #{msg}")
 
     rest || []
   end
@@ -317,7 +317,7 @@ module OML4R
       else
 	raise "OML4R: Unknown transport in server url '#{url}'"
       end
-      #puts "Created channel for '#{key}'"
+      #$stderr.puts "Created channel for '#{key}'"
       @@channels[key] = self.new(url, domain, out)
     end
 
@@ -424,14 +424,14 @@ module OML4R
 	      end
 	      msg = ma.join("\n")
 	    end
-	    #puts ">>>>>>#{@domain}: <#{msg}>"
+	    #$stderr.puts ">>>>>>#{@domain}: <#{msg}>"
 	    @out.puts msg unless msg.nil?
 	    @out.flush
 	  end
 	  @out.close
 	rescue Exception => ex
 	  msg = "Exception while sending message to channel '#{@url}' (#{ex})"
-	  Object.const_defined?(:MObject) ? MObject.warn(:oml4r, msg) : puts("OML4R: #{msg}")
+	  Object.const_defined?(:MObject) ? MObject.warn(:oml4r, msg) : $stderr.puts("OML4R: #{msg}")
 	end
       end
     end
