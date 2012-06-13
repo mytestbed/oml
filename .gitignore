@@ -32,6 +32,9 @@ ltmain.sh
 missing
 autom4te.cache
 m4/*.m4
+!m4/ax_compare_version.m4
+!m4/ax_prog_ruby_version.m4
+!m4/ax_with_prog.m4
 
 buildxx
 example/generator

@@ -87,6 +87,11 @@ else
    AM_CONDITIONAL([HAVE_PG], [false])
 fi
 
+AX_WITH_PROG([RUBY],[ruby])
+AX_PROG_RUBY_VERSION([1.9],
+		     [missing_rubyge19=no],
+		     [missing_rubyge19=yes]
+		    )
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
