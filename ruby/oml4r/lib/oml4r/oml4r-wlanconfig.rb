@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 National ICT Australia (NICTA), Australia
+# Copyright (c) 2010-2012 National ICT Australia (NICTA), Australia
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -34,23 +34,23 @@ require "oml4r"
 
 APPNAME = "wlanconfig"
 APPPATH = "/sbin/wlanconfig"
-APPVERSION = "1.0"
+
 
 #
 # This class defines the Measurement Point for our application and the
 # corresponding metrics we would like to capture
 #
-class MyMeasurementPoint < OML4R::MPBase
+class WlanConfigMP < OML4R::MPBase
   name :wlanstat
   param :addr
-  param :aid, :type => :long
-  param :channel, :type => :long
+  param :aid, :type => :int32
+  param :channel, :type => :int32
   param :rate
-  param :rssi, :type => :long
-  param :dbm, :type => :long
-  param :idle, :type => :long
-  param :txseq, :type => :long
-  param :rxseq, :type => :long
+  param :rssi, :type => :int32
+  param :dbm, :type => :int32
+  param :idle, :type => :int32
+  param :txseq, :type => :int32
+  param :rxseq, :type => :int32
   # Note: other metrics potentially returned by wlanconfig are 
   # not supported here, as they are seldom set by wlanconfig.
   # These are: caps, acaps, erp, mode
@@ -74,12 +74,11 @@ class Wrapper
 
     # Now call the Init of OML4R with the command line arguments (args)
     # and a block defining the arguments specific to this wrapper
-    OML4R::init(args) { |argParser|
+    OML4R::init(args, :appName => "#{APPNAME}_wrapper") { |argParser|
       argParser.banner = "\nExecute a wrapper around #{APPNAME}\n" +
 	"Use -h or --help for a list of options\n\n" 
       argParser.on("-i", "--interface IFNAME", "Name of Interface to monitor") { |name| @interface = name }
       argParser.on("-s", "--sampling DURATION", "Interval in second between sample collection for OML") { |time| @interval = time }
-      argParser.on_tail("-v", "--version", "Show the version\n") { |v| puts "Version: #{APPVERSION}"; exit }
     }
 
     # Finally do some checking specific to this wrapper
@@ -120,7 +119,7 @@ class Wrapper
     lines.each { |row|
       column = row.split(" ")
       # Inject the measurements into OML 
-      MyMeasurementPoint.inject("#{column[0]}", column[1], column[2],
+      WlanConfigMP.inject("#{column[0]}", column[1], column[2],
 				"#{column[3]}", column[4], column[5],
 				column[6], column[7], column[8])
     }
@@ -145,5 +144,6 @@ rescue Exception => ex
   # Uncomment the next line to get more info on errors
   # puts "Trace - #{ex.backtrace.join("\n\t")}"
 end
+OML4R::close()
 
 # vim: sw=2

@@ -34,7 +34,7 @@ class SinMP < OML4R::MPBase
   #channel :default
 
   param :label
-  param :angle, :type => :long
+  param :angle, :type => :int32
   param :value, :type => :double
 end
 
