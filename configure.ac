@@ -89,7 +89,11 @@ fi
 
 AX_WITH_PROG([RUBY],[ruby])
 AX_PROG_RUBY_VERSION([1.9],
-		     [missing_rubyge19=no],
+		     [
+		      missing_rubyge19=no
+		      AX_WITH_PROG([GEM],[gem])
+		      dnl XXX Detect bundler: gem list | grep -q bundler
+		      ],
 		     [
 		      AC_MSG_WARN([No Ruby>=1.9 found. Some tests will be skipped.])
 		      missing_rubyge19=yes
