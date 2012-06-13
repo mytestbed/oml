@@ -90,8 +90,12 @@ fi
 AX_WITH_PROG([RUBY],[ruby])
 AX_PROG_RUBY_VERSION([1.9],
 		     [missing_rubyge19=no],
-		     [missing_rubyge19=yes]
+		     [
+		      AC_MSG_WARN([No Ruby>=1.9 found. Some tests will be skipped.])
+		      missing_rubyge19=yes
+		     ]
 		    )
+AM_CONDITIONAL([HAVE_RUBY_MIN_1_9], [test x"${missing_rubyge19}" != xyes])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
@@ -148,8 +152,10 @@ AC_CONFIG_FILES([Makefile
 		 test/Makefile
 		 test/lib/Makefile
 		 test/server/Makefile
+		 test/server/issue610.rb
 		 test/system/blob/Makefile
 		 ])
+AC_CONFIG_COMMANDS([issue610-exec], [chmod a+x test/server/issue610.rb])
 
 if test "x$missing_check" != "x"; then
    AC_MSG_WARN([could not find the `check' package, required

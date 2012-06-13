@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!@RUBY@
 #
 # This little example triggers a bug in the OML server by sending an empy string 
 # as the last parameter

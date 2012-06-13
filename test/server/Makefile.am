@@ -1,7 +1,10 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
 if HAVE_CHECK
-TESTS = msggen.rb check_server issue610.rb
+TESTS = msggen.rb check_server
+if HAVE_RUBY_MIN_1_9
+TESTS += issue610.rb
+endif
 TESTS_ENVIRONMENT=TOPSRCDIR=$(top_srcdir)
 check_PROGRAMS = msgloop check_server
 
@@ -49,7 +52,7 @@ AM_CPPFLAGS = \
 	-I  $(srcdir)/../system \
 	-DOML_TEST
 
-EXTRA_DIST = msggen.rb issue610.rb
+EXTRA_DIST = msggen.rb issue610.rb.in
 CLEANFILES = \
 	check_oml2.log \
 	dummy.bin \
