@@ -95,11 +95,15 @@ module OML4R
     # Set a metric for this MP
     # - name = name of the metric to set
     # - opts = a Hash with the options for this metric
-    #          Only supported option is :type = { :string | :long | :double }
+    #          Only supported option is :type = { :string | :int32 | :double }
     def self.param(name, opts = {})
       o = opts.dup
       o[:name] = name
       o[:type] ||= :string
+      if o[:type] == :long
+	puts "OML4R: WARN: :long is deprecated use, :int32 instead"
+	o[:type] = :int32
+      end
       __def__()[:p_def] << o
       nil
     end
@@ -141,7 +145,7 @@ module OML4R
 
     # Freeze the definition of further MPs
     #
-    def self.__freeze__(appID, start_time)
+    def self.__freeze__(appName, start_time)
       return if @@frozen
       @@frozen = true
       # replace channel names with channel object
@@ -198,15 +202,32 @@ module OML4R
   def self.init(argv, opts = {}, &block)
 
     if d = (ENV['OML_EXP_ID'] || opts[:expID])
-      puts "OML4R: Depreciated - ENV['OML_EXP_ID'] || opts[:expID]"
+      # XXX: It is still too early to complain about that. We need to be sure
+      # of the nomenclature before making user-visible changes.
+      #puts "OML4R: Depreciated - ENV['OML_EXP_ID'] || opts[:expID]"
       opts[:domain] ||= d
     end
+    domain ||= ENV['OML_DOMAIN'] || opts[:domain]
 
-    domain = ENV['OML_DOMAIN'] || opts[:domain]
-    nodeID = ENV['OML_NAME'] || ENV['OML_ID'] || opts[:id] 
-    appID = opts[:app]
-    omlUrl = ENV['OML_URL'] || opts[:omlURL] || opts[:url] 
+    # XXX: Same as above; here, though, :id might actually be the way to go; or
+    # perhaps instId?
+    #if opts[:id]
+    #  raise 'OML4R: :id is not a valid option. Do you mean :nodeID?'
+    #end
+    nodeID = ENV['OML_NAME'] || opts[:nodeID]  ||  opts[:id] || ENV['OML_ID'] 
+    #
+    # XXX: Same again; also, this is the responsibility of the developer, not the user
+    #if opts[:app]
+    #  raise 'OML4R: :app is not a valid option. Do you mean :appName?'
+    #end
+    appName = opts[:appName] || opts[:app]
+
+    if  ENV['OML_URL'] || opts[:omlURL] || opts[:url]
+      raise 'OML4R: neither OML_URL, :omlURL nor :url are valid. Do you mean OML_SERVER or :omlServer?'
+    end
+    omlCollectUri = ENV['OML_SERVER'] || opts[:omlServer]
     noop = opts[:noop] || false
+
 
     # Create a new Parser for the command line
     require 'optparse'
@@ -214,15 +235,16 @@ module OML4R
     # Include the definition of application's specific arguments
     yield(op) if block
     # Include the definition of OML specific arguments
-    op.on("--oml-domain DOMAIN", "Domain for OML collection [#{domain || 'undefined'}]") { |name| domain = name }
-    op.on("--oml-exp-id DOMAIN", "Domain for OML collection [#{domain || 'undefined'}]") { |name| domain = name }
-    op.on("--oml-id NODEID", "ID of this node sending measurements [#{nodeID || 'undefined'}]") { |name| nodeID = name }
-    op.on("--oml-appid APPID", "Application ID for OML [#{appID || 'undefined'}]") { |name| appID = name }
-    op.on("--oml-server SERVER", "URL for the OML Server (tcp:host:port)") { |u|  omlUrl = u }
-    op.on("--oml-file FILENAME", "Filename for local storage of measurement") { |name| omlUrl = "file:#{name}" }
+    op.on("--oml-file file", "Writes measurements to 'file'") { |name| omlCollectUri = "file:#{name}" }
+    op.on("--oml-id id", "Name to identify this app instance [#{nodeID || 'undefined'}]") { |name| nodeID = name }
+    op.on("--oml-exp-id expId", "Name to experiment DB [#{domain || 'undefined'}]") { |name| domain = name }
+    op.on("--oml-domain expId", "Name to experiment DB [#{domain || 'undefined'}] *EXPERIMENTAL*") { |name| domain = name }
+    op.on("--oml-server uri", "URI of server to send measurements to (tcp:host:port)") { |u|  omlCollectUri = u }
     op.on("--oml-noop", "Do not collect measurements") { noop = true }    
-
     op.on_tail("--oml-help", "Show this message") { puts op; exit }
+    # XXX: This should be set by the application writer, not the command line
+    #op.on("--oml-appid APPID", "Application ID for OML [#{appName || 'undefined'}] *EXPERIMENTAL*") { |name| appID = name }
+
 
     # Now parse the command line
     #puts "ARGV:>>> #{argv.inspect}"
@@ -230,15 +252,15 @@ module OML4R
     return if noop
 
 
-    Channel.create(:default, omlUrl) if omlUrl
+    Channel.create(:default, omlCollectUri) if omlCollectUri
 
-    unless domain && nodeID && appID
-      raise 'OML4R: Missing values for parameters domain, nodeID, or appID!'
+    unless domain && nodeID && appName
+      raise 'OML4R: Missing values for parameters :expID (--oml-exp-id), :nodeID (--oml-id), or :appName (in code)!'
     end
 
     # Handle the defined Measurement Points
     startTime = Time.now
-    Channel.init_all(domain, nodeID, appID, startTime)
+    Channel.init_all(domain, nodeID, appName, startTime)
     msg = "OML4R enabled."
     Object.const_defined?(:MObject) ? MObject.debug(:oml4r, msg) : puts("OML4R: #{msg}")
 
@@ -313,17 +335,17 @@ module OML4R
       @@channels[key]
     end
 
-    def self.init_all(domain, nodeID, appID, startTime)
+    def self.init_all(domain, nodeID, appName, startTime)
       @@default_domain = domain
 
-      MPBase.__freeze__(appID, startTime)
+      MPBase.__freeze__(appName, startTime)
 
       # send channel header
-      @@channels.values.each { |c| c.init(nodeID, appID, startTime) }
+      @@channels.values.each { |c| c.init(nodeID, appName, startTime) }
 
       # send schema definitions
       MPBase.each_mp do |klass, defs|
-	klass.__print_meta__(appID)
+	klass.__print_meta__(appName)
       end
 
       # add empty line to separate header form MP channel
@@ -354,8 +376,8 @@ module OML4R
       @queue.push msg
     end
 
-    def init(nodeID, appID, startTime)
-      send_protocol_header(nodeID, appID, startTime)
+    def init(nodeID, appName, startTime)
+      send_protocol_header(nodeID, appName, startTime)
     end
 
     def close()
@@ -374,14 +396,14 @@ module OML4R
     end
 
 
-    def send_protocol_header(nodeID, appID, startTime)
+    def send_protocol_header(nodeID, appName, startTime)
       @queue.push "protocol: 1"
       d = (@domain == :default) ? @@default_domain : @domain
       raise "Missing domain name" unless d
       @queue.push "experiment-id: #{d}"
       @queue.push "start_time: #{startTime.tv_sec}"
       @queue.push "sender-id: #{nodeID}"
-      @queue.push "app-name: #{appID}"
+      @queue.push "app-name: #{appName}"
       @queue.push "content: text"
     end
 

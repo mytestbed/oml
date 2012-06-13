@@ -48,7 +48,9 @@ class CosMP < OML4R::MPBase
 end
 
 # Initialise the OML4R module for your application
-opts = {:domain => 'foo', :id => 'n1', :app => 'test', :url => 'file:-'}
+opts = {:appName => 'oml4rSimpleExample',
+  :expID => 'foo', :nodeId => 'n1',
+  :omlServer => 'file:-'} # Server could also be tcp:host:port
 #  OML4R::create_channel(:default, 'file:-')    
 
 OML4R::init(ARGV, opts)
@@ -58,7 +60,7 @@ OML4R::init(ARGV, opts)
   sleep 0.5
   angle = 15 * i
   SinMP.inject("label_#{angle}", angle, Math.sin(angle))
-  CosMP.inject("lebal_#{angle}", Math.cos(angle))    
+  CosMP.inject("label_#{angle}", Math.cos(angle))    
 end
 
 # Don't forget to close when you are finished
