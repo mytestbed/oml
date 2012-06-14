@@ -9,19 +9,32 @@ found in the file oml4r-example.rb
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
-    gem 'oml4r'
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
     $ gem install oml4r
 
 ## Usage
+
+### Definition of a Measurement Point
+
+	class MyMP < OML4R::MPBase
+	  name :mymp
+
+	  param :mystring
+	  param :myint, :type => :int32
+	  param :mydouble, :type => :double
+	end
+
+### Initialisation, Injection and Tear-down
+
+	OML4R::init(ARGV, {
+		:appName => 'oml4rSimpleExample',
+		:expID => 'foo',
+		:nodeId => 'n1',
+		:omlServer => 'file:-'}
+	)
+	MyMP.inject("hello", 13, 37.)
+	OML4R::close()
+
+### Real example
 
 See examples files oml4r-simple-example.rb and oml4r-wlanconfig.rb.
 
