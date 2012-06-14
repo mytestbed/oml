@@ -245,6 +245,8 @@ module OML4R
     # XXX: This should be set by the application writer, not the command line
     #op.on("--oml-appid APPID", "Application ID for OML [#{appName || 'undefined'}] *EXPERIMENTAL*") { |name| appID = name }
 
+    # Set a default collection URI if nothing has been specified
+    omlCollectUri ||= "file:#{appName}_#{nodeID}_#{domain}_#{Time.now.strftime("%Y-%m-%dt%H.%M.%S%z")}"
 
     # Now parse the command line
     #$stderr.puts "OML4R: ARGV:>>> #{argv.inspect}"
