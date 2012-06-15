@@ -92,8 +92,13 @@ AX_PROG_RUBY_VERSION([1.9],
 		     [
 		      missing_rubyge19=no
 		      AX_WITH_PROG([GEM],[gem])
-		      AS_IF(test -z "$GEM",[
+		      AX_WITH_PROG([RAKE],[rake])
+		      AS_IF([test -z "$GEM"],[
 					    AC_MSG_WARN([Ruby found, but not the corresponding gem utility; the OML4r gem will not be built])
+					   ],
+					   [test -z "$RAKE"],
+					   [
+					    AC_MSG_WARN([Ruby found, but not the corresponding rake utility; the OML4r gem will not be built])
 					   ],
 					    dnl Hack to avoid nesting AS_IFs:
 					    dnl We actually do the bundler check befor telling the user
@@ -169,6 +174,7 @@ AC_CONFIG_FILES([Makefile
 		 lib/shared/Makefile
 		 lib/ocomm/Makefile
 		 ruby/Makefile
+		 ruby/oml4r/lib/oml4r.rb
 		 server/Makefile
 		 proxy_server/Makefile
 		 doc/Makefile
@@ -179,6 +185,24 @@ AC_CONFIG_FILES([Makefile
 		 test/system/blob/Makefile
 		 ])
 AC_CONFIG_COMMANDS([issue610-exec], [chmod a+x test/server/issue610.rb])
+dnl Copy source files for the Gem in VPATH so rake is happy
+AS_IF([test x$srcdir != x. && test x$have_bundler = xyes], 
+      [AC_CONFIG_COMMANDS([oml4r-vpath-copy],
+			  [mkdir -p ruby/oml4r/lib/oml4r && \
+			   for file in \
+				   ruby/oml4r/Rakefile \
+				   ruby/oml4r/lib/oml4r/oml4r-wlanconfig.rb \
+				   ruby/oml4r/lib/oml4r/oml4r-simple-example.rb \
+				   ruby/oml4r/README.md \
+				   ruby/oml4r/oml4r.gemspec \
+				   ruby/oml4r/LICENSE \
+				   ruby/oml4r/Gemfile \
+				   ruby/oml4r/.yardopts; do
+			  cp -f $srcdir/${file} ./${file}; done
+			  ],[srcdir=$srcdir])
+])
+dnl If the above command has copied files, let ruby/Makefile.am know that they have to be cleaned up
+AM_CONDITIONAL([CLEANUP_OML4R_GEM_SRC], [test x$srcdir != x. && test x$have_bundler = xyes])
 
 if test "x$missing_check" != "x"; then
    AC_MSG_WARN([could not find the `check' package, required

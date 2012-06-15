@@ -39,7 +39,7 @@ require 'thread'
 #
 module OML4R
 
-  VERSION = "2.8.pre0"
+  VERSION = "@PACKAGE_VERSION@"
   REVISION = "$Revision: 1 $".split(":")[1].chomp("$").strip
   VERSION_STRING = "OML4R Client Library - Version #{VERSION} (#{REVISION})"
   DEF_SERVER_PORT = 3003

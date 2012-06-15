@@ -49,7 +49,7 @@ end
 
 # Initialise the OML4R module for your application
 opts = {:appName => 'oml4rSimpleExample',
-  :expID => 'foo', :nodeId => 'n1',
+  :expID => 'foo', :nodeID => 'n1',
   :omlServer => 'file:-'} # Server could also be tcp:host:port
 #  OML4R::create_channel(:default, 'file:-')    
 

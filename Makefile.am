@@ -22,3 +22,8 @@ pkgdata_DATA = example/README \
 	       example/config.xml \
 	       example/config_text_stream.xml \
 	       example/config_two_streams.xml
+
+if HAVE_GEM_BUNDLER
+oml4r-gem oml4r-push:
+	$(MAKE) -C ruby/ $@
+endif
