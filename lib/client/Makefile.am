@@ -56,26 +56,3 @@ liboml2_la_LIBADD = \
 # To quote the APR build scripts:
 #    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiosyncrasy"
 liboml2_la_LDFLAGS = -version-info $(OML_VER_MINOR):$(OML_VER_PATCH_LT):$(OML_VER_MINOR)
-
-scaffold_src = $(srcdir)/ruby/oml2-scaffold
-
-bin_SCRIPTS = oml2-scaffold
-CLEANFILES = $(bin_SCRIPTS)
-EXTRA_DIST = $(scaffold_src)
-
-oml2-scaffold:	$(scaffold_src) Makefile
-	cp $(scaffold_src) oml2-scaffold
-	chmod +x oml2-scaffold
-
-progname=scaffold
-installed_name = $(scaffold_installed_name)
-installed_link_name = $(DESTDIR)$(bindir)/oml2_$(progname)
-install-exec-hook:
-	rm -f $(installed_link_name)
-	$(LN_S) $(installed_name) $(installed_link_name)
-uninstall-hook:
-	rm -f $(installed_link_name)
-
-sharedir = $(datadir)/@PACKAGE@
-dist_share_DATA = $(srcdir)/ruby/oml4r.rb \
-             $(srcdir)/ruby/oml4r-example.rb

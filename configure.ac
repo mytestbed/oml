@@ -95,11 +95,9 @@ AX_PROG_RUBY_VERSION([1.9],
 		      AS_IF(test -z "$GEM",[
 					    AC_MSG_WARN([Ruby found, but not the corresponding gem utility; the OML4r gem will not be built])
 					   ],
-					   [
 					    dnl Hack to avoid nesting AS_IFs:
 					    dnl We actually do the bundler check befor telling the user
-					    ${GEM} list | grep -q "^bundler\s"
-					   ],
+					   [ ${GEM} list | grep -q "^bundler\s" ],
 					   [
 					    AC_MSG_CHECKING(whether the bundler gem is available)
 					    have_bundler=yes
@@ -170,6 +168,7 @@ AC_CONFIG_FILES([Makefile
 		 lib/client/Makefile
 		 lib/shared/Makefile
 		 lib/ocomm/Makefile
+		 ruby/Makefile
 		 server/Makefile
 		 proxy_server/Makefile
 		 doc/Makefile
