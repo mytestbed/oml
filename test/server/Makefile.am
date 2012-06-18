@@ -5,7 +5,7 @@ TESTS = msggen.rb check_server
 if HAVE_RUBY_MIN_1_9
 TESTS += issue610.rb
 endif
-TESTS_ENVIRONMENT=TOPSRCDIR=$(top_srcdir)
+TESTS_ENVIRONMENT=TOPBUILDDIR=$(top_builddir)
 check_PROGRAMS = msgloop check_server
 
 msgloop_SOURCES = \

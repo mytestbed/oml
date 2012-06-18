@@ -4,12 +4,11 @@
 # as the last parameter
 #
 
-require "#{ENV['TOPSRCDIR']}/lib/client/ruby/oml4r.rb"
-require 'open3'
+require "#{ENV['TOPBUILDDIR']}/ruby/oml4r/lib/oml4r.rb"
 
 class Issue610MP < OML4R::MPBase
   name :test
-  param :index, :type => :long
+  param :index, :type => :int32
   param :label
 end
 
@@ -40,10 +39,10 @@ def run
 
   else
     puts "Using port #{confirmedPort}"
-    server = IO.popen(["../../server/oml2-server", "-D", ".", "-l", "#{confirmedPort}", "--logfile=-", :err=>[:child, :out]])
+    server = IO.popen(["#{ENV['TOPBUILDDIR']}/server/oml2-server", "-D", ".", "-l", "#{confirmedPort}", "--logfile=-", :err=>[:child, :out]])
     sleep 1
 
-    opts = { :domain => 'issue610', :id => "id", :app => 'app', :omlURL => "tcp:localhost:#{confirmedPort}" }
+    opts = { :appName => 'app', :expID => 'issue610', :nodeID => "id", :omlServer => "tcp:localhost:#{confirmedPort}" }
     OML4R::init(ARGV, opts)
     Issue610MP.inject 1, 'OK'
     Issue610MP.inject 2, ''
