@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
-SUBDIRS = lib server system/blob
+SUBDIRS = lib server system/blob ruby
 
 AM_CPPFLAGS = \
 	-I  $(top_srcdir)/lib/client \

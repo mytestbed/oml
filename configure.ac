@@ -3,7 +3,7 @@
 
 dnl AC_PREREQ([2.69]) dnl Not present on the Jenkins slave...
 AC_PREREQ([2.6])
-AC_INIT([oml2],[2.8.pre0],[oml-user@lists.nicta.com.au])
+AC_INIT([oml2],[2.8.pre1],[oml-user@lists.nicta.com.au])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
@@ -180,6 +180,7 @@ AC_CONFIG_FILES([Makefile
 		 doc/Makefile
 		 test/Makefile
 		 test/lib/Makefile
+		 test/ruby/Makefile
 		 test/server/Makefile
 		 test/server/issue610.rb
 		 test/system/blob/Makefile

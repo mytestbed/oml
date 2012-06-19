@@ -48,6 +48,7 @@ endif
 	cd oml4r; $(RAKE) build
 
 oml4r-push: $(OML4R_GEM)
+	$(MAKE) -C $(top_builddir)/test/ruby check
 	$(GEM) push $(OML4R_GEM)
 .PHONY: oml4r-gem oml4r-push
 endif
