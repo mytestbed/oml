@@ -1,9 +1,12 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 
 if HAVE_CHECK
-TESTS = msggen.rb check_server
+TESTS = check_server
+if HAVE_RUBY_MIN_1_8_7
+TESTS += msggen.rb
 if HAVE_RUBY_MIN_1_9
 TESTS += issue610.rb
+endif
 endif
 TESTS_ENVIRONMENT=TOPBUILDDIR=$(top_builddir)
 check_PROGRAMS = msgloop check_server

@@ -141,9 +141,14 @@ else
 fi
 
 AX_WITH_PROG([RUBY],[ruby])
-AX_PROG_RUBY_VERSION([1.9],
+AX_PROG_RUBY_VERSION([1.8.7],
 		     [
-		      missing_rubyge19=no
+		      missing_rubyge187=no
+		      dnl $ruby_version is defined by AX_PROG_RUBY_VERSION prior to running this
+		      AX_COMPARE_VERSION([1.9],[le],[$ruby_version],[missing_rubyge19=no],[
+					  AC_MSG_WARN([No Ruby>=1.9 found; some tests will be skipped])
+					  missing_rubyge19=yes
+					  ])
 		      AX_WITH_PROG([GEM],[gem])
 		      AX_WITH_PROG([RAKE],[rake])
 		      AS_IF([test -z "$GEM"],[
@@ -170,10 +175,12 @@ AX_PROG_RUBY_VERSION([1.9],
 			   )
 		     ],
 		     [
-		      AC_MSG_WARN([No Ruby>=1.9 found; the OML4r gem will not be built, and some tests will be skipped.])
+		      AC_MSG_WARN([No Ruby>=1.8.7 found; the OML4r gem will not be built, and some tests will be skipped])
+		      missing_rubyge187=yes
 		      missing_rubyge19=yes
 		     ]
 		    )
+AM_CONDITIONAL([HAVE_RUBY_MIN_1_8_7], [test x"${missing_rubyge187}" != xyes])
 AM_CONDITIONAL([HAVE_RUBY_MIN_1_9], [test x"${missing_rubyge19}" != xyes])
 AM_CONDITIONAL([HAVE_GEM_BUNDLER], [test x$have_bundler = xyes])
 
