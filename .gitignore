@@ -31,13 +31,11 @@ install-sh
 ltmain.sh
 missing
 autom4te.cache
+ar-lib
+compile
+doc/oml-user-manual.info
+doc/texinfo.tex
 m4/*.m4
 !m4/ax_compare_version.m4
 !m4/ax_prog_ruby_version.m4
 !m4/ax_with_prog.m4
-
-buildxx
-example/generator
-example/generator_oml.h
-example/generator_popt.h
-.settings/org.eclipse.ltk.core.refactoring.prefs
