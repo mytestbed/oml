@@ -150,6 +150,14 @@ its standard input.
 *EXIT*::
 	Command the hook to cleanup and terminate. This command has no argument.
 
+*DBCLOSED* 'uri'::
+	Indication that the last client for a given database has now exited and
+	cleanup tasks on the data can be performed. This command has one
+	argument, 'uri', which is an URI identifying the database. Currently,
+	only the 'file:fullpath' URI is implementend for SQLite3 databases,
+	where 'fullpath' is the full path to the database in the *oml2-server*'s
+	local filesystem.
+
 ENVIRONMENT VARIABLES
 ---------------------
 OML_SQLITE_DIR::

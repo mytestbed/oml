@@ -22,10 +22,33 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
+irodsUserName=rods
+irodsHost=irods.example.com
+#irodsPort=1247
+irodsZone=tempZone
+export irodsUserName irodsHost irodsPort irodsZone
+
+# XXX: You might need to initialise the iRODS password for the UNIX user
+# running tho oml2-server by running 'iinit' to create ~/.irods/.irodsA on its
+# behalf for iput to work
+IPUT=iput
+
 echo "OML HOOK READY"
 while read COMMAND ARGUMENTS; do
 	echo "`date` '${COMMAND}' '${ARGUMENTS}'" >> oml2-server-hook.log
 	case "${COMMAND}" in
+		"DBCLOSED")
+			case "${ARGUMENTS}" in
+				file:*)
+					DBFILE=${ARGUMENTS/file:\//}
+					echo "db ${DBFILE} closed, pushing to iRODS..." >&2
+					${IPUT} ${DBFILE}
+					;;
+				*)
+					echo "db ${ARGUMENTS} closed, but don't know how to handle it..." >&2
+					;;
+			esac
+			;;
 		"EXIT")
 			echo "exiting..." >&2
 			exit 0

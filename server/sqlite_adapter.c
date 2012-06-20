@@ -21,6 +21,7 @@
  *
  */
 #include <stdio.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
@@ -36,6 +37,7 @@
 #include "util.h"
 #include "table_descr.h"
 #include "sqlite_adapter.h"
+#include "hook.h"
 
 extern char *sqlite_database_dir;
 
@@ -130,10 +132,23 @@ sq3_table_create_meta (Database *db, const char *name)
 void
 sq3_release(Database* db)
 {
+  MString *hook_command = mstring_create();
+  char* fullpath[PATH_MAX+1];
   Sq3DB* self = (Sq3DB*)db->handle;
   end_transaction (self);
   sqlite3_close(self->conn);
   // TODO: Release table specific data
+  
+  if(hook_enabled()) {
+    if (mstring_sprintf(hook_command, "%s file:%s/%s.sq3\n",
+          HOOK_CMD_DBCLOSED, realpath(sqlite_database_dir, fullpath), db->name) == -1) {
+      logwarn("Failed to construct command string for event hook\n");
+      return -1;
+    }
+    if(hook_write(mstring_buf(hook_command), mstring_len(hook_command)) < mstring_len(hook_command))
+      logwarn("Failed to send command string to event hook: %s\n", strerror(errno));
+    mstring_delete(hook_command);
+  }
 
   xfree(self);
   db->handle = NULL;
