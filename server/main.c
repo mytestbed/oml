@@ -38,6 +38,7 @@
 
 #include "util.h"
 #include "version.h"
+#include "hook.h"
 #include "client_handler.h"
 #include "sqlite_adapter.h"
 #if HAVE_PG
@@ -84,6 +85,7 @@ struct poptOption options[] = {
   { "data-dir", 'D', POPT_ARG_STRING, &sqlite_database_dir, 0, "Directory to store database files (sqlite)", "DIR" },
   { "user", '\0', POPT_ARG_STRING, &uidstr, 0, "Change server's user id", "UID" },
   { "group", '\0', POPT_ARG_STRING, &gidstr, 0, "Change server's group id", "GID" },
+  { "event-hook", 'H', POPT_ARG_STRING, &hook, 0, "Path to an event hook taking input on stdin", "HOOK" },
   { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level", "{1 .. 4}"  },
   { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0, "File to log to", DEFAULT_LOG_FILE },
   { "version", 'v', 0, 0, 'v', "Print version information and exit", NULL },
@@ -275,6 +277,7 @@ setup_backend (void)
     setup_backend_sqlite ();
 }
 
+
 void
 drop_privileges (const char *uidstr, const char *gidstr)
 {
@@ -364,7 +367,11 @@ main(int argc, const char **argv)
   /* Important that this comes after drop_privileges().  See setup_backend_sqlite() */
   setup_backend ();
 
+  hook_setup();
+
   eventloop_run();
+
+  hook_cleanup();
 
   xmemreport();
 

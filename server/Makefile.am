@@ -15,11 +15,16 @@ oml2_server_SOURCES = \
 	client_handler.h \
 	database.c \
 	database.h \
+	hook.c \
+	hook.h \
 	sqlite_adapter.c \
 	sqlite_adapter.h \
 	table_descr.c \
 	table_descr.h \
 	version.h
+
+sharedir = $(datadir)/@PACKAGE@
+dist_share_DATA = oml2-server-hook.sh
 
 if HAVE_PG
 oml2_server_SOURCES += psql_adapter.c psql_adapter.h

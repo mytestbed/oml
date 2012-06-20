@@ -8,7 +8,7 @@ oml2-server - OML2 server daemon
 SYNOPSIS
 --------
 [verse]
-*oml2-server* [-D dir | --data-dir=dir]
+*oml2-server* [-D dir | --data-dir=dir] [-H hook | --event-hook=hook] 
 	    [-l port | --listen=port] [--user=UID] [--group=GID]
 	    [-d loglevel | --debug-level=loglevel] [--logfile=file]
 ifdef::have_pg[]
@@ -56,6 +56,24 @@ OPTIONS
 	name for an experiment is chosen by appending the suffix ".sq3" to
 	the experiment name.
 
+-H hook::
+--event-hook=hook::
+	Specify an external hook program to call on specific events.  This hook
+	should take commands on 'stdin', and write reports on 'stdout'. The
+	hook's 'stderr' is the same as the *oml2-server*'s.  When first started,
+	it should identify itself to the *oml2-server* by printing the following
+	banner line.
++
+.................
+OML HOOK READY
+.................
++
+It should then process its input in a loop, looking for the 
+commands described in the following section. Apart from its banner, the
+*omr2-server* does not currently read anything the hook program outputs
+on its 'stdout'.
++
+A simple example hook, *oml2-server-hook.sh*, is available in {pkgdatadir}.
 
 -l port::
 --listen=port::
@@ -123,6 +141,14 @@ endif::have_pg[]
 
 -?, --help::
 		Print a summary of options.
+
+HOOK COMMANDS
+-------------
+The external event hook program should expect some of the following commands on
+its standard input.
+
+*EXIT*::
+	Command the hook to cleanup and terminate. This command has no argument.
 
 ENVIRONMENT VARIABLES
 ---------------------

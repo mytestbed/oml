@@ -28,6 +28,8 @@ check_server_SOURCES = \
 	$(top_srcdir)/lib/shared/mem.h \
 	$(top_srcdir)/lib/shared/mbuf.h \
 	$(top_srcdir)/server/client_handler.c \
+	$(top_srcdir)/server/hook.c \
+	$(top_srcdir)/server/hook.h \
 	$(top_srcdir)/server/sqlite_adapter.c \
 	$(top_srcdir)/server/sqlite_adapter.h \
 	$(top_srcdir)/server/database.c \
