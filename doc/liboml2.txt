@@ -361,25 +361,13 @@ no longer be recognized.
 
 BUGS
 ----
-
-Reporting Bugs
-~~~~~~~~~~~~~~
-
-To report a bug, please email our support contacts listed here:
-http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
-
-Known Bugs
-~~~~~~~~~~
-
 The selection of the 'first' filter when '--oml-samples 1' is used can
 be confusing for numeric MP fields because it results in a different
 schema in the measurement output compared to other possible
 configurations available from the command line, which use the 'avg'
 filter.  It is not clear whether this is a feature or a bug.
 
-For other outstanding known bugs, please consult
-http://omf.mytestbed.net/projects/oml/issues
-
+include::bugs.txt 
 
 SECURITY CONSIDERATIONS
 -----------------------
@@ -397,6 +385,4 @@ Manual Pages
 linkoml:oml2-server[1], linkoml:oml2-proxy-server[1],
 linkoml:liboml2[3,api], linkoml:omlc_add_mp[3], linkoml:liboml2.conf[5]
 
-OML User Manual
-~~~~~~~~~~~~~~~
-http://omf.mytestbed.net/wiki/oml/Documentation
+include::manual.txt

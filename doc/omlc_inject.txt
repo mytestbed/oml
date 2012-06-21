@@ -104,21 +104,7 @@ function exits silently.
 
 BUGS
 ----
-
-Reporting Bugs
-~~~~~~~~~~~~~~
-
-To report a bug, please email our support contacts listed here:
-http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
-
-Known Bugs
-~~~~~~~~~~
-
-This function is quite fragile to mishandling of the 'values' array
-relative to the declared MP tuple definition.
-
-For other outstanding known bugs, please consult
-http://omf.mytestbed.net/projects/oml/issues
+include::bugs.txt
 
 SEE ALSO
 --------
@@ -128,6 +114,4 @@ linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:libo
 
 linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_start[3], linkoml:omlc_set_int32[3]
 
-OML User Manual
-~~~~~~~~~~~~~~~
-http://omf.mytestbed.net/wiki/oml/Documentation
+include::manual.txt

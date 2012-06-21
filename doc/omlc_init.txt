@@ -69,18 +69,7 @@ argument.
 
 BUGS
 ----
-
-Reporting Bugs
-~~~~~~~~~~~~~~
-
-To report a bug, please email our support contacts listed here:
-http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
-
-Known Bugs
-~~~~~~~~~~
-
-For outstanding known bugs, please consult
-http://omf.mytestbed.net/projects/oml/issues
+include::bugs.txt
 
 SEE ALSO
 --------
@@ -88,6 +77,4 @@ Manual Pages
 ~~~~~~~~~~~~
 linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
 
-OML User Manual
-~~~~~~~~~~~~~~~
-http://omf.mytestbed.net/wiki/oml/Documentation
+include::manual.txt

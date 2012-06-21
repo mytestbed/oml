@@ -354,19 +354,7 @@ use linkoml:oml2_scaffold[1].
 
 BUGS
 ----
-
-Reporting Bugs
-~~~~~~~~~~~~~~
-
-To report a bug, please email our support contacts listed here:
-http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
-
-Known Bugs
-~~~~~~~~~~
-
-For outstanding known bugs, please consult
-http://omf.mytestbed.net/projects/oml/issues
-
+include::bugs.txt
 
 SEE ALSO
 --------
@@ -374,12 +362,9 @@ Manual Pages
 ~~~~~~~~~~~~
 linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2.conf[5], linkoml:oml2_scaffold[1]
 
-
 linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_start[3], linkoml:omlc_inject[3], linkoml:omlc_close[3]
 
 linkoml:omlc_set_int32[3], linkoml:omlc_set_uint32[3], linkoml:omlc_set_int64[3], linkoml:omlc_set_uint64[3], linkoml:omlc_set_double[3], linkoml:omlc_set_string[3], linkoml:omlc_set_const_string[3]
 
 
-OML User Manual
-~~~~~~~~~~~~~~~
-http://omf.mytestbed.net/wiki/oml/Documentation
+include::manual.txt

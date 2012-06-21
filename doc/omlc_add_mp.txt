@@ -76,18 +76,7 @@ ERRORS
 
 BUGS
 ----
-
-Reporting Bugs
-~~~~~~~~~~~~~~
-
-To report a bug, please email our support contacts listed here:
-http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
-
-Known Bugs
-~~~~~~~~~~
-
-For outstanding known bugs, please consult
-http://omf.mytestbed.net/projects/oml/issues
+include::bugs.txt
 
 SEE ALSO
 --------
@@ -97,6 +86,4 @@ linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:libo
 
 linkoml:omlc_init[3], linkoml:omlc_start[3], linkoml:omlc_inject[3]
 
-OML User Manual
-~~~~~~~~~~~~~~~
-http://omf.mytestbed.net/wiki/oml/Documentation
+include::manual.txt

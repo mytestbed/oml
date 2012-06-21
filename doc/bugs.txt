@@ -1,0 +1,11 @@
+Reporting Bugs
+~~~~~~~~~~~~~~
+
+To report a bug, please email our support contacts listed here:
+http://oml.mytestbed.net/projects/oml/wiki/FAQ_and_Support
+
+Known Bugs
+~~~~~~~~~~
+
+For all known outstanding bugs, please consult
+http://oml.mytestbed.net/projects/oml/issues

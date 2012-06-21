@@ -107,7 +107,6 @@ OPTIONS
 
 BUGS
 ----
-
 The *oml2-proxy-server* is still experimental software and under
 active development.  It may contain bugs, and its interfaces may
 change without warning from version to version, even within the 2.x
@@ -117,17 +116,7 @@ compatible for patch-level releases within a minor release series
 may change the interface between minor release series (e.g. version
 2.4.0 might not be backwards compatible with 2.3.5).
 
-Reporting Bugs
-~~~~~~~~~~~~~~
-
-To report a bug, please email our support contacts listed here:
-http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
-
-Known Bugs
-~~~~~~~~~~
-
-For outstanding known bugs, please consult
-http://omf.mytestbed.net/projects/oml/issues
+include::bugs.txt
 
 SEE ALSO
 --------
@@ -135,6 +124,4 @@ Manual Pages
 ~~~~~~~~~~~~
 linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api]
 
-OML User Manual
-~~~~~~~~~~~~~~~
-http://omf.mytestbed.net/wiki/oml/Documentation
+include::manual.txt 

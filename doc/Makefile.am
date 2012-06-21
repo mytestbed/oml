@@ -38,6 +38,9 @@ CLEANFILES=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 
 A2X_ARGS = \
 	--destination-dir=. --attribute='pkglocalstatedir=$(pkglocalstatedir)' --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' -f manpage
+if HAVE_PG
+A2X_ARGS += --attribute='have_pg'
+endif
 
 if HAVE_A2X
 man_MANS = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
@@ -51,22 +54,22 @@ man_MANS = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	oml_inject_MPNAME.3 \
 	oml2_scaffold.1
 
-$(MAN1_FILES:.txt=.1):  %.1: %.txt
+$(MAN1_FILES:.txt=.1):  %.1: %.txt bugs.txt manual.txt
 	$(A2X) $(A2X_ARGS) $<
 	export XMLOUT=`echo $< | sed s/.txt$$/.xml/`; \
 	       test -f $${XMLOUT} && rm $${XMLOUT} || true
 
-liboml2.3: liboml2-api.txt
+liboml2.3: liboml2-api.txt bugs.txt manual.txt
 	$(A2X) $(A2X_ARGS) $<
 	export XMLOUT=`echo $< | sed s/.txt$$/.xml/`; \
 	       test -f $${XMLOUT} && rm $${XMLOUT} || true
 
-$(MAN3_FILES:.txt=.3):  %.3: %.txt
+$(MAN3_FILES:.txt=.3):  %.3: %.txt bugs.txt manual.txt
 	$(A2X) $(A2X_ARGS) $<
 	export XMLOUT=`echo $< | sed s/.txt$$/.xml/`; \
 	       test -f $${XMLOUT} && rm $${XMLOUT} || true
 
-$(MAN5_FILES:.txt=.5):  %.5: %.txt
+$(MAN5_FILES:.txt=.5):  %.5: %.txt bugs.txt manual.txt
 	$(A2X) $(A2X_ARGS) $<
 	export XMLOUT=`echo $< | sed s/.txt$$/.xml/`; \
 	       test -f $${XMLOUT} && rm $${XMLOUT} || true
@@ -84,6 +87,8 @@ oml2_scaffold.1:	oml2-scaffold.txt
 	echo ".so man1/oml2-scaffold.1" > $@
 
 EXTRA_DIST+=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
+	bugs.txt \
+	manual.txt \
 	liboml2.3 \
 	omlc_set_uint32.3 \
 	omlc_set_int64.3 \

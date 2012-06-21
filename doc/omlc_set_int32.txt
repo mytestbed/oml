@@ -58,21 +58,10 @@ inline functions.
 
 BUGS
 ----
-
-Reporting Bugs
-~~~~~~~~~~~~~~
-
-To report a bug, please email our support contacts listed here:
-http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
-
-Known Bugs
-~~~~~~~~~~
-
 C preprocessor macros are generally brittle and error prone.
 Unfortunately, they are all we've got.
 
-For outstanding known bugs, please consult
-http://omf.mytestbed.net/projects/oml/issues
+include::bugs.txt
 
 SEE ALSO
 --------
@@ -80,6 +69,4 @@ Manual Pages
 ~~~~~~~~~~~~
 linkoml:liboml2[3,api], linkoml:omlc_inject[3]
 
-OML User Manual
-~~~~~~~~~~~~~~~
-http://omf.mytestbed.net/wiki/oml/Documentation
+include::manual.txt

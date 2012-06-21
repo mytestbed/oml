@@ -8,9 +8,13 @@ oml2-server - OML2 server daemon
 SYNOPSIS
 --------
 [verse]
-*oml2-server* [--version | -v] [-d loglevel | --debug-level=loglevel]
-	  [-l port | --listen=port] [--data-dir=dir] [--logfile=file]
-	  [-? | --help]
+*oml2-server* [-D dir | --data-dir=dir]
+	    [-l port | --listen=port] [--user=UID] [--group=GID]
+	    [-d loglevel | --debug-level=loglevel] [--logfile=file]
+ifdef::have_pg[]
+	    [-b db | --backend=db] [--pg-user=user] [--pg-connect=conninfo]
+endif::have_pg[]
+	    [--usage] [--version | -v] [-? | --help]
 
 DESCRIPTION
 -----------
@@ -33,23 +37,14 @@ to create a new database of that name, initialize it for use, and
 append new measurements to it.  Measurement streams from subsequent
 clients for experiment 'A' will also be appended to the new database.
 
+ifdef::have_pg[]
 *oml2-server* can store measurements in either an SQLite3 database on
 disk or in a PostgreSQL database.  See the '--backend' option for
 details.
+endif::have_pg[]
 
 OPTIONS
 -------
--l port::
---listen=port::
-	Listen for measurement client connections on the given
-	port. The default port is 3003.
-
--b db, --backend=db::
-    Select which database backend to use for storing experiment
-    databases. The default is 'sqlite' which stores databases as
-    SQLite3 files.  The other option os 'postgresql' which will
-    attempt to connect to a PostgreSQL database server.
-
 -D directory, --data-dir=directory::
 	Store SQLite3 measurement databases for all experiments in the
 	specified directory, when the SQLite3 backend is selected. The
@@ -61,25 +56,11 @@ OPTIONS
 	name for an experiment is chosen by appending the suffix ".sq3" to
 	the experiment name.
 
---pg-user=user::
-	Specify the PostgreSQL database user to use when the PostgreSQL
-	database backend is selected.  The specified user must have the
-	PostgreSQL CREATEDB role so that it can create a new database for
-	each new experiment.
 
---pg-connect=conninfo::
-For the PostgreSQL backend, this option gives a way to control the
-database authentication scheme to use.  It is passed to the
-PostgreSQL connection API with the user name and database name
-appended.  For instance, for an experiment named "myexp" and
-'--pg-user=joe', a conninfo string of
-"host=postgres.mycompany.com password=secret" will result in the
-following being passed to the server:
-------
-  "host=postgres.mycompany.com password=secret user=joe dbname=myexp"
-------
-  The default connection info string is "host=localhost" and the
-  default database user is "oml".
+-l port::
+--listen=port::
+	Listen for measurement client connections on the given
+	port. The default port is 3003.
 
 --user=UID, --group=GID::
 	Try to change the server's user id and group id before starting to
@@ -93,21 +74,55 @@ following being passed to the server:
 	for the given user. '--user' and '--group' accept user and group
 	names as arguments; numeric user and group ids are not supported.
 
--d::
---debug-level=level::
+-d, --debug-level=level::
 	Set the verbosity of log output to level. The level should be
-    an integer from 1 to 4 (1=ERROR, 2=WARNING, 3=INFO, 4=DEBUG).
+	an integer from 1 to 4 (1=ERROR, 2=WARNING, 3=INFO, 4=DEBUG).
 	The default log verbosity is 3, INFO.
+
+--logfile=file::
+	Output log messages to 'file' rather than 'stderr'.
+
+ifdef::have_pg[]
+-b db, --backend=db::
+	Select which database backend to use for storing experiment
+	databases. The default is 'sqlite' which stores databases as
+	SQLite3 files.  The other option os 'postgresql' which will
+	attempt to connect to a PostgreSQL database server.
+
+--pg-user=user::
+	Specify the PostgreSQL database user to use when the PostgreSQL
+	database backend is selected.  The specified user must have the
+	PostgreSQL CREATEDB role so that it can create a new database for
+	each new experiment.
+
+--pg-connect=conninfo::
+	For the PostgreSQL backend, this option gives a way to control the
+	database authentication scheme to use.  It is passed to the
+	PostgreSQL connection API with the user name and database name
+	appended.  For instance, for an experiment named "myexp" and
+	'--pg-user=joe', a conninfo string of
+	"host=postgres.mycompany.com password=secret" will result in the
+	following being passed to the server:
++
+--------------------------
+  "host=postgres.mycompany.com password=secret user=joe dbname=myexp"
+--------------------------
++
+The default connection info string is "host=localhost" and the
+default database user is "oml".
+endif::have_pg[]
 
 --logfile=file::
 		Write log messages to file.
 
--v::
---version::
-		Print the version number of *oml2-server*.
-
 --usage::
 		Print a brief usage message.
+
+-v, --version::
+		Print the version number of *oml2-server*.
+
+-?, --help::
+		Print a summary of options.
 
 ENVIRONMENT VARIABLES
 ---------------------
@@ -119,19 +134,7 @@ line option.
 
 BUGS
 ----
-
-Reporting Bugs
-~~~~~~~~~~~~~~
-
-To report a bug, please email our support contacts listed here:
-http://omf.mytestbed.net/wiki/oml/FAQ_and_Support
-
-Known Bugs
-~~~~~~~~~~
-
-For outstanding known bugs, please consult
-http://omf.mytestbed.net/projects/oml/issues
-
+include::bugs.txt
 
 SECURITY CONSIDERATIONS
 -----------------------
@@ -148,10 +151,14 @@ Manual Pages
 ~~~~~~~~~~~~
 linkoml:oml2-proxy-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api]
 
-OML User Manual
-~~~~~~~~~~~~~~~
-http://omf.mytestbed.net/wiki/oml/Documentation
+include::manual.txt
 
 SQLite3
 ~~~~~~~
 http://www.sqlite.org
+
+ifdef::have_pg[]
+PostgreSQL
+~~~~~~~~~~
+http://www.postgresql.org
+endif::have_pg[]
