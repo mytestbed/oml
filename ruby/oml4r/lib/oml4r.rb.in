@@ -137,6 +137,7 @@ module OML4R
 	index = ca[1]
 	channel.send "#{t}\t#{index}\t#{msg}"
       end
+      args
     end
 
     def self.start_time()
@@ -253,12 +254,11 @@ module OML4R
     rest = op.parse(argv)
     return if noop
 
-
-    Channel.create(:default, omlCollectUri) if omlCollectUri
-
     unless domain && nodeID && appName
       raise 'OML4R: Missing values for parameters :expID (--oml-exp-id), :nodeID (--oml-id), or :appName (in code)!'
     end
+
+    Channel.create(:default, omlCollectUri) if omlCollectUri
 
     # Handle the defined Measurement Points
     startTime = Time.now
@@ -267,13 +267,6 @@ module OML4R
     Object.const_defined?(:MObject) ? MObject.debug(:oml4r, msg) : $stderr.puts("OML4R: #{msg}")
 
     rest || []
-  end
-
-  #
-  # Create a new channel over which to send measurement channels.
-  #
-  def self.create_channel(name, url)
-    Channel.create(name.to_s, url)
   end
 
   #
