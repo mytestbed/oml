@@ -1,8 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-dnl AC_PREREQ([2.69]) dnl Not present on the Jenkins slave...
-AC_PREREQ([2.6])
+AC_PREREQ([2.69])
 AC_INIT([oml2],[2.8.pre1],[oml-user@lists.nicta.com.au])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_MACRO_DIR([m4])
