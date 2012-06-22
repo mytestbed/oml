@@ -1,19 +1,18 @@
 # Contributor: Olivier Mehani <olivier.mehani@nicta.com.au>
 pkgname=liboml-git
-pkgver=20120423
+pkgver=20120625
 #pkgrel=1 # Set below, after the GIT branch is defined.
 pkgdesc="OML is a measurement library that allows to define measurement points inside applications"
 arch=(i686 x86_64)
-url="http://omf.mytestbed.net/projects/show/oml"
+url="http://oml.mytestbed.net/"
 license=('custom:MIT-Nicta')
-depends=('libxml2' 'sqlite3' 'libpcap' 'popt' 'asciidoc')
-makedepends=('git' 'autoconf' 'asciidoc')
+depends=('libxml2' 'sqlite3' 'libpcap' 'popt')
+makedepends=('git' 'autoconf>=2.69' 'automake>=1.12.1' 'libtool>=2.4.2' 'asciidoc')
+checkdepends=('check')
 provides=(liboml)
 conflicts=(liboml)
 
-_gitroot="git://mytestbed.net/oml.git"
 _gitroot="git://mytestbed.net/oml-staging.git"
-_gitroot="/home/omehani/nicta/OML/oml"
 _gitname="oml"
 _gitbranch="master"
 pkgrel=1
