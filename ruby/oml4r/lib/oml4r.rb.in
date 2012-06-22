@@ -164,6 +164,15 @@ module OML4R
 
     end
 
+    def self.__unfreeze__()
+      self.each_mp do |klass, defs|
+	defs[:seq_no] = 0
+      end
+      @@channels = {}
+      @@start_time = nil
+      @@frozen = false
+    end
+
     # Build the table schema for this MP and send it to the OML collection server
     # - name_prefix = the name for this MP to use as a prefix for its table
     def self.__print_meta__(name_prefix = nil)
@@ -351,6 +360,8 @@ module OML4R
 
     def self.close_all()
       @@channels.values.each { |c| c.close }
+      @@channels = {}
+      MPBase.__unfreeze__()
     end
 
     attr_reader :url
@@ -424,6 +435,7 @@ module OML4R
 	    @out.flush
 	  end
 	  @out.close
+	  @out = nil
 	rescue Exception => ex
 	  msg = "Exception while sending message to channel '#{@url}' (#{ex})"
 	  Object.const_defined?(:MObject) ? MObject.warn(:oml4r, msg) : $stderr.puts("OML4R: #{msg}")
