@@ -46,8 +46,8 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-/usr/bin/oml2-proxy-server
 /usr/bin/oml2-proxycon
+/usr/bin/oml2-proxy-server
 /usr/bin/oml2-server
 /usr/lib/libocomm.a
 /usr/lib/libocomm.la
@@ -56,7 +56,7 @@ rm -rf %{buildroot}
 /usr/lib/liboml2.a
 /usr/lib/liboml2.la
 /usr/lib/liboml2.so.0
-/usr/lib/liboml2.so.0.7.0
+/usr/lib/liboml2.so.0.8.0
 /usr/share/info/oml-user-manual.info.gz
 %doc /usr/share/man/man1/liboml2.1.gz
 %doc /usr/share/man/man1/oml2-proxy-server.1.gz
@@ -71,15 +71,17 @@ rm -rf %{buildroot}
 /usr/include
 /usr/bin/oml2_scaffold
 /usr/bin/oml2-scaffold
-/usr/share/oml2/oml4r-example.rb
-/usr/share/oml2/oml4r.rb
-/usr/share/oml2/Makefile
-/usr/share/oml2/README
-/usr/share/oml2/config.xml
 /usr/share/oml2/config_text_stream.xml
 /usr/share/oml2/config_two_streams.xml
+/usr/share/oml2/config.xml
 /usr/share/oml2/generator.c
 /usr/share/oml2/generator.rb
+/usr/share/oml2/Makefile
+/usr/share/oml2/oml2-server-hook.sh
+/usr/share/oml2/oml4r-%{version}.gem
+/usr/share/oml2/oml4r-simple-example.rb
+/usr/share/oml2/oml4r-wlanconfig.rb
+/usr/share/oml2/README
 /usr/share/oml2/version.h
 %doc /usr/share/man/man1/oml2_scaffold.1.gz
 %doc /usr/share/man/man1/oml2-scaffold.1.gz
