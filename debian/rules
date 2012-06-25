@@ -55,6 +55,7 @@ install: build
 	# Make directories for all debian packages
 	mkdir -p $(CURDIR)/debian/oml2-server/usr/bin
 	mkdir -p $(CURDIR)/debian/oml2-server/var/lib
+	mkdir -p $(CURDIR)/debian/oml2-server/usr/share/oml2-server
 	mkdir -p $(CURDIR)/debian/oml2-proxy-server/usr/bin
 	mkdir -p $(CURDIR)/debian/oml2-proxycon/usr/bin
 	mkdir -p $(CURDIR)/debian/liboml2-0/usr/lib
@@ -62,7 +63,7 @@ install: build
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/lib
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/bin
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/share/liboml2-dev
-	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/share/doc/liboml2-dev/examples
+	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/share/man/man1
 	mkdir -p $(CURDIR)/debian/libocomm0/usr/lib
 	mkdir -p $(CURDIR)/debian/libocomm-dev/usr/lib
 	mkdir -p $(CURDIR)/debian/libocomm-dev/usr/include
@@ -70,6 +71,8 @@ install: build
 	# Build the oml2-server package
 	mv $(CURDIR)/debian/tmp/usr/bin/oml2-server $(CURDIR)/debian/oml2-server/usr/bin
 	mv $(CURDIR)/debian/tmp/var/lib/oml2 $(CURDIR)/debian/oml2-server/var/lib/oml2
+	mv $(CURDIR)/debian/tmp/usr/share/oml2/oml2-server-hook.sh $(CURDIR)/debian/oml2-server/usr/share/oml2-server/
+	chmod a+x $(CURDIR)/debian/oml2-server/usr/share/oml2-server/oml2-server-hook.sh
 
 	# Build the oml2-proxy-server package
 	mv $(CURDIR)/debian/tmp/usr/bin/oml2-proxy-server $(CURDIR)/debian/oml2-proxy-server/usr/bin
@@ -81,8 +84,8 @@ install: build
 	mv $(CURDIR)/debian/tmp/usr/include/oml2 $(CURDIR)/debian/liboml2-dev/usr/include/
 	mv $(CURDIR)/debian/tmp/usr/bin $(CURDIR)/debian/liboml2-dev/usr
 	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so $(CURDIR)/debian/liboml2-dev/usr/lib/
-	mv $(CURDIR)/debian/tmp/usr/share/oml2/oml4r.rb $(CURDIR)/debian/liboml2-dev/usr/share/liboml2-dev/
-	mv $(CURDIR)/debian/tmp/usr/share/oml2/oml4r-example.rb $(CURDIR)/debian/liboml2-dev/usr/share/doc/liboml2-dev/examples/
+	mv $(CURDIR)/debian/tmp/usr/share/oml2/ $(CURDIR)/debian/liboml2-dev/usr/share/liboml2-dev/examples/
+	mv $(CURDIR)/debian/tmp/usr/share/man/man1/oml2?scaffold.1 $(CURDIR)/debian/liboml2-dev/usr/share/man/man1/
 
 	# Build the liboml2 package
 	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so.* $(CURDIR)/debian/liboml2-0/usr/lib/

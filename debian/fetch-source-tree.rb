@@ -48,7 +48,7 @@ end
 #
 def check_source_version(version)
   File.open("configure.ac").each do |line|
-    if (line =~ /^AC_INIT\(\[oml2\], \[(.*)\],.*/) then
+    if (line =~ /^AC_INIT\(\[oml2\], *\[(.*)\],.*/) then
       source_version = $1
       if (source_version != version) then
         $stderr.print "ERROR:  Package version from configure.ac (#{source_version}) does not match debian/changelog version (#{version})\n"

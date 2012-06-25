@@ -1,3 +1,9 @@
+oml2 (2.8.0-ubuntu1) quantal; urgency=low
+
+  * New upstream release 2.8.0 
+
+ -- Olivier Mehani <olivier.mehani@nicta.com.au>  Mon, 25 Jun 2012 15:41:05 +1000
+
 oml2 (2.7.0-ubuntu1) oneiric; urgency=low
 
   * New upstream release 2.7.0
