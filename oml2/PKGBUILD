@@ -12,16 +12,10 @@ checkdepends=('check')
 provides=(liboml)
 conflicts=(liboml)
 replaces=(liboml)
-#source=(http://oml.mytestbed.net/attachments/download/XXX/${pkgname}-${pkgver}.tar.gz)
+source=(http://oml.mytestbed.net/attachments/download/709/${pkgname}-${pkgver}.tar.gz)
 # run `makepkg -g >> PKGBUILD' to generate md5sums after uncommenting sources 
 
 build() {
-  # OML in-repo packaging trick; Remove for AUR packaging
-  (cd ${startdir}/..; git archive --prefix "${pkgname}-${pkgver}/" "v${pkgver}") | tar x -C ${srcdir}
-  cd "${srcdir}/${pkgname}-${pkgver}"
-	autoreconf -i
-
-  # Normal build
   cd "${srcdir}/${pkgname}-${pkgver}"
 	./configure --prefix=/usr --with-doc
 	make || return 1
@@ -39,3 +33,4 @@ package() {
 		${pkgdir}/usr/share/licenses/${pkgname}/COPYING
 }
 # vim:set ts=2 sw=2 et:
+md5sums=('be680be07a7157f148b2f38176d90b35')
