@@ -1,5 +1,5 @@
 # Contributor: Olivier Mehani <olivier.mehani@nicta.com.au>
-pkgname=liboml
+pkgname=oml2
 pkgver=2.8.0
 pkgrel=1
 pkgdesc="OML is a measurement library that allows to define measurement points inside applications"
@@ -9,6 +9,9 @@ license=('custom:MIT-Nicta')
 depends=('libxml2' 'sqlite3' 'libpcap' 'popt' 'ruby>=1.8.7')
 makedepends=('git' 'autoconf>=2.69' 'automake>=1.12.1' 'libtool>=2.4.2' 'asciidoc')
 checkdepends=('check')
+provides=(liboml)
+conflicts=(liboml)
+replaces=(liboml)
 #source=(http://oml.mytestbed.net/attachments/download/XXX/${pkgname}-${pkgver}.tar.gz)
 # run `makepkg -g >> PKGBUILD' to generate md5sums after uncommenting sources 
 
