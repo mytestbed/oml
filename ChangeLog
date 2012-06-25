@@ -1,3 +1,17 @@
+2012-06-25  Olivier Mehani <olivier.mehani@nicta.com.au>
+	* OML: Version 2.8.0
+	* Bugfixes: Builds on Mac OS X without special arguments (#749)
+	* liboml2: Reconnect to server in case of disconnection (#757)
+	* oml2-server: Fix issue with empty string last in text mode (#610)
+		       Introduce event hook mechanism to react to event within
+		       the server (e.g., push a measurement database to iRODS
+		       when the last client has disconnected)
+	* oml2-scaffold: Load the right appfile (#750)
+	* OML4R: OML4R Gem pushed to RubyGems
+	  	 Examples updated
+		 Support for sending measurement to different streams
+		 Make parameters constistent with liboml and command line (#751)
+
 2012-04-24  Olivier Mehani <olivier.mehani@nicta.com.au>
 	* OML: Version 2.7.0-rc1
 	* manpages: Fix manpage wrt --oml-list-filters
