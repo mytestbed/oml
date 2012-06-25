@@ -1,5 +1,5 @@
 %define name            oml2
-%define version         2.7.0
+%define version         2.8.0
 
 BuildRoot:              %{_tmppath}/%{name}-%{version}-build
 Summary:                OML: The Orbit Measurement Library
@@ -8,7 +8,7 @@ URL:                    http://oml.mytestbed.net
 Name:                   %{name}
 Version:                %{version}
 Release:                1
-Source:                 http://mytestbed.net/attachments/download/685/oml2-2.7.0.tar.gz
+Source:                 http://mytestbed.net/attachments/download/709/oml2-2.8.0.tar.gz
 Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Prefix:                 /usr
 Group:                  System/Libraries
@@ -57,6 +57,7 @@ rm -rf %{buildroot}
 /usr/lib/liboml2.la
 /usr/lib/liboml2.so.0
 /usr/lib/liboml2.so.0.7.0
+/usr/share/oml2/oml2-server-hook.sh
 /usr/share/info/oml-user-manual.info.gz
 %doc /usr/share/man/man1/liboml2.1.gz
 %doc /usr/share/man/man1/oml2-proxy-server.1.gz
@@ -71,8 +72,8 @@ rm -rf %{buildroot}
 /usr/include
 /usr/bin/oml2_scaffold
 /usr/bin/oml2-scaffold
-/usr/share/oml2/oml4r-example.rb
-/usr/share/oml2/oml4r.rb
+/usr/share/oml2/oml4r-simple-example.rb
+/usr/share/oml2/oml4r-wlanconfig.rb
 /usr/share/oml2/Makefile
 /usr/share/oml2/README
 /usr/share/oml2/config.xml
