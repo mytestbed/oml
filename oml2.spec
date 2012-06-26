@@ -1,5 +1,5 @@
 %define name            oml2
-%define version         2.7.0
+%define version         2.8.0
 
 BuildRoot:              %{_tmppath}/%{name}-%{version}-build
 Summary:                OML: The Orbit Measurement Library
@@ -8,7 +8,7 @@ URL:                    http://oml.mytestbed.net
 Name:                   %{name}
 Version:                %{version}
 Release:                1
-Source:                 http://mytestbed.net/attachments/download/685/oml2-2.7.0.tar.gz
+Source:			http://mytestbed.net/attachments/download/709/oml2-%{version}.tar.gz
 Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Prefix:                 /usr
 Group:                  System/Libraries
@@ -57,6 +57,7 @@ rm -rf %{buildroot}
 /usr/lib/liboml2.la
 /usr/lib/liboml2.so.0
 /usr/lib/liboml2.so.0.8.0
+/usr/share/oml2/oml2-server-hook.sh
 /usr/share/info/oml-user-manual.info.gz
 %doc /usr/share/man/man1/liboml2.1.gz
 %doc /usr/share/man/man1/oml2-proxy-server.1.gz
@@ -78,12 +79,22 @@ rm -rf %{buildroot}
 /usr/share/oml2/generator.rb
 /usr/share/oml2/Makefile
 /usr/share/oml2/oml2-server-hook.sh
-/usr/share/oml2/oml4r-%{version}.gem
-/usr/share/oml2/oml4r-simple-example.rb
-/usr/share/oml2/oml4r-wlanconfig.rb
 /usr/share/oml2/README
 /usr/share/oml2/version.h
 %doc /usr/share/man/man1/oml2_scaffold.1.gz
 %doc /usr/share/man/man1/oml2-scaffold.1.gz
-%doc /usr/share/man/man3
+%doc /usr/share/man/man3/liboml2.3.gz
+%doc /usr/share/man/man3/oml_inject_MPNAME.3.gz
+%doc /usr/share/man/man3/omlc_add_mp.3.gz
+%doc /usr/share/man/man3/omlc_close.3.gz
+%doc /usr/share/man/man3/omlc_init.3.gz
+%doc /usr/share/man/man3/omlc_inject.3.gz
+%doc /usr/share/man/man3/omlc_set_const_string.3.gz
+%doc /usr/share/man/man3/omlc_set_double.3.gz
+%doc /usr/share/man/man3/omlc_set_int32.3.gz
+%doc /usr/share/man/man3/omlc_set_int64.3.gz
+%doc /usr/share/man/man3/omlc_set_string.3.gz
+%doc /usr/share/man/man3/omlc_set_uint32.3.gz
+%doc /usr/share/man/man3/omlc_set_uint64.3.gz
+%doc /usr/share/man/man3/omlc_start.3.gz
 
