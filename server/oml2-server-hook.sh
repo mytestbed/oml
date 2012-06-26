@@ -40,7 +40,7 @@ while read COMMAND ARGUMENTS; do
 		"DBCLOSED")
 			case "${ARGUMENTS}" in
 				file:*)
-					DBFILE=${ARGUMENTS/file:\//}
+					DBFILE=${ARGUMENTS/file:/}
 					echo "db ${DBFILE} closed, pushing to iRODS..." >&2
 					${IPUT} ${DBFILE}
 					;;
