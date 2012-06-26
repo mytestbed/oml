@@ -8,7 +8,7 @@ URL:                    http://oml.mytestbed.net
 Name:                   %{name}
 Version:                %{version}
 Release:                1
-Source:                 http://mytestbed.net/attachments/download/709/oml2-2.8.0.tar.gz
+Source:			http://mytestbed.net/attachments/download/709/oml2-%{version}.tar.gz
 Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Prefix:                 /usr
 Group:                  System/Libraries
@@ -46,8 +46,8 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-/usr/bin/oml2-proxy-server
 /usr/bin/oml2-proxycon
+/usr/bin/oml2-proxy-server
 /usr/bin/oml2-server
 /usr/lib/libocomm.a
 /usr/lib/libocomm.la
@@ -56,7 +56,7 @@ rm -rf %{buildroot}
 /usr/lib/liboml2.a
 /usr/lib/liboml2.la
 /usr/lib/liboml2.so.0
-/usr/lib/liboml2.so.0.7.0
+/usr/lib/liboml2.so.0.8.0
 /usr/share/oml2/oml2-server-hook.sh
 /usr/share/info/oml-user-manual.info.gz
 %doc /usr/share/man/man1/liboml2.1.gz
@@ -72,17 +72,28 @@ rm -rf %{buildroot}
 /usr/include
 /usr/bin/oml2_scaffold
 /usr/bin/oml2-scaffold
-/usr/share/oml2/oml4r-simple-example.rb
-/usr/share/oml2/oml4r-wlanconfig.rb
-/usr/share/oml2/Makefile
-/usr/share/oml2/README
-/usr/share/oml2/config.xml
 /usr/share/oml2/config_text_stream.xml
 /usr/share/oml2/config_two_streams.xml
+/usr/share/oml2/config.xml
 /usr/share/oml2/generator.c
 /usr/share/oml2/generator.rb
+/usr/share/oml2/Makefile
+/usr/share/oml2/oml2-server-hook.sh
+/usr/share/oml2/README
 /usr/share/oml2/version.h
 %doc /usr/share/man/man1/oml2_scaffold.1.gz
 %doc /usr/share/man/man1/oml2-scaffold.1.gz
-%doc /usr/share/man/man3
-
+%doc /usr/share/man/man3/liboml2.3.gz
+%doc /usr/share/man/man3/oml_inject_MPNAME.3.gz
+%doc /usr/share/man/man3/omlc_add_mp.3.gz
+%doc /usr/share/man/man3/omlc_close.3.gz
+%doc /usr/share/man/man3/omlc_init.3.gz
+%doc /usr/share/man/man3/omlc_inject.3.gz
+%doc /usr/share/man/man3/omlc_set_const_string.3.gz
+%doc /usr/share/man/man3/omlc_set_double.3.gz
+%doc /usr/share/man/man3/omlc_set_int32.3.gz
+%doc /usr/share/man/man3/omlc_set_int64.3.gz
+%doc /usr/share/man/man3/omlc_set_string.3.gz
+%doc /usr/share/man/man3/omlc_set_uint32.3.gz
+%doc /usr/share/man/man3/omlc_set_uint64.3.gz
+%doc /usr/share/man/man3/omlc_start.3.gz

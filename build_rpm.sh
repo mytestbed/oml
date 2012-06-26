@@ -23,6 +23,7 @@ mkdir -p BUILD RPMS SOURCES SPECS SRPMS
 cd -
 ln -s `pwd`/oml2-$version.tar.gz $tmp/SOURCES/
 rpmbuild -v -bb --clean oml2.spec --define "_topdir $tmp" --nodeps
-find $tmp -type f -name "*.rpm" -exec cp -v {} . \;
-rm -rf $tmp
-
+if [ $? = 0 ]; then
+	find $tmp -type f -name "*.rpm" -exec cp -v {} . \;
+	rm -rf $tmp
+fi
