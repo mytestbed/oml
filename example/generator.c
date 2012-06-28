@@ -44,7 +44,7 @@ main(
   int argc,
   const char *argv[]
 ) {
-  omlc_init(argv[0], &argc, argv, NULL);
+  omlc_init("generator", &argc, argv, NULL);
 
   // parsing command line arguments
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
