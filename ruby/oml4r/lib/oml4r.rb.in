@@ -407,7 +407,7 @@ module OML4R
       d = (@domain == :default) ? @@default_domain : @domain
       raise "Missing domain name" unless d
       @queue.push "experiment-id: #{d}"
-      @queue.push "start_time: #{startTime.tv_sec}"
+      @queue.push "start-time: #{startTime.tv_sec}"
       @queue.push "sender-id: #{nodeID}"
       @queue.push "app-name: #{appName}"
       @queue.push "content: text"
