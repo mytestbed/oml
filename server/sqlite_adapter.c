@@ -133,7 +133,7 @@ void
 sq3_release(Database* db)
 {
   MString *hook_command = mstring_create();
-  char* fullpath[PATH_MAX+1];
+  char fullpath[PATH_MAX+1];
   Sq3DB* self = (Sq3DB*)db->handle;
   end_transaction (self);
   sqlite3_close(self->conn);
@@ -143,7 +143,6 @@ sq3_release(Database* db)
     if (mstring_sprintf(hook_command, "%s file:%s/%s.sq3\n",
           HOOK_CMD_DBCLOSED, realpath(sqlite_database_dir, fullpath), db->name) == -1) {
       logwarn("Failed to construct command string for event hook\n");
-      return -1;
     }
     if(hook_write(mstring_buf(hook_command), mstring_len(hook_command)) < mstring_len(hook_command))
       logwarn("Failed to send command string to event hook: %s\n", strerror(errno));

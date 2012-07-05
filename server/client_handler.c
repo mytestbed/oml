@@ -24,6 +24,7 @@
   \brief Deals with a single connected client.
 */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
