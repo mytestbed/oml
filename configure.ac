@@ -225,8 +225,6 @@ else
    AM_CONDITIONAL([HAVE_ASCIIDOC], [false])
 fi
 
-AC_SUBST([scaffold_installed_name], [`echo oml2-scaffold | sed "${program_transform_name}"`])
-
 AC_CONFIG_FILES([Makefile
 		 lib/Makefile
 		 lib/client/Makefile
