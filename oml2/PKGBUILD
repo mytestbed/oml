@@ -1,6 +1,6 @@
 # Contributor: Olivier Mehani <olivier.mehani@nicta.com.au>
 pkgname=oml2
-pkgver=2.8.0
+pkgver=2.9.pre0
 pkgrel=1
 pkgdesc="OML is a measurement library that allows to define measurement points inside applications"
 arch=(i686 x86_64)
