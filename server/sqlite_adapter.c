@@ -24,6 +24,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #include <sqlite3.h>
 #include <log.h>
 #include <time.h>
@@ -418,31 +419,27 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
   }
   for (i = 0; i < schema->nfields; i++, v++) {
     if (v->type != schema->fields[i].type) {
-      if (v->type == OML_BLOB_VALUE && schema->fields[i].type == OML_UINT64_VALUE)
-        schema->fields[i].type = OML_BLOB_VALUE; // Dodgy because we map UINT64 -> BLOB for SQLite
-      else {
-        char *expected = oml_type_to_s (schema->fields[i].type);
-        char *received = oml_type_to_s (v->type);
-        logerror("Mismatch in value type for column %d of table '%s'\n", i, table->schema->name);
-        logerror("-> Column name='%s', type=%s, but trying to insert a %s\n",
-                 schema->fields[i].name, expected, received);
-        sqlite3_reset (stmt);
-        return -1;
-      }
+      char *expected = oml_type_to_s (schema->fields[i].type);
+      char *received = oml_type_to_s (v->type);
+      logerror("Mismatch in value type for column %d of table '%s'\n", i, table->schema->name);
+      logerror("-> Column name='%s', type=%s, but trying to insert a %s\n",
+          schema->fields[i].name, expected, received);
+      sqlite3_reset (stmt);
+      return -1;
     }
     int res;
     int idx = i + 5;
     switch (schema->fields[i].type) {
     case OML_DOUBLE_VALUE: res = sqlite3_bind_double(stmt, idx, v->value.doubleValue); break;
     case OML_LONG_VALUE:   res = sqlite3_bind_int(stmt, idx, (int)v->value.longValue); break;
-    case OML_INT32_VALUE:  res = sqlite3_bind_int(stmt, idx, (int)v->value.int32Value); break;
-    case OML_UINT32_VALUE: res = sqlite3_bind_int(stmt, idx, (int)v->value.uint32Value); break;
-    case OML_INT64_VALUE:  res = sqlite3_bind_int64(stmt, idx, (int)v->value.int64Value); break;
-      /* Unsigned 64-bit integer will lose precision in sqlite3, so use a BLOB instead */
+    case OML_INT32_VALUE:  res = sqlite3_bind_int(stmt, idx, (int32_t)v->value.int32Value); break;
+    case OML_UINT32_VALUE: res = sqlite3_bind_int(stmt, idx, (uint32_t)v->value.uint32Value); break;
+    case OML_INT64_VALUE:  res = sqlite3_bind_int64(stmt, idx, (int64_t)v->value.int64Value); break;
     case OML_UINT64_VALUE:
       {
-        uint64_t blob = htonll (v->value.uint64Value);
-        res = sqlite3_bind_blob(stmt, idx, &blob, sizeof(uint64_t), SQLITE_TRANSIENT);
+        if (v->value.uint64Value > (uint64_t)9223372036854775808)
+          logwarn("Trying to store value %" PRIu64 " (>2^63) in column '%s' of table '%s' (exp-id '%s'), this might lead to a loss of resolution.\n", (uint64_t)v->value.uint64Value, schema->fields[i].name, table->schema->name, db->name);
+        res = sqlite3_bind_int64(stmt, idx, (uint64_t)v->value.uint64Value);
         break;
       }
     case OML_STRING_VALUE:
