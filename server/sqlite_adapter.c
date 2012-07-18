@@ -437,7 +437,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
     case OML_INT64_VALUE:  res = sqlite3_bind_int64(stmt, idx, (int64_t)v->value.int64Value); break;
     case OML_UINT64_VALUE:
       {
-        if (v->value.uint64Value > (uint64_t)9223372036854775808)
+        if (v->value.uint64Value > (uint64_t)9223372036854775808u)
           logwarn("Trying to store value %" PRIu64 " (>2^63) in column '%s' of table '%s' (exp-id '%s'), this might lead to a loss of resolution.\n", (uint64_t)v->value.uint64Value, schema->fields[i].name, table->schema->name, db->name);
         res = sqlite3_bind_int64(stmt, idx, (uint64_t)v->value.uint64Value);
         break;
