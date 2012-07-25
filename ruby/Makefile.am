@@ -19,9 +19,10 @@ EXTRA_DIST = \
 CLEANFILES =
 
 progname=scaffold
-installed_name = `echo -n "oml2-scaffold" | sed '${program_transform_name}'`
-installed_link_name = $(DESTDIR)$(bindir)/`echo -n "oml2_$(progname)" | sed '$(transform)'`
+installed_name = `echo "oml2-scaffold" | sed '${program_transform_name}'`
+installed_link_name = $(DESTDIR)$(bindir)/`echo "oml2_$(progname)" | sed '$(transform)'`
 install-exec-hook:
+	-test -e $(installed_link_name) && mv $(installed_link_name) $(installed_link_name).pre$(PACKAGE_VERSION)
 	$(LN_S) $(installed_name) $(installed_link_name)
 uninstall-hook:
 	rm -f $(installed_link_name)
