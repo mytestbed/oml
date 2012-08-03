@@ -132,7 +132,7 @@ write_meta(
   MString *mstr = mstring_create();
   mstring_set (mstr, str);
   mstring_cat (mstr, "\n");
-  bw_push(self->bufferedWriter, (uint8_t*)mstring_buf (mstr), mstring_len (mstr));
+  bw_push_meta(self->bufferedWriter, (uint8_t*)mstring_buf (mstr), mstring_len (mstr));
   mstring_delete (mstr);
   return 1;
 }

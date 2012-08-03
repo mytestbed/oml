@@ -63,6 +63,8 @@ typedef struct {
   BufferChain* writerChain; //! Chain to write/push to
   BufferChain* firstChain;  //! Immutable entry into the chain
 
+  MBuffer*     meta_buf; //! Buffer holding the meta data
+
   pthread_mutex_t lock;         //! Mutex to protect this struct
   pthread_cond_t semaphore;
   pthread_t  readerThread;  //! Thread for reading the queue and writing to socket
@@ -109,9 +111,9 @@ bw_create(
   buf1->next = buf1;
   //  BufferChain* buf2 = buf1->next = createBufferChain(self);
   //  buf2->next = buf1;
-
   self->writerChain = buf1;
 
+  self->meta_buf = mbuf_create();
 
   /* Initialize mutex and condition variable objects */
   pthread_cond_init(&self->semaphore, NULL);
@@ -199,6 +201,35 @@ bw_push(
 }
 
 /**
+ * \fn bw_push_meta(BufferedWriterHdl* buffSocket, void* chunk, long chunkSize)
+ * \brief Add a chunk to the end of the meta description.
+ *
+ * \param instance BufferedWriter handle
+ * \param chunk Pointer to chunk to add
+ * \param chunkSize size of chunk
+ * \return 1 if success, 0 otherwise
+ */
+int
+bw_push_meta(
+  BufferedWriterHdl instance,
+  uint8_t*  chunk,
+  size_t size
+) {
+  BufferedWriter* self = (BufferedWriter*)instance;
+  int result = 0;
+
+  if (oml_lock(&self->lock, "bw_push")) return 0;
+  if (!self->active) return 0;
+
+  if (mbuf_write(self->meta_buf, chunk, size) > 0) {
+    result = 1;
+    pthread_cond_signal(&self->semaphore);
+  }
+  oml_unlock(&self->lock, "bw_push_meta");
+  return result;
+}
+
+/**
  * \brief Return an MBuffer with exclusive write access
  * \return MBuffr instance if success, NULL otherwise
  */
@@ -224,6 +255,7 @@ bw_get_write_buf(
   }
   return mbuf;
 }
+
 
 /**
  * \brief Return and unlock MBuffer
@@ -356,13 +388,22 @@ processChain(
   size_t sent = 0;
   chain->reading = 1;
   oml_unlock(&self->lock, "processChain"); /* don't keep lock while transmitting */
+  MBuffer* meta = self->meta_buf;
 
   while (size > sent) {
-    long cnt = self->writeFunc(self->writeFuncHdl, (void*)(buf + sent), size - sent);
+    long cnt = self->writeFunc(self->writeFuncHdl, (void*)(buf + sent), size - sent, 
+                               meta->rdptr, meta->fill);
     if (cnt > 0) {
       sent += cnt;
     } else {
       /* ERROR: Sleep a bit and try again */
+      /* To be on the safe side, we rewind to the beginning of the 
+       * chain and try to resend everything - this is especially important
+       * if the underlying stream needs to reopen and resync.
+       */
+      mbuf_reset_read(chain->mbuf);
+      size = mbuf_message_offset(chain->mbuf) - mbuf_read_offset(chain->mbuf);
+      sent = 0;
       sleep(1);
     }
   }

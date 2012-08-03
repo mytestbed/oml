@@ -47,6 +47,23 @@ bw_push(
   size_t size
 );
 
+/**
+ * \fn bw_push_meta(BufferedWriterHdl* buffSocket, void* chunk, long chunkSize)
+ * \brief Add a chunk to the end of the meta description.
+ *
+ * \param instance BufferedWriter handle
+ * \param chunk Pointer to chunk to add
+ * \param chunkSize size of chunk
+ * \return 1 if success, 0 otherwise
+ */
+int
+bw_push_meta(
+  BufferedWriterHdl instance,
+  uint8_t*  chunk,
+  size_t size
+);
+
+
 MBuffer*
 bw_get_buf_locked(
   BufferedWriterHdl instance

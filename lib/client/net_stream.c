@@ -58,11 +58,13 @@ typedef struct _omlNetOutStream {
 
   char  storage;                /* ALWAYS last. Holds parsed server URI string and extends
                                  * beyond this structure, see +_new+ function. */
+  int   header_written;         // True if header has been written to file
 } OmlNetOutStream;
 
 static int open_socket(OmlNetOutStream* self);
-static size_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
+static size_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
 static int net_stream_close(OmlOutStream* hdl);
+static size_t socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length);
 
 /**
  * \fn OmlOutStream* net_stream_new(char* serverURI)
@@ -86,11 +88,11 @@ net_stream_new(const char *transport, const char *hostname, const char *port)
           self->protocol, self->host, self->port);
   socket_set_non_blocking_mode(0);
 
-  // Now see if we can connect to server
-  if (! open_socket(self)) {
-    free(self);
-    return NULL;
-  }
+  /* // Now see if we can connect to server */
+  /* if (! open_socket(self)) { */
+  /*   free(self); */
+  /*   return NULL; */
+  /* } */
 
   self->write = net_stream_write;
   self->close = net_stream_close;
@@ -115,6 +117,15 @@ net_stream_close(
   return 0;
 }
 
+static void
+termination_handler(int signum)
+{
+  // SIGPIPE is handled by disabling the writer that caused it.
+  if (signum == SIGPIPE) {
+    o_log(O_LOG_WARN, "Caught SIGPIPE\n");    
+  }
+}
+
 static int
 open_socket(OmlNetOutStream* self)
 {
@@ -125,22 +136,34 @@ open_socket(OmlNetOutStream* self)
     }
 
     self->socket = sock;
+    self->header_written = 0;
   } else {
     o_log(O_LOG_ERROR, "Unsupported transport protocol '%s'\n", self->protocol);
     return 0;
   }
 
+  // Catching SIGPIPE signals if the associated socket is closed
+  // TODO: Not exactly sure if this is completely right for all application situations.
+  struct sigaction new_action, old_action;
+
+  new_action.sa_handler = termination_handler;
+  sigemptyset (&new_action.sa_mask);
+  new_action.sa_flags = 0;
+
+  sigaction (SIGPIPE, NULL, &old_action);
+  if (old_action.sa_handler != SIG_IGN)
+    sigaction (SIGPIPE, &new_action, NULL);
 
   return 1;
 }
-
-
 
 static size_t
 net_stream_write(
   OmlOutStream* hdl,
   uint8_t* buffer,
-  size_t  length
+  size_t  length,
+  uint8_t* header,
+  size_t   header_length
 ) {
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;
 
@@ -152,6 +175,30 @@ net_stream_write(
     }
   }
 
+  size_t count;
+  if (! self->header_written) {
+    if ((count = socket_write(self, header, header_length)) < header_length) {
+      // TODO: This is not completely right as we end up rewriting the same header
+      // if we can only partially write it. At this stage we think this is too hard 
+      // to deal with and we assume it doesn't happen.
+      if (count > 0) {
+        // PANIC
+        logerror("Only wrote part of the header. May screw up further processing\n");
+      }
+      return 0;
+    }
+    self->header_written = 1;
+  }
+  count = socket_write(self, buffer, length);
+  return count;
+}
+
+static size_t
+socket_write(
+  OmlNetOutStream* self,
+  uint8_t* buffer,
+  size_t  length
+) {
   int result = socket_sendto(self->socket, (char*)buffer, length);
 
   if (result == -1 && socket_is_disconnected (self->socket)) {

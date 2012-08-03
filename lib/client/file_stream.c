@@ -42,10 +42,11 @@ typedef struct _omlFileOutStream {
 
   //----------------------------
   FILE* f;                      /* File to write result to */
+  int   header_written;         // True if header has been written to file
 
 } OmlFileOutStream;
 
-size_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
+static size_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
 
 
 /**
@@ -72,7 +73,7 @@ file_stream_new(const char *file)
   }
 
   self->write = file_stream_write;
-
+  self->header_written = 0;
   return (OmlOutStream*)self;
 }
 
@@ -81,15 +82,17 @@ file_stream_new(const char *file)
  * \param hdl pointer to the OmlOutStream
  * \param buffer pointer to the buffer containing the data to write
  * \param buffer length of the buffer to write
+ * \param header pointer to header information
+ * \param buffer length of the header information
  * \return amount of data written, or -1 on error
  */
 static inline size_t
 _file_stream_write(
-  OmlOutStream* hdl,
+  FILE*    file_hdl,
   uint8_t* buffer,
-  size_t  length
+  size_t   length
 ) {
-  return fwrite(buffer, 1, length, (FILE*)((OmlFileOutStream*)hdl)->f);
+  return fwrite(buffer, 1, length, file_hdl); //(FILE*)((OmlFileOutStream*)hdl)->f);
 }
 
 /**
@@ -103,7 +106,9 @@ size_t
 file_stream_write(
   OmlOutStream* hdl,
   uint8_t* buffer,
-  size_t  length
+  size_t   length,
+  uint8_t* header,
+  size_t   header_length
 ) {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
 
@@ -111,7 +116,21 @@ file_stream_write(
   FILE* f = self->f;
   if (f == NULL) return -1;
 
-  size_t count = _file_stream_write(hdl, buffer, length);
+  if (! self->header_written) {
+    size_t count;
+    if ((count = _file_stream_write(f, header, header_length)) < header_length) {
+      // TODO: This is not completely right as we end up rewriting the same header
+      // if we can only partially write it. At this stage we think this is too hard 
+      // to deal with and we assume it doesn't happen.
+      if (count > 0) {
+        // PANIC
+        logerror("Only wrote part of the header. May screw up further processing\n");
+      }
+      return 0;
+    }
+    self->header_written = 1;
+  }
+  size_t count = _file_stream_write(f, buffer, length);
   return count;
 }
 
@@ -129,7 +148,9 @@ size_t
 file_stream_write_flush(
   OmlOutStream* hdl,
   uint8_t* buffer,
-  size_t  length
+  size_t  length,
+  uint8_t* header,
+  size_t   header_length
 ) {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
 
@@ -137,7 +158,7 @@ file_stream_write_flush(
   FILE* f = self->f;
   if (f == NULL) return -1;
 
-  size_t count = _file_stream_write(hdl, buffer, length);
+  size_t count = file_stream_write(hdl, buffer, length, header, header_length);
   fflush(f);
 
   return count;
