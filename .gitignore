@@ -39,3 +39,9 @@ m4/*.m4
 !m4/ax_compare_version.m4
 !m4/ax_prog_ruby_version.m4
 !m4/ax_with_prog.m4
+test/testclient
+proxy_server/oml2-proxy-server
+server/oml2-server
+test/lib/stddev_0.c
+test/lib/stddev_1.c
+test/server/issue610.rb

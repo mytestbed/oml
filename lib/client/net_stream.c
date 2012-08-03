@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <signal.h>
 
 #include <mem.h>
 #include <log.h>
