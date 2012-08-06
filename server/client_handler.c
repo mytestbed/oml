@@ -324,7 +324,7 @@ process_meta(ClientHandler* self, char* key, char* value)
     }
   } else if (strcmp(key, "schema") == 0) {
     process_schema(self, value);
-  } else if (strcmp(key, "start_time") == 0) {
+  } else if (strcmp(key, "start_time") == 0 || strcmp(key, "start-time") == 0) {
     if (self->database == NULL) {
       logwarn("'%s': Meta 'start-time' needs to come after 'experiment-id'.\n",
               self->name);
