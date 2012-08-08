@@ -541,10 +541,10 @@ socket_sendto(
     if (errno == EPIPE || errno == ECONNRESET) {
       // The other end closed the connection.
       self->is_disconnected = 1;
-      o_log(O_LOG_ERROR, "Socket(%s): the remote peer closed the connection\n\t%d: %s\n",
-            self->name, errno, strerror(errno));
+      o_log(O_LOG_ERROR, "Socket(%s): the remote peer closed the connection (%s)\n",
+            self->name, strerror(errno));
     } else {
-      o_log(O_LOG_ERROR, "Socket(%s): Sending to multicast channel failed\n\t%s\n",
+      o_log(O_LOG_ERROR, "Socket(%s): Sending data failed (%s)\n",
             self->name, strerror(errno));
     }
     return -1;
