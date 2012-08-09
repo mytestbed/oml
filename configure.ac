@@ -88,7 +88,7 @@ AC_SUBST([OML_VER_PATCH_LT], [`echo "$PACKAGE_VERSION" | awk -F. '{print $3}' | 
 AC_SUBST([pkglocalstatedir], [${localstatedir}/${PACKAGE}])
 
 # Check that libxml2 is installed, and work out how to compile/link against it
-AC_CHECK_LIB([xml2], [xmlParseFile], [AC_DEFINE([HAVE_LIBXML2], [1], [Define if libxml2 is installed.])], [missing_libs+=" libxml2"])
+AC_SEARCH_LIBS([xmlParseFile], [xml2], [AC_DEFINE([HAVE_LIBXML2], [1], [Define if libxml2 is installed.])], [missing_libs+=" libxml2"])
 AC_PATH_PROG([HAVE_XML2CFG], [xml2-config])
 
 if test "x$HAVE_XML2CFG" != "x"; then
@@ -103,10 +103,10 @@ if test "x$HAVE_XML2CFG" != "x"; then
 fi
 
 # Check for presence of other libraries.
-AC_CHECK_LIB([sqlite3], [sqlite3_open], [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
-AC_CHECK_LIB([popt], [poptGetContext], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])], [missing_libs+=" libpopt"])
-AC_CHECK_LIB([pthread], [pthread_create], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])], [missing_libs+=" libpthread"])
-AC_CHECK_LIB([m], [sqrt], [AC_DEFINE([HAVE_LIBM], [1], [Define if libm is installed (It should be!)])], [missing_libs+=" libm"])
+AC_SEARCH_LIBS([sqlite3_open], [sqlite3], [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
+AC_SEARCH_LIBS([poptGetContext], [popt], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])], [missing_libs+=" libpopt"])
+AC_SEARCH_LIBS([pthread_create], [pthread], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])], [missing_libs+=" libpthread"])
+AC_SEARCH_LIBS([sqrt], [m], [AC_DEFINE([HAVE_LIBM], [1], [Define if libm is installed (It should be!)])], [missing_libs+=" libm"])
 
 # Check if the user asked to build with PostgreSQL support enabled.
 AC_ARG_WITH([postgresql],
