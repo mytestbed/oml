@@ -2,7 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([oml2],[2.9.pre0],[oml-user@lists.nicta.com.au])
+AC_INIT([oml2],
+	m4_esyscmd([build-aux/git-version-gen .tarball-version]),
+	[oml-user@lists.nicta.com.au])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])

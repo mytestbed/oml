@@ -42,3 +42,4 @@ m4/*
 !m4/gnulib-cache.m4
 gnulib
 build-aux
+.version
