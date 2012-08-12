@@ -4,6 +4,7 @@
 AC_PREREQ([2.69])
 AC_INIT([oml2],[2.9.pre0],[oml-user@lists.nicta.com.au])
 AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
@@ -15,9 +16,12 @@ LT_INIT
 
 AC_PROG_CXX
 AC_PROG_CC
+gl_EARLY
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
+
+gl_INIT
 
 AC_ARG_WITH([macosx], 
 		[AS_HELP_STRING([--with-macosx],
@@ -225,6 +229,7 @@ else
 fi
 
 AC_CONFIG_FILES([Makefile
+		 gnulib/Makefile
 		 lib/Makefile
 		 lib/client/Makefile
 		 lib/shared/Makefile

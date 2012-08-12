@@ -1,8 +1,9 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = lib server proxy_server ruby doc test
+SUBDIRS = gnulib lib server proxy_server ruby doc test
 
-EXTRA_DIST = example/README \
+EXTRA_DIST = m4/gnulib-cache.m4 \
+	     example/README \
 	     example/generator.rb \
 	     example/generator.c \
 	     example/version.h \

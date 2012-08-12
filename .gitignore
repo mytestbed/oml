@@ -35,7 +35,10 @@ ar-lib
 compile
 doc/oml-user-manual.info
 doc/texinfo.tex
-m4/*.m4
+m4/*
 !m4/ax_compare_version.m4
 !m4/ax_prog_ruby_version.m4
 !m4/ax_with_prog.m4
+!m4/gnulib-cache.m4
+gnulib
+build-aux
