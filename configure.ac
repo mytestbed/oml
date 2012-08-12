@@ -3,15 +3,21 @@
 
 AC_PREREQ([2.69])
 AC_INIT([oml2],[2.9.pre0],[oml-user@lists.nicta.com.au])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 # automake 1.12 seems to require this, but automake 1.11 doesn't recognize it
 m4_pattern_allow([AM_PROG_AR]) 
 AM_PROG_AR
 
 LT_INIT
+
+AC_PROG_CXX
+AC_PROG_CC
+AM_PROG_CC_C_O
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
 
 AC_ARG_WITH([macosx], 
 		[AS_HELP_STRING([--with-macosx],
@@ -65,13 +71,6 @@ AS_IF([test x$with_macosx != xno -a $host_vendor = apple],
 	       [AC_MSG_RESULT([no])])
       ],
        [AC_MSG_RESULT([no])])
-
-# Checks for programs.
-AC_PROG_CXX
-AC_PROG_CC
-AM_PROG_CC_C_O
-AC_PROG_INSTALL
-AC_PROG_MAKE_SET
 
 missing_check=""
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [], [missing_check="yes"])
