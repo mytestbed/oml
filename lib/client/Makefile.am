@@ -55,4 +55,4 @@ liboml2_la_LIBADD = \
 
 # To quote the APR build scripts:
 #    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiosyncrasy"
-liboml2_la_LDFLAGS = -version-info $(OML_VER_MINOR):$(OML_VER_PATCH_LT):$(OML_VER_MINOR)
+liboml2_la_LDFLAGS = -version-info $(OML_VER_MINOR_LT):$(OML_VER_PATCH_LT):$(OML_VER_MINOR_LT)

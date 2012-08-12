@@ -1,5 +1,7 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
+GEM_VERSION = @OML_GEM_VER@
+
 scaffold_src = oml2-scaffold
 
 bin_SCRIPTS = $(scaffold_src)
@@ -31,13 +33,13 @@ sharedir = $(datadir)/@PACKAGE@
 share_DATA = 
 
 if HAVE_GEM_BUNDLER
-OML4R_GEM = oml4r/pkg/oml4r-$(PACKAGE_VERSION).gem
+OML4R_GEM = oml4r/pkg/oml4r-$(GEM_VERSION).gem
 CLEANFILES += $(OML4R_GEM)
 if CLEANUP_OML4R_GEM_SRC
 CLEANFILES += $(OML4R_GEM_SRC)
 endif
 
-share_DATA += oml4r/pkg/oml4r-$(PACKAGE_VERSION).gem \
+share_DATA += oml4r/pkg/oml4r-$(GEM_VERSION).gem \
 	      oml4r/lib/oml4r/oml4r-simple-example.rb \
 	      oml4r/lib/oml4r/oml4r-wlanconfig.rb
 
