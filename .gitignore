@@ -40,6 +40,7 @@ m4/*
 !m4/ax_prog_ruby_version.m4
 !m4/ax_with_prog.m4
 !m4/gnulib-cache.m4
+!m4/oml_check_macosx.m4
 gnulib
 build-aux
 .version
