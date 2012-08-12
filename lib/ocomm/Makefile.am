@@ -21,3 +21,7 @@ libocomm_la_SOURCES = \
 	socket_group.c
 
 libocomm_la_LIBADD = -lpthread
+
+# To quote the APR build scripts:
+#    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiosyncrasy"
+libocomm_la_LDFLAGS = -version-info $(OML_VER_MINOR):$(OML_VER_PATCH_LT):$(OML_VER_MINOR)
