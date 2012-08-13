@@ -23,7 +23,9 @@
 /*!\file check_text_protocol.c
   \brief Tests issues related to the text protocol.
 */
+#include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <check.h>
 #include <sqlite3.h>
 #include <mem.h>

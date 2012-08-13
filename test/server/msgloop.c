@@ -202,7 +202,7 @@ main (int argc, char **argv)
     header = header->next;
   }
 
-  fprintf (stderr, "Messages:  %d\n", client->messages->length);
+  fprintf (stderr, "Messages:  %d\n", (int)client->messages->length);
   while (client->messages->length > 0) {
     struct msg_queue_node *head = msg_queue_head (client->messages);
     struct cbuffer_cursor *cursor = &head->cursor;
