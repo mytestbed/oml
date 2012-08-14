@@ -85,9 +85,6 @@ AM_CONDITIONAL([HAVE_CHECK], [test x"${missing_check}" != xyes])
 # Checks for libraries.
 missing_libs=""
 
-AC_SUBST([OML_VER_MAJOR], [`echo "$PACKAGE_VERSION" | awk -F. '{print $1}'`])
-AC_SUBST([OML_VER_MINOR], [`echo "$PACKAGE_VERSION" | awk -F. '{print $2}'`])
-AC_SUBST([OML_VER_PATCH], [`echo "$PACKAGE_VERSION" | awk -F. '{print $3}'`])
 AC_SUBST([OML_VER_MINOR_LT], [`echo "$PACKAGE_VERSION" | awk -F. '{print $2}'`])
 AC_SUBST([OML_VER_PATCH_LT], [`echo "$PACKAGE_VERSION" | awk -F. '{print $3$4}' | sed -ne 's/[[^0-9]]*\([[0-9]]*\)[[^0-9]].*/\1/p'`])
 AC_SUBST([OML_GEM_VER], [`echo "$PACKAGE_VERSION" | sed s/-/./g`])
