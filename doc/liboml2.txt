@@ -367,7 +367,7 @@ schema in the measurement output compared to other possible
 configurations available from the command line, which use the 'avg'
 filter.  It is not clear whether this is a feature or a bug.
 
-include::bugs.txt 
+include::bugs.txt []
 
 SECURITY CONSIDERATIONS
 -----------------------
@@ -385,4 +385,4 @@ Manual Pages
 linkoml:oml2-server[1], linkoml:oml2-proxy-server[1],
 linkoml:liboml2[3,api], linkoml:omlc_add_mp[3], linkoml:liboml2.conf[5]
 
-include::manual.txt
+include::manual.txt[]

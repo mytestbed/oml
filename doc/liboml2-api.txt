@@ -354,7 +354,7 @@ use linkoml:oml2_scaffold[1].
 
 BUGS
 ----
-include::bugs.txt
+include::bugs.txt[]
 
 SEE ALSO
 --------
@@ -367,4 +367,4 @@ linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_start[3], linkoml:oml
 linkoml:omlc_set_int32[3], linkoml:omlc_set_uint32[3], linkoml:omlc_set_int64[3], linkoml:omlc_set_uint64[3], linkoml:omlc_set_double[3], linkoml:omlc_set_string[3], linkoml:omlc_set_const_string[3]
 
 
-include::manual.txt
+include::manual.txt[]

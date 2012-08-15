@@ -38,7 +38,7 @@ initialized by a call to linkoml:omlc_init[3].
 
 BUGS
 ----
-include::bugs.txt
+include::bugs.txt[]
 
 SEE ALSO
 --------
@@ -48,4 +48,4 @@ linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:libo
 
 linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_start[3], linkoml:omlc_inject[3]
 
-include::manual.txt
+include::manual.txt[]

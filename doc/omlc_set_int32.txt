@@ -61,7 +61,7 @@ BUGS
 C preprocessor macros are generally brittle and error prone.
 Unfortunately, they are all we've got.
 
-include::bugs.txt
+include::bugs.txt[]
 
 SEE ALSO
 --------
@@ -69,4 +69,4 @@ Manual Pages
 ~~~~~~~~~~~~
 linkoml:liboml2[3,api], linkoml:omlc_inject[3]
 
-include::manual.txt
+include::manual.txt[]
