@@ -8,10 +8,14 @@ url="http://oml.mytestbed.net/"
 license=('custom:MIT-Nicta')
 depends=('libxml2' 'sqlite3' 'popt' 'ruby>=1.8.7')
 makedepends=('git' 'autoconf>=2.69' 'automake>=1.12.1' 'libtool>=2.4.2' 'asciidoc' 'gnulib')
+optdepends=("postgresql: to use as a backend instead of sqlite3")
 checkdepends=('check')
 provides=(liboml liboml-git oml2)
 conflicts=(liboml liboml-git oml2)
 replaces=(liboml-git)
+sources=(oml2-server.rc oml2-server.conf)
+backup=(etc/conf.d/oml2-server.conf)
+install="oml2.install"
 
 _gitroot="git://mytestbed.net/oml-staging.git"
 _gitname="oml"
@@ -41,14 +45,12 @@ build() {
 	git clone "$srcdir/$_gitname" "$srcdir/$_gitname-build"
 	cd "$srcdir/$_gitname-build"
 
-	for _patch in $sources; do
-		patch -p1 < $srcdir/$_patch
-	done
-
 	./autogen.sh
-	./configure --prefix=/usr --with-doc
+	./configure --prefix=/usr --localstatedir=/var --with-doc --with-postgresql
 	make || return 1
 	make DESTDIR="$pkgdir/" install
 	install -D -m 0644 ${srcdir}/$_gitname/COPYING \
 		${pkgdir}/usr/share/licenses/${pkgname}/COPYING
-} 
+	install -D -m 0755 ${startdir}/oml2-server.rc ${pkgdir}/etc/rc.d/oml2-server
+	install -D -m 0644 ${startdir}/oml2-server.conf ${pkgdir}/etc/conf.d/oml2-server.conf
+}
