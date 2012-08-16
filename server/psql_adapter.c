@@ -611,6 +611,38 @@ sql_stmt(PsqlDB* self, const char* stmt)
 }
 
 /**
+ * @brief Receives notices from Postgre and post them as an OML log message
+ * @param arg application-specific state (in our case, the table name)
+ * @param res a PGRES_NONFATAL_ERROR PGresult which can be used with PQresultErrorField and PQresultErrorMessage
+ * @return something not documented in the Postgre manual
+ */
+static void
+psql_receive_notice(void *arg, const PGresult *res)
+{
+  switch(*PQresultErrorField(res, PG_DIAG_SEVERITY)) {
+  case 'E': /*RROR*/
+  case 'F': /*ATAL*/
+  case 'P': /*ANIC*/
+    logerror("psql:%s': %s", (char*)arg, PQresultErrorMessage(res));
+    break;
+  case 'W': /*ARNING*/
+    logwarn("psql:%s': %s", (char*)arg, PQresultErrorMessage(res));
+    break;
+  case 'N': /*OTICE*/
+  case 'I': /*NFO*/
+    /* Infos and notice from Postgre are not the primary purpose of OML.
+     * We only display them as debug messages. */
+  case 'L': /*OG*/
+  case 'D': /*EBUG*/
+    logdebug("psql:%s': %s", (char*)arg, PQresultErrorMessage(res));
+    break;
+  default:
+    logwarn("'psql:%s': Unknown notice: %s", (char*)arg, PQresultErrorMessage(res));
+  }
+}
+
+
+/**
  * @brief Create a Postgre database
  * @param db the databse to associate with the sqlite3 database
  * @return 0 if successful, -1 otherwise
@@ -638,6 +670,8 @@ psql_create_database(Database* db)
     logerror("Connection to database server failed: %s\n", PQerrorMessage(conn));
     goto fail_exit;
   }
+
+  PQsetNoticeReceiver(conn, psql_receive_notice, "postgres");
 
   mstring_sprintf (str, "SELECT datname from pg_database where datname='%s';", db->name);
   res = PQexec (conn, mstring_buf (str));
@@ -675,6 +709,7 @@ psql_create_database(Database* db)
     logerror("Connection to database server failed: %s", PQerrorMessage(conn));
     goto fail_exit;
   }
+  PQsetNoticeReceiver(conn, psql_receive_notice, db->name);
 
   PsqlDB* self = (PsqlDB*)xmalloc(sizeof(PsqlDB));
   self->conn = conn;
