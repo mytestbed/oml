@@ -41,7 +41,7 @@
 #include "hook.h"
 #include "client_handler.h"
 #include "sqlite_adapter.h"
-#if HAVE_PG
+#if HAVE_LIBPQ
 #include "psql_adapter.h"
 #include <libpq-fe.h>
 #endif
@@ -78,7 +78,7 @@ struct poptOption options[] = {
   POPT_AUTOHELP
   { "listen", 'l', POPT_ARG_INT, &listen_port, 0, "Port to listen for TCP based clients", DEFAULT_PORT_STR},
   { "backend", 'b', POPT_ARG_STRING, &backend, 0, "Database server backend", DEFAULT_DB_BACKEND},
-#if HAVE_PG
+#if HAVE_LIBPQ
   { "pg-user", '\0', POPT_ARG_STRING, &pg_user, 0, "PostgreSQL user to connect as", DEFAULT_PG_USER },
   { "pg-connect", '\0', POPT_ARG_STRING, &pg_conninfo, 0, "PostgreSQL connection info string", "\"" DEFAULT_PG_CONNINFO "\""},
 #endif
@@ -99,7 +99,7 @@ static struct db_backend
 } backends [] =
   {
     { "sqlite", sq3_create_database },
-#if HAVE_PG
+#if HAVE_LIBPQ
     { "postgresql", psql_create_database },
 #endif
   };
@@ -226,7 +226,7 @@ setup_backend_sqlite (void)
 void
 setup_backend_postgresql (const char *conninfo, const char *user)
 {
-#if HAVE_PG
+#if HAVE_LIBPQ
   loginfo ("Sending experiment data to PostgreSQL server with user '%s'\n",
            pg_user);
   MString *str = mstring_create ();

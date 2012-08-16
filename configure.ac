@@ -78,36 +78,13 @@ fi
 
 
 AC_SEARCH_LIBS([sqlite3_open], [sqlite3], [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
-# Check if the user asked to build with PostgreSQL support enabled.
-AC_ARG_WITH([postgresql],
-		[AS_HELP_STRING([--with-postgresql],
-		  [support oml2-server storing measurements in a PostgreSQL database @<:@default=no@:>@])],
-		[],
-		[with_postgresql=no])
 
-if test "x$with_postgresql" != "xno"; then
-   # Check that the PostgreSQL development libraries are installed, and work out how to compile/link against them.
-   AC_PATH_PROG([HAVE_PGCFG], [pg_config])
-   AM_CONDITIONAL([HAVE_PG], [test "x${HAVE_PGCFG}" != "x"])
-
-   if test "x$HAVE_PGCFG" != "x"; then
-      AC_DEFINE([HAVE_PG], [1], [Define if libpq is installed])
-	  xxCFLAGS=-I`$HAVE_PGCFG --includedir`
-	  xxLDFLAGS=-L`$HAVE_PGCFG --libdir`
-	  AC_SUBST([LIBPQ_CFLAGS], [$xxCFLAGS])
-	  AC_SUBST([LIBPQ_LDFLAGS], [$xxLDFLAGS])
-	  AC_SUBST([LIBPQ_LIBS], [-lpq])
-	  AC_MSG_CHECKING([how to include PostgreSQL headers])
-	  AC_MSG_RESULT([$LIBPQ_CFLAGS])
-	  AC_MSG_CHECKING([location of libpq])
-	  AC_MSG_RESULT([$LIBPQ_LDFLAGS])
-   else
-	  missing_libs+=" libpq"
-   fi
-else
-   AC_DEFINE([HAVE_PG], [0], [Define if libpq is installed])
-   AM_CONDITIONAL([HAVE_PG], [false])
-fi
+# Detect if PostgreSQL is around, but don't add it to the default
+oldLIBS=$LIBS
+AX_CHECK_POSTGRES_DB([],
+		     [AS_IF([test "$pg_prefix" != ""],[missing_libs+=" libpq"])])
+AM_CONDITIONAL([HAVE_LIBPQ], [test x$HAVE_LIBPQ = xyes])
+LIBS=$oldLIBS
 
 AX_WITH_PROG([RUBY],[ruby])
 AX_PROG_RUBY_VERSION([1.8.7],

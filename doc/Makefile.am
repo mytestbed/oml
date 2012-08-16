@@ -38,7 +38,7 @@ CLEANFILES=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 
 A2X_ARGS = \
 	   --destination-dir=. --attribute='pkglocalstatedir=$(pkglocalstatedir)' --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' --attribute='pkgdatadir=$(pkgdatadir)' -f manpage
-if HAVE_PG
+if HAVE_LIBPQ
 A2X_ARGS += --attribute='have_pg'
 endif
 

@@ -26,15 +26,15 @@ oml2_server_SOURCES = \
 sharedir = $(datadir)/@PACKAGE@
 dist_share_DATA = oml2-server-hook.sh
 
-if HAVE_PG
+if HAVE_LIBPQ
 oml2_server_SOURCES += psql_adapter.c psql_adapter.h
 else
 oml2_server_SOURCES +=
 endif
 
-oml2_server_CFLAGS = @LIBPQ_CFLAGS@
+oml2_server_CPPFLAGS = @PQINCPATH@ $(AM_CPPFLAGS)
 
-oml2_server_LDFLAGS = @LIBPQ_LDFLAGS@
+oml2_server_LDFLAGS = @PQLIBPATH@
 
 oml2_server_LDADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \
