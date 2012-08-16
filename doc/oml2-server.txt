@@ -118,16 +118,24 @@ ifdef::have_pg[]
 	database authentication scheme to use.  It is passed to the
 	PostgreSQL connection API with the user name and database name
 	appended.  For instance, for an experiment named "myexp" and
-	'--pg-user=joe', a conninfo string of
+	'--pg-user=oml2', a conninfo string of
 	"host=postgres.mycompany.com password=secret" will result in the
 	following being passed to the server:
 +
 --------------------------
-  "host=postgres.mycompany.com password=secret user=joe dbname=myexp"
+  host=postgres.mycompany.com password=secret user=oml2
 --------------------------
 +
 The default connection info string is "host=localhost" and the
 default database user is "oml".
++
+If more than one 'key=value' pair must be passed as conninfo, the shell might
+make things difficult. A workaround is to wrap the entire argument in quotes,
+that is:
++
+--------------------------
+  oml2-server --pg-user=oml2 "--pg-connect=host=postgres.mycompany.com password=secret"
+--------------------------
 endif::have_pg[]
 
 --logfile=file::
