@@ -611,7 +611,7 @@ sql_stmt(PsqlDB* self, const char* stmt)
 }
 
 /**
- * @brief Create a sqlite3 database
+ * @brief Create a Postgre database
  * @param db the databse to associate with the sqlite3 database
  * @return 0 if successful, -1 otherwise
  */
@@ -706,3 +706,12 @@ psql_create_database(Database* db)
   mstring_delete (str);
   return -1;
 }
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 2
+ indent-tabs-mode: nil
+ End:
+ vim: sw=2:sts=2:expandtab
+*/
