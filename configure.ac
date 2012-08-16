@@ -27,9 +27,25 @@ gl_INIT
 
 OML_CHECK_MACOSX
 
-missing_check=""
-PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [], [missing_check="yes"])
-AM_CONDITIONAL([HAVE_CHECK], [test x"${missing_check}" != xyes])
+# Checks for header files.
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
+AC_C_INLINE
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT8_T
+
+# Checks for library functions.
+AC_FUNC_FORK
+AC_FUNC_MALLOC
+AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memmove memset socket sqrt strerror])
+
+AC_C_BIGENDIAN
 
 # Checks for libraries.
 missing_libs=""
@@ -56,11 +72,11 @@ if test "x$HAVE_XML2CFG" != "x"; then
 fi
 
 # Check for presence of other libraries.
-AC_SEARCH_LIBS([sqlite3_open], [sqlite3], [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
-AC_SEARCH_LIBS([poptGetContext], [popt], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])], [missing_libs+=" libpopt"])
-AC_SEARCH_LIBS([pthread_create], [pthread], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])], [missing_libs+=" libpthread"])
 AC_SEARCH_LIBS([sqrt], [m], [AC_DEFINE([HAVE_LIBM], [1], [Define if libm is installed (It should be!)])], [missing_libs+=" libm"])
+AC_SEARCH_LIBS([pthread_create], [pthread], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])], [missing_libs+=" libpthread"])
+AC_SEARCH_LIBS([poptGetContext], [popt], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])], [missing_libs+=" libpopt"])
 
+AC_SEARCH_LIBS([sqlite3_open], [sqlite3], [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
 # Check if the user asked to build with PostgreSQL support enabled.
 AC_ARG_WITH([postgresql],
 		[AS_HELP_STRING([--with-postgresql],
@@ -136,25 +152,9 @@ AM_CONDITIONAL([HAVE_RUBY_MIN_1_8_7], [test x"${missing_rubyge187}" != xyes])
 AM_CONDITIONAL([HAVE_RUBY_MIN_1_9], [test x"${missing_rubyge19}" != xyes])
 AM_CONDITIONAL([HAVE_GEM_BUNDLER], [test x$have_bundler = xyes])
 
-# Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_HEADER_STDBOOL
-AC_C_INLINE
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_UINT8_T
-
-# Checks for library functions.
-AC_FUNC_FORK
-AC_FUNC_MALLOC
-AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memmove memset socket sqrt strerror])
-
-AC_C_BIGENDIAN
+missing_check=""
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [], [missing_check="yes"])
+AM_CONDITIONAL([HAVE_CHECK], [test x"${missing_check}" != xyes])
 
 AC_ARG_WITH([doc],
 		[AS_HELP_STRING([--with-doc],
