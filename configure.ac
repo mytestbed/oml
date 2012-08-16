@@ -217,11 +217,7 @@ dnl If the above command has copied files, let ruby/Makefile.am know that they h
 AM_CONDITIONAL([CLEANUP_OML4R_GEM_SRC], [test x$srcdir != x. && test x$have_bundler = xyes])
 
 if test "x$missing_check" != "x"; then
-   AC_MSG_WARN([could not find the `check' package, required
-for running unit tests. This will not stop OML from building,
-but it will cause `make check' to do nothing. Install the `check'
-package (http://check.sourceforge.net) if you wish to run the
-unit tests.])
+   AC_MSG_WARN([could not find the `check' package, required for running unit tests. This will not stop OML from building, but it will cause `make check' to do nothing. Install the `check' package (http://check.sourceforge.net) if you wish to run the unit tests.])
 fi
 
 # Let the user know we're missing required libraries, and don't generate the build system.
@@ -229,11 +225,7 @@ if test "x$missing_libs" != "x"; then
    for lib in $missing_libs; do
       AC_MSG_WARN([could not find required library $lib])
    done
-   AC_MSG_ERROR([missing libraries, could not continue.
-Please install all of the following libraries and then re-run configure
-(you might need the development header packages (-dev) as well if you are
-using your system's package manager to install them):
-$missing_libs])
+   AC_MSG_ERROR([missing libraries, could not continue.  Please install all of the following libraries and then re-run configure (you might need the development header packages (-dev) as well if you are using your system's package manager to install them): $missing_libs])
 fi
 
 AC_OUTPUT
