@@ -1,12 +1,12 @@
 # Contributor: Olivier Mehani <olivier.mehani@nicta.com.au>
 pkgname=oml2-git
-pkgver=20120815
+pkgver=20120816
 #pkgrel=1 # Set below, after the GIT branch is defined.
 pkgdesc="OML is a measurement library that allows to define measurement points inside applications"
 arch=(i686 x86_64)
 url="http://oml.mytestbed.net/"
 license=('custom:MIT-Nicta')
-depends=('libxml2' 'sqlite3' 'popt' 'ruby>=1.8.7')
+depends=('libxml2' 'sqlite3' 'popt' 'ruby>=1.8.7' 'postgresql-libs')
 makedepends=('git' 'autoconf>=2.69' 'automake>=1.12.1' 'libtool>=2.4.2' 'asciidoc' 'gnulib')
 optdepends=("postgresql: to use as a backend instead of sqlite3")
 checkdepends=('check')
@@ -46,7 +46,7 @@ build() {
 	cd "$srcdir/$_gitname-build"
 
 	./autogen.sh
-	./configure --prefix=/usr --localstatedir=/var --with-doc --with-postgresql
+	./configure --prefix=/usr --localstatedir=/var --with-doc --with-pgsql
 	make || return 1
 	make DESTDIR="$pkgdir/" install
 	install -D -m 0644 ${srcdir}/$_gitname/COPYING \
