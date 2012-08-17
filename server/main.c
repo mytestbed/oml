@@ -217,24 +217,24 @@ setup_backend_sqlite (void)
    * oml2-server should not be run as root or setuid root in any case.
    */
   if (access (sqlite_database_dir, R_OK | W_OK | X_OK) == -1)
-    die ("Can't access SQLite database directory %s: %s\n",
+    die ("sqlite: Can't access SQLite database directory %s: %s\n",
          sqlite_database_dir, strerror (errno));
 
-  loginfo ("Creating SQLite3 databases in %s\n", sqlite_database_dir);
+  loginfo ("sqlite: Creating SQLite3 databases in %s\n", sqlite_database_dir);
 }
 
 void
 setup_backend_postgresql (const char *conninfo, const char *user)
 {
 #if HAVE_LIBPQ
-  loginfo ("Sending experiment data to PostgreSQL server with user '%s'\n",
+  loginfo ("psql: Sending experiment data to PostgreSQL server with user '%s'\n",
            pg_user);
   MString *str = mstring_create ();
   mstring_sprintf (str, "%s user=%s dbname=postgres", conninfo, user);
   PGconn *conn = PQconnectdb (mstring_buf (str));
 
   if (PQstatus (conn) != CONNECTION_OK)
-    die ("Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
+    die ("psql: Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
          conninfo, PQerrorMessage (conn));
 
   /* oml2-server must be able to create new databases, so check that
@@ -243,13 +243,13 @@ setup_backend_postgresql (const char *conninfo, const char *user)
   mstring_sprintf (str, "SELECT rolcreatedb FROM pg_roles WHERE rolname='%s'", user);
   PGresult *res = PQexec (conn, mstring_buf (str));
   if (PQresultStatus (res) != PGRES_TUPLES_OK)
-    die ("Failed to determine role privileges for role '%s': %s\n",
+    die ("psql: Failed to determine role privileges for role '%s': %s\n",
          user, PQerrorMessage (conn));
   char *has_create = PQgetvalue (res, 0, 0);
   if (strcmp (has_create, "t") == 0)
-    logdebug ("User '%s' has CREATE DATABASE privileges\n", user);
+    logdebug ("psql: User '%s' has CREATE DATABASE privileges\n", user);
   else
-    die ("User '%s' does not have required role CREATE DATABASE\n", user);
+    die ("psql: User '%s' does not have required role CREATE DATABASE\n", user);
 
   PQclear (res);
   PQfinish (conn);
@@ -265,12 +265,12 @@ setup_backend (void)
     die ("Unknown database backend '%s' (valid backends: %s)\n",
          backend, valid_backends ());
 
-  loginfo ("Database backend: '%s'\n", backend);
+  logdebug ("Database backend: '%s'\n", backend);
 
   const char *pg = "postgresql";
   const char *sq = "sqlite";
   if (!strcmp (backend, pg))
-    loginfo ("PostgreSQL backend is still experimental!\n");
+    logwarn ("PostgreSQL backend is still experimental\n");
   if (!strcmp (backend, pg))
     setup_backend_postgresql (pg_conninfo, pg_user);
   if (!strcmp (backend, sq))
@@ -326,7 +326,7 @@ on_connect(Socket* new_sock, void* handle)
 {
   (void)handle;
   ClientHandler *client = client_handler_new(new_sock);
-  loginfo("'%s': new client connected\n", client->name);
+  logdebug("%s: New client connected\n", client->name);
 }
 
 int
@@ -360,7 +360,7 @@ main(int argc, const char **argv)
   server_sock = socket_server_new("server", listen_port, on_connect, NULL);
 
   if (!server_sock)
-    die ("Failed to create socket (port %d) to listen for client connections.\n", listen_port);
+    die ("Failed to create listening socket on port %d\n", listen_port);
 
   drop_privileges (uidstr, gidstr);
 

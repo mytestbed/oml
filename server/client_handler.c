@@ -95,8 +95,8 @@ client_realloc_tables (ClientHandler *self, int ntables)
     int *new_vv_counts = xrealloc (self->values_vector_counts, ntables * sizeof (int));
 
     if (!new_tables || !new_so || !new_vv || !new_vv_counts) {
-      logerror ("Failed to allocate memory for %d more client tables (current %d)\n",
-                (ntables - self->table_count), self->table_count);
+      logdebug ("%s: Failed to allocate memory for %d more client tables (current %d)\n",
+          self->name, (ntables - self->table_count), self->table_count);
       // Don't free anything because whatever got successfully xrealloc'd is still ok
       error = -1;
     }
@@ -116,7 +116,7 @@ client_realloc_tables (ClientHandler *self, int ntables)
           self->values_vector_counts[i] = DEF_NUM_VALUES;
         } else {
           self->values_vector_counts[i] = -1;
-          logerror ("Error:  could not allocate memory for values vector for table %d\n", i);
+          logdebug ("%s: Could not allocate memory for values vector for table index %d\n", self->name, i);
           error = -1;
         }
       }
@@ -194,11 +194,26 @@ client_handler_free (ClientHandler* self)
   xfree (self->values_vector_counts);
   if (self->sender_name)
     xfree (self->sender_name);
+  if (self->app_name)
+    xfree (self->app_name);
   free (self->socket);
   xfree (self);
 
   //  xmemreport ();
 }
+
+void client_handler_update_name(ClientHandler *self)
+{
+  if (self->database && self->sender_name && self->app_name) {
+    snprintf(self->name, MAX_STRING_SIZE, "%s:%s:%s", self->database->name, self->sender_name, self->app_name);
+    self->name[MAX_STRING_SIZE-1] = 0;
+  } else if (self->event) {
+    logwarn("%s: Some identification fields (experiment-id, sender-id or app-name) were missing in the headers\n", self->event->name);
+  } else {
+    logerror("Unitialised fields in ClientHandler after end of headers; this is probably a bug\n");
+  }
+}
+
 
 static int
 validate_schema_names (struct schema *schema, char **invalid)
@@ -231,16 +246,14 @@ process_schema(ClientHandler* self, char* value)
 {
   struct schema *schema = schema_from_meta (value);
   if (!schema) {
-    logerror ("'%s': Schema parsing failed; disconnecting client.\n", self->name);
-    logerror ("'%s': Failed schema: %s\n", self->name, value);
+    logerror ("%s: Failure parsing schema '%s'; disconnecting client.\n", self->name, value);
     self->state = C_PROTOCOL_ERROR;
     return;
   }
 
   char *invalid = NULL;
   if (!validate_schema_names (schema, &invalid)) {
-    logerror ("'%s': The following schema contained an invalid name '%s'\n", self->name, invalid);
-    logerror ("'%s': Failed schema: %s\n", self->name, value);
+    logerror ("%s: Invalid name '%s' in schema '%s'\n", self->name, invalid, value);
     self->state = C_PROTOCOL_ERROR;
     schema_free (schema);
     return;
@@ -249,9 +262,8 @@ process_schema(ClientHandler* self, char* value)
   int index = schema->index;
   DbTable* table = database_find_or_create_table(self->database, schema);
   if (table == NULL) {
-    logerror("'%s': Can't find table '%s' or client schema doesn't match any of the existing tables.\n",
-             self->name, schema->name);
-    logerror("'%s': Failed schema: %s\n", self->name, value);
+    logerror("%s: Can't find table '%s' or client schema '%s' doesn't match any of the existing tables.\n",
+             self->name, schema->name, value);
     self->state = C_PROTOCOL_ERROR;
     schema_free (schema);
     return;
@@ -259,7 +271,7 @@ process_schema(ClientHandler* self, char* value)
   schema_free (schema);
 
   if (client_realloc_tables (self, index + 1) == -1) {
-    logerror ("Failed to get memory for table index %d --> can't continue\n", index);
+    logerror ("%s: Failed to allocate memory for table index %d\n", self->name, index);
     return;
   }
 
@@ -267,7 +279,7 @@ process_schema(ClientHandler* self, char* value)
 
   /* Reallocate the values vector if this schema has more columns than can fit already. */
   if (client_realloc_values (self, index, table->schema->nfields) == -1) {
-    logwarn ("'%s': could not allocate values vector of size %d for table %d\n",
+    logwarn ("%s: Could not allocate values vector of size %d for table index %d\n",
              self->name, table->schema->nfields, index);
   }
 }
@@ -284,17 +296,16 @@ process_schema(ClientHandler* self, char* value)
 static void
 process_meta(ClientHandler* self, char* key, char* value)
 {
+  int len;
   chomp (value);
-  logdebug("'%s': Meta <%s>:<%s>\n", self->name, key, value);
+  logdebug("%s: Meta '%s:%s'\n", self->name, key, value);
   if (strcmp(key, "protocol") == 0) {
     int protocol = atoi (value);
     if (protocol < MIN_PROTOCOL_VERSION || protocol > MAX_PROTOCOL_VERSION)
       {
-        logerror("'%s': Client connected with incorrect protocol version (%d), <%s>\n",
-                 self->name, protocol, value);
-        logerror("'%s':    this oml2-server supports protocol versions %d and lower;\n",
-                 self->name, MAX_PROTOCOL_VERSION);
-        logerror("'%s':    maybe the client was built with a newer version of OML?\n",
+        logerror("%s: Client connected with incorrect protocol version (%s; %d > %d)\n",
+                 self->name, value, protocol, MAX_PROTOCOL_VERSION);
+        logdebug("%s:    Maybe the client was built with a newer version of OML.\n",
                  self->name);
         self->state = C_PROTOCOL_ERROR;
         return;
@@ -303,31 +314,11 @@ process_meta(ClientHandler* self, char* key, char* value)
     self->database = database_find(value);
     if (!self->database)
       self->state = C_PROTOCOL_ERROR;
-  } else if (strcmp(key, "content") == 0) {
-    if (strcmp(value, "binary") == 0) {
-      self->content = C_BINARY_DATA;
-    } else if (strcmp(value, "text") == 0) {
-      self->content = C_TEXT_DATA;
-    } else {
-      logwarn("'%s': unknown content type '%s'\n", self->name, value);
-    }
-  } else if (strcmp(key, "app-name") == 0) {
-    // IGNORE
-    //strncpy(self->app_name, value, MAX_STRING_SIZE - 1);
-  } else if (strcmp(key, "sender-id") == 0) {
+  } else if (strcmp(key, "start-time") == 0 || strcmp(key, "start_time") == 0) {
     if (self->database == NULL) {
-      logwarn("'%s': Meta 'sender-id' needs to come after 'experiment-id'.\n",
+      logerror("%s: Meta 'start-time' needs to come after 'experiment-id'.\n",
               self->name);
-    } else {
-      self->sender_id = self->database->add_sender_id(self->database, value);
-      self->sender_name = xstrndup (value, strlen (value));
-    }
-  } else if (strcmp(key, "schema") == 0) {
-    process_schema(self, value);
-  } else if (strcmp(key, "start_time") == 0 || strcmp(key, "start-time") == 0) {
-    if (self->database == NULL) {
-      logwarn("'%s': Meta 'start-time' needs to come after 'experiment-id'.\n",
-              self->name);
+      self->state = C_PROTOCOL_ERROR;
     } else {
       long start_time = atol(value);
       if (self->database->start_time == 0) {
@@ -339,8 +330,30 @@ process_meta(ClientHandler* self, char* key, char* value)
       }
       self->time_offset = start_time - self->database->start_time;
     }
+  } else if (strcmp(key, "sender-id") == 0) {
+    if (self->database == NULL) {
+      logerror("%s: Meta 'sender-id' needs to come after 'experiment-id'.\n",
+              self->name);
+      self->state = C_PROTOCOL_ERROR;
+    } else {
+      self->sender_id = self->database->add_sender_id(self->database, value);
+      self->sender_name = xstrndup (value, strlen (value));
+    }
+  } else if (strcmp(key, "app-name") == 0) {
+    self->app_name = xstrndup (value, strlen (value));
+  } else if (strcmp(key, "schema") == 0) {
+    process_schema(self, value);
+  } else if (strcmp(key, "content") == 0) {
+    if (strcmp(value, "binary") == 0) {
+      self->content = C_BINARY_DATA;
+    } else if (strcmp(value, "text") == 0) {
+      self->content = C_TEXT_DATA;
+    } else {
+      logerror("%s: Unknown content type '%s'\n", self->name, value);
+      self->state = C_PROTOCOL_ERROR;
+    }
   } else {
-    logwarn("'%s': Unknown meta info '%s' (%s) ignored\n", self->name, key, value);
+    logwarn("%s: Ignoring unknown meta info '%s' (%s)\n", self->name, key, value);
   }
 }
 
@@ -388,6 +401,8 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     mbuf_read_skip (mbuf, skip_count + 1);
     mbuf_consume_message (mbuf);
     self->state = self->content;
+    client_handler_update_name(self);
+    loginfo("%s: New client '%s' ready\n", self->event->name, self->name);
     return 0;
   }
 
@@ -413,7 +428,7 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     }
   else
     {
-      logerror("Malformed meta line in header: <%s>\n", line);
+      logerror("%s: Malformed meta line in header: '%s'\n", self->name, line);
       self->state = C_PROTOCOL_ERROR;
     }
 
@@ -440,14 +455,15 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
   double ts;
 
   ts = self->time_offset + header->timestamp;
+  /* XXX: Return to header-parsing state on table_index = 0 */
   DbTable* table = self->tables[index];
   if (table == NULL) {
-    logerror("Undefined table '%d'\n", index);
+    logerror("%s(bin): Undefined table index %d\n", self->name, index);
     self->state = C_PROTOCOL_ERROR;
     return;
   }
-  logdebug("'%s': bin - sender '%s' insert into table %d, seq no: %d, ts: %f\n",
-           self->name, self->sender_name, index, header->seqno);
+  logdebug("%s(bin): Inserting data into table index %d (seqno=%d, ts=%f)\n",
+           self->name, index, header->seqno, ts);
   self->database->insert(self->database,
                          table,
                          self->sender_id,
@@ -486,13 +502,13 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
 
   int res = unmarshal_init(mbuf, &header);
   if (res == 0) {
-    logerror("An error occurred while reading binary message header\n");
+    logerror("%s(bin): Error while reading message header\n", self->name);
     mbuf_clear (mbuf);
     self->state = C_PROTOCOL_ERROR;
     return 0;
-  } else if (res < 0) {
+  } else if (res < 0 && mbuf->fill>0) {
     // not enough data
-    logdebug("'%s': remaining bytes not enough to process a measurement\n",
+    logdebug("%s(bin): Not enough data (%dB) for a new measurement\n",
              self->name, mbuf->fill);
     return 0;
   }
@@ -501,9 +517,12 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
   case OMB_LDATA_P:
       process_bin_data_message(self, &header);
       break;
-    default:
-      logerror("Unsupported message type '%d'\n", header.type);
+  default:
+      logwarn("%s(bin): Ignoring unsupported message type '%d'\n", self->name, header.type);
+      /* XXX: Assume we could read the full header, just skip it
+       * FIXME: We might have to skip the data too
       self->state = C_PROTOCOL_ERROR;
+       */
       return 0;
   }
 
@@ -520,7 +539,6 @@ static void
 process_text_data_message(ClientHandler* self, char** msg, int size)
 {
   if (size < 3) {
-    logerror("Not enough parameters in text data message\n");
     return;
   }
 
@@ -530,18 +548,20 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
 
   ts += self->time_offset;
   if (table_index >= self->table_count || table_index < 0) {
-    logerror("Table index '%d' out of bounds\n", table_index);
+    /* XXX: Return to header-parsing state on table_index = -1 */
+    logerror("%s(txt): Table index %d out of bounds\n", self->name, table_index);
     return;
   }
   DbTable* table = self->tables[table_index];
   if (table == NULL) {
-    logerror("Undefined table '%d'\n", table_index);
+    logerror("%s(txt): Undefined table index %d\n", self->name, table_index);
     return;
   }
 
   struct schema *schema = table->schema;
   if (schema->nfields != size - 3) {
-    logerror("Data item mismatch for table '%s'\n", schema->name);
+    logerror("%s(txt): Data item number mismatch for schema '%s' (expected %d, got %d)\n",
+        self->name, schema->name, schema->nfields, size-3);
     return;
   }
 
@@ -552,10 +572,11 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
     char* val = *val_ap;
     v->type = schema->fields[i].type;
     if (oml_value_from_s (v, val) == -1)
-      logerror("Error converting value of type %d from string '%s'\n", v->type, val);
+      logerror("%s(txt): Error converting value of type %d from string '%s'\n", self->name, v->type, val);
+      /* FIXME: Do something here */
   }
 
-  logdebug("'%s': text - sender '%s' insert into table %d, seq no: %d, ts: %f\n",
+  logdebug("%s(txt): Inserting data into table index %d (seqno=%d, ts=%f)\n",
            self->name, self->sender_name, index, seq_no, ts);
   self->database->insert(self->database, table, self->sender_id, seq_no,
                          ts, self->values_vectors[table_index], size - 3);
@@ -602,12 +623,19 @@ process_text_message(
       }
       a[a_size++] = param;
       if (a_size >= DEF_NUM_VALUES) {
-        logerror("Too many parameters in data message <%s>\n", line);
+        logerror("%s(txt): Too many parameters (%d>=%d) in sample '%s'\n", self->name, a_size, DEF_NUM_VALUES, line);
         return 0;
       }
     }
+    /* XXX: This message belongs in process_text_data_message(),
+     * however putting it here allows to access line, for nicer logging*/
+    if (a_size <= 3) {
+      logerror("%s(txt): Not enough parameters (%d<3) in sample '%s'\n", self->name, a_size, line);
+      return 0;
+    }
     process_text_data_message(self, a, a_size);
   }
+  /* Never reached */
 }
 
 /**
@@ -623,15 +651,14 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
   ClientHandler* self = (ClientHandler*)handle;
   MBuffer* mbuf = self->mbuf;
 
-  logdebug("'%s': %s: received data, %d\n",
+  logdebug("%s(%s): Received %d bytes of data\n",
            source->name,
            client_state_to_s (self->state),
            buf_size);
 
   int result = mbuf_write (mbuf, buf, buf_size);
-
   if (result == -1) {
-    logerror("'%s': Failed to write message from client into message buffer (mbuf_write())\n",
+    logerror("%s: Failed to write message from client into message buffer\n",
              source->name);
     return;
   }
@@ -658,7 +685,7 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
     case C_PROTOCOL_ERROR:
       // Protocol error:  close the client connection
       socket_close (self->socket);
-      logerror("'%s': disconnecting client (fatal error)\n",
+      logerror("%s: Fatal error, disconnecting client\n",
                source->name);
       eventloop_socket_release (self->event);
       client_handler_free (self);
@@ -667,7 +694,7 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
        */
       return;
     default:
-      logerror("'%s': unknown client state '%d'\n", source->name, self->state);
+      logerror("%s: Unknown client state %d\n", source->name, self->state);
       mbuf_clear (mbuf);
       return;
     }
@@ -677,7 +704,7 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
 
   // move remaining buffer content to beginning
   mbuf_repack_message (mbuf);
-  logdebug("'%s': buffer repacked to %d bytes (end of this pass)\n",
+  logdebug("%s: Buffer repacked to %d bytes\n",
            source->name, mbuf->fill);
 }
 /**
@@ -690,8 +717,11 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
 void
 status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle)
 {
-  logdebug("'%s': Socket status changed to %s(%d); error code is %d\n",
+  ClientHandler* self = (ClientHandler*)handle;
+
+  logdebug("%s: Socket status changed to %s (%d); error code is %d\n",
            source->name, socket_status_string (status), status, errcode);
+
   switch (status)
     {
     case SOCKET_WRITEABLE:
@@ -699,7 +729,7 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
     case SOCKET_CONN_CLOSED:
       {
         /* Client closed the connection */
-        loginfo("'%s': client closed socket connection\n", source->name);
+        loginfo("%s: Client '%s' closed connection\n", source->name, self->name);
         ClientHandler* self = (ClientHandler*)handle;
         socket_close (source->socket);
         eventloop_socket_release (self->event);
@@ -707,14 +737,14 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
         break;
       }
     case SOCKET_CONN_REFUSED:
-      logdebug ("Unhandled condition CONN_REFUSED on socket '%s'\n", source->name);
+      logdebug ("%s: Unhandled condition CONN_REFUSED on socket\n", source->name);
       break;
     case SOCKET_DROPPED:
-      logdebug ("Unhandled condition DROPPED on socket '%s'\n", source->name);
+      logdebug ("%s: Unhandled condition DROPPED on socket\n", source->name);
       break;
     case SOCKET_UNKNOWN:
     default:
-      logdebug ("Unhandled condition UNKNOWN on socket '%s'\n", source->name);
+      logdebug ("Unhandled condition UNKNOWN on socket\n", source->name);
       break;
     }
 }

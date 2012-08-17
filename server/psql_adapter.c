@@ -61,14 +61,14 @@ psql_make_sql_insert (DbTable* table)
   int max = table->schema->nfields;
 
   if (max <= 0) {
-    logerror ("Trying to insert 0 values into table %s\n", table->schema->name);
+    logerror ("psql: Trying to insert 0 values into table '%s'\n", table->schema->name);
     goto fail_exit;
   }
 
   MString* mstr = mstring_create ();
 
   if (mstr == NULL) {
-    logerror("Failed to create managed string for preparing SQL INSERT statement\n");
+    logerror("psql: Failed to create managed string for preparing SQL INSERT statement\n");
     goto fail_exit;
   }
 
@@ -165,15 +165,15 @@ psql_add_sender_id(Database *db, char *sender_id)
   } else {
     PGresult *res = PQexec (self->conn, "SELECT MAX(id) FROM _senders;");
     if (PQresultStatus (res) != PGRES_TUPLES_OK) {
-      logerror ("Experiment %s: Failed to get maximum sender id from database: %s\n",
-                db->name, PQerrorMessage (self->conn));
+      logwarn("psql:%s: Failed to get maximum sender id from database: %s; starting at 0\n",
+          db->name, PQerrorMessage (self->conn));
       PQclear (res);
       return -1;
     }
     int rows = PQntuples (res);
     if (rows == 0) {
-      logerror ("Experiment %s: Failed to get maximum sender id from database; empty result.\n",
-                db->name);
+      logerror("psql:%s: Failed to get maximum sender id from database: empty result\n",
+            db->name);
       PQclear (res);
       return -1;
     }
@@ -244,8 +244,8 @@ psql_get_key_value (Database *database, const char *table,
   res = PQexec (psqldb->conn, mstring_buf (stmt));
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-    logerror("Error trying to get %s[%s]; (%s).\n",
-             table, key, PQerrorMessage(psqldb->conn));
+    logerror("psql:%s: Error trying to get %s[%s]; (%s).\n",
+             database->name, table, key, PQerrorMessage(psqldb->conn));
     goto fail_exit;
   }
 
@@ -255,8 +255,8 @@ psql_get_key_value (Database *database, const char *table,
     goto fail_exit;
 
   if (PQntuples (res) > 1)
-    logwarn ("Key-value lookup for key '%s' in %s(%s, %s) returned more than one possible key.\n",
-             key, table, key_column, value_column);
+    logwarn("psql:%s: Key-value lookup for key '%s' in %s(%s, %s) returned more than one possible key.\n",
+             database->name, key, table, key_column, value_column);
 
   char *value = NULL;
   value = PQgetvalue (res, 0, 0);
@@ -290,8 +290,8 @@ psql_set_key_value (Database *database, const char *table,
                      table, value_column, value, key_column, key);
 
   if (sql_stmt (psqldb, mstring_buf (stmt))) {
-    logwarn("Key-value update failed for %s='%s' in %s(%s, %s) (database error)\n",
-            key, value, table, key_column, value_column);
+    logwarn("psql:%s: Key-value update failed for %s='%s' in %s(%s, %s) (database error)\n",
+            database->name, key, value, table, key_column, value_column);
     return -1;
   }
 
@@ -307,16 +307,16 @@ psql_set_key_value (Database *database, const char *table,
 static int
 table_create (Database* db, DbTable* table, int backend_create)
 {
-  if (table == NULL) {
-    logwarn("Tried to create a table from a NULL definition.\n");
+  if (db == NULL) {
+    logerror("psql: Tried to create a table in a NULL database\n");
     return -1;
   }
-  if (db == NULL) {
-    logwarn("Tried to create a table in a NULL database.\n");
+  if (table == NULL) {
+    logerror("psql:%s: Tried to create a table from a NULL definition\n", db->name);
     return -1;
   }
   if (table->schema == NULL) {
-    logwarn("No schema defined for table, cannot create\n");
+    logerror("psql:%s: No schema defined for table, cannot create\n", db->name);
     return -1;
   }
   MString *insert = NULL, *create = NULL;
@@ -330,24 +330,26 @@ table_create (Database* db, DbTable* table, int backend_create)
     mstring_sprintf (mstr, "table_%s", table->schema->name);
     const char *meta = schema_to_meta (table->schema);
     table->schema->index = sindex;
-    logdebug ("SET META: %s\n", meta);
+    logdebug("psql:%s: SET META: %s\n", db->name, meta);
     psql_set_metadata (db, mstring_buf (mstr), meta);
     create = schema_to_sql (table->schema, oml_to_postgresql_type);
     if (!create) {
-      logwarn ("Failed to build SQL CREATE TABLE statement string for table %s.\n",
-               table->schema->name);
+      logerror("psql:%s: Failed to build SQL CREATE TABLE statement string for table '%s'\n",
+          db->name, table->schema->name);
       goto fail_exit;
     }
     if (sql_stmt (psqldb, mstring_buf (create))) {
-      logerror ("Could not create table: (%s).\n", PQerrorMessage (psqldb->conn));
+      logerror("psql:%s: Could not create table '%s': %s\n",
+          db->name, table->schema->name,
+          PQerrorMessage (psqldb->conn));
       goto fail_exit;
     }
   }
 
   insert = psql_make_sql_insert (table);
   if (!insert) {
-    logwarn ("Failed to build SQL INSERT INTO statement for table '%s'.\n",
-             table->schema->name);
+    logerror("psql:%s: Failed to build SQL INSERT INTO statement for table '%s'\n",
+          db->name, table->schema->name);
     goto fail_exit;
   }
   /* Prepare the insert statement and update statement  */
@@ -364,7 +366,8 @@ table_create (Database* db, DbTable* table, int backend_create)
                   NULL);
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    logerror("Could not prepare statement (%s).\n", PQerrorMessage(psqldb->conn));
+    logerror("psql:%s: Could not prepare statement: %s\n",
+        db->name, PQerrorMessage(psqldb->conn));
     PQclear(res);
     goto fail_exit;
     return -1;
@@ -385,7 +388,7 @@ table_create (Database* db, DbTable* table, int backend_create)
 int
 psql_table_create (Database *database, DbTable *table, int shallow)
 {
-  logdebug ("Create %s (shallow=%d)\n", table->schema->name, shallow);
+  logdebug("psql:%s: Creating table '%s' (shallow=%d)\n", database->name, table->schema->name, shallow);
   return table_create (database, table, !shallow);
 }
 
@@ -414,8 +417,8 @@ psql_get_table_list (Database *database, int *num_tables)
   *num_tables = -1;
   res = PQexec (self->conn, stmt_tablename);
   if (PQresultStatus (res) != PGRES_TUPLES_OK) {
-    logerror ("Couldn't get list of tables from PostgreSQL server: %s\n",
-              PQerrorMessage (self->conn));
+    logerror("psql:%s: Couldn't get list of tables: %s\n",
+        database->name, PQerrorMessage (self->conn));
     PQclear (res);
     return NULL;
   }
@@ -430,37 +433,38 @@ psql_get_table_list (Database *database, int *num_tables)
     if (strcmp (PQgetvalue (res, i, 0), "_experiment_metadata") == 0)
       have_meta = 1;
 
+  if(!have_meta)
+    logdebug("psql:%s: No metadata found\n", database->name);
+
   *num_tables = 0;
 
   for (i = 0; i < rows; i++) {
     char *val = PQgetvalue (res, i, 0);
-    logdebug ("T %s\n", val);
+    logdebug("psql:%s: Found table '%s'", database->name, val);
     MString *str = mstring_create ();
     TableDescr *t = NULL;
 
     if (have_meta) {
-      logdebug ("Have metadata\n");
       mstring_sprintf (str, "SELECT value FROM _experiment_metadata WHERE key='table_%s';", val);
       PGresult *schema_res = PQexec (self->conn, mstring_buf (str));
       if (PQresultStatus (schema_res) != PGRES_TUPLES_OK) {
-        logerror ("Couldn't get schema for table '%s', skipping.  Error was: %s\n",
-                  val, PQerrorMessage (self->conn));
+        logdebug("psql:%s: Couldn't get schema for table '%s': %s; skipping\n",
+            database->name, val, PQerrorMessage (self->conn));
         mstring_delete (str);
         continue;
       }
       int rows = PQntuples (schema_res);
       if (rows == 0) {
-        logdebug ("Have metadata but couldn't get table schema\n");
+        logdebug("psql:%s: Metadata for table '%s' found but empty\n", database->name, val);
         t = table_descr_new (val, NULL); // Don't know the schema for this table
       } else {
-        logdebug ("Stored schema: %s\n", PQgetvalue (schema_res, 0, 0));
+        logdebug("psql:%s: Stored schema for table '%s': %s\n", database->name, val, PQgetvalue (schema_res, 0, 0));
         struct schema *schema = schema_from_meta (PQgetvalue (schema_res, 0, 0));
         t = table_descr_new (val, schema);
       }
       PQclear (schema_res);
       mstring_delete (str);
     } else {
-      logdebug ("No meta data\n");
       t = table_descr_new (val, NULL);
     }
 
@@ -539,7 +543,7 @@ psql_insert(Database* db,
   for (i = 0; i < value_count; i++, v++) {
     struct schema_field *field = &table->schema->fields[i];
     if (v->type != field->type) {
-      logerror("Mismatch in %dth value type fo rtable '%s'\n", i, table->schema->name);
+      logerror("psql:%s: Value %d type mismatch for table '%s'\n", db->name, i, table->schema->name);
       return -1;
     }
     switch (field->type) {
@@ -552,7 +556,8 @@ psql_insert(Database* db,
     case OML_STRING_VALUE: sprintf(paramValues[4+i],"%s",v->value.stringValue.ptr); break;
       //    case OML_BLOB_VALUE: sprintf(paramValues[4+i],"%s",v->value.blobValue.ptr); break;
     default:
-      logerror("Bug: Unknown type %d in col '%s'\n", field->type, field->name);
+      logerror("psql:%s: Unknown type %d in col '%s' of table '%s'; this is probably a bug\n",
+          db->name, field->type, field->name, table->schema->name);
       return -1;
     }
     paramLength[4+i] = 0;
@@ -565,7 +570,8 @@ psql_insert(Database* db,
                        (int*) &paramLength, (int*) &paramFormat, 0 );
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    logerror("Exec of prepared INSERT INTO failed: %s\n", PQerrorMessage(psqldb->conn));
+    logerror("psql:%s: INSERT INTO '%s' failed: %s\n",
+        db->name, table->schema->name, PQerrorMessage(psqldb->conn));
     PQclear(res);
     return -1;
   }
@@ -593,11 +599,11 @@ static int
 sql_stmt(PsqlDB* self, const char* stmt)
 {
   PGresult   *res;
-  logdebug("prepare to exec %s \n", stmt);
+  logdebug("psql: Will execute '%s'\n", stmt);
   res = PQexec(self->conn, stmt);
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    logerror("Error in statement: %s [%s].\n", stmt, PQerrorMessage(self->conn));
+    logerror("psql: Error executing '%s': %s\n", stmt, PQerrorMessage(self->conn));
     PQclear(res);
     return -1;
   }
@@ -658,6 +664,9 @@ psql_create_database(Database* db)
 
   mstring_sprintf (admin_conninfo, "%s user=%s dbname=postgres", pg_conninfo, pg_user);
 
+  loginfo ("psql:%s: Accessing database\n",
+           db->name);
+
   /*
    * Make a connection to the database server -- check if the
    * requested database exists or not by connecting to the 'postgres'
@@ -667,7 +676,7 @@ psql_create_database(Database* db)
 
   /* Check to see that the backend connection was successfully made */
   if (PQstatus(conn) != CONNECTION_OK) {
-    logerror("Connection to database server failed: %s\n", PQerrorMessage(conn));
+    logerror("psql: Connection to database server failed: %s\n", PQerrorMessage(conn));
     goto fail_exit;
   }
 
@@ -677,21 +686,20 @@ psql_create_database(Database* db)
   res = PQexec (conn, mstring_buf (str));
 
   if (PQresultStatus (res) != PGRES_TUPLES_OK) {
-    logerror ("Could not get list of existing databases. Could not create database '%s'\n",
-              db->name);
+    logerror ("psql: Could not get list of existing databases\n");
     goto fail_exit;
   }
 
   /* No result rows means database doesn't exist, so create it instead */
   if (PQntuples (res) == 0) {
     PQclear (res);
-    loginfo ("Database '%s' does not exist, creating it\n", db->name);
+    loginfo ("psql:%s: Database does not exist, creating it\n", db->name);
     mstring_set (str, "");
     mstring_sprintf (str, "CREATE DATABASE \"%s\";", db->name);
 
     res = PQexec (conn, mstring_buf (str));
     if (PQresultStatus (res) != PGRES_COMMAND_OK) {
-      logerror ("Could not create database '%s': %s\n", db->name, PQerrorMessage (conn));
+      logerror ("psql:%s: Could not create database: %s\n", db->name, PQerrorMessage (conn));
       goto fail_exit;
     }
   }
@@ -706,7 +714,7 @@ psql_create_database(Database* db)
 
   /* Check to see that the backend connection was successfully made */
   if (PQstatus(conn) != CONNECTION_OK) {
-    logerror("Connection to database server failed: %s", PQerrorMessage(conn));
+    logerror("psql:%s: Connection to database server failed: %s", db->name, PQerrorMessage(conn));
     goto fail_exit;
   }
   PQsetNoticeReceiver(conn, psql_receive_notice, db->name);

@@ -84,17 +84,17 @@ START_TEST(test_text_insert)
   snprintf(s2, sizeof(s2), "%f\t1\t%d\t%s\n", time2, 2, "106037248");
   snprintf(select, sizeof(select), "select oml_ts_client, oml_seq from %s;", table);
   
+  memset(&source, 0, sizeof(SockEvtSource));
+  source.name = "fake socket";
+
   /* Create the ClientHandler almost as server/client_handler.h:client_handler_new() would */
   ch = (ClientHandler*) xmalloc(sizeof(ClientHandler));
   ch->state = C_HEADER;
   ch->content = C_TEXT_DATA;
   ch->mbuf = mbuf_create ();
   ch->socket = NULL;
-  ch->event = NULL;
+  ch->event = &source;
   strncpy (ch->name, "test_text_insert", MAX_STRING_SIZE);
-
-  memset(&source, 0, sizeof(SockEvtSource));
-  source.name = "fake socket";
 
   fail_unless(ch->state == C_HEADER);
 
@@ -107,6 +107,7 @@ START_TEST(test_text_insert)
   fail_if(ch->database == NULL);
   fail_if(ch->sender_id == 0);
   fail_if(ch->sender_name == NULL);
+  fail_if(ch->app_name == NULL);
 
   /* Process the first sample */
   client_callback(&source, ch, s1, strlen(s1));

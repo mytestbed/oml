@@ -52,6 +52,7 @@ typedef struct _clientHandler {
   int         table_count;    // size of tables, seq_nooffsets, and values arrays
   int         sender_id;
   char*       sender_name;
+  char*       app_name;
 
   CState      state;
   CState      content;

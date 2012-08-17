@@ -42,7 +42,7 @@ static int hookpid = -1; /** PID of the event hook script */
 /** Clean up the pipes openned for the event hook */
 static void
 hook_clean_pipes (void) {
-  logdebug("Cleaning up pipes for hook `%s'\n", hook);
+  logdebug("hook: Cleaning up pipes for `%s'\n", hook);
   close(hookpipe[0]);
   close(hookpipe[1]);
   hookpipe[0] = hookpipe[1] = -1;
@@ -53,23 +53,23 @@ void
 hook_cleanup (void)
 {
   int i, ret;
-  logdebug("Cleaning up hook `%s': %s\n", hook, strerror(errno));
+  logdebug("hook: Cleaning up `%s': %s\n", hook, strerror(errno));
   if(hook_write(HOOK_CMD_EXIT, sizeof(HOOK_CMD_EXIT)) > sizeof(HOOK_CMD_EXIT))
     return;
-  logdebug("Problem commanding hook `%s' to exit: %s\n", hook, strerror(errno));
+  logdebug("hook: Problem commanding `%s' to exit: %s\n", hook, strerror(errno));
 
   if(!kill(hookpid, SIGTERM))
     return;
-  logdebug("Cannot kill (TERM) hook process %d: %s\n", hookpid, strerror(errno));
+  logdebug("hook: Cannot kill (TERM) process %d: %s\n", hookpid, strerror(errno));
 
   for (i=0; i<3; i++) {
     ret = kill(hookpid, SIGKILL);
     if(ret == ESRCH)
       return;
-    logdebug("Cannot kill (KILL) hook process %d: %s\n", hookpid, strerror(errno));
+    logdebug("hook: Cannot kill (KILL) process %d: %s\n", hookpid, strerror(errno));
   }
 
-  logwarn("Could not kill hook process %d; giving up...", hookpid);
+  logwarn("hook: Could not kill process %d; giving up...", hookpid);
 }
 
 /** Initialise the event hook if specified.
@@ -96,17 +96,17 @@ hook_setup (void)
   if (!hook)
     return;
 /*  if (stat(hook, &b)) { 
-    logwarn("Cannot stat hook `%s': %s\n", hook, strerror(errno));
+    logwarn("hook: Cannot stat `%s': %s\n", hook, strerror(errno));
     return;
   }*/ 
   if (pipe(pto) || pipe(pfrom)) {
-    logwarn("Cannot create pipes to hook `%s': %s\n", hook, strerror(errno));
+    logwarn("hook: Cannot create pipes to `%s': %s\n", hook, strerror(errno));
     goto clean_pipes;
   }
 
   hookpid = fork();
   if (hookpid < 0) {
-    logwarn("Cannot fork for hook `%s': %s\n", hook, strerror(errno));
+    logwarn("hook: Cannot fork for `%s': %s\n", hook, strerror(errno));
     hookpid = -1;
     goto clean_pipes;
 
@@ -116,7 +116,7 @@ hook_setup (void)
     dup2(pto[0], STDIN_FILENO);
     dup2(pfrom[1], STDOUT_FILENO);
     execlp(hook, hook, NULL);
-    logwarn("Cannot execute hook `%s': %s\n", hook, strerror(errno));
+    logwarn("hook: Cannot execute `%s': %s\n", hook, strerror(errno));
     exit(1);
 
   } else {                              /* Parent process */
@@ -128,29 +128,29 @@ hook_setup (void)
     /* Wait for banner or timeout */
     FD_ZERO(&readfds);
     FD_SET(hookpipe[0], &readfds);
-    logdebug("Waiting for hook `%s' to respond...\n", hook);
+    logdebug("hook: Waiting for `%s' to respond...\n", hook);
 
     if(select(hookpipe[0]+1, &readfds, NULL, NULL, &timeout) < 1) {
-      logwarn("Hook `%s' (PID %d) not responding\n", hook, hookpid);
+      logwarn("hook: `%s' (PID %d) not responding\n", hook, hookpid);
       hook_cleanup();
       goto clean_pipes;
     }
 
     /* Only hookpipe[0] was in readfds, so we know why we're here */
     if(hook_read(&buf, sizeof(buf)) <= 0) {
-      logwarn("Cannot get banner from hook `%s' (PID %d): %s\n", hook, hookpid, strerror(errno));
+      logwarn("hook: Cannot get banner from `%s' (PID %d): %s\n", hook, hookpid, strerror(errno));
     } else if (strncmp(buf, HOOK_BANNER, sizeof(HOOK_BANNER)-1)) {  /* XXX: Ignore final '\n' instead of '\0' */
       buf[sizeof(buf)-1]=0;
-      logwarn("Incorrect banner from hook `%s' (PID %d): `%s'\n", hook, hookpid, buf);
+      logwarn("hook: Incorrect banner from `%s' (PID %d): `%s'\n", hook, hookpid, buf);
       goto clean_pipes;
     }
-    loginfo("Hook `%s' in place\n", hook);
+    loginfo("hook: `%s' in place\n", hook);
   }
 
   return;
 
 clean_pipes:
-  logdebug("Giving up on hook `%s'\n", hook);
+  logdebug("hook: Giving up on `%s'\n", hook);
   close(pto[0]);
   close(pfrom[0]);
   close(pto[1]);
@@ -182,7 +182,7 @@ hook_write (const void *buf, size_t count)
   int n;
   if (-1 == hookpipe[1])
     return -1;
-  logdebug("Sending command to event hook (fd %d): '%s'\n", hookpipe[1], buf);
+  logdebug("hook: Sending command fd %d: '%s'\n", hookpipe[1], buf);
   n = write(hookpipe[1], buf, count);
   return n;
 }
@@ -206,7 +206,7 @@ hook_read (void *buf, size_t count)
   if (-1 == hookpipe[0])
     return -1;
   n = read(hookpipe[0], buf, count);
-  logdebug("Read from event hook (fd %d): '%s'\n", hookpipe[0], buf);
+  logdebug("hook: Read from fd %d: '%s'\n", hookpipe[0], buf);
   return n;
 }
 

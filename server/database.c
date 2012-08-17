@@ -54,8 +54,8 @@ database_find (char* name)
   Database* db = first_db;
   while (db != NULL) {
     if (!strcmp(name, db->name)) {
-      loginfo ("Experiment '%s': Database '%s' already open (%d clients)\n",
-                name, name, db->ref_count);
+      loginfo ("%s: Database already open (%d clients)\n",
+                name, db->ref_count);
       db->ref_count++;
       return db;
     }
@@ -64,7 +64,7 @@ database_find (char* name)
 
   // need to create a new one
   Database *self = xmalloc(sizeof(Database));
-  loginfo("New experiment '%s'\n", name);
+  logdebug("%s: Creating or opening database\n", name);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
   self->ref_count = 1;
   self->create = database_create_function ();
@@ -85,7 +85,7 @@ database_find (char* name)
     {
       self->start_time = strtol (start_time_str, NULL, 0);
       xfree (start_time_str);
-      loginfo("Experiment '%s': Retrieved DB start-time = %lu\n", name, self->start_time);
+      logdebug("%s: Retrieved start-time = %lu\n", name, self->start_time);
     }
 
   // hook this one into the list of active databases
@@ -103,7 +103,7 @@ void
 database_release(Database* self)
 {
   if (self == NULL) {
-    logerror("Tried to do database_release() on a NULL database.\n");
+    logerror("NONE: Trying to release an NULL database.\n");
     return;
   }
   if (--self->ref_count > 0) return; // still in use
@@ -116,7 +116,7 @@ database_release(Database* self)
     db_p = db_p->next;
   }
   if (db_p == NULL) {
-    logerror("Experiment '%'s:  trying to release an unknown database\n", self->name);
+    logerror("%s:  Trying to release an unknown database\n", self->name);
     return;
   }
   if (prev_p == NULL)
@@ -135,7 +135,7 @@ database_release(Database* self)
     t_p = t;
   }
 
-  loginfo ("Experiment '%s': closing database\n", self->name);
+  loginfo ("%s: Closing database\n", self->name);
   self->release (self);
 
   xfree(self);
@@ -206,7 +206,8 @@ database_find_or_create_table(Database *database, struct schema *schema)
         return table;
 
       } else if (diff == -1) {
-        loginfo ("Schemas differ for table '%s'\n", s->name);
+        logerror ("%s: Schema error table '%s'\n", database->name, s->name);
+        logdebug (" One of the server schema %p or the client schema %p is probably NULL\n", s, table->schema);
 
       } else if (diff > 0) {
         struct schema_field *client = &s->fields[diff-1];
@@ -214,11 +215,10 @@ database_find_or_create_table(Database *database, struct schema *schema)
         if (!(((client->type == OML_UINT64_VALUE) || (client->type == OML_BLOB_VALUE)) &&
               ((stored->type == OML_UINT64_VALUE) || (stored->type == OML_BLOB_VALUE)))) {
 
-          loginfo ("Schemas differ for table '%s', at column %d:\n", s->name, diff);
-          loginfo ("Client declared         '%s:%s'\n",
+          logdebug ("%s: Schema differ for table index '%s', at column %d: expected %s:%s, got %s:%s\n",
+              database->name, s->name, diff,
+              stored->name, oml_type_to_s (stored->type),
               client->name, oml_type_to_s (client->type));
-          loginfo ("Existing table declared '%s:%s'\n",
-              stored->name, oml_type_to_s (stored->type));
         }
       }
 
@@ -234,14 +234,15 @@ database_find_or_create_table(Database *database, struct schema *schema)
   } while(table && diff && (i < MAX_TABLE_RENAME));
 
   if (table && diff) {
-    logerror ("Too many (>%d) tables named '%s_x', giving up. Please use the rename attribute of <mp /> tags.\n", MAX_TABLE_RENAME, schema->name);
+    logerror ("%s: Too many (>%d) tables named '%s_x', giving up. Please use the rename attribute of <mp /> tags.\n",
+      database->name, MAX_TABLE_RENAME, schema->name);
     schema_free(s);
     return NULL;
   }
 
   if(i>1) {
     /* We had to change the table name*/
-    logwarn("Creating table '%s' for new stream '%s' with incompatible schema\n", s->name, schema->name);
+    logwarn("%s: Creating table '%s' for new stream '%s' with incompatible schema\n", database->name, s->name, schema->name);
     xfree(schema->name);
     schema->name = xstrndup(s->name, tnlen+3);
   }
@@ -252,7 +253,7 @@ database_find_or_create_table(Database *database, struct schema *schema)
   if (!table)
     return NULL;
   if (database->table_create (database, table, 0)) {
-    logwarn ("Database adapter failed to create table; freeing it now!\n");
+    logerror ("%s: Couldn't create table '%s'\n", database->name, schema->name);
     /* Unlink the table from the experiment's list */
     DbTable* t = database->first_table;
     if (t == table)
@@ -277,11 +278,11 @@ void
 database_table_free(Database *database, DbTable *table)
 {
   if (database && table) {
-    logdebug("Experiment '%s':  freeing table %s\n", database->name, table->schema->name);
+    logdebug("%s: Freeing table '%s'\n", database->name, table->schema->name);
     schema_free (table->schema);
     xfree(table);
   } else {
-    logwarn("Experiment '%s':  tried to free a NULL table (or database was NULL).\n",
+    logwarn("%s: Tried to free a NULL table (or database was NULL).\n",
             (database ? database->name : "NONE"));
   }
 }
@@ -296,7 +297,7 @@ database_init (Database *database)
   if (num_tables == -1)
     return -1;
 
-  logdebug("Got table list with %d tables in it\n", num_tables);
+  logdebug("%s: Got table list with %d tables in it\n", database->name, num_tables);
   int i = 0;
   for (i = 0; i < num_tables; i++, td = td->next) {
     if (td->schema) {
@@ -304,14 +305,14 @@ database_init (Database *database)
       DbTable *table = database_create_table (database, schema);
 
       if (!table) {
-        logwarn ("Failed to create table '%s': allocation failed\n",
-                 td->name);
+        logwarn ("%s: Failed to create table '%s'\n",
+                 database->name, td->name);
         continue;
       }
       /* Create the required table data structures, but don't do SQL CREATE TABLE */
       if (database->table_create (database, table, 1) == -1) {
-        logwarn ("Failed to create adapter structures for table '%s'\n",
-                 td->name);
+        logwarn ("%s: Failed to create adapter structures for table '%s'\n",
+                 database->name, td->name);
         database_table_free (database, table);
       }
     }
