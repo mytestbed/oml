@@ -1,5 +1,6 @@
 ## arg 1:  the new package version
 post_install() {
+  getent passwd oml2 >/dev/null && getent group oml2 >/dev/null && exit 0
   echo ">>> Creating oml2 user and group and setting permissions..."
   getent group oml2 >/dev/null || usr/sbin/groupadd -g 137 oml2
   getent passwd oml2 >/dev/null || usr/sbin/useradd -c 'OML2 daemon' -u 137 -g oml2 -d '/var/oml2' -s /bin/bash oml2
