@@ -215,7 +215,7 @@ socket_in_new(
 
   if(bind(self->sockfd, (struct sockaddr *)&self->servAddr,
       sizeof(struct sockaddr_in)) < 0) {
-    o_log(O_LOG_ERROR, "Socket(%s): Error binding socket to interface\n\t%s\n",
+    o_log(O_LOG_ERROR, "socket:%s: Error binding socket to interface: %s\n",
           name, strerror(errno));
     return NULL;
   }
@@ -541,14 +541,14 @@ socket_sendto(
     if (errno == EPIPE || errno == ECONNRESET) {
       // The other end closed the connection.
       self->is_disconnected = 1;
-      o_log(O_LOG_ERROR, "Socket(%s): the remote peer closed the connection (%s)\n",
+      o_log(O_LOG_ERROR, "socket:%s: The remote peer closed the connection: %s\n",
             self->name, strerror(errno));
     } else if (errno = EINTR) {
-      o_log(O_LOG_WARN, "Socket(%s): Sending data interrupted (%s)\n",
+      o_log(O_LOG_WARN, "socket:%s: Sending data interrupted: %s\n",
             self->name, strerror(errno));
       return 0;
     } else {
-      o_log(O_LOG_ERROR, "Socket(%s): Sending data failed (%s)\n",
+      o_log(O_LOG_ERROR, "socket:%s: Sending to multicast channel failed: %s\n",
             self->name, strerror(errno));
     }
     return -1;
