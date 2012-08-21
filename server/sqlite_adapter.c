@@ -173,28 +173,25 @@ sq3_add_sender_id(Database* database, char* sender_id)
   int index = -1;
   char* id_str = sq3_get_sender_id (database, sender_id);
 
-  if (id_str)
-    {
-      index = atoi (id_str);
-      xfree (id_str);
-    }
-  else
-    {
-      if (self->sender_cnt == 0)
-        {
-          int max_sender_id = sq3_get_max_sender_id (database);
-          if (max_sender_id < 0)
-            {
-              logwarn("sqlite:%s: Could not determine maximum sender id; starting at 0\n",
-                       database->name);
-              max_sender_id = 0;
-            }
-          self->sender_cnt = max_sender_id;
-        }
-      index = ++self->sender_cnt;
+  if (id_str) {
+    index = atoi (id_str);
+    xfree (id_str);
 
-      sq3_set_sender_id (database, sender_id, index);
+  } else {
+    if (self->sender_cnt == 0) {
+      int max_sender_id = sq3_get_max_sender_id (database);
+      if (max_sender_id < 0) {
+        logwarn("sqlite:%s: Could not determine maximum sender id; starting at 0\n",
+            database->name);
+        max_sender_id = 0;
+      }
+      self->sender_cnt = max_sender_id;
     }
+    index = ++self->sender_cnt;
+
+    sq3_set_sender_id (database, sender_id, index);
+
+  }
 
   return index;
 }

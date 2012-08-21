@@ -147,8 +147,14 @@ psql_set_sender_id (Database *database, const char *name, int id)
 }
 
 /**
- * @brief Add sender ID to the table
- * @param db the database that contains the sqlite3 db
+ * @brief Add sender a new sender to the database, returning its
+ * index.
+ *
+ * If a sender with the given id already exists, its pre-existing
+ * index is returned.  Otherwise, a new sender is added to the table
+ * with a new sender id, unique to this experiment.
+ *
+ * @param db the database that contains the experiment db
  * @param sender_id the sender ID
  * @return the index of the sender
  */
@@ -162,8 +168,10 @@ psql_add_sender_id(Database *db, char *sender_id)
   if (id_str) {
     index = atoi (id_str);
     xfree (id_str);
+
   } else {
     PGresult *res = PQexec (self->conn, "SELECT MAX(id) FROM _senders;");
+
     if (PQresultStatus (res) != PGRES_TUPLES_OK) {
       logwarn("psql:%s: Failed to get maximum sender id from database: %s; starting at 0\n",
           db->name, PQerrorMessage (self->conn));
@@ -180,6 +188,7 @@ psql_add_sender_id(Database *db, char *sender_id)
     index = atoi (PQgetvalue (res, 0, 0)) + 1;
     PQclear (res);
     psql_set_sender_id (db, sender_id, index);
+
   }
 
   return index;
@@ -299,7 +308,7 @@ psql_set_key_value (Database *database, const char *table,
 }
 
 /**
- * @brief Create a sqlite3 table
+ * @brief Create a PostgreSQL table
  * @param db the database that contains the sqlite3 db
  * @param table the table to associate in sqlite3 database
  * @return 0 if successful, -1 otherwise
@@ -379,7 +388,7 @@ table_create (Database* db, DbTable* table, int backend_create)
   if (insert) mstring_delete (insert);
   return 0;
 
- fail_exit:
+fail_exit:
   if (create) mstring_delete (create);
   if (insert) mstring_delete (insert);
   return -1;
