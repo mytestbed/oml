@@ -35,7 +35,9 @@ struct _omlOutStream;
 typedef size_t (*oml_outs_write_f)(
   struct _omlOutStream* outs,
   uint8_t* buffer,
-  size_t  length
+  size_t   length,
+  uint8_t* header,
+  size_t   header_length
 );
 
 /*! Called to close the stream.
