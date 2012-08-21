@@ -176,17 +176,20 @@ psql_add_sender_id(Database *db, char *sender_id)
       logwarn("psql:%s: Failed to get maximum sender id from database: %s; starting at 0\n",
           db->name, PQerrorMessage (self->conn));
       PQclear (res);
-      return -1;
-    }
-    int rows = PQntuples (res);
-    if (rows == 0) {
-      logerror("psql:%s: Failed to get maximum sender id from database: empty result\n",
+      index = 0;
+    } else {
+      int rows = PQntuples (res);
+      if (rows == 0) {
+        logwarn("psql:%s: Failed to get maximum sender id from database: empty result; starting at 0\n",
             db->name);
-      PQclear (res);
-      return -1;
+        PQclear (res);
+        index = 0;
+      } else {
+        index = atoi (PQgetvalue (res, 0, 0)) + 1;
+        PQclear (res);
+      }
     }
-    index = atoi (PQgetvalue (res, 0, 0)) + 1;
-    PQclear (res);
+
     psql_set_sender_id (db, sender_id, index);
 
   }
