@@ -103,7 +103,7 @@ void
 database_release(Database* self)
 {
   if (self == NULL) {
-    logerror("NONE: Trying to release an NULL database.\n");
+    logerror("NONE: Trying to release a NULL database.\n");
     return;
   }
   if (--self->ref_count > 0) return; // still in use
