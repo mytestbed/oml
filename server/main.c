@@ -65,8 +65,10 @@ die (const char *fmt, ...)
 
 static int listen_port = DEFAULT_PORT;
 char *sqlite_database_dir = NULL;
+#if HAVE_LIBPQ
 char *pg_conninfo = DEFAULT_PG_CONNINFO;
 char *pg_user = DEFAULT_PG_USER;
+#endif
 
 static int log_level = O_LOG_INFO;
 static char* logfile_name = NULL;
@@ -223,15 +225,17 @@ setup_backend_sqlite (void)
   loginfo ("sqlite: Creating SQLite3 databases in %s\n", sqlite_database_dir);
 }
 
+#if HAVE_LIBPQ
 void
 setup_backend_postgresql (const char *conninfo, const char *user)
 {
-#if HAVE_LIBPQ
   loginfo ("psql: Sending experiment data to PostgreSQL server with user '%s'\n",
            pg_user);
   MString *str = mstring_create ();
   mstring_sprintf (str, "%s user=%s dbname=postgres", conninfo, user);
   PGconn *conn = PQconnectdb (mstring_buf (str));
+
+  logwarn ("PostgreSQL backend is still experimental\n");
 
   if (PQstatus (conn) != CONNECTION_OK)
     die ("psql: Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
@@ -253,28 +257,24 @@ setup_backend_postgresql (const char *conninfo, const char *user)
 
   PQclear (res);
   PQfinish (conn);
-#else
-  (void)conninfo;
-#endif
 }
+#endif
 
 void
 setup_backend (void)
 {
+  logdebug ("Database backend: '%s'\n", backend);
+
   if (!database_create_function ())
     die ("Unknown database backend '%s' (valid backends: %s)\n",
          backend, valid_backends ());
 
-  logdebug ("Database backend: '%s'\n", backend);
-
-  const char *pg = "postgresql";
-  const char *sq = "sqlite";
-  if (!strcmp (backend, pg))
-    logwarn ("PostgreSQL backend is still experimental\n");
-  if (!strcmp (backend, pg))
-    setup_backend_postgresql (pg_conninfo, pg_user);
-  if (!strcmp (backend, sq))
+  if (!strcmp (backend, "sqlite"))
     setup_backend_sqlite ();
+#if HAVE_LIBPQ
+  else if (!strcmp (backend, "postgresql"))
+    setup_backend_postgresql (pg_conninfo, pg_user);
+#endif
 }
 
 
