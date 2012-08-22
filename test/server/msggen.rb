@@ -44,7 +44,7 @@ class Client
     h = []
     h << "protocol: 2"
     h << "experiment-id: #{@experiment}"
-    h << "start_time: #{@start_time}"
+    h << "start-time: #{@start_time}"
     h << "sender-id: #{@sender}"
     h << "app-name: #{@application}"
     h = h + @streams.collect { |stream| stream.schema_string }

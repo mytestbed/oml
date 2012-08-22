@@ -38,8 +38,8 @@ static const struct {
   { "app-name",      8,  H_APP_NAME },
   { "schema",        6,  H_SCHEMA },
   { "sender-id",     9,  H_SENDER_ID },
-  { "start_time",    10, H_START_TIME },
-  { "start-time",    10, H_START_TIME }, /* Yes, they're different */
+  { "start-time",    10, H_START_TIME },
+  { "start_time",    10, H_START_TIME }, /* This one will be deprecated at some point */
   { NULL, 0, H_NONE }
 };
 
