@@ -99,7 +99,9 @@ _file_stream_write(
  * \brief write data to a file
  * \param hdl pointer to the OmlOutStream
  * \param buffer pointer to the buffer containing the data to write
- * \param buffer length of the buffer to write
+ * \param length length of the buffer to write
+ * \param header pointer to an optional buffer containing headers to be sent after (re)connecting
+ * \param header_length length of the header to write; must be 0 if header is NULL
  * \return amount of data written, or -1 on error
  */
 size_t
@@ -111,6 +113,9 @@ file_stream_write(
   size_t   header_length
 ) {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
+
+  /* The header can be NULL, but header_length MUST be 0 in that case */
+  assert(header || !header_length);
 
   if (!self) return -1;
   FILE* f = self->f;
