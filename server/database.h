@@ -100,6 +100,11 @@ Database *database_find(char* name);
  */
 void database_release(Database* database);
 
+/**
+ * Close all databases, e.g., before quitting
+ */
+void database_cleanup();
+
 DbTable *database_find_table(Database* database, const char* name);
 DbTable *database_find_or_create_table(Database *database, struct schema *schema);
 DbTable *database_create_table (Database *database, struct schema *schema);

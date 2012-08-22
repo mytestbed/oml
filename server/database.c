@@ -141,6 +141,22 @@ database_release(Database* self)
   xfree(self);
 }
 
+/**
+ * Close all databases, e.g., before quitting
+ */
+void database_cleanup()
+{
+  Database *next, *db = first_db;
+
+  logdebug("Cleaning up databases\n");
+
+  while (db) {
+    next = db->next;
+    database_release(db);
+    db = next;
+  }
+}
+
 /*
  * Find the table with matching "name".  Return NULL if not found.
  */
