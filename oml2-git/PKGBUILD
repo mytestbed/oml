@@ -18,14 +18,15 @@ backup=(etc/conf.d/oml2-server.conf)
 install="oml2.install"
 
 _gitroot="git://mytestbed.net/oml-staging.git"
+#_gitroot="$PWD/.."
 _gitname="oml"
 _gitbranch="master"
 pkgrel=1
 
 build() {
 	cd "$srcdir"
-	msg "Connecting to GIT server...."
 
+	msg "Connecting to GIT server...."
 	if [ -d $_gitname ] ; then
 		cd $_gitname && git pull origin
 		msg "The local files are updated."
@@ -48,9 +49,18 @@ build() {
 	./autogen.sh
 	./configure --prefix=/usr --localstatedir=/var --with-doc --with-pgsql
 	make || return 1
+}
+
+package() {
+	cd "$srcdir/$_gitname-build"
 	make DESTDIR="$pkgdir/" install
 	install -D -m 0644 ${srcdir}/$_gitname/COPYING \
 		${pkgdir}/usr/share/licenses/${pkgname}/COPYING
 	install -D -m 0755 ${startdir}/oml2-server.rc ${pkgdir}/etc/rc.d/oml2-server
 	install -D -m 0644 ${startdir}/oml2-server.conf ${pkgdir}/etc/conf.d/oml2-server.conf
+}
+
+check() {
+	cd "$srcdir/$_gitname-build"
+	make check
 }
