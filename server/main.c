@@ -29,6 +29,8 @@
 #include <pwd.h>
 #include <grp.h>
 #include <popt.h>
+#include <signal.h>
+#include <errno.h>
 
 #include <oml2/oml_writer.h>
 #include <log.h>
@@ -277,6 +279,31 @@ setup_backend (void)
 #endif
 }
 
+static void sighandler(int signum)
+{
+  if(SIGTERM==signum) {
+    loginfo("Received SIGTERM, cleaning up and exiting\n");
+    /* FIXME: a client_cleanup would be better */
+    database_cleanup();
+    exit(0);
+  } else {
+    logwarn("Received unhandled signal %d\n", signum);
+  }
+}
+
+void setup_signal (void)
+{
+  struct sigaction sa;
+
+  logdebug("Installing SIGTERM handler\n");
+
+  sa.sa_handler = sighandler;
+  sigemptyset (&sa.sa_mask);
+  sa.sa_flags = 0;
+
+  if(sigaction(SIGTERM, &sa, NULL))
+    logwarn("Unable to install SIGTERM handler: %s\n", strerror(errno));
+}
 
 void
 drop_privileges (const char *uidstr, const char *gidstr)
@@ -366,6 +393,8 @@ main(int argc, const char **argv)
 
   /* Important that this comes after drop_privileges().  See setup_backend_sqlite() */
   setup_backend ();
+
+  setup_signal();
 
   hook_setup();
 
