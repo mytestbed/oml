@@ -171,13 +171,13 @@ s_socket(
   // open a socket
   if((self->sockfd = socket(PF_INET,
                 self->is_tcp ? SOCK_STREAM : SOCK_DGRAM, IPPROTO_IP)) < 0) {
-    o_log (O_LOG_ERROR, "Socket: Error creating socket\n");
+    o_log (O_LOG_ERROR, "socket: Error creating socket\n");
     return 0;
   }
   if (nonblocking_mode) {
     fcntl(self->sockfd, F_SETFL, O_NONBLOCK);
   }
-  o_log(O_LOG_DEBUG, "Socket(%s): Socket %d successfully created\n",
+  o_log(O_LOG_DEBUG, "socket:%s: Socket %d successfully created\n",
     self->name, self->sockfd);
   return 1;
 }
@@ -207,7 +207,7 @@ socket_in_new(
     return NULL;
 
 
-//  o_log(O_LOG_DEBUG, "Socket(%s): Attempt to join %s:%d\n", name, addr, port);
+//  o_log(O_LOG_DEBUG, "socket:%s: Attempt to join %s:%d\n", name, addr, port);
 
   self->servAddr.sin_family = PF_INET;
   self->servAddr.sin_port = htons(port);
@@ -221,7 +221,7 @@ socket_in_new(
   }
 
   self->localport = ntohs(self->servAddr.sin_port);
-  o_log(O_LOG_DEBUG, "Socket(%s): Socket bound to port: %d\n", name, self->localport);
+  o_log(O_LOG_DEBUG, "socket:%s: Socket bound to port: %d\n", name, self->localport);
 
   self->next = instances;
   instances = self;
@@ -239,10 +239,10 @@ on_self_connected(
 
   switch (status) {
   case SOCKET_CONN_REFUSED:
-    o_log(O_LOG_ERROR, "Socket(%s): Connection refused\n", self->name);
+    o_log(O_LOG_ERROR, "socket:%s: Connection refused\n", self->name);
     break;
   default:
-    o_log(O_LOG_ERROR, "Socket(%s): Unknown socket status '%d'\n", self->name, status);
+    o_log(O_LOG_ERROR, "socket:%s: Unknown socket status '%d'\n", self->name, status);
   }
 }
 #endif
@@ -261,7 +261,7 @@ s_connect(
 
     server = gethostbyname(addr);
     if (server == NULL) {
-      o_log(O_LOG_ERROR, "Socket(%s): Unknown host %s\n", self->name, addr);
+      o_log(O_LOG_ERROR, "socket:%s: Unknown host %s\n", self->name, addr);
       return 0;
     }
 
@@ -274,7 +274,7 @@ s_connect(
   if (connect(self->sockfd, (struct sockaddr *)&self->servAddr,
           sizeof(struct sockaddr_in)) < 0) {
     if (errno != EINPROGRESS) {
-      o_log(O_LOG_ERROR, "Socket(%s): Error connecting to %s:%d (%s)\n",
+      o_log(O_LOG_ERROR, "socket:%s: Error connecting to %s:%d: %s\n",
         self->name, addr, port, strerror(errno));
       return 0;
     }
@@ -291,7 +291,7 @@ socket_tcp_out_new(
   SocketInt* self;
 
   if (addr == NULL) {
-    o_log(O_LOG_ERROR, "Socket(%s): Missing address\n", name);
+    o_log(O_LOG_ERROR, "socket:%s: Missing address\n", name);
     return NULL;
   }
 
@@ -345,13 +345,13 @@ on_client_connect(
                 (struct sockaddr*)&newSock->servAddr,
                  &cli_len);
   if (newSock->sockfd < 0) {
-    o_log(O_LOG_ERROR, "Socket(%s): Error on accept (%s)\n",
+    o_log(O_LOG_ERROR, "socket:%s: Error on accept: %s\n",
           self->name, strerror(errno));
     free(newSock);
     return;
   }
 
-  sprintf(newSock->name, "%s-client:%d", self->name, newSock->sockfd);
+  sprintf(newSock->name, "%s-io:%d", self->name, newSock->sockfd);
 
   if (self->connect_callback) {
     self->connect_callback((Socket*)newSock, self->connect_handle);
@@ -401,7 +401,7 @@ iface2addr(
   if (((ufd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
       || ioctl(ufd, SIOCGIFADDR, &ifr) < 0)
     {
-      o_log(O_LOG_ERROR, "Socket(%s): Unable to resolve outgoing interface: %s",
+      o_log(O_LOG_ERROR, "socket:%s: Unable to resolve outgoing interface: %s",
         name, iface);
       return -1;
     }
@@ -434,10 +434,10 @@ socket_mc_in_new(
   if (setsockopt(self->sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
          (const void *)&(self->imreq),
          sizeof(struct ip_mreq)) < 0) {
-    o_log(O_LOG_ERROR, "Socket(%s): Error while joining a multicast group\n", name);
+    o_log(O_LOG_ERROR, "socket:%s: Error while joining a multicast group\n", name);
     return NULL;
   }
-  o_log(O_LOG_DEBUG, "Socket(%s): Ready to receive data on multicast address: %s\n",
+  o_log(O_LOG_DEBUG, "socket:%s: Ready to receive data on multicast address: %s\n",
     name, addr);
   return (Socket*)self;
 }
@@ -461,22 +461,22 @@ socket_mc_out_new(
 
   struct in_addr addr;
   addr.s_addr = iface2addr(name, iface);
-  o_log(O_LOG_DEBUG, "Socket(%s): Binding to %x\n", name, addr.s_addr);
+  o_log(O_LOG_DEBUG, "socket:%s: Binding to %x\n", name, addr.s_addr);
   if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) < 0) {
-    o_log (O_LOG_ERROR, "Socket(%s): Setting outgoing interface for socket\n\t%s",
+    o_log (O_LOG_ERROR, "socket:%s: Setting outgoing interface for socket\n\t%s",
        name, strerror(errno));
     return NULL;
   }
 
   if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl,
         sizeof(unsigned char)) < 0) {
-    o_log(O_LOG_ERROR, "Socket(%s): While setting TTL parameter for multicast socket\n\t%s",
+    o_log(O_LOG_ERROR, "socket:%s: While setting TTL parameter for multicast socket\n\t%s",
       name, strerror(errno));
     return NULL;
   }
   if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_LOOP,
          &one, sizeof(unsigned char)) < 0) {
-    o_log(O_LOG_ERROR, "Socket: While setting the loopback on multicast socket\n\t%s",
+    o_log(O_LOG_ERROR, "socket%s: While setting the loopback on multicast socket\n\t%s",
       name, strerror(errno));
     return NULL;
   }
@@ -484,7 +484,7 @@ socket_mc_out_new(
   //  self->addr = mcast_addr;
   self->servAddr.sin_port = htons(mcast_port);
   self->servAddr.sin_addr.s_addr = inet_addr(mcast_addr);
-  o_log(O_LOG_DEBUG, "Socket(%s): Ready to send data on: %s:%d\n",
+  o_log(O_LOG_DEBUG, "socket:%s: Ready to send data on: %s:%d\n",
     name, mcast_addr, mcast_port);
   return (Socket*)self;
 }
