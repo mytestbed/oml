@@ -140,7 +140,7 @@ socket_is_disconnected (
 }
 
 //! Return a new 'instance' structure
-SocketInt*
+static SocketInt*
 initialize(
   char* name
 ) {
