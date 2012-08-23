@@ -156,7 +156,7 @@ client_realloc_values (ClientHandler *self, int index, int nvalues)
  * \param hostname
  * \param user
  */
-void*
+ClientHandler*
 client_handler_new(Socket* new_sock)
 {
   ClientHandler* self = xmalloc(sizeof(ClientHandler));

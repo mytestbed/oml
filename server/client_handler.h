@@ -64,7 +64,7 @@ typedef struct _clientHandler {
                             // sync time across all connections
 } ClientHandler;
 
-void *client_handler_new (Socket* new_sock);
+ClientHandler* client_handler_new (Socket* new_sock);
 
 #endif /*CLIENT_HANDLER_H_*/
 
