@@ -1,4 +1,4 @@
-#                                               -*- Autoconf -*-
+#
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
@@ -156,6 +156,36 @@ AS_IF([test "x$enable_doc" != "xno"],
 AM_CONDITIONAL([ENABLE_DOC], [test "x$enable_doc" != "xno"])
 AM_CONDITIONAL([HAVE_A2X], [test "x$A2X" != "xno"])
 AM_CONDITIONAL([HAVE_ASCIIDOC], [test "x$ASCIIDOC" != "xno"])
+
+DX_DOT_FEATURE(ON)
+DX_PDF_FEATURE(OFF) dnl XXX: Fails not finding existing files...
+DX_PS_FEATURE(OFF)
+DX_INIT_DOXYGEN([oml2], [], [doxygen])
+AC_ARG_ENABLE([doxygen-private],
+	      [AS_HELP_STRING([--enable-doxygen-private],
+			      [generate Doxygen documentation for private and static elements])],
+	      [],
+	      [enable_doxygen_private=no])
+AS_IF([test x$enable_doxygen_private = xno],
+      [
+       DX_ENV_APPEND(EXTRACT_PRIVATE, [NO])
+       DX_ENV_APPEND(EXTRACT_STATIC, [NO])
+      ],
+      [
+       DX_ENV_APPEND(EXTRACT_PRIVATE, [YES])
+       DX_ENV_APPEND(EXTRACT_STATIC, [YES])
+      ])
+AC_ARG_ENABLE([doxygen-callgraph],
+	      [AS_HELP_STRING([--enable-doxygen-callgraph],
+			      [generate Doxygen call graphs])],
+	      [],
+	      [enable_doxygen_callgraph=no])
+AS_IF([test x$enable_doxygen_callgraph = xno],
+      [DX_ENV_APPEND(ENABLE_CALLGRAPH, [NO])],
+      [DX_ENV_APPEND(ENABLE_CALLGRAPH, [YES])])
+DX_ENV_APPEND(GENERATE_LATEX, [NO]) dnl generates files not cleaned up, and DX_PDF_FEATURE and DX_PS_FEATURE are currently off
+DX_ENV_APPEND(TOPSRCDIR, [\$(top_srcdir)]) dnl let make deal with it
+
 
 AC_CONFIG_FILES([Makefile
 		 gnulib/Makefile

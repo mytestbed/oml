@@ -26,7 +26,8 @@ ALL_MAN_FILES = $(REGULAR_MAN_FILES) liboml2-api.txt
 
 html_docs = $(ALL_MAN_FILES:.txt=.html)
 
-EXTRA_DIST=$(ALL_MAN_FILES)
+EXTRA_DIST=$(ALL_MAN_FILES) \
+	doxygen.am Doxyfile
 CLEANFILES=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	liboml2.3 \
 	omlc_set_uint32.3 \
@@ -39,7 +40,14 @@ CLEANFILES=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	oml2_scaffold.1
 	$(html_docs)
 
+MOSTLYCLEANFILES=$(DX_CLEANFILES)
+
 if ENABLE_DOC
+include doxygen.am
+
+if DX_COND_doc
+all: doxygen-doc
+endif
 
 A2X_ARGS = \
 	   --destination-dir=. --attribute='pkglocalstatedir=$(pkglocalstatedir)' --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' --attribute='pkgdatadir=$(pkgdatadir)' -f manpage
