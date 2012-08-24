@@ -53,7 +53,7 @@ void
 hook_cleanup (void)
 {
   int i, ret;
-  logdebug("hook: Cleaning up `%s': %s\n", hook, strerror(errno));
+  logdebug("hook: Cleaning up `%s'\n", hook);
   if(hook_write(HOOK_CMD_EXIT, sizeof(HOOK_CMD_EXIT)) > sizeof(HOOK_CMD_EXIT))
     return;
   logdebug("hook: Problem commanding `%s' to exit: %s\n", hook, strerror(errno));
