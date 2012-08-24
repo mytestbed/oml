@@ -139,7 +139,14 @@ socket_is_disconnected (
   return ((SocketInt*)socket)->is_disconnected;
 }
 
-//! Return a new 'instance' structure
+/** Create a new instance of the Socket object (SocketInt).
+ *
+ * The sendto and get_sockfd are set to the default socket_sendto() and
+ * socket_get_sockfd() functions, respectively.
+ *
+ * \param name name of the object, used for debugging
+ * \return a pointer to the SocketInt object
+ */
 static SocketInt*
 initialize(
   char* name
@@ -163,7 +170,7 @@ socket_free (
   free (socket);
 }
 
-//! Create a socket structure
+/** Create a new system socket and link it to the SocketInt object. */
 int
 s_socket(
   SocketInt* self
@@ -182,13 +189,19 @@ s_socket(
   return 1;
 }
 
+/** Create an unbound Socket object.
+ *
+ * \param name name of the object, used for debugging
+ * \param is_tcp  true if TCP, false for UDP XXX: This should be more generic
+ * \return a pointer to the SocketInt object, cast as a Socket
+ */
 Socket*
 socket_new(
-  char* name,   //! Name used for debugging
-  int is_tcp  //! True if TCP, false for UDP
+  char* name,
+  int is_tcp
 ) {
   SocketInt* self = initialize(name);
-  self->is_tcp = is_tcp;  //! True if TCP, false for UDP
+  self->is_tcp = is_tcp;
   if (!s_socket(self)) {
     free(self);
     return NULL;
@@ -196,11 +209,21 @@ socket_new(
   return (Socket*)self;
 }
 
+
+/** Create an IP Socket object bound to ADDR and PORT.
+ *
+ * This function binds the newly-created socket, but doesn't listen on it just yet.
+ *
+ * \param name name of the object, used for debugging
+ * \param port port used
+ * \param is_tcp true if TCP, false for UDP XXX: This should be more generic
+ * \return a pointer to the SocketInt object, cast as a Socket
+ */
 Socket*
 socket_in_new(
-  char* name,   //! Name used for debugging
-  int port, //! Port used
-  int is_tcp  //! True if TCP, false for UDP
+  char* name,
+  int port,
+  int is_tcp
 ) {
   SocketInt* self;
   if ((self = (SocketInt*)socket_new(name, is_tcp)) == NULL)
@@ -328,7 +351,17 @@ socket_reconnect(
   return s_connect(self, NULL, -1);
 }
 
-void
+/** Eventloop callback called when a new connection is received on a listening Socket.
+ *
+ * This function accept()s the connection, and creates a SocketInt to wrap
+ * the underlying system socket. It then runs the user-supplied callback
+ * (passed to socket_server_new() when creating the listening Socket) on this
+ * new object, passing it the handle (passed to socket_server_new( too))
+ *
+ * \param source source from which the event was received (e.g., an OComm Channel)
+ * \param handle pointer to opaque data passed when creating the listening Socket
+ */
+static void
 on_client_connect(
   SockEvtSource* source,
   //  SocketStatus status,
@@ -358,14 +391,23 @@ on_client_connect(
   }
 }
 
-/*! Create a server socket object.
+/** Create a listening Socket object and register it to the global EventLoop.
+ *
+ * If callback is non-NULL, it is registered to the OCOMM eventloop to handle
+ * monitor_in events.
+ *
+ * \param name name of this object, used for debugging
+ * \param port port to listen on
+ * \param callback function to call when a client connects
+ * \param handle pointer to opaque data passed to callback function
+ * \return a pointer to the SocketInt object (cast as a Socket)
  */
 Socket*
 socket_server_new(
-  char* name,   //! Name used for debugging
-  int port, //! Port to listen on
-  o_so_connect_callback callback, //! Called when new client connects
-  void* handle //! opaque argument to callback
+  char* name,
+  int port,
+  o_so_connect_callback callback,
+  void* handle
 ) {
   SocketInt* self;
   if ((self = (SocketInt*)socket_in_new(name, port, TRUE)) == NULL)

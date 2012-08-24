@@ -89,7 +89,7 @@ socket_get_non_blocking_mode(void);
 int
 socket_is_disconnected (Socket* socket);
 
-/*! Create an unbound socket object.
+/** Create an unbound socket object.
  */
 Socket*
 socket_new(
@@ -97,7 +97,7 @@ socket_new(
   int is_tcp  //! True if TCP, false for UDP
 );
 
-/*! Create an IP socket bound to ADDR and PORT object.
+/** Create an IP Socket object bound to ADDR and PORT.
  */
 Socket*
 socket_in_new(
