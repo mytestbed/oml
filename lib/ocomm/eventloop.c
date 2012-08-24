@@ -56,6 +56,9 @@ typedef struct _channel {
   //! If true, is active, otherwise ignore
   int is_active;
 
+  /** If true and no data was read, make this socket removable */
+  int is_shutting_down;
+
   //! If true, this channel can be eventloop_socket_remove()'d
   //! next time through the poll loop
   int is_removable;
@@ -70,7 +73,6 @@ typedef struct _channel {
   int fds_events;
 
   struct _channel* next;
-
 
   char nameBuf[64];
 } Channel;
@@ -132,6 +134,8 @@ typedef struct _eventLoop {
   /** Allocated size of fds and fds_channels arrays */
   int length;
 
+  /** Stopping condition for the event loop */
+  int stopping;
 
 } EventLoop;
 
@@ -190,6 +194,37 @@ update_fds(void)
   return i;
 }
 
+/** Terminate sources.
+ *
+ * Close listening Sockets and shutdown() others
+ *
+ * XXX: This function is not very efficient (going through the linked list of
+ * channels and repeatedly calling functions which do the same), but it's only
+ * used for cleanup, so it should be fine.
+ */
+static void terminate_fds(void)
+{
+  Channel *ch = self.channels, *next;
+
+  while (ch != NULL) {
+    next = ch->next;
+    o_log(O_LOG_DEBUG4, "EventLoop: Terminating channel %s\n", ch->name);
+    if (!ch->is_active ||
+        socket_is_disconnected(ch->socket) ||
+        socket_is_listening(ch->socket)) {
+      o_log(O_LOG_DEBUG3, "EventLoop: Releasing listening channel %s\n", ch->name);
+      eventloop_socket_release((SockEvtSource*)ch);
+    } else {  
+      o_log(O_LOG_DEBUG3, "Eventloop: Shutting down %s\n", ch->name);
+      socket_shutdown(ch->socket);
+      ch->is_shutting_down = 1;
+    }
+    ch = next;
+  }
+
+  update_fds();
+}
+
 static void
 do_read_callback (Channel *ch, void *buffer, int buf_size)
 {
@@ -211,7 +246,7 @@ do_monitor_callback (Channel *ch)
     ch->monitor_cbk((SockEvtSource*)ch, ch->handle);
 }
 
-/** Run the global EventLoop.
+/** Run the global EventLoop until eventloop_stop() is called.
  *
  * The loop is based around the poll(3) system call. It monitor event sources
  * such as Channel or Timers, registered in the respective fields of the global
@@ -219,18 +254,22 @@ do_monitor_callback (Channel *ch)
  * have expired and to set the timeout for the poll(3) call. It then calls
  * poll(3) on the file descriptors (STDIN or sockets) related to active
  * Channels, and runs the relevant callbacks for those with pending events.  It
- * finally executes the callback functions of the expired timers.
+ * finally executes the callback functions of the expired timers.  The loop
+ * will not return until eventloop_stop() is called.
+ *
+ * \return the (non-zero) value passed to eventloop_stop()
  *
  * \see update_fds()
  * \see EventLoop
  * \see self
  * \see poll(3)
  */
-void
+int
 eventloop_run()
 {
+  self.stopping = 0;
   start = now = time(NULL);
-  while (1) {
+  while (!self.stopping || self.size>0) {
     // Check for active timers
     int timeout = -1;
     TimerInt* t = self.timers;
@@ -245,7 +284,9 @@ eventloop_run()
     if (timeout != -1)
       o_log(O_LOG_DEBUG3, "Eventloop: Timeout = %d\n", timeout);
 
-    if (self.fds_dirty) update_fds();
+    if (self.fds_dirty)
+      if (update_fds()<1 && timeout < 0) /* No FD nor timeout */
+        continue;
     int count = poll(self.fds, self.size, timeout);
     now = time(NULL);
 
@@ -337,6 +378,10 @@ eventloop_run()
           } else {
             do_monitor_callback (ch);
           }
+        } else if (ch->is_shutting_down) {
+          /* The socket was shutting down, and nothing new has appeared;
+           * We flushed the buffers, mark it as removable */
+          eventloop_socket_release((SockEvtSource*)ch);
         }
         if (self.fds[i].revents & POLLOUT)
           do_status_callback(ch, SOCKET_WRITEABLE, 0);
@@ -381,6 +426,21 @@ eventloop_run()
       }
     }
   }
+  return self.stopping;
+}
+
+/*! Stop the eventloop
+ * \param reason a non-zero reason for stopping the loop; default to 1, with a warning
+ */
+void eventloop_stop(int reason)
+{
+  if(reason) {
+    self.stopping = reason;
+    terminate_fds();
+  } else {
+    o_log(O_LOG_WARN, "Eventloop: Tried to stop no reason, defaulting to 1");
+    self.stopping = 1;
+  }
 }
 
 /** Create a new channel and register it to the event loop.
@@ -411,6 +471,7 @@ channel_new(
   memset(ch, 0, sizeof(Channel));
 
   ch->is_active = 1;
+  ch->is_shutting_down = 0;
   ch->is_removable = 0;
 
   ch->fds_fd = fd;
@@ -555,7 +616,10 @@ eventloop_socket_activate(
   }
 }
 
-/*! Remove 'source' from being monitored.
+/** Remove event source from monitoring of the EventLoop.
+ *
+ * \see EventLoop
+ * \see self
  */
 void
 eventloop_socket_remove(

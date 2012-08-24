@@ -102,10 +102,12 @@ typedef void (*o_el_timer_callback)(TimerEvtSource* source, void* handle);
 void
 eventloop_init(void);
 
-/*! Start eventloop. Will not return until ???
+/*! Start eventloop. Will not return until eventloop_stop() is called.
  */
-void
-eventloop_run(void);
+int eventloop_run(void);
+/*! Stop the eventloop
+ */
+void eventloop_stop(int);
 
 
 /*! Register a new input channel with the event loop.
