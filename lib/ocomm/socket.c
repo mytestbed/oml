@@ -139,6 +139,13 @@ socket_is_disconnected (
   return ((SocketInt*)socket)->is_disconnected;
 }
 
+int
+socket_is_listening (
+ Socket* socket
+) {
+  return (NULL != ((SocketInt*)socket)->connect_callback);
+}
+
 /** Create a new instance of the Socket object (SocketInt).
  *
  * The sendto and get_sockfd are set to the default socket_sendto() and

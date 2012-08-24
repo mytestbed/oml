@@ -89,6 +89,9 @@ socket_get_non_blocking_mode(void);
 int
 socket_is_disconnected (Socket* socket);
 
+int
+socket_is_listening (Socket* socket);
+
 /** Create an unbound socket object.
  */
 Socket*
