@@ -150,11 +150,13 @@ client_realloc_values (ClientHandler *self, int index, int nvalues)
   return 0;
 }
 
-/**
- * \brief Create a client handler and associates it with the socket
- * \param newSock the socket from which the client is connected
- * \param hostname
- * \param user
+/** Create a client handler and associates it with a Socket object.
+ *
+ * \param new_sock Socket object created by accept()ing the connection 
+ * \return a pointer to the newly created ClientHandler
+ *
+ * \see on_client_connect()
+ * \see on_connect()
  */
 ClientHandler*
 client_handler_new(Socket* new_sock)
