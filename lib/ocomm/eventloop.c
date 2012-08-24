@@ -147,7 +147,7 @@ eventloop_init()
 {
   memset(&self, 0, sizeof(EventLoop));
 
-  //  self.fds = (struct pollfd **)malloc(length * sizeof(struct pollfd*));
+  self.fds = NULL; // (struct pollfd **)malloc(length * sizeof(struct pollfd*));
   self.channels = NULL; //(Channel **)malloc(length * sizeof(Channel*));
   self.timers = NULL; // (TimerInt **)malloc(length * sizeof(TimerInt*));
   //  self.timer_size = 0;
@@ -157,32 +157,37 @@ eventloop_init()
 
 }
 
-/** Update the number of currently active Channels. */
-static void
+/** Update the number of currently active Channels
+ * \return the number of active channels
+ */
+static int
 update_fds(void)
 {
   Channel* ch = self.channels;
-  int i = -1;
+  int i = 0;
 
   while (ch != NULL) {
     if (ch->is_active) {
-      i++;
       if (self.length <= i) {
         // Need to increase size of fds array
         int l = (self.length > 0 ? 2 * self.length : DEF_FDS_LENGTH);
         self.fds = (struct pollfd *)realloc(self.fds, l * sizeof(struct pollfd));
         self.fds_channels = (Channel **)realloc(self.fds_channels, l * sizeof(Channel*));
         self.length = l;
-        return update_fds();  // start over
       }
       self.fds[i].fd = ch->fds_fd;
       self.fds[i].events = ch->fds_events;
       self.fds_channels[i] = ch;
+      i++;
     }
     ch = ch->next;
   }
-  self.size = i + 1;
+  o_log(O_LOG_DEBUG, "EventLoop: %d active channel%s\n", i, i>1?"s":"");
+
+  self.size = i;
   self.fds_dirty = 0;
+
+  return i;
 }
 
 static void
