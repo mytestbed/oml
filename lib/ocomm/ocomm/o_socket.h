@@ -157,6 +157,9 @@ socket_reconnect(
   Socket* socket
 );
 
+/** Prevent the remote sender from trasmitting more data. */
+int socket_shutdown(Socket *socket);
+
 /*! Close the communication channel.
  * Return 0 on success, -1 otherwise
  */

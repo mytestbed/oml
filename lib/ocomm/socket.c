@@ -33,7 +33,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -536,6 +536,22 @@ socket_mc_out_new(
   o_log(O_LOG_DEBUG, "socket:%s: Ready to send data on: %s:%d\n",
     name, mcast_addr, mcast_port);
   return (Socket*)self;
+}
+
+/** Prevent the remote sender from trasmitting more data.
+ *
+ * \param socket Socket object for which to shut communication down
+ *
+ * \see shutdown(3)
+ */
+int socket_shutdown(Socket *socket) {
+  int ret = -1;
+
+  o_log(O_LOG_DEBUG, "socket:%s: Shutting down for R/W\n", socket->name);
+  ret = shutdown(((SocketInt *)socket)->sockfd, SHUT_RDWR);
+  if(ret) o_log(O_LOG_WARN, "socket:%s: Failed to shut down: %s\n", socket->name, strerror(errno));
+
+  return ret;
 }
 
 /*! Method for closing communication channel, i.e.
