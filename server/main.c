@@ -82,11 +82,11 @@ struct poptOption options[] = {
   POPT_AUTOHELP
   { "listen", 'l', POPT_ARG_INT, &listen_port, 0, "Port to listen for TCP based clients", DEFAULT_PORT_STR},
   { "backend", 'b', POPT_ARG_STRING, &backend, 0, "Database server backend", DEFAULT_DB_BACKEND},
+  { "data-dir", 'D', POPT_ARG_STRING, &sqlite_database_dir, 0, "Directory to store database files (sqlite)", "DIR" },
 #if HAVE_LIBPQ
   { "pg-user", '\0', POPT_ARG_STRING, &pg_user, 0, "PostgreSQL user to connect as", DEFAULT_PG_USER },
   { "pg-connect", '\0', POPT_ARG_STRING, &pg_conninfo, 0, "PostgreSQL connection info string", "\"" DEFAULT_PG_CONNINFO "\""},
 #endif
-  { "data-dir", 'D', POPT_ARG_STRING, &sqlite_database_dir, 0, "Directory to store database files (sqlite)", "DIR" },
   { "user", '\0', POPT_ARG_STRING, &uidstr, 0, "Change server's user id", "UID" },
   { "group", '\0', POPT_ARG_STRING, &gidstr, 0, "Change server's group id", "GID" },
   { "event-hook", 'H', POPT_ARG_STRING, &hook, 0, "Path to an event hook taking input on stdin", "HOOK" },
