@@ -158,14 +158,12 @@ update_fds(void)
     if (ch->is_active) {
       i++;
       if (self.length <= i) {
-    // Need to increase size of fds array
-    int l = (self.length > 0 ? 2 * self.length : DEF_FDS_LENGTH);
-    if (self.fds != NULL) free(self.fds);
-    self.fds = (struct pollfd *)malloc(l * sizeof(struct pollfd));
-    if (self.fds_channels != NULL) free(self.fds_channels);
-    self.fds_channels = (Channel **)malloc(l * sizeof(Channel*));
-    self.length = l;
-    return update_fds();  // start over
+        // Need to increase size of fds array
+        int l = (self.length > 0 ? 2 * self.length : DEF_FDS_LENGTH);
+        self.fds = (struct pollfd *)realloc(self.fds, l * sizeof(struct pollfd));
+        self.fds_channels = (Channel **)realloc(self.fds_channels, l * sizeof(Channel*));
+        self.length = l;
+        return update_fds();  // start over
       }
       self.fds[i].fd = ch->fds_fd;
       self.fds[i].events = ch->fds_events;
