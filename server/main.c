@@ -280,19 +280,22 @@ setup_backend (void)
 #endif
 }
 
-/** Signal handler.
+/** Signal handler
  *
  * Captures the following signals, and handles them thusly.
- * * SIGTERM: cleanup open databases.
+ * * SIGTERM: instruct the EventLoop to stop.
+ *
+ * \see eventloop_stop()
  */
 static void sighandler(int signum)
 {
-  if(SIGTERM==signum) {
-    loginfo("Received SIGTERM, cleaning up and exiting\n");
-    /* FIXME: a client_cleanup would be better */
-    database_cleanup();
-    exit(0);
-  } else {
+  switch(signum) {
+  case SIGINT:
+  case SIGTERM:
+    loginfo("Received signal %d, cleaning up and exiting\n", signum);
+    eventloop_stop(signum);
+    break;
+  default:
     logwarn("Received unhandled signal %d\n", signum);
   }
 }
@@ -305,7 +308,7 @@ void setup_signal (void)
 {
   struct sigaction sa;
 
-  logdebug("Installing SIGTERM handler\n");
+  logdebug("Installing signal handlers\n");
 
   sa.sa_handler = sighandler;
   sigemptyset (&sa.sa_mask);
@@ -313,6 +316,8 @@ void setup_signal (void)
 
   if(sigaction(SIGTERM, &sa, NULL))
     logwarn("Unable to install SIGTERM handler: %s\n", strerror(errno));
+  if(sigaction(SIGINT, &sa, NULL))
+    logwarn("Unable to install SIGINT handler: %s\n", strerror(errno));
 }
 
 void
