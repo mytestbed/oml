@@ -20,8 +20,7 @@
  * THE SOFTWARE.
  *
  */
-/*!\file eventloop.c
-  \brief Implements an event loop dispatching callbacks
+/** Implements an event loop dispatching callbacks
 */
 
 #include <stdio.h>
@@ -30,7 +29,6 @@
 #include <poll.h>
 #include <assert.h>
 #include <unistd.h>
-//#include <sys/errno.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -43,10 +41,17 @@
 #define DEF_FDS_LENGTH 10
 #define MAX_READ_BUFFER_SIZE 512
 
+/** An instance of a SockEvtSource with callbacks.
+ *
+ * Channel is directly usable as part of a linked list.
+ *
+ * \see channel_new()
+ */
 typedef struct _channel {
-  char* name;
 
-  Socket* socket;
+  char* name; /** \see SockEvtSource */
+
+  Socket* socket; /** \see SockEvtSource */
 
   //! If true, is active, otherwise ignore
   int is_active;
@@ -70,8 +75,13 @@ typedef struct _channel {
   char nameBuf[64];
 } Channel;
 
+/** An instance of a TimerEvtSource with callbacks.
+ *
+ * TimerInt is directly usable as part of a linked list.
+ *
+ */
 typedef struct _timerInt {
-  char* name;
+  char* name; /** \see TimerEvtSource */
 
   //! If true, is active, otherwise ignore
   int is_active;
@@ -95,36 +105,37 @@ typedef struct _timerInt {
 
 } TimerInt;
 
-//! Stores the event loops internal state
+/** EventLoop object storing the internal internal state */
 typedef struct _eventLoop {
 
-  //! Array of registered channels
+  /** Linked list of registered channels */
   Channel* channels;
 
-  //! Array of registered timer
+  /** Linked list egistered timers */
   TimerInt* timers;
 
   //! Number of used timers
   //int timer_size;
 
-  //! Array of descriptors to monitor
+  /** Array of descriptors to monitor */
   struct pollfd* fds;
 
-  //! Associated channel for fds entry
+  /** Array of channels associated to the descriptors in fds */
   Channel** fds_channels;
-
-  //! Number of active descriptors
-  int size;
 
   //! True if fds structure needs to get recomputed
   int fds_dirty;
 
-  //! Length of fds array
+  /** Number of active descriptors in the fds array */
+  int size;
+
+  /** Allocated size of fds and fds_channels arrays */
   int length;
 
 
 } EventLoop;
 
+/** Global EventLoop object */
 static EventLoop self;
 static time_t now = -1;
 static time_t start = -1;
@@ -146,10 +157,9 @@ eventloop_init()
 
 }
 
-//! Build the fds array from active socket sources
+/** Update the number of currently active Channels. */
 static void
 update_fds(void)
-
 {
   Channel* ch = self.channels;
   int i = -1;
@@ -196,6 +206,21 @@ do_monitor_callback (Channel *ch)
     ch->monitor_cbk((SockEvtSource*)ch, ch->handle);
 }
 
+/** Run the global EventLoop.
+ *
+ * The loop is based around the poll(3) system call. It monitor event sources
+ * such as Channel or Timers, registered in the respective fields of the global
+ * EventLoop object self. It first consider all timers to find whether some
+ * have expired and to set the timeout for the poll(3) call. It then calls
+ * poll(3) on the file descriptors (STDIN or sockets) related to active
+ * Channels, and runs the relevant callbacks for those with pending events.  It
+ * finally executes the callback functions of the expired timers.
+ *
+ * \see update_fds()
+ * \see EventLoop
+ * \see self
+ * \see poll(3)
+ */
 void
 eventloop_run()
 {
@@ -353,6 +378,22 @@ eventloop_run()
   }
 }
 
+/** Create a new channel and register it to the event loop.
+ *
+ * The Channel is allocated and initialised. It is also registered to the
+ * global EventLoop self, at the beginning of the channels linked list.
+ *
+ * \param name name of this object, used for debugging
+ * \param fd file descriptor linked to the channel
+ * \param fd_events event flags for poll()
+ * \param status_cbk callback function called when the state of the file descriptor changes
+ * \param handle pointer to opaque data passed to callback functions
+ * \return a pointer to the newly-created Channel
+ *
+ * \see EventLoop
+ * \see self
+ * \see poll(3)
+ */
 static Channel*
 channel_new(
   char* name,
@@ -383,6 +424,15 @@ channel_new(
   return ch;
 }
 
+/** Register a callback for for incoming information on a file descriptor.
+ *
+ * \param socket Socket object with new information
+ * \param read_cbk callback function called when there is data to read
+ * \param monitor_cbk callback function called when there is XXX?
+ * \param status_cbk callback function called when the state of the socket changes
+ * \param handle pointer to opaque data passed to callback functions
+ * \return a pointer to a new Channel
+ */
 static Channel*
 eventloop_on_in_fd(
   char* name,
@@ -399,6 +449,14 @@ eventloop_on_in_fd(
   return ch;
 }
 
+/** Register a callback for for incoming information on a Socket.
+ *
+ * \param socket Socket object with new information
+ * \param data_cbk callback function called when there is data to read
+ * \param status_cbk callback function called when the state of the socket changes
+ * \param handle pointer to opaque data passed to callback functions
+ * \return a pointer to a new Channel cast as a SockEvtSource
+ */
 SockEvtSource*
 eventloop_on_read_in_channel(
   Socket* socket,
@@ -521,8 +579,7 @@ eventloop_socket_remove(
   self.fds_dirty = 1;
 }
 
-/**
- *  @brief Tell the eventloop to release a socket event source.
+/** Tell the eventloop to release a socket event source.
  *
  *  This marks the socket as "removable", but does not remove it
  *  immediately.  The next time the event loop finishes processing

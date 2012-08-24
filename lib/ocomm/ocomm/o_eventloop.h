@@ -36,19 +36,23 @@
 extern "C" {
 #endif
 
+/** Timer-based event source base class for the EventLoop.
+ */
 typedef struct _TimerEvtSource {
 
-  //! Name used for debugging
+  /** Name of the source, used for debugging */
   char* name;
 
 } TimerEvtSource;
 
+/** Socket-based event source base class for the EventLoop.
+ */
 typedef struct _sockEvtSource {
 
-  //! Name used for debugging
+  /** Name of the source,  used for debugging */
   char* name;
 
-  //! Associated socket
+  /** Socket object encapsulating the file descriptor */
   Socket* socket;
 
 } SockEvtSource;
