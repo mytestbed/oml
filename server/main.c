@@ -21,6 +21,7 @@
  *
  */
 
+/** Main oml2-server functions */
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -279,6 +280,11 @@ setup_backend (void)
 #endif
 }
 
+/** Signal handler.
+ *
+ * Captures the following signals, and handles them thusly.
+ * * SIGTERM: cleanup open databases.
+ */
 static void sighandler(int signum)
 {
   if(SIGTERM==signum) {
@@ -291,6 +297,10 @@ static void sighandler(int signum)
   }
 }
 
+/** Set up the signal handler.
+ *
+ * \see sighandler
+ */
 void setup_signal (void)
 {
   struct sigaction sa;
@@ -344,9 +354,16 @@ drop_privileges (const char *uidstr, const char *gidstr)
   }
 }
 
-/**
- * \brief Called when a node connects via TCP
- * \param new_sock
+/** Callback called when a new connection is received on the listening Socket.
+ *
+ * This function creates a ClientHandler to manage the data from this Socket.
+ * The listening Socket would have been created using socket_server_new().
+ *
+ * \param new_sock Socket object created by accept()ing the connection
+ * \param handle pointer to opaque data passed when creating the listening Socket
+ *
+ * \see socket_server_new()
+ * \see on_client_connect()
  */
 void
 on_connect(Socket* new_sock, void* handle)
