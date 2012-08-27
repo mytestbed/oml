@@ -145,16 +145,16 @@ AS_IF([test "x$enable_doc" != "xno"],
        # Check for asciidoc (for generating manpages).
        AC_PATH_PROG(A2X, a2x, no)
        AC_PATH_PROG(ASCIIDOC, asciidoc, no)
-       AM_CONDITIONAL([HAVE_A2X], [test "x$A2X" != "xno"])
-       AM_CONDITIONAL([HAVE_ASCIIDOC], [test "x$ASCIIDOC" != "xno"])
        AS_IF([test "x$A2X" = "xno"],
           [AC_MSG_WARN([Test for a2x failed. Not generating man pages (but OML build should still complete ok).])])
        AS_IF([test "x$ASCIIDOC" = "xno"],
           [AC_MSG_WARN([Test for asciidoc failed. Not generating man pages (but OML build should still complete ok).])])
       ],[
-       AM_CONDITIONAL([HAVE_A2X], [false])
-       AM_CONDITIONAL([HAVE_ASCIIDOC], [false])
+       A2X=no
+       ASCIIDOC=no
       ])
+AM_CONDITIONAL([HAVE_A2X], [test "x$A2X" != "xno"])
+AM_CONDITIONAL([HAVE_ASCIIDOC], [test "x$ASCIIDOC" != "xno"])
 
 AC_CONFIG_FILES([Makefile
 		 gnulib/Makefile
