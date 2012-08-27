@@ -134,12 +134,12 @@ missing_check=""
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [], [missing_check="yes"])
 AM_CONDITIONAL([HAVE_CHECK], [test x"${missing_check}" != xyes])
 
-AC_ARG_WITH([doc],
-		[AS_HELP_STRING([--with-doc],
-		  [build documentation (man pages, manual) @<:@default=yes@:>@])]
-		[with_doc=yes])
+AC_ARG_ENABLE([doc],
+		[AS_HELP_STRING([--disable-doc],
+				[do not build documentation (man pages, manual)])],
+		[enable_doc=yes])
 
-if test "x$with_doc" != "xno"; then
+if test "x$enable_doc" != "xno"; then
    # Check for asciidoc (for generating manpages).
    AC_PATH_PROG(A2X, a2x, no)
    AC_PATH_PROG(ASCIIDOC, asciidoc, no)
