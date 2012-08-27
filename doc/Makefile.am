@@ -1,5 +1,8 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
+# Automake doesn't support infos_TEXINFOS to be defined conditionnaly
+info_TEXINFOS = oml-user-manual.texinfo
+
 DATE=`date "+%Y-%m-%d"`
 MAN1_FILES= \
 	oml2-server.txt \
@@ -35,6 +38,8 @@ CLEANFILES=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	oml_inject_MPNAME.3 \
 	oml2_scaffold.1
 	$(html_docs)
+
+if ENABLE_DOC
 
 A2X_ARGS = \
 	   --destination-dir=. --attribute='pkglocalstatedir=$(pkglocalstatedir)' --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' --attribute='pkgdatadir=$(pkgdatadir)' -f manpage
@@ -99,9 +104,9 @@ EXTRA_DIST+=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
 	oml_inject_MPNAME.3 \
 	oml2_scaffold.1
 
-else
+else #!HAVE_A2X
 	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
-endif
+endif #HAVE_A2X
 
 if HAVE_ASCIIDOC
 SUFFIXES = .html
@@ -110,8 +115,8 @@ SUFFIXES = .html
 
 .PHONY: html
 html:	$(html_docs)
-else
+else #!HAVE_ASCIIDOC
 	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
-endif
+endif #HAVE_ASCIIDOC
 
-info_TEXINFOS = oml-user-manual.texinfo
+endif #ENABLE_DOC

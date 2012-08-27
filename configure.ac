@@ -138,6 +138,7 @@ AM_CONDITIONAL([HAVE_CHECK], [test x"${missing_check}" != xyes])
 AC_ARG_ENABLE([doc],
 		[AS_HELP_STRING([--disable-doc],
 				[do not build documentation (man pages, manual)])],
+		[],
 		[enable_doc=yes])
 
 AS_IF([test "x$enable_doc" != "xno"], 
@@ -150,9 +151,9 @@ AS_IF([test "x$enable_doc" != "xno"],
        AS_IF([test "x$ASCIIDOC" = "xno"],
           [AC_MSG_WARN([Test for asciidoc failed. Not generating man pages (but OML build should still complete ok).])])
       ],[
-       A2X=no
-       ASCIIDOC=no
+          AC_MSG_WARN([Not generating man pages (but OML build should still complete ok).])
       ])
+AM_CONDITIONAL([ENABLE_DOC], [test "x$enable_doc" != "xno"])
 AM_CONDITIONAL([HAVE_A2X], [test "x$A2X" != "xno"])
 AM_CONDITIONAL([HAVE_ASCIIDOC], [test "x$ASCIIDOC" != "xno"])
 
