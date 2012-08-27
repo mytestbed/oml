@@ -54,8 +54,8 @@ database_find (char* name)
   Database* db = first_db;
   while (db != NULL) {
     if (!strcmp(name, db->name)) {
-      loginfo ("%s: Database already open (%d clients)\n",
-                name, db->ref_count);
+      loginfo ("%s: Database already open (%d client%s)\n",
+                name, db->ref_count, db->ref_count>1?"s":"");
       db->ref_count++;
       return db;
     }
