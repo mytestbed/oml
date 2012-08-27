@@ -267,6 +267,7 @@ do_monitor_callback (Channel *ch)
 int
 eventloop_run()
 {
+  int i;
   self.stopping = 0;
   start = now = time(NULL);
   while (!self.stopping || self.size>0) {
@@ -287,12 +288,20 @@ eventloop_run()
     if (self.fds_dirty)
       if (update_fds()<1 && timeout < 0) /* No FD nor timeout */
         continue;
+    o_log(O_LOG_DEBUG4, "Eventloop: About to poll() on %d FDs with a timeout of %ds\n", self.size, timeout);
+    /* for(i=0; i < self.size; i++) {
+      o_log(O_LOG_DEBUG4, "Eventloop: FD %d->%s\n", self.fds[i].fd, self.fds_channels[i]->name);
+    } */
+
     int count = poll(self.fds, self.size, timeout);
     now = time(NULL);
 
-    if (count > 0) {
-      // Check sockets
-      int i = 0;
+    if (count < 1) {
+      o_log(O_LOG_DEBUG4, "Eventloop: Timeout\n");
+    } else {
+    // Check sockets
+      i = 0;
+      o_log(O_LOG_DEBUG4, "Eventloop: Got events\n");
       for (; i < self.size; i++) {
         Channel* ch = self.fds_channels[i];
         if (self.fds[i].revents & POLLERR) {
@@ -335,7 +344,7 @@ eventloop_run()
               len = recv(fd, buf, 512, 0);
             }
             if (len > 0) {
-              o_log(O_LOG_DEBUG3, "Eventloop:  received %i octets\n", len);
+              o_log(O_LOG_DEBUG3, "Eventloop: Received last %i bytes\n", len);
               do_read_callback (ch, buf, len);
             }
           } while (len > 0);
@@ -353,7 +362,7 @@ eventloop_run()
               len = recv(fd, buf, 512, 0);
             }
             if (len > 0) {
-              o_log(O_LOG_DEBUG3, "Eventloop:  received %i octets\n", len);
+              o_log(O_LOG_DEBUG3, "Eventloop: Received %i bytes\n", len);
               do_read_callback (ch, buf, len);
             } else if (len == 0 && ch->socket != NULL) {  // skip stdin
               // closed down
@@ -438,7 +447,7 @@ void eventloop_stop(int reason)
     self.stopping = reason;
     terminate_fds();
   } else {
-    o_log(O_LOG_WARN, "Eventloop: Tried to stop no reason, defaulting to 1");
+    o_log(O_LOG_WARN, "Eventloop: Tried to stop with no reason, defaulting to 1");
     self.stopping = 1;
   }
 }
