@@ -65,16 +65,17 @@ AC_SEARCH_LIBS([poptGetContext], [popt], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define
 AC_SEARCH_LIBS([xmlParseFile], [xml2], [AC_DEFINE([HAVE_LIBXML2], [1], [Define if libxml2 is installed.])], [missing_libs+=" libxml2"])
 AC_PATH_PROG([HAVE_XML2CFG], [xml2-config])
 
-if test "x$HAVE_XML2CFG" != "x"; then
-   xxCFLAGS=`$HAVE_XML2CFG --cflags`
-   xxLIBS=`$HAVE_XML2CFG --libs`
-   AC_SUBST([LIBXML2_CFLAGS], [$xxCFLAGS])
-   AC_SUBST([LIBXML2_LIBS], [$xxLIBS])
-   AC_MSG_CHECKING([how to include libxml2 headers])
-   AC_MSG_RESULT([$LIBXML2_CFLAGS])
-   AC_MSG_CHECKING([how to link with libxml2])
-   AC_MSG_RESULT([$LIBXML2_LIBS])
-fi
+AS_IF([test "x$HAVE_XML2CFG" != "x" ],
+      [
+       xxCFLAGS=`$HAVE_XML2CFG --cflags`
+       xxLIBS=`$HAVE_XML2CFG --libs`
+       AC_SUBST([LIBXML2_CFLAGS], [$xxCFLAGS])
+       AC_SUBST([LIBXML2_LIBS], [$xxLIBS])
+       AC_MSG_CHECKING([how to include libxml2 headers])
+       AC_MSG_RESULT([$LIBXML2_CFLAGS])
+       AC_MSG_CHECKING([how to link with libxml2])
+       AC_MSG_RESULT([$LIBXML2_LIBS])
+      ])
 
 
 AC_SEARCH_LIBS([sqlite3_open], [sqlite3], [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
@@ -139,22 +140,21 @@ AC_ARG_ENABLE([doc],
 				[do not build documentation (man pages, manual)])],
 		[enable_doc=yes])
 
-if test "x$enable_doc" != "xno"; then
-   # Check for asciidoc (for generating manpages).
-   AC_PATH_PROG(A2X, a2x, no)
-   AC_PATH_PROG(ASCIIDOC, asciidoc, no)
-   AM_CONDITIONAL([HAVE_A2X], [test "x$A2X" != "xno"])
-   AM_CONDITIONAL([HAVE_ASCIIDOC], [test "x$ASCIIDOC" != "xno"])
-   if test x"$A2X" = x"no"; then
-      AC_MSG_WARN([Test for a2x failed.  Not generating man pages (but OML build should still complete ok).])
-   fi
-   if test x"$ASCIIDOC" = x"no"; then
-      AC_MSG_WARN([Test for asciidoc failed.  Not generating man pages (but OML build should still complete ok).])
-   fi
-else
-   AM_CONDITIONAL([HAVE_A2X], [false])
-   AM_CONDITIONAL([HAVE_ASCIIDOC], [false])
-fi
+AS_IF([test "x$enable_doc" != "xno"], 
+      [
+       # Check for asciidoc (for generating manpages).
+       AC_PATH_PROG(A2X, a2x, no)
+       AC_PATH_PROG(ASCIIDOC, asciidoc, no)
+       AM_CONDITIONAL([HAVE_A2X], [test "x$A2X" != "xno"])
+       AM_CONDITIONAL([HAVE_ASCIIDOC], [test "x$ASCIIDOC" != "xno"])
+       AS_IF([test "x$A2X" = "xno"],
+          [AC_MSG_WARN([Test for a2x failed. Not generating man pages (but OML build should still complete ok).])])
+       AS_IF([test "x$ASCIIDOC" = "xno"],
+          [AC_MSG_WARN([Test for asciidoc failed. Not generating man pages (but OML build should still complete ok).])])
+      ],[
+       AM_CONDITIONAL([HAVE_A2X], [false])
+       AM_CONDITIONAL([HAVE_ASCIIDOC], [false])
+      ])
 
 AC_CONFIG_FILES([Makefile
 		 gnulib/Makefile
@@ -194,16 +194,16 @@ AS_IF([test x$srcdir != x. && test x$have_bundler = xyes],
 dnl If the above command has copied files, let ruby/Makefile.am know that they have to be cleaned up
 AM_CONDITIONAL([CLEANUP_OML4R_GEM_SRC], [test x$srcdir != x. && test x$have_bundler = xyes])
 
-if test "x$missing_check" != "x"; then
-   AC_MSG_WARN([could not find the `check' package, required for running unit tests. This will not stop OML from building, but it will cause `make check' to do nothing. Install the `check' package (http://check.sourceforge.net) if you wish to run the unit tests.])
-fi
+AS_IF([test "x$missing_check" != "x"],
+   [AC_MSG_WARN([could not find the `check' package, required for running unit tests. This will not stop OML from building, but it will cause `make check' to do nothing. Install the `check' package (http://check.sourceforge.net) if you wish to run the unit tests.])])
 
 # Let the user know we're missing required libraries, and don't generate the build system.
-if test "x$missing_libs" != "x"; then
-   for lib in $missing_libs; do
+AS_IF([test "x$missing_libs" != "x"],
+   [
+    for lib in $missing_libs; do
       AC_MSG_WARN([could not find required library $lib])
    done
-   AC_MSG_ERROR([missing libraries, could not continue.  Please install all of the following libraries and then re-run configure (you might need the development header packages (-dev) as well if you are using your system's package manager to install them): $missing_libs])
-fi
+   AC_MSG_ERROR([missing libraries, could not continue. Please install all of the following libraries and then re-run configure (you might need the development header packages (-dev) as well if you are using your system's package manager to install them): $missing_libs])
+  ])
 
 AC_OUTPUT
