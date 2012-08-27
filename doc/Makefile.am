@@ -22,7 +22,10 @@ MAN5_FILES= \
 	liboml2.conf.txt
 
 REGULAR_MAN_FILES = $(MAN1_FILES) $(MAN3_FILES) $(MAN5_FILES)
-ALL_MAN_FILES = $(REGULAR_MAN_FILES) liboml2-api.txt
+ALL_MAN_FILES = $(REGULAR_MAN_FILES) \
+		bugs.txt \
+		manual.txt \
+		liboml2-api.txt
 
 html_docs = $(ALL_MAN_FILES:.txt=.html)
 
@@ -100,8 +103,6 @@ oml2_scaffold.1:	oml2-scaffold.txt
 	echo ".so man1/oml2-scaffold.1" > $@
 
 EXTRA_DIST+=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
-	bugs.txt \
-	manual.txt \
 	liboml2.3 \
 	omlc_set_uint32.3 \
 	omlc_set_int64.3 \
