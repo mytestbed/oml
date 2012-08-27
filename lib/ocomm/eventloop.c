@@ -494,8 +494,8 @@ channel_new(
 
   ch->next = self.channels;
   self.channels = ch;
-
   self.fds_dirty = 1;
+
   return ch;
 }
 
