@@ -53,6 +53,8 @@ void
 hook_cleanup (void)
 {
   int i, ret;
+  if (!hook) return;
+
   logdebug("hook: Cleaning up `%s'\n", hook);
   if(hook_write(HOOK_CMD_EXIT, sizeof(HOOK_CMD_EXIT)) > sizeof(HOOK_CMD_EXIT))
     return;
