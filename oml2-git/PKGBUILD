@@ -47,7 +47,7 @@ build() {
 	cd "$srcdir/$_gitname-build"
 
 	./autogen.sh
-	./configure --prefix=/usr --localstatedir=/var --with-doc --with-pgsql
+	./configure --prefix=/usr --localstatedir=/var --disable-doxygen-doc --with-pgsql
 	make || return 1
 }
 
