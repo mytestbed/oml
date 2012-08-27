@@ -85,7 +85,7 @@ net_stream_new(const char *transport, const char *hostname, const char *port)
   self->host = (const char*)xstrndup (hostname, strlen (hostname));
   self->port = atoi (port);
 
-  loginfo("Net_stream: connecting to host %s://%s:%d\n",
+  logdebug("Net_stream: connecting to host %s://%s:%d\n",
           self->protocol, self->host, self->port);
   socket_set_non_blocking_mode(0);
 
@@ -123,7 +123,7 @@ termination_handler(int signum)
 {
   // SIGPIPE is handled by disabling the writer that caused it.
   if (signum == SIGPIPE) {
-    o_log(O_LOG_WARN, "Caught SIGPIPE\n");    
+    logwarn("Net_stream: caught SIGPIPE\n");
   }
 }
 
@@ -139,7 +139,7 @@ open_socket(OmlNetOutStream* self)
     self->socket = sock;
     self->header_written = 0;
   } else {
-    o_log(O_LOG_ERROR, "Unsupported transport protocol '%s'\n", self->protocol);
+    logerror("Net_stream: unsupported transport protocol '%s'\n", self->protocol);
     return 0;
   }
 
@@ -169,10 +169,14 @@ net_stream_write(
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;
 
   while (self->socket == NULL) {
-    loginfo ("Attempting to reconnect to server at %s://%s:%d.\n",
+    loginfo ("Net_stream: attempting to connect to server at %s://%s:%d\n",
              self->protocol, self->host, self->port);
     if (!open_socket(self)) {
+      logwarn("Net_stream: connection attempt failed, sleeping for %ds\n", REATTEMP_INTERVAL);
       sleep(REATTEMP_INTERVAL);
+    } else {
+      logdebug("Net_stream: connection to %s://%s:%d successful\n",
+             self->protocol, self->host, self->port);
     }
   }
 
@@ -180,11 +184,11 @@ net_stream_write(
   if (! self->header_written) {
     if ((count = socket_write(self, header, header_length)) < header_length) {
       // TODO: This is not completely right as we end up rewriting the same header
-      // if we can only partially write it. At this stage we think this is too hard 
+      // if we can only partially write it. At this stage we think this is too hard
       // to deal with and we assume it doesn't happen.
       if (count > 0) {
         // PANIC
-        logerror("Only wrote part of the header. May screw up further processing\n");
+        logerror("Net_stream: only wrote parts of the header; this might cause problem later on\n");
       }
       return 0;
     }
@@ -203,7 +207,7 @@ socket_write(
   int result = socket_sendto(self->socket, (char*)buffer, length);
 
   if (result == -1 && socket_is_disconnected (self->socket)) {
-    logwarn ("Connection to server at %s://%s:%d was lost.\n",
+    logwarn ("Net_stream: connection to server at %s://%s:%d was lost\n",
              self->protocol, self->host, self->port);
     self->socket = NULL;      // Server closed the connection
   }
