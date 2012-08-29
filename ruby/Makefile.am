@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
-GEM_VERSION = @OML_GEM_VER@
+GEM_VERSION = @OML_ALT_VER@
 
 scaffold_src = oml2-scaffold
 

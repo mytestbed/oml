@@ -52,7 +52,7 @@ missing_libs=""
 
 AC_SUBST([OML_VER_MINOR_LT], [`echo "$PACKAGE_VERSION" | awk -F. '{print $2}'`])
 AC_SUBST([OML_VER_PATCH_LT], [`echo "$PACKAGE_VERSION" | awk -F. '{print $3$4}' | sed -ne 's/[[^0-9]]*\([[0-9]]*\)[[^0-9]].*/\1/p'`])
-AC_SUBST([OML_GEM_VER], [`echo "$PACKAGE_VERSION" | sed s/-/./g`])
+AC_SUBST([OML_ALT_VER], [`echo "$PACKAGE_VERSION" | sed s/-/./g`])
 
 AC_SUBST([pkglocalstatedir], [${localstatedir}/${PACKAGE}])
 
