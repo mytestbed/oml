@@ -47,3 +47,4 @@ gnulib
 build-aux
 .version
 p-debian
+p-rpm

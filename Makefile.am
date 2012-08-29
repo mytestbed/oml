@@ -67,6 +67,39 @@ pkg-deb: $(PKG_DEB_BUILD_DIR)/$(distdir)/debian/rules
 	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(DPKG_BUILDPACKAGE) $(DPKG_BUILDPACKAGE_FLAGS)
 endif #BUILD_DEBIAN
 
+if BUILD_RPM
+PKG_RPM_BASE_NAME=$(PACKAGE)-$(OML_ALT_VER)
+PKG_RPM_SPEC=$(PKG_RPM_BUILD_DIR)/SPECS/$(PACKAGE).spec
+PKG_RPM_BUILD_DIR=p-rpm
+
+PKG_PACKAGES+=pkg-rpm
+PKG_CLEANFILES+=$(PKG_RPM_BUILD_DIR)
+
+RPMBUILD_FLAGS=-bb --clean --nodeps
+
+$(PKG_RPM_SPEC):
+	rm -rf $(PKG_RPM_BUILD_DIR)
+	mkdir -p $(PKG_RPM_BUILD_DIR)/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+	$(MAKE) distdir=$(PKG_RPM_BUILD_DIR)/BUILD/$(PKG_RPM_BASE_NAME) distdir
+	$(GIT) archive $(GITRPMREF) | $(am__untar) -C $(PKG_RPM_BUILD_DIR)/SPECS/
+# Releases should have a valid specfile and know where to get the tarball
+if !GITISTAG
+	cd $(PKG_RPM_BUILD_DIR)/BUILD/; \
+		tardir=$(PKG_RPM_BASE_NAME) && $(am__tar) | \
+		GZIP=$(GZIP_ENV) gzip -c >../SOURCES/$(PKG_RPM_BASE_NAME).tar.gz
+	mv $(PKG_RPM_SPEC) $(PKG_RPM_SPEC).orig
+	cat $(PKG_RPM_SPEC).orig | \
+		$(SED) -e "s/^%define version.*/%define version	$(OML_ALT_VER)/" \
+			-e "s/^%define libmax.*/%define libmax $(OML_VER_MINOR_LT)/" \
+			-e "s/^%define libpatch.*/%define libpatch $(OML_VER_PATCH_LT)/" \
+		> $(PKG_RPM_SPEC)
+	rm $(PKG_RPM_SPEC).orig
+endif
+
+pkg-rpm: $(PKG_RPM_SPEC)
+	$(RPMBUILD) $(RPMBUILD_FLAGS) --define "_topdir $(abs_top_builddir)/$(PKG_RPM_BUILD_DIR)" $(PKG_RPM_SPEC)
+endif #BUILD_RPM
+
 pkg-all: $(PKG_PACKAGES)
 
 pkg-clean:

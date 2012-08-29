@@ -256,8 +256,22 @@ AC_ARG_ENABLE([packaging],
 								 staging/debian/master],
 								[origin/debian/master])
 					  ])
-					 ])
-				   ],
+				   AX_WITH_PROG([RPMBUILD],[rpmbuild])
+				   AS_IF([test "x$RPMBUILD" != "x"], [
+					  AX_GIT_SEARCH_TREEISH([RPM],
+								[gitrpmref],
+								[rpm/$gittag,
+								 staging/rpm/$gittag,
+								 origin/rpm/$gittag,
+								 rpm/$gitbranch,
+								 staging/rpm/$gitbranch,
+								 origin/rpm/$gitbranch,
+								 rpm/master,
+								 staging/rpm/master],
+								[origin/rpm/master])
+					  ])
+				   ])
+				  ],
 			          [
 			           AC_MSG_RESULT([$gittag])
 			           gitistag=yes
@@ -274,9 +288,11 @@ AC_SUBST([GITBRANCH],[$gitbranch])
 AC_SUBST([GITTAG],[$gittag])
 AC_SUBST([GITHEAD],[$githead])
 AC_SUBST([GITDEBREF],[$gitdebref])
+AC_SUBST([GITRPMREF],[$gitrpmref])
 AM_CONDITIONAL([ENABLE_PACKAGING], [test "x$enable_packaging" != "xno"])
 AM_CONDITIONAL([GITISTAG], [test "x$gitistag" != "xno"])
 AM_CONDITIONAL([BUILD_DEBIAN], [test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"])
+AM_CONDITIONAL([BUILD_RPM], [test "x$RPMBUILD" != "x"])
 
 AC_CONFIG_FILES([Makefile
 		 gnulib/Makefile
