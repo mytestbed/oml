@@ -1,5 +1,10 @@
 %define name            oml2
 %define version         2.8.0
+%define redmineid	709
+%define libmin		0
+%define libmax		8
+%define libpatch	0
+
 
 BuildRoot:              %{_tmppath}/%{name}-%{version}-build
 Summary:                OML: The Orbit Measurement Library
@@ -8,12 +13,13 @@ URL:                    http://oml.mytestbed.net
 Name:                   %{name}
 Version:                %{version}
 Release:                1
-Source:			http://mytestbed.net/attachments/download/709/oml2-%{version}.tar.gz
+Source:			http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{version}.tar.gz
 Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Prefix:                 /usr
 Group:                  System/Libraries
 Conflicts:              liboml liboml-dev oml-server
-BuildRequires:          autoconf make automake libtool libxml2-devel popt-devel sqlite-devel texinfo asciidoc
+Requires:		libxml2 popt sqlite
+BuildRequires:          make libxml2-devel popt-devel sqlite-devel texinfo asciidoc
 
 %description
 This library allows application writers to define customizable
@@ -35,7 +41,7 @@ This package contains necessary header files for liboml2 development.
 %setup -q
 
 %build
-./configure --prefix /usr --with-doc --localstatedir=/var/lib
+./configure --prefix /usr --enable-doc --disable-doxygen-doc --localstatedir=/var/lib
 make %{?_smp_mflags}
 
 %install
@@ -51,12 +57,12 @@ rm -rf %{buildroot}
 /usr/bin/oml2-server
 /usr/lib/libocomm.a
 /usr/lib/libocomm.la
-/usr/lib/libocomm.so.0
-/usr/lib/libocomm.so.0.0.0
+/usr/lib/libocomm.so.%{libmin}
+/usr/lib/libocomm.so.%{libmin}.%{libmax}.%{libpatch}
 /usr/lib/liboml2.a
 /usr/lib/liboml2.la
-/usr/lib/liboml2.so.0
-/usr/lib/liboml2.so.0.8.0
+/usr/lib/liboml2.so.%{libmin}
+/usr/lib/liboml2.so.%{libmin}.%{libmax}.%{libpatch}
 /usr/share/oml2/oml2-server-hook.sh
 /usr/share/info/oml-user-manual.info.gz
 %doc /usr/share/man/man1/liboml2.1.gz
