@@ -42,6 +42,43 @@ if ENABLE_PACKAGING
 PKG_PACKAGES=
 PKG_CLEANFILES=
 
+if BUILD_ARCH
+PKG_ARCH_BASE_NAME=$(PACKAGE)-$(OML_ALT_VER)
+PKG_ARCH_BUILD_DIR=p-arch
+PKG_ARCH_BUILD=$(PKG_ARCH_BUILD_DIR)/PKGBUILD
+
+PKG_PACKAGES+=pkg-arch
+PKG_CLEANFILES+=$(PKG_ARCH_BUILD_DIR)
+
+MAKEPKG_FLAGS=-fc
+
+$(PKG_ARCH_BUILD):
+	rm -rf $(PKG_ARCH_BUILD_DIR)
+	mkdir -p $(PKG_ARCH_BUILD_DIR)/tmp
+	$(MAKE) distdir=$(PKG_ARCH_BUILD_DIR)/tmp/$(PKG_ARCH_BASE_NAME) distdir
+	$(GIT) archive $(GITARCHREF) | $(am__untar) -C $(PKG_ARCH_BUILD_DIR)
+# Releases should have a valid PKGBUILD and know where to get the tarball
+if !GITISTAG
+	cd $(PKG_ARCH_BUILD_DIR)/tmp/; \
+		tardir=$(PKG_ARCH_BASE_NAME) && $(am__tar) | \
+		GZIP=$(GZIP_ENV) gzip -c >../$(PKG_ARCH_BASE_NAME).tar.gz
+	cat $(PKG_ARCH_BUILD).proto | \
+		$(SED) -e "/<GIT/,/GIT>/d" | \
+		$(SED) -e "/!GIT.*/d" -e "s/^pkgver.*=.*/pkgver=$(OML_ALT_VER)/" \
+		> $(PKG_ARCH_BUILD)
+	cd $(PKG_ARCH_BUILD_DIR); $(MAKEPKG) -p PKGBUILD -g >> PKGBUILD
+endif
+	cat $(PKG_ARCH_BUILD).proto | \
+		$(SED) -e "/<!GIT/,/!GIT>/d" -e "/GIT.*/d" \
+		> $(PKG_ARCH_BUILD)-git
+	cd $(PKG_ARCH_BUILD_DIR); $(MAKEPKG) -p PKGBUILD-git -g >> PKGBUILD-git
+
+pkg-arch: $(PKG_ARCH_BUILD)
+	cd $(PKG_ARCH_BUILD_DIR); $(MAKEPKG) $(MAKEPKG_FLAGS)
+	cd $(PKG_ARCH_BUILD_DIR); $(MAKEPKG) $(MAKEPKG_FLAGS) --source
+	cd $(PKG_ARCH_BUILD_DIR); $(MAKEPKG) $(MAKEPKG_FLAGS) -p PKGBUILD-git --source
+endif #BUILD_ARCH
+
 if BUILD_DEBIAN
 PKG_DEB_BASE_NAME=$(PACKAGE)_$(VERSION)
 PKG_DEB_BUILD_DIR=p-debian

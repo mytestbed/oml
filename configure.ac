@@ -241,6 +241,20 @@ AC_ARG_ENABLE([packaging],
 			           AC_MSG_CHECKING([closest Git tag])
 			           gittag=`${GIT} describe --abbrev=0 2>/dev/null`
 			           AC_MSG_RESULT([$gittag])
+				   AX_WITH_PROG([MAKEPKG],[makepkg])
+				   AS_IF([test "x$MAKEPKG" != "x"],[
+					  AX_GIT_SEARCH_TREEISH([ArchLinux],
+								[gitarchref],
+								[archlinux/$gittag,
+								 staging/archlinux/$gittag,
+								 origin/archlinux/$gittag,
+								 archlinux/$gitbranch,
+								 staging/archlinux/$gitbranch,
+								 origin/archlinux/$gitbranch,
+								 archlinux/master,
+								 staging/archlinux/master],
+								[origin/archlinux/master])
+					  ])
 				   AX_WITH_PROG([DPKG_BUILDPACKAGE],[dpkg-buildpackage])
 				   AX_WITH_PROG([DCH],[dch])
 				   AS_IF([test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"],[
@@ -287,10 +301,12 @@ AC_ARG_ENABLE([packaging],
 AC_SUBST([GITBRANCH],[$gitbranch])
 AC_SUBST([GITTAG],[$gittag])
 AC_SUBST([GITHEAD],[$githead])
+AC_SUBST([GITARCHREF],[$gitarchref])
 AC_SUBST([GITDEBREF],[$gitdebref])
 AC_SUBST([GITRPMREF],[$gitrpmref])
 AM_CONDITIONAL([ENABLE_PACKAGING], [test "x$enable_packaging" != "xno"])
 AM_CONDITIONAL([GITISTAG], [test "x$gitistag" != "xno"])
+AM_CONDITIONAL([BUILD_ARCH], [test "x$MAKEPKG" != "x"])
 AM_CONDITIONAL([BUILD_DEBIAN], [test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"])
 AM_CONDITIONAL([BUILD_RPM], [test "x$RPMBUILD" != "x"])
 
