@@ -36,3 +36,42 @@ if HAVE_GEM_BUNDLER
 oml4r-gem oml4r-push:
 	$(MAKE) -C ruby/ $@
 endif
+
+if ENABLE_PACKAGING
+
+PKG_PACKAGES=
+PKG_CLEANFILES=
+
+if BUILD_DEBIAN
+PKG_DEB_BASE_NAME=$(PACKAGE)_$(VERSION)
+PKG_DEB_BUILD_DIR=p-debian
+PKG_DEB_ORIG_SRC=$(PKG_DEB_BUILD_DIR)/$(PKG_DEB_BASE_NAME).orig.tar.gz
+
+PKG_PACKAGES+=pkg-deb
+PKG_CLEANFILES+= $(PKG_DEB_BUILD_DIR)
+
+DPKG_BUILDPACKAGE_FLAGS=-us -uc
+
+$(PKG_DEB_BUILD_DIR)/$(distdir)/debian/rules: dist-gzip
+	rm -rf $(PKG_DEB_BUILD_DIR)
+	mkdir -p $(PKG_DEB_BUILD_DIR)
+	test -e $(PKG_DEB_ORIG_SRC) || $(LN_S) ../$(distdir).tar.gz $(PKG_DEB_ORIG_SRC)
+	$(MAKE) distdir=$(PKG_DEB_BUILD_DIR)/$(distdir)/ distdir
+	$(GIT) archive $(GITDEBREF) | $(am__untar) -C $(PKG_DEB_BUILD_DIR)/$(distdir)/
+if !GITISTAG
+	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(DCH) -v $(VERSION)-1 "Development build (`$(GIT) describe` on branch `$(GIT) describe --contains --all HEAD`), not for general distribution; changes since $(GITTAG) follow"
+	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(GIT) log --pretty='%s' $(GITTAG)..HEAD | while read LINE; do $(DCH) -a "$${LINE}"; done
+endif
+
+pkg-deb: $(PKG_DEB_BUILD_DIR)/$(distdir)/debian/rules
+	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(DPKG_BUILDPACKAGE) $(DPKG_BUILDPACKAGE_FLAGS)
+endif #BUILD_DEBIAN
+
+pkg-all: $(PKG_PACKAGES)
+
+pkg-clean:
+	rm -rf $(PKG_CLEANFILES)
+
+distclean-local: pkg-clean
+
+endif #ENABLE_PACKAGING

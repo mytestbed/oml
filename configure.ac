@@ -2,6 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
+AC_COPYRIGHT([Copyright (C) 2012 NICTA, Olivier Mehani.])
 AC_INIT([oml2],
 	m4_esyscmd([build-aux/git-version-gen .tarball-version]),
 	[oml-user@lists.nicta.com.au])
@@ -186,6 +187,96 @@ AS_IF([test x$enable_doxygen_callgraph = xno],
 DX_ENV_APPEND(GENERATE_LATEX, [NO]) dnl generates files not cleaned up, and DX_PDF_FEATURE and DX_PS_FEATURE are currently off
 DX_ENV_APPEND(TOPSRCDIR, [\$(top_srcdir)]) dnl let make deal with it
 
+
+dnl AX_GIT_SEARCH_TREEISH(DESCRIPTION, VARIABLE, COMMA-SEPARATED-LIST, [VALUE_IF_NOT_FOUND])
+dnl Copyright (C) 2012 NICTA, Olivier Mehani; under the terms of the GPL2 or later.
+dnl Search for the first existing branch of the COMMA-SEPARATED-LIST and return it in VAR, or
+dnl set it to VALUE_IF_NOT_FOUND if nono existed e.g.,
+dnl   AX_GIT_SEARCH_TREEISH([ArchLinux], [gitarchref],
+dnl			    [archlinux/$gittag,
+dnl			     origin/archlinux/$gittag
+dnl			     ],
+dnl			    [origin/archlinux/master])
+dnl XXX: This macro is a bit fragile and requires COMMA-SEPARATED-LIST not to
+dnl start with a newline.
+AC_DEFUN([AX_GIT_SEARCH_TREEISH],[
+	 m4_pushdef([DESCRIPTION],[$1])
+	 m4_pushdef([VARIABLE],[$2])
+	 m4_pushdef([LIST],[$3])
+	 m4_pushdef([VALUE_IF_NOT_FOUND],[$4])
+
+	 AC_MSG_CHECKING([for matching DESCRIPTION treeish])
+	 m4_foreach([TREEISH], [LIST],[
+		    AS_IF([test "x$VARIABLE" = "x" &&
+			   $GIT rev-list --max-count=0 TREEISH -- 2>/dev/null],
+		    [VARIABLE="TREEISH"])])
+	 AS_IF([test "x$VARIABLE" = "x"], [VARIABLE="VALUE_IF_NOT_FOUND"])
+	 AC_MSG_RESULT([$VARIABLE])
+
+	 m4_popdef([VALUE_IF_NOT_FOUND])
+	 m4_popdef([LIST])
+	 m4_popdef([VARIABLE])
+	 m4_popdef([DESCRIPTION])
+])
+
+AX_WITH_PROG([GIT],[git])
+AC_ARG_ENABLE([packaging],
+	      [AS_HELP_STRING([--enable-packaging],
+			      [enable targets to create distribution-specific packages (Git clone needed)])],
+	      [AS_IF([test "x$enable_packaging" != "xno"],
+		     [
+		     AC_MSG_CHECKING([whether this is a Git repo])
+		     AS_IF([$GIT status >/dev/null 2>&1],
+			   [
+			    AC_MSG_RESULT([yes])
+			    AC_MSG_CHECKING([current Git branch])
+			    gitbranch=`${GIT} describe --contains --all HEAD`
+			    AC_MSG_RESULT([$gitbranch])
+			    AC_MSG_CHECKING([current Git tag])
+			    gittag=`${GIT} describe --exactmatch 2>/dev/null`
+			    AS_IF([ test "x" = "x$gittag"],
+			          [
+			           gitistag=no
+			           AC_MSG_RESULT([none])
+			           AC_MSG_CHECKING([closest Git tag])
+			           gittag=`${GIT} describe --abbrev=0 2>/dev/null`
+			           AC_MSG_RESULT([$gittag])
+				   AX_WITH_PROG([DPKG_BUILDPACKAGE],[dpkg-buildpackage])
+				   AX_WITH_PROG([DCH],[dch])
+				   AS_IF([test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"],[
+					  AX_GIT_SEARCH_TREEISH([Debian],
+								[gitdebref],
+								[debian/$gittag,
+								 staging/debian/$gittag,
+								 origin/debian/$gittag,
+								 debian/$gitbranch,
+								 staging/debian/$gitbranch,
+								 origin/debian/$gitbranch,
+								 debian/master,
+								 staging/debian/master],
+								[origin/debian/master])
+					  ])
+					 ])
+				   ],
+			          [
+			           AC_MSG_RESULT([$gittag])
+			           gitistag=yes
+			          ])
+			    ],
+			    [
+			     AC_MSG_RESULT([no])
+			     AC_MSG_WARN([--enable-packaging needs a Git repo])
+			     enable_packaging=no
+			    ])
+	      ],
+	      [enable_packaging=no])
+AC_SUBST([GITBRANCH],[$gitbranch])
+AC_SUBST([GITTAG],[$gittag])
+AC_SUBST([GITHEAD],[$githead])
+AC_SUBST([GITDEBREF],[$gitdebref])
+AM_CONDITIONAL([ENABLE_PACKAGING], [test "x$enable_packaging" != "xno"])
+AM_CONDITIONAL([GITISTAG], [test "x$gitistag" != "xno"])
+AM_CONDITIONAL([BUILD_DEBIAN], [test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"])
 
 AC_CONFIG_FILES([Makefile
 		 gnulib/Makefile
