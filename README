@@ -1,0 +1,12 @@
+Autotools+Git-based ArchLinux packaging
+
+Olivier Mehani <olivier.mehani@nicta.com.au>
+
+The PKGBUILD.proto in this branch contains both statements to generate a point
+release (oml2; from a tag or any arbitrary commit) or a git package (oml2-git).
+It is unlikely that makepkg(8) will me happy with it as such.
+
+Some additional markup, disguised as comments (#<GIT\n...\n#GIT> and
+#<!GIT\n...\n#!GIT>), indicates specific sections.  The
+autoconf/automake-generated Makefile makes sense of it be removing the
+irrelevant sections to create the appropriate PKGBUILD.

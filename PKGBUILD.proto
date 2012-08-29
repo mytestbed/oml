@@ -1,7 +1,13 @@
 # Contributor: Olivier Mehani <olivier.mehani@nicta.com.au>
+#<!GIT
+pkgname=oml2
+_redmineid=727
+#!GIT>
+#<GIT
 pkgname=oml2-git
-pkgver=20120821
-#pkgrel=1 # Set below, after the GIT branch is defined.
+#GIT>
+pkgver=2.9.pre
+pkgrel=1
 pkgdesc="OML is a measurement library that allows to define measurement points inside applications"
 arch=(i686 x86_64)
 url="http://oml.mytestbed.net/"
@@ -13,54 +19,66 @@ checkdepends=('check')
 provides=(liboml liboml-git oml2)
 conflicts=(liboml liboml-git oml2)
 replaces=(liboml-git)
-sources=(oml2-server.rc oml2-server.conf)
+source=(
+#<!GIT
+	http://oml.mytestbed.net/attachments/download/${_redmineid}/oml2-${pkgver}.tar.gz
+#!GIT>
+	oml2-server.rc
+	oml2-server.conf
+)
 backup=(etc/conf.d/oml2-server.conf)
 install="oml2.install"
 
+#<!GIT
+_builddir=${pkgname}-${pkgver}
+#!GIT>
+#<GIT
 _gitroot="git://mytestbed.net/oml-staging.git"
-#_gitroot="$PWD/.."
 _gitname="oml"
 _gitbranch="master"
-pkgrel=1
+_builddir=${_gitname}-build
+#GIT>
 
 build() {
-	cd "$srcdir"
-
+	cd "${srcdir}"
+#<GIT
 	msg "Connecting to GIT server...."
-	if [ -d $_gitname ] ; then
-		cd $_gitname && git pull origin
+	if [ -d ${_gitname} ] ; then
+		cd ${_gitname} && git pull origin
 		msg "The local files are updated."
 	else
-		git clone $_gitroot $_gitname
+		git clone ${_gitroot} ${_gitname}
 	fi
-	if [ ! -z $_gitbranch ]; then
-		cd $_gitname && git checkout $_gitbranch
-	else
-		cd $_gitname && git checkout master
+	if [ ! -z ${_gitbranch} ]; then
+		cd ${_gitname} && git checkout ${_gitbranch}
+		cd ${_gitname} && git checkout master
 	fi
 
 	msg "GIT checkout done or server timeout"
 	msg "Starting make..."
 
-	rm -rf "$srcdir/$_gitname-build"
-	git clone "$srcdir/$_gitname" "$srcdir/$_gitname-build"
-	cd "$srcdir/$_gitname-build"
-
+	rm -rf "${srcdir}/${_builddir}"
+	git clone "${srcdir}/${_gitname}" "${srcdir}/${_builddir}"
+	cd "${srcdir}/${_builddir}"
 	./autogen.sh
-	./configure --prefix=/usr --localstatedir=/var --disable-doxygen-doc --with-pgsql
+#GIT>
+#<!GIT
+	cd "${srcdir}/${_builddir}"
+#!GIT>
+	./configure --prefix=/usr --localstatedir=/var --enable-doc --disable-doxygen-doc --with-pgsql
 	make || return 1
 }
 
 package() {
-	cd "$srcdir/$_gitname-build"
-	make DESTDIR="$pkgdir/" install
-	install -D -m 0644 ${srcdir}/$_gitname/COPYING \
+	cd "${srcdir}/${_builddir}"
+	make DESTDIR="${pkgdir}/" install
+	install -D -m 0644 ${srcdir}/${_builddir}/COPYING \
 		${pkgdir}/usr/share/licenses/${pkgname}/COPYING
 	install -D -m 0755 ${startdir}/oml2-server.rc ${pkgdir}/etc/rc.d/oml2-server
 	install -D -m 0644 ${startdir}/oml2-server.conf ${pkgdir}/etc/conf.d/oml2-server.conf
 }
 
 check() {
-	cd "$srcdir/$_gitname-build"
+	cd "${srcdir}/${_builddir}"
 	make check
 }
