@@ -5,6 +5,8 @@
 %define libmax		8
 %define libpatch	0
 
+# RPM 4.7 on our Jenkins instance does not seem to do this by default.
+%define __spec_install_post /usr/lib/rpm/brp-compress
 
 BuildRoot:              %{_tmppath}/%{name}-%{version}-build
 Summary:                OML: The Orbit Measurement Library
