@@ -136,7 +136,7 @@ run (void)
 int
 main (int argc, const char **argv)
 {
-  char c;
+  int c;
 
   omlc_init ("blobgen", &argc, argv, NULL);
   mp = omlc_add_mp ("blobmp", mpdef);

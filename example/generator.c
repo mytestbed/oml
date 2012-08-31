@@ -44,11 +44,11 @@ main(
   int argc,
   const char *argv[]
 ) {
+  int c;
   omlc_init("generator", &argc, argv, NULL);
 
   // parsing command line arguments
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
-  int c;
   while ((c = poptGetNextOpt(optCon)) > 0) {}
 
   // Initialize measurment points

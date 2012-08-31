@@ -381,7 +381,7 @@ on_connect(Socket* new_sock, void* handle)
 int
 main(int argc, const char **argv)
 {
-  char c;
+  int c;
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
 
   while ((c = poptGetNextOpt(optCon)) >= 0) {

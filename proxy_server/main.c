@@ -313,7 +313,7 @@ setup_logging (char *logfile, int level)
 int
 main(int argc, const char *argv[])
 {
-  char c;
+  int c;
 
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
   poptSetOtherOptionHelp(optCon, "configFile");
