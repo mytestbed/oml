@@ -563,7 +563,7 @@ psql_insert(Database* db,
     case OML_INT32_VALUE:  sprintf(paramValues[4+i],"%" PRId32,v->value.int32Value); break;
     case OML_UINT32_VALUE: sprintf(paramValues[4+i],"%" PRIu32,v->value.uint32Value); break;
     case OML_INT64_VALUE:  sprintf(paramValues[4+i],"%" PRId64,v->value.int64Value); break;
-//    case OML_UINT64_VALUE: sprintf(paramValues[4+i],"%i" PRIu64,(int)v->value.uint64Value); break;
+    case OML_UINT64_VALUE: sprintf(paramValues[4+i],"%" PRIu64,v->value.uint64Value); break;
     case OML_DOUBLE_VALUE: sprintf(paramValues[4+i],"%.8f",v->value.doubleValue); break;
     case OML_STRING_VALUE: sprintf(paramValues[4+i],"%s",v->value.stringValue.ptr); break;
       //    case OML_BLOB_VALUE: sprintf(paramValues[4+i],"%s",v->value.blobValue.ptr); break;

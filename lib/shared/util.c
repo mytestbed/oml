@@ -120,7 +120,7 @@ oml_to_postgresql_type (OmlValueT type)
   case OML_INT32_VALUE:   return "INT4"; break;
   case OML_UINT32_VALUE:  return "INT8"; break; // PG doesn't support unsigned types --> promote
   case OML_INT64_VALUE:   return "INT8"; break;
-    //  case OML_UINT64_VALUE:  return "BIGINT";
+  case OML_UINT64_VALUE:  return "BIGINT";
   default:
     logerror("Unknown type %d\n", type);
     return NULL;
