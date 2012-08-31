@@ -225,71 +225,73 @@ AC_ARG_ENABLE([packaging],
 			      [enable targets to create distribution-specific packages (Git clone needed)])],
 	      [AS_IF([test "x$enable_packaging" != "xno"],
 		     [
-		     AC_MSG_CHECKING([whether this is a Git repo])
-		     AS_IF([$GIT status >/dev/null 2>&1],
+		     AC_MSG_CHECKING([whether \$srcdir is a Git repo])
+		     AS_IF([test "x${srcdir}" = "x." && $GIT status >/dev/null 2>&1],
 			   [
 			    AC_MSG_RESULT([yes])
 			    AC_MSG_CHECKING([current Git branch])
 			    gitbranch=`${GIT} describe --contains --all HEAD`
 			    AC_MSG_RESULT([$gitbranch])
+
 			    AC_MSG_CHECKING([current Git tag])
 			    gittag=`${GIT} describe --exactmatch 2>/dev/null`
-			    AS_IF([ test "x" = "x$gittag"],
-			          [
-			           gitistag=no
-			           AC_MSG_RESULT([none])
-			           AC_MSG_CHECKING([closest Git tag])
-			           gittag=`${GIT} describe --abbrev=0 2>/dev/null`
-			           AC_MSG_RESULT([$gittag])
-				   AX_WITH_PROG([MAKEPKG],[makepkg])
-				   AS_IF([test "x$MAKEPKG" != "x"],[
-					  AX_GIT_SEARCH_TREEISH([ArchLinux],
-								[gitarchref],
-								[archlinux/$gittag,
-								 staging/archlinux/$gittag,
-								 origin/archlinux/$gittag,
-								 archlinux/$gitbranch,
-								 staging/archlinux/$gitbranch,
-								 origin/archlinux/$gitbranch,
-								 archlinux/master,
-								 staging/archlinux/master],
-								[origin/archlinux/master])
-					  ])
-				   AX_WITH_PROG([DPKG_BUILDPACKAGE],[dpkg-buildpackage])
-				   AX_WITH_PROG([DCH],[dch])
-				   AS_IF([test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"],[
-					  AX_GIT_SEARCH_TREEISH([Debian],
-								[gitdebref],
-								[debian/$gittag,
-								 staging/debian/$gittag,
-								 origin/debian/$gittag,
-								 debian/$gitbranch,
-								 staging/debian/$gitbranch,
-								 origin/debian/$gitbranch,
-								 debian/master,
-								 staging/debian/master],
-								[origin/debian/master])
-					  ])
-				   AX_WITH_PROG([RPMBUILD],[rpmbuild])
-				   AS_IF([test "x$RPMBUILD" != "x"], [
-					  AX_GIT_SEARCH_TREEISH([RPM],
-								[gitrpmref],
-								[rpm/$gittag,
-								 staging/rpm/$gittag,
-								 origin/rpm/$gittag,
-								 rpm/$gitbranch,
-								 staging/rpm/$gitbranch,
-								 origin/rpm/$gitbranch,
-								 rpm/master,
-								 staging/rpm/master],
-								[origin/rpm/master])
-					  ])
-				   ])
+			    AS_IF([ test "x" != "x$gittag"],
+				  [
+				   AC_MSG_RESULT([$gittag])
+				   gitistag=yes
 				  ],
-			          [
-			           AC_MSG_RESULT([$gittag])
-			           gitistag=yes
-			          ])
+				  [
+				   AC_MSG_RESULT([none])
+				   gitistag=no
+
+				   AC_MSG_CHECKING([closest Git tag])
+				   gittag=`${GIT} describe --abbrev=0 2>/dev/null`
+				   AC_MSG_RESULT([$gittag])
+				  ])
+
+			    AX_WITH_PROG([MAKEPKG],[makepkg])
+			    AS_IF([test "x$MAKEPKG" != "x"],[
+				   AX_GIT_SEARCH_TREEISH([ArchLinux],
+							 [gitarchref],
+							 [archlinux/$gittag,
+							  staging/archlinux/$gittag,
+							  origin/archlinux/$gittag,
+							  archlinux/$gitbranch,
+							  staging/archlinux/$gitbranch,
+							  origin/archlinux/$gitbranch,
+							  archlinux/master,
+							  staging/archlinux/master],
+							  [origin/archlinux/master])
+				   ])
+			    AX_WITH_PROG([DPKG_BUILDPACKAGE],[dpkg-buildpackage])
+			    AX_WITH_PROG([DCH],[dch])
+			    AS_IF([test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"],[
+				   AX_GIT_SEARCH_TREEISH([Debian],
+							 [gitdebref],
+							 [debian/$gittag,
+							  staging/debian/$gittag,
+							  origin/debian/$gittag,
+							  debian/$gitbranch,
+							  staging/debian/$gitbranch,
+							  origin/debian/$gitbranch,
+							  debian/master,
+							  staging/debian/master],
+							  [origin/debian/master])
+				   ])
+			    AX_WITH_PROG([RPMBUILD],[rpmbuild])
+			    AS_IF([test "x$RPMBUILD" != "x"], [
+				   AX_GIT_SEARCH_TREEISH([RPM],
+							 [gitrpmref],
+							 [rpm/$gittag,
+							  staging/rpm/$gittag,
+							  origin/rpm/$gittag,
+							  rpm/$gitbranch,
+							  staging/rpm/$gitbranch,
+							  origin/rpm/$gitbranch,
+							  rpm/master,
+							  staging/rpm/master],
+							  [origin/rpm/master])
+				   ])
 			    ],
 			    [
 			     AC_MSG_RESULT([no])
@@ -298,6 +300,7 @@ AC_ARG_ENABLE([packaging],
 			    ])
 	      ],
 	      [enable_packaging=no])
+])
 AC_SUBST([GITBRANCH],[$gitbranch])
 AC_SUBST([GITTAG],[$gittag])
 AC_SUBST([GITHEAD],[$githead])
