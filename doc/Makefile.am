@@ -27,7 +27,7 @@ ALL_MAN_FILES = $(REGULAR_MAN_FILES) \
 		manual.txt \
 		liboml2-api.txt
 
-html_docs = $(ALL_MAN_FILES:.txt=.html)
+html_docs = $(REGULAR_MAN_FILES:.txt=.html) liboml2-api.html
 
 EXTRA_DIST=$(ALL_MAN_FILES) \
 	doxygen.am Doxyfile
@@ -122,8 +122,10 @@ SUFFIXES = .html
 .txt.html:
 	$(ASCIIDOC) -o $@ $<
 
-.PHONY: html
+all: html
 html:	$(html_docs)
+
+.PHONY: html
 else #!HAVE_ASCIIDOC
 	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
 endif #HAVE_ASCIIDOC
