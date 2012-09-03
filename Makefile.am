@@ -32,6 +32,39 @@ if ENABLE_PACKAGING
 PKG_PACKAGES=
 PKG_CLEANFILES=
 
+if BUILD_ANDROID
+PKG_AND_BASE_NAME=$(PACKAGE)-$(VERSION)-android
+PKG_AND_BUILD_DIR=p-android
+PKG_AND_OUT_DIR=$(PKG_AND_BUILD_DIR)/$(PKG_AND_BASE_NAME)
+
+PKG_PACKAGES+=pkg-and
+PKG_CLEANFILES+=$(PKG_AND_BUILD_DIR)
+
+$(PKG_AND_BUILD_DIR):
+	rm -rf $(PKG_AND_BUILD_DIR)
+	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/client/filter
+	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/client/oml2
+	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/shared
+	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/ocomm/ocomm
+	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/ocomm/test
+	cd $(top_srcdir)/lib; \
+		find . \( -name "*.c" -o -name "*.h" \) -exec $(install_sh_DATA) {} ../$(PKG_AND_OUT_DIR)/external/liboml2/{} \;
+	mkdir -p $(PKG_AND_OUT_DIR)/external/oml2-proxy-server
+	cd $(top_srcdir)/proxy_server; \
+		find . \( -name "*.c" -o -name "*.h" \) -exec $(install_sh_DATA) {} ../$(PKG_AND_OUT_DIR)/external/oml2-proxy-server/{} \;
+	$(GIT) archive $(GITANDREF) | $(am__untar) -C $(PKG_AND_OUT_DIR)/
+# XXX: This sed invocation requires GNU sed.
+	cd $(PKG_AND_OUT_DIR); \
+		find . -name "Android.mk" -exec $(SED) -i "s/@version@/$(VERSION)/g" {} \;
+
+pkg-and: $(PKG_AND_BUILD_DIR)/$(PKG_AND_BASE_NAME).tar.gz
+$(PKG_AND_BUILD_DIR)/$(PKG_AND_BASE_NAME).tar.gz: $(PKG_AND_BUILD_DIR)
+	cd $(PKG_AND_BUILD_DIR); \
+		tardir=$(PKG_AND_BASE_NAME) && $(am__tar) | \
+		GZIP=$(GZIP_ENV) gzip -c > $(PKG_AND_BASE_NAME).tar.gz
+
+endif #BUILD_ANDROID
+
 if BUILD_ARCH
 PKG_ARCH_BASE_NAME=$(PACKAGE)-$(OML_ALT_VER)
 PKG_ARCH_BUILD_DIR=p-arch
