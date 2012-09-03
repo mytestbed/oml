@@ -16,7 +16,9 @@ configure: configure-stamp
 configure-stamp:
 	dh_testdir
 	# Add here commands to configure the package.
-	./configure --prefix /usr --enable-doc --disable-doxygen-doc --enable-pgsql --localstatedir=/var/lib
+	./configure --prefix /usr --localstatedir=/var/lib \
+		--enable-doc --disable-doxygen-doc \
+		--with-pgsql --with-pgsql-inc=/usr/include/postgresql/
 	touch configure-stamp
 
 
