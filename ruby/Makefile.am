@@ -29,8 +29,7 @@ install-exec-hook:
 uninstall-hook:
 	rm -f $(installed_link_name)
 
-sharedir = $(datadir)/@PACKAGE@
-share_DATA = 
+oml4rdir=$(pkgdatadir)/oml4r
 
 if HAVE_GEM_BUNDLER
 OML4R_GEM = oml4r/pkg/oml4r-$(GEM_VERSION).gem
@@ -39,9 +38,9 @@ if CLEANUP_OML4R_GEM_SRC
 CLEANFILES += $(OML4R_GEM_SRC)
 endif
 
-share_DATA += oml4r/pkg/oml4r-$(GEM_VERSION).gem \
-	      oml4r/lib/oml4r/oml4r-simple-example.rb \
-	      oml4r/lib/oml4r/oml4r-wlanconfig.rb
+oml4r_DATA = oml4r/pkg/oml4r-$(GEM_VERSION).gem \
+	     oml4r/lib/oml4r/oml4r-simple-example.rb \
+	     oml4r/lib/oml4r/oml4r-wlanconfig.rb
 
 oml4r-gem: $(OML4R_GEM)
 $(OML4R_GEM):
