@@ -23,7 +23,9 @@
 #ifndef HTONLL_H__
 #define HTONLL_H__
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
 #include <arpa/inet.h>
 
 #if HAVE_BYTESWAP_H
