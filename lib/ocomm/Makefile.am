@@ -20,7 +20,7 @@ libocomm_la_SOURCES = \
 	socket.c \
 	socket_group.c
 
-libocomm_la_LIBADD = -lpthread
+libocomm_la_LIBADD = $(PTHREAD_LIBS)
 
 # To quote the APR build scripts:
 #    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiosyncrasy"

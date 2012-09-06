@@ -12,7 +12,7 @@ AM_CPPFLAGS = \
 	-I $(top_srcdir)/lib/client \
 	-I $(top_srcdir)/lib/ocomm \
 	-I $(top_srcdir)/lib/shared \
-	$(LIBXML2_CFLAGS)
+	$(XML2_CFLAGS)
 
 lib_LTLIBRARIES = liboml2.la
 
@@ -51,7 +51,7 @@ liboml2_la_SOURCES = \
 liboml2_la_LIBADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \
 	$(top_builddir)/lib/shared/libshared.la \
-	$(LIBXML2_LIBS) -lpthread -lm
+	$(XML2_LIBS) $(PTHREAD_LIBS) $(M_LIBS)
 
 # To quote the APR build scripts:
 #    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiosyncrasy"

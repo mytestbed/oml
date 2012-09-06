@@ -57,29 +57,46 @@ AC_SUBST([OML_ALT_VER], [`echo "$PACKAGE_VERSION" | sed s/-/./g`])
 
 AC_SUBST([pkglocalstatedir], [${localstatedir}/${PACKAGE}])
 
-# Check for presence of libraries.
-AC_SEARCH_LIBS([sqrt], [m], [AC_DEFINE([HAVE_LIBM], [1], [Define if libm is installed (It should be!)])], [missing_libs+=" libm"])
-AC_SEARCH_LIBS([pthread_create], [pthread], [AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])], [missing_libs+=" libpthread"])
-AC_SEARCH_LIBS([poptGetContext], [popt], [AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])], [missing_libs+=" libpopt"])
+# Check for presence of libraries, but don't add them to the default LIBS,
+# rather add create new Makefile variables xxx_LIBS
+oldLIBS=$LIBS
+AC_SEARCH_LIBS([sqrt], [m], [
+		AC_DEFINE([HAVE_LIBM], [1],[Define if libm is installed.])
+		AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([M_LIBS], $ac_res)])
+	       ], [missing_libs+=" libm"])
+LIBS=$oldLIBS
+AC_SEARCH_LIBS([pthread_create], [pthread], [
+		AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])
+		AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([PTHREAD_LIBS], $ac_res)])
+	       ], [missing_libs+=" libpthread"])
+LIBS=$oldLIBS
+AC_SEARCH_LIBS([poptGetContext], [popt], [
+		AC_DEFINE([HAVE_LIBPOPT], [1], [Define if libpopt is installed.])
+		AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([POPT_LIBS], $ac_res)])
+	       ], [missing_libs+=" libpopt"])
+LIBS=$oldLIBS
 
 # Check that libxml2 is installed, and work out how to compile/link against it
-AC_SEARCH_LIBS([xmlParseFile], [xml2], [AC_DEFINE([HAVE_LIBXML2], [1], [Define if libxml2 is installed.])], [missing_libs+=" libxml2"])
-AC_PATH_PROG([HAVE_XML2CFG], [xml2-config])
+AC_SEARCH_LIBS([xmlParseFile], [xml2], [
+		AC_DEFINE([HAVE_LIBXML2], [1], [Define if libxml2 is installed.])
+		AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([XML2_LIBS], $ac_res)])
 
-AS_IF([test "x$HAVE_XML2CFG" != "x" ],
-      [
-       xxCFLAGS=`$HAVE_XML2CFG --cflags`
-       xxLIBS=`$HAVE_XML2CFG --libs`
-       AC_SUBST([LIBXML2_CFLAGS], [$xxCFLAGS])
-       AC_SUBST([LIBXML2_LIBS], [$xxLIBS])
-       AC_MSG_CHECKING([how to include libxml2 headers])
-       AC_MSG_RESULT([$LIBXML2_CFLAGS])
-       AC_MSG_CHECKING([how to link with libxml2])
-       AC_MSG_RESULT([$LIBXML2_LIBS])
-      ])
+		AC_PATH_PROG([HAVE_XML2CFG], [xml2-config])
+		AS_IF([test "x$HAVE_XML2CFG" != "x" ],
+		      [
+		       xxCFLAGS=`$HAVE_XML2CFG --cflags`
+		       AC_SUBST([XML2_CFLAGS], [$xxCFLAGS])
+		       AC_MSG_CHECKING([how to include libxml2 headers])
+		       AC_MSG_RESULT([$XML2_CFLAGS])
+		       ])
+	       ], [missing_libs+=" libxml2"])
 
+AC_SEARCH_LIBS([sqlite3_open], [sqlite3], [
+		AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])
+		AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([SQLITE3_LIBS], $ac_res)])
+	       ], [missing_libs+=" libsqlite3"])
+LIBS=$oldLIBS
 
-AC_SEARCH_LIBS([sqlite3_open], [sqlite3], [AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])], [missing_libs+=" libsqlite3"])
 
 # Detect if PostgreSQL is around, but don't add it to the default
 oldLIBS=$LIBS
