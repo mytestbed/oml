@@ -80,15 +80,19 @@ rm -rf %{buildroot}
 /usr/include
 /usr/bin/oml2_scaffold
 /usr/bin/oml2-scaffold
-/usr/share/oml2/config_text_stream.xml
-/usr/share/oml2/config_two_streams.xml
-/usr/share/oml2/config.xml
-/usr/share/oml2/generator.c
-/usr/share/oml2/generator.rb
-/usr/share/oml2/Makefile
 /usr/share/oml2/oml2-server-hook.sh
-/usr/share/oml2/README
-/usr/share/oml2/version.h
+/usr/share/oml2/liboml2/Makefile
+/usr/share/oml2/liboml2/version.h
+/usr/share/oml2/liboml2/README
+/usr/share/oml2/liboml2/generator.rb
+/usr/share/oml2/liboml2/generator.c
+/usr/share/oml2/liboml2-conf/config.xml
+/usr/share/oml2/liboml2-conf/config_two_streams.xml
+/usr/share/oml2/liboml2-conf/config_text_stream.xml
+/usr/share/oml2/oml2-server-hook.sh
+/usr/share/oml2/oml4r/oml4r-wlanconfig.rb
+/usr/share/oml2/oml4r/oml4r-simple-example.rb
+/usr/share/oml2/oml4r/oml4r-2.9.pre.88.1eb3.dirty.gem
 %doc /usr/share/man/man1/oml2_scaffold.1.gz
 %doc /usr/share/man/man1/oml2-scaffold.1.gz
 %doc /usr/share/man/man3/liboml2.3.gz
