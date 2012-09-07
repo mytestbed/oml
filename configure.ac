@@ -337,6 +337,7 @@ AC_CONFIG_FILES([Makefile
 		 lib/shared/Makefile
 		 lib/ocomm/Makefile
 		 ruby/Makefile
+		 ruby/oml2-scaffold
 		 ruby/oml4r/lib/oml4r.rb
 		 server/Makefile
 		 proxy_server/Makefile

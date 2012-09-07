@@ -25,7 +25,10 @@
 # various files to simplify building applications which use OML.
 #
 
-PROG = 'oml_scaffold'
+PROG = 'oml2-scaffold'
+VERSION = "@VERSION@"
+VERSION_STRING = "#{PROG} V#{VERSION}"
+COPYRIGHT = "Copyright 2009-2012, NICTA"
 
 require 'stringio'
 require 'optparse'

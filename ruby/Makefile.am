@@ -15,7 +15,7 @@ OML4R_GEM_SRC = \
 	     oml4r/Gemfile \
 	     oml4r/.yardopts
 EXTRA_DIST = \
-	     $(scaffold_src) \
+	     $(scaffold_src).in \
 	     oml4r/lib/oml4r.rb.in \
 	     $(OML4R_GEM_SRC)
 CLEANFILES =
