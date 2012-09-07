@@ -173,6 +173,15 @@ Create SQLite3 experiment measurement databases in this directory.
 This environment variable is overridden by the '--data-dir' command
 line option.
 
+SIGNALS
+-------
+The *oml2-server* reacts to some signals.
+
+SIGUSR::
+Log an information message reporting the status of its allocated memory
+
+SIGINT & SIGTERM::
+Gracefully terminate, emptying the buffers and closing client connections.
 
 BUGS
 ----
