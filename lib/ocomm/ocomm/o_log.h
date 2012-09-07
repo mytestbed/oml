@@ -113,7 +113,6 @@ void
 o_set_log_level(int level);
 
 void o_set_simplified_logging (void);
-void o_set_mixed_logging (void);
 
 #ifdef __cplusplus
 }

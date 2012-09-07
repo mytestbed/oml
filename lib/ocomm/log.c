@@ -34,8 +34,6 @@
 
 extern int errno;
 
-static void o_log_mixed(int level, const char* format, ...);
-static void o_vlog_mixed(int level, const char* format, va_list va);
 static void o_log_simplified(int level, const char* format, ...);
 static void o_vlog_simplified(int level, const char* format, va_list va);
 
@@ -109,81 +107,6 @@ o_set_simplified_logging (void)
 }
 
 void
-o_set_mixed_logging (void)
-{
-  o_log = o_log_mixed;
-  o_vlog = o_vlog_mixed;
-}
-
-void
-o_vlog_mixed (int level, const char *format, va_list va)
-{
-  if (level > o_log_level) return;
-
-  if (logfile == NULL) {
-    switch (level) {
-    case O_LOG_INFO:
-      printf("# ");
-      vprintf(format, va);
-      break;
-    case O_LOG_WARN:
-      fprintf(stdout, "# WARN ");
-      vfprintf(stdout, format, va);
-      break;
-    case O_LOG_ERROR:
-      fprintf(stderr, "# ERROR ");
-      vfprintf(stderr, format, va);
-      break;
-    default:
-      printf("# ");
-      for (; level > 0; level--) {
-        printf("..");
-      }
-      printf(" ");
-      vprintf(format, va);
-      break;
-    }
-    //fflush(stdout);
-  } else {
-
-    time_t t;
-    time(&t);
-    struct tm* ltime = localtime(&t);
-
-    char now[20];
-    strftime(now, 20, "%b %d %H:%M:%S", ltime);
-
-    if (level > O_LOG_INFO) {
-      int dlevel = level - O_LOG_INFO;
-      if (dlevel > 1)
-        fprintf(logfile, "%s  DEBUG%d ", now, dlevel);
-      else
-        fprintf(logfile, "%s  DEBUG  ", now);
-      vfprintf(logfile, format, va);
-    } else {
-      switch (level) {
-      case O_LOG_INFO:
-        fprintf(logfile, "%s  INFO   ", now);
-        vfprintf(logfile, format, va);
-        break;
-      case O_LOG_WARN:
-        fprintf(logfile, "%s  WARN   ", now);
-        vfprintf(logfile, format, va);
-        break;
-      case O_LOG_ERROR:
-        fprintf(logfile, "%s  ERROR  ", now);
-        vfprintf(logfile, format, va);
-        break;
-      default:
-        fprintf(logfile, "%s  UNKNOWN ", now);
-        vfprintf(logfile, format, va);
-        break;
-      }
-    }
-  }
-}
-
-void
 o_vlog_simplified (int level, const char *format, va_list va)
 {
   const char * const labels [] = {
@@ -227,19 +150,6 @@ o_vlog_simplified (int level, const char *format, va_list va)
   }
 
   vfprintf(logfile, format, va);
-}
-
-void
-o_log_mixed(int level, const char* format, ...)
-{
-  if (level > o_log_level) return;
-
-  va_list va;
-  va_start(va, format);
-
-  o_vlog_mixed (level, format, va);
-
-  va_end(va);
 }
 
 void
