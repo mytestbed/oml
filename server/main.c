@@ -295,6 +295,9 @@ static void sighandler(int signum)
     loginfo("Received signal %d, cleaning up and exiting\n", signum);
     eventloop_stop(signum);
     break;
+  case SIGUSR1:
+    xmemreport();
+    break;
   default:
     logwarn("Received unhandled signal %d\n", signum);
   }
@@ -318,6 +321,8 @@ void setup_signal (void)
     logwarn("Unable to install SIGTERM handler: %s\n", strerror(errno));
   if(sigaction(SIGINT, &sa, NULL))
     logwarn("Unable to install SIGINT handler: %s\n", strerror(errno));
+  if(sigaction(SIGUSR1, &sa, NULL))
+    logwarn("Unable to install SIGUSR1 handler: %s\n", strerror(errno));
 }
 
 void
