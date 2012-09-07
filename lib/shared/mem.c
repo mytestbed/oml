@@ -25,8 +25,8 @@ void xmemreport (void)
   }
 
   loginfo ("%"PRIuMAX" %s currently allocated [%"
-             PRIuMAX" alloc, %"
-             PRIuMAX" free, %"
+             PRIuMAX" allocated overall, %"
+             PRIuMAX" freed, %"
              PRIuMAX" current]\n",
              (uintmax_t)xbytes_h, units,
              (uintmax_t)xnew, (uintmax_t)xfreed, (uintmax_t)xbytes);
