@@ -177,8 +177,12 @@ client_handler_new(Socket* new_sock)
 void
 client_handler_free (ClientHandler* self)
 {
+  if (self->event)
+    eventloop_socket_release (self->event);
   if (self->database)
     database_release (self->database);
+  if (self->socket)
+    socket_free (self->socket);
   if (self->tables)
     xfree (self->tables);
   if (self->seqno_offsets)
@@ -198,7 +202,6 @@ client_handler_free (ClientHandler* self)
     xfree (self->sender_name);
   if (self->app_name)
     xfree (self->app_name);
-  free (self->socket);
   xfree (self);
 
   //  xmemreport ();
@@ -686,10 +689,8 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
 
     case C_PROTOCOL_ERROR:
       // Protocol error:  close the client connection
-      socket_close (self->socket);
       logerror("%s: Fatal error, disconnecting client\n",
                source->name);
-      eventloop_socket_release (self->event);
       client_handler_free (self);
       /*
        * Protocol error --> no need to repack buffer, so just return;
@@ -734,7 +735,6 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
         loginfo("%s: Client '%s' closed connection\n", source->name, self->name);
         ClientHandler* self = (ClientHandler*)handle;
         socket_close (source->socket);
-        eventloop_socket_release (self->event);
         client_handler_free (self);
         break;
       }

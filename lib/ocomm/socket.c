@@ -170,10 +170,17 @@ initialize(
   return self;
 }
 
+/** Terminate the Socket and free its allocated memory.
+ *
+ * If the socket is still open, it will be closed.
+ *
+ * \param socket Socket to free
+ */
 void
 socket_free (
   Socket* socket
 ) {
+  socket_close(socket);
   free (socket);
 }
 
@@ -562,7 +569,7 @@ socket_close(
   Socket* socket
 ) {
   SocketInt *self = (SocketInt*)socket;
-  if (self->sockfd > 0) {
+  if (self->sockfd >= 0) {
     close(self->sockfd);
     // TODO: should check if close suceeds
     self->sockfd = -1;
