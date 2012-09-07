@@ -90,15 +90,14 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
     logerror("Found illegal whitespace in application name '%s'\n", application);
     return -1;
   }
-  if (custom_oml_log) {
-    logerror("Use of custom_oml_log in omlc_init() is deprecated since 2.7.0; the last parameter MUST be NULL\n");
-    return -1;
-  }
 
   omlc_instance = NULL;
 
   o_set_log_level(O_LOG_INFO);
-  o_set_simplified_logging();
+  if (custom_oml_log)
+    o_set_log (custom_oml_log);
+  else
+    o_set_simplified_logging();
 
   if (pargc && arg) {
     int i;

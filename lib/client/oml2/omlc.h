@@ -268,7 +268,7 @@ typedef struct _omlMP
  *                 completes, argv will contain a contiguous vector of
  *                 the original command line arguments minus any OML
  *                 arguments that were processed.
- *  \param oml_log deprecated, must be NULL
+ *  \param oml_log A custom logging function to use, as per o_set_log().
  *
  *  \return 0 on success, -1 on failure.
  */

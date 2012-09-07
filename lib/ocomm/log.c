@@ -71,6 +71,36 @@ o_set_log_level (int level)
   o_log_level = level;
 }
 
+/** Set the format-based log function if non NULL, or the default one.
+ *
+ * The default one simply parses the format int a varrarg and calls o_vlog().
+ *
+ * \param log_fn function to use for logging
+ * \return the current logging function
+ *
+ */
+o_log_fn
+o_set_log (o_log_fn new_log_fn)
+{
+  if ((o_log = new_log_fn) == NULL) {
+    o_log = o_log_simplified;
+  }
+  return o_log;
+}
+
+/** Set the vararg-based vlog function if non NULL, or the default one.
+ * \param vlog_fn function to use for logging
+ * \return the current logging function
+ */
+o_vlog_fn
+o_set_vlog (o_vlog_fn new_vlog_fn)
+{
+  if ((o_vlog = new_vlog_fn) == NULL) {
+    o_vlog = o_vlog_simplified;
+  }
+  return o_vlog;
+}
+
 void
 o_set_simplified_logging (void)
 {

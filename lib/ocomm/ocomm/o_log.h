@@ -43,10 +43,60 @@ extern "C" {
 #define O_LOG_DEBUG3 3
 #define O_LOG_DEBUG4 4
 
+/** The o_log_fn function pointer is for format string-based log functions.
+ *
+ * A typical function will check that the log_level is larger than the
+ * o_log_level, then report the message by creating a string from the format.
+ * The default is to create the va_list and call o_vlog().
+ *
+ * \code{.c}
+ * if (level > o_log_level) return;
+ * va_list va;
+ * va_start(va, format);
+ * vfprintf(stderr, format, va);
+ * va_end(va);
+ * \endcode
+ *
+ * This function will then be used on calls to o_log()
+ *
+ * \param log_level log level for the message
+ * \param format format string
+ * \param ... arguments for the format string
+ */
 typedef void (*o_log_fn)(int log_level, const char* format, ...);
+/** The o_vlog_fn function pointer is for vararg-based log functions.
+ *
+ * A typical function will check that the log_level is larger than the
+ * o_log_level, then report the message by creating a string from the format
+ * and varargs.
+ *
+ * \code{.c}
+ * if (level > o_log_level) return;
+ * vfprintf(stderr, format, va);
+ * \endcode
+ *
+ * This function will then be used on calls to o_vlog()
+ *
+ * \param log_level log level for the message
+ * \param format format string
+ * \param va vararg list
+ */
 typedef void (*o_vlog_fn)(int log_level, const char* format, va_list va);
+
+/** Current logging function.
+ * The default function internally parses the format string and arguments as a
+ * vararg, and calls the associated o_vlog_fn which does the actual work.
+ */
 extern o_log_fn o_log;
+/** Current vararg logging function.
+ * The default function does the actually message outputting job.
+ */
 extern o_vlog_fn o_vlog;
+
+/** Set the format-based log function if non NULL, or the default one */
+o_log_fn o_set_log(o_log_fn log_fn);
+/** Set the vararg-based vlog function if non NULL, or the default one */
+o_vlog_fn o_set_vlog(o_vlog_fn vlog_fn);
 
 /*! \fn void o_set_log_file(char* name)
   \brief Set the file to send log messages to, '-' for stdout
