@@ -235,43 +235,7 @@ typedef struct _omlMP
     struct _omlMP*   next; ///< Next MP structure for same measurement point.
 } OmlMP;
 
-/**
- *  Read command line parameters and build primary datastructures.
- *
- *  The appName must be the name of the application, and cannot
- *  contain spaces (or tabs, etc.).  It may contain forward slashes
- *  '/', in which case it is truncated to the substring following the
- *  final slash.  This allows using a UNIX pathname such as from
- *  argv[0].  An invalid application name will cause omlc_init() to
- *  fail.
- *
- *  The call to omlc_init() must be the first call of an OML function
- *  in the application.  Calling any other OML function before
- *  omlc_init() has been called, or after a call to omlc_init() that
- *  fails (returns -1), will result in undefined behaviour.
- *
- *  All OML-specific arguments are removed from the argument vector
- *  after being processed.  This means that the client application's
- *  command line argument processing does not need to be modified as
- *  long as omlc_init() is called before any application-specific
- *  command line processing is performed.
- *
- *  \param appName the name of the application.
- *  \param argcPtr pointer to an integer containing the number of
- *                 command line arguments.  When the function ends, if
- *                 any OML arguments have been processed, *argcPtr
- *                 will be set to the number of arguments remaining
- *                 after the OML arguments are removed.
- *  \param argv    pointer to the command line argument vector to
- *                 process.  Any OML options are removed from the
- *                 vector during processing.  When this function
- *                 completes, argv will contain a contiguous vector of
- *                 the original command line arguments minus any OML
- *                 arguments that were processed.
- *  \param oml_log A custom logging function to use, as per o_set_log().
- *
- *  \return 0 on success, -1 on failure.
- */
+/** Initialise the measurement library. */
 int
 omlc_init(
   const char* appName,

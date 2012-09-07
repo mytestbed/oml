@@ -63,13 +63,20 @@ static char *default_uri(const char *app_name, const char *name, const char *exp
 
 extern int parse_config(char* config_file);
 
-/**
- * @brief function called by the application to initialise the oml measurements
- * @param name the name of the application
- * @param pargc the argc of the command line of the application
- * @param argv the argv of the command line of the application
- * @param custom_oml_log the reference to the log file of oml
- * @return 0 on success, -1 on failure.
+/** Initialise the measurement library.
+ *
+ * This functions parses the command line for --oml-* options and acts
+ * accordingly when they are found. A side effect of this function is that
+ * these options and their arguments are removed from argv, so the instrumented
+ * application doesn't see spurious OML option it can't make sense of.
+ *
+ * \param name name of the application
+ * \param pargc argc of the command line of the application
+ * \param argv argv of the command line of the application
+ * \param custom_oml_log custom format-based logging function
+ * \return 0 on success, -1 on failure.
+ *
+ * \see o_log_fn, o_set_log()
  */
 int
 omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custom_oml_log)
@@ -96,8 +103,6 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   o_set_log_level(O_LOG_INFO);
   if (custom_oml_log)
     o_set_log (custom_oml_log);
-  else
-    o_set_simplified_logging();
 
   if (pargc && arg) {
     int i;
@@ -1063,7 +1068,6 @@ static struct {
   void (*enable)(void);
 } feature_table [] = {
   { "default-log-simple", o_set_simplified_logging },
-  { "default-log-mixed", o_set_mixed_logging },
 };
 static const size_t feature_count = sizeof (feature_table) / sizeof (feature_table[0]);
 
