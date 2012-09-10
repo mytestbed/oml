@@ -487,11 +487,11 @@ marshal_finalize(MBuffer*  mbuf)
   return 1;
 }
 
-/**
- * \brief Reads the header information contained in the +buffer+ contained in +mbuf+. It stores the message type in +type_p+.
- * \param mbuf
- * \param type_p
- * \return It returns 1 if everything is fine. If the buffer is too short it returns the size of the missing section as a negative number.
+/** Read the header information contained in an MBuf.
+ *
+ * \param mbuf MBuf to read from
+ * \param header reference to an OmlBinaryHeader into which the data from the mbuf should be unmasrhalled
+ * \return 1 if everything is fine, the size of the missing section as a negative number if the buffer is too short or 0 if something failed
  */
 int
 unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)

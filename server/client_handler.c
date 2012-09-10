@@ -22,7 +22,7 @@
  */
 /*!\file client_handler.c
   \brief Deals with a single connected client.
-*/
+  */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +53,7 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 static void
 status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle);
 
-const char *
+  const char *
 client_state_to_s (CState state)
 {
   static const char *states [] = {
@@ -81,7 +81,7 @@ client_state_to_s (CState state)
  *  self->table_count is set to ntables at the end of this, as long as
  *  there are not already enough tables to accomodate ntables.
  */
-int
+  int
 client_realloc_tables (ClientHandler *self, int ntables)
 {
   if (!self || ntables <= 0)
@@ -133,7 +133,7 @@ client_realloc_tables (ClientHandler *self, int ntables)
  *  (Re)allocate the values vector for the table with the given index,
  *  so that it is expanded or contracted to have nvalues elements.
  */
-int
+  int
 client_realloc_values (ClientHandler *self, int index, int nvalues)
 {
   if (!self || index < 0 || index > self->table_count || nvalues <= 0)
@@ -158,7 +158,7 @@ client_realloc_values (ClientHandler *self, int index, int nvalues)
  * \see on_client_connect()
  * \see on_connect()
  */
-ClientHandler*
+  ClientHandler*
 client_handler_new(Socket* new_sock)
 {
   ClientHandler* self = xmalloc(sizeof(ClientHandler));
@@ -169,12 +169,12 @@ client_handler_new(Socket* new_sock)
   self->mbuf = mbuf_create ();
   self->socket = new_sock;
   self->event = eventloop_on_read_in_channel(new_sock, client_callback,
-                                             status_callback, (void*)self);
+      status_callback, (void*)self);
   strncpy (self->name, self->event->name, MAX_STRING_SIZE);
   return self;
 }
 
-void
+  void
 client_handler_free (ClientHandler* self)
 {
   if (self->event)
@@ -220,7 +220,7 @@ void client_handler_update_name(ClientHandler *self)
 }
 
 
-static int
+  static int
 validate_schema_names (struct schema *schema, char **invalid)
 {
   if (schema == NULL || invalid == NULL)
@@ -246,7 +246,7 @@ validate_schema_names (struct schema *schema, char **invalid)
  * \param self the clienat handler
  * \param value the value to put in the database
  */
-void
+  void
 process_schema(ClientHandler* self, char* value)
 {
   struct schema *schema = schema_from_meta (value);
@@ -268,7 +268,7 @@ process_schema(ClientHandler* self, char* value)
   DbTable* table = database_find_or_create_table(self->database, schema);
   if (table == NULL) {
     logerror("%s: Can't find table '%s' or client schema '%s' doesn't match any of the existing tables.\n",
-             self->name, schema->name, value);
+        self->name, schema->name, value);
     self->state = C_PROTOCOL_ERROR;
     schema_free (schema);
     return;
@@ -285,7 +285,7 @@ process_schema(ClientHandler* self, char* value)
   /* Reallocate the values vector if this schema has more columns than can fit already. */
   if (client_realloc_values (self, index, table->schema->nfields) == -1) {
     logwarn ("%s: Could not allocate values vector of size %d for table index %d\n",
-             self->name, table->schema->nfields, index);
+        self->name, table->schema->nfields, index);
   }
 }
 
@@ -298,7 +298,7 @@ process_schema(ClientHandler* self, char* value)
  * \param key the key
  * \param value the value
  */
-static void
+  static void
 process_meta(ClientHandler* self, char* key, char* value)
 {
   int len;
@@ -307,14 +307,14 @@ process_meta(ClientHandler* self, char* key, char* value)
   if (strcmp(key, "protocol") == 0) {
     int protocol = atoi (value);
     if (protocol < MIN_PROTOCOL_VERSION || protocol > MAX_PROTOCOL_VERSION)
-      {
-        logerror("%s: Client connected with incorrect protocol version (%s; %d > %d)\n",
-                 self->name, value, protocol, MAX_PROTOCOL_VERSION);
-        logdebug("%s:    Maybe the client was built with a newer version of OML.\n",
-                 self->name);
-        self->state = C_PROTOCOL_ERROR;
-        return;
-      }
+    {
+      logerror("%s: Client connected with incorrect protocol version (%s; %d > %d)\n",
+          self->name, value, protocol, MAX_PROTOCOL_VERSION);
+      logdebug("%s:    Maybe the client was built with a newer version of OML.\n",
+          self->name);
+      self->state = C_PROTOCOL_ERROR;
+      return;
+    }
   } else if (strcmp(key, "experiment-id") == 0) {
     self->database = database_find(value);
     if (!self->database)
@@ -322,7 +322,7 @@ process_meta(ClientHandler* self, char* key, char* value)
   } else if (strcmp(key, "start-time") == 0 || strcmp(key, "start_time") == 0) {
     if (self->database == NULL) {
       logerror("%s: Meta 'start-time' needs to come after 'experiment-id'.\n",
-              self->name);
+          self->name);
       self->state = C_PROTOCOL_ERROR;
     } else {
       long start_time = atol(value);
@@ -338,7 +338,7 @@ process_meta(ClientHandler* self, char* key, char* value)
   } else if (strcmp(key, "sender-id") == 0) {
     if (self->database == NULL) {
       logerror("%s: Meta 'sender-id' needs to come after 'experiment-id'.\n",
-              self->name);
+          self->name);
       self->state = C_PROTOCOL_ERROR;
     } else {
       self->sender_id = self->database->add_sender_id(self->database, value);
@@ -369,7 +369,7 @@ process_meta(ClientHandler* self, char* key, char* value)
  * \param mbuf the buffer that contain the header and the data
  * \return 1 if successful, 0 otherwise
  */
-static int
+  static int
 read_line(char** line_p, int* length_p, MBuffer* mbuf)
 {
   uint8_t* line = mbuf_rdptr (mbuf);
@@ -391,7 +391,7 @@ read_line(char** line_p, int* length_p, MBuffer* mbuf)
  * \param mbuf the buffer that contain the header and the data
  * \return 1 if successful, 0 otherwise
  */
-static int
+  static int
 process_header(ClientHandler* self, MBuffer* mbuf)
 {
   char* line;
@@ -415,27 +415,27 @@ process_header(ClientHandler* self, MBuffer* mbuf)
   char* value = line;
   int count = 0;
   while (*(value) != ':' && count < len)
+  {
+    value++;
+    count++;
+  }
+
+  if (*value == ':')
+  {
+    *value++ = '\0';
+    while (*(value) == ' ' && count < len)
     {
       value++;
       count++;
     }
-
-  if (*value == ':')
-    {
-      *value++ = '\0';
-      while (*(value) == ' ' && count < len)
-        {
-          value++;
-          count++;
-        }
-      mbuf_read_skip (mbuf, len + 1);
-      process_meta(self, line, value);
-    }
+    mbuf_read_skip (mbuf, len + 1);
+    process_meta(self, line, value);
+  }
   else
-    {
-      logerror("%s: Malformed meta line in header: '%s'\n", self->name, line);
-      self->state = C_PROTOCOL_ERROR;
-    }
+  {
+    logerror("%s: Malformed meta line in header: '%s'\n", self->name, line);
+    self->state = C_PROTOCOL_ERROR;
+  }
 
   // process_meta() might have signalled protocol error, so we have to check here.
   if (self->state == C_PROTOCOL_ERROR)
@@ -444,7 +444,7 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     return 1; // still in header
 }
 
-static void
+  static void
 process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 {
   int index = header->stream;
@@ -468,14 +468,14 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
     return;
   }
   logdebug("%s(bin): Inserting data into table index %d (seqno=%d, ts=%f)\n",
-           self->name, index, header->seqno, ts);
+      self->name, index, header->seqno, ts);
   self->database->insert(self->database,
-                         table,
-                         self->sender_id,
-                         header->seqno,
-                         ts,
-                         self->values_vectors[index],
-                         cnt);
+      table,
+      self->sender_id,
+      header->seqno,
+      ts,
+      self->values_vectors[index],
+      cnt);
 
   mbuf_consume_message (mbuf);
 }
@@ -486,13 +486,13 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
  * \param mbuf the buffer that contain the data
  * \return 1 when successfull, 0 otherwise
  */
-static int
+  static int
 process_bin_message(ClientHandler* self, MBuffer* mbuf)
 {
   OmlBinaryHeader header;
 
   unsigned char* sync = find_sync (mbuf_rdptr (mbuf),
-                                   mbuf_remaining (mbuf));
+      mbuf_remaining (mbuf));
   int sync_pos;
   if (sync == NULL)
     sync_pos = -1;
@@ -513,22 +513,22 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
     return 0;
   } else if (res < 0 && mbuf->fill>0) {
     // not enough data
-    logdebug("%s(bin): Not enough data (%dB) for a new measurement\n",
-             self->name, mbuf->fill);
+    logdebug("%s(bin): Not enough data (%dB) for a new measurement yet (%dB missing)\n",
+        self->name, mbuf_remaining(mbuf), -res);
     return 0;
   }
   switch (header.type) {
   case OMB_DATA_P:
   case OMB_LDATA_P:
-      process_bin_data_message(self, &header);
-      break;
+    process_bin_data_message(self, &header);
+    break;
   default:
-      logwarn("%s(bin): Ignoring unsupported message type '%d'\n", self->name, header.type);
-      /* XXX: Assume we could read the full header, just skip it
-       * FIXME: We might have to skip the data too
-      self->state = C_PROTOCOL_ERROR;
-       */
-      return 0;
+    logwarn("%s(bin): Ignoring unsupported message type '%d'\n", self->name, header.type);
+    /* XXX: Assume we could read the full header, just skip it
+     * FIXME: We might have to skip the data too
+     self->state = C_PROTOCOL_ERROR;
+     */
+    return 0;
   }
 
   return 1;
@@ -540,7 +540,7 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
  * \param msg a single message encoded in a string
  * \param length length of msg
  */
-static void
+  static void
 process_text_data_message(ClientHandler* self, char** msg, int size)
 {
   if (size < 3) {
@@ -578,13 +578,13 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
     v->type = schema->fields[i].type;
     if (oml_value_from_s (v, val) == -1)
       logerror("%s(txt): Error converting value of type %d from string '%s'\n", self->name, v->type, val);
-      /* FIXME: Do something here */
+    /* FIXME: Do something here */
   }
 
   logdebug("%s(txt): Inserting data into table index %d (seqno=%d, ts=%f)\n",
-           self->name, self->sender_name, index, seq_no, ts);
+      self->name, self->sender_name, index, seq_no, ts);
   self->database->insert(self->database, table, self->sender_id, seq_no,
-                         ts, self->values_vectors[table_index], size - 3);
+      ts, self->values_vectors[table_index], size - 3);
 }
 
 /**
@@ -595,9 +595,9 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
  */
 static int
 process_text_message(
-  ClientHandler* self,
-  MBuffer*    mbuf
-) {
+    ClientHandler* self,
+    MBuffer*    mbuf
+    ) {
   char* line;
   int len;
 
@@ -650,57 +650,57 @@ process_text_message(
  * \param buf data received from the socket
  * \param bufsize the size of the data set from the socket
  */
-void
+  void
 client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
 {
   ClientHandler* self = (ClientHandler*)handle;
   MBuffer* mbuf = self->mbuf;
 
   logdebug("%s(%s): Received %d bytes of data\n",
-           source->name,
-           client_state_to_s (self->state),
-           buf_size);
+      source->name,
+      client_state_to_s (self->state),
+      buf_size);
 
   int result = mbuf_write (mbuf, buf, buf_size);
   if (result == -1) {
     logerror("%s: Failed to write message from client into message buffer\n",
-             source->name);
+        source->name);
     return;
   }
 
-  process:
+process:
   switch (self->state)
-    {
-    case C_HEADER:
-      while (process_header(self, mbuf));
-      if (self->state != C_HEADER) {
-        //finished header, let someone else process rest of buffer
-        goto process;
-      }
-      break;
-
-    case C_BINARY_DATA:
-      while (process_bin_message(self, mbuf));
-      break;
-
-    case C_TEXT_DATA:
-      while (process_text_message(self, mbuf));
-      break;
-
-    case C_PROTOCOL_ERROR:
-      // Protocol error:  close the client connection
-      logerror("%s: Fatal error, disconnecting client\n",
-               source->name);
-      client_handler_free (self);
-      /*
-       * Protocol error --> no need to repack buffer, so just return;
-       */
-      return;
-    default:
-      logerror("%s: Unknown client state %d\n", source->name, self->state);
-      mbuf_clear (mbuf);
-      return;
+  {
+  case C_HEADER:
+    while (process_header(self, mbuf));
+    if (self->state != C_HEADER) {
+      //finished header, let someone else process rest of buffer
+      goto process;
     }
+    break;
+
+  case C_BINARY_DATA:
+    while (process_bin_message(self, mbuf));
+    break;
+
+  case C_TEXT_DATA:
+    while (process_text_message(self, mbuf));
+    break;
+
+  case C_PROTOCOL_ERROR:
+    // Protocol error:  close the client connection
+    logerror("%s: Fatal error, disconnecting client\n",
+        source->name);
+    client_handler_free (self);
+    /*
+     * Protocol error --> no need to repack buffer, so just return;
+     */
+    return;
+  default:
+    logerror("%s: Unknown client state %d\n", source->name, self->state);
+    mbuf_clear (mbuf);
+    return;
+  }
 
   if (self->state == C_PROTOCOL_ERROR)
     goto process;
@@ -708,7 +708,7 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
   // move remaining buffer content to beginning
   mbuf_repack_message (mbuf);
   logdebug("%s: Buffer repacked to %d bytes\n",
-           source->name, mbuf->fill);
+      source->name, mbuf->fill);
 }
 /**
  * \brief Call back function when the status of the socket change
