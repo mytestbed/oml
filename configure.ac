@@ -2,7 +2,6 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_COPYRIGHT([Copyright (C) 2012 NICTA, Olivier Mehani.])
 AC_INIT([oml2],
 	m4_esyscmd([build-aux/git-version-gen .tarball-version]),
 	[oml-user@lists.nicta.com.au])
@@ -105,6 +104,99 @@ AX_CHECK_POSTGRES_DB([],
 AM_CONDITIONAL([HAVE_LIBPQ], [test x$HAVE_LIBPQ = xyes])
 LIBS=$oldLIBS
 
+AX_WITH_PROG([GIT],[git])
+AC_ARG_ENABLE([packaging],
+	      [AS_HELP_STRING([--enable-packaging],
+			      [enable targets to create distribution-specific packages (Git clone needed)])],
+	      [AS_IF([test "x$enable_packaging" != "xno"],
+		     [
+		      AC_MSG_CHECKING([whether \$srcdir is a Git repo])
+		      AS_IF([test "x${srcdir}" = "x." && $GIT status >/dev/null 2>&1],
+			    [
+			     AC_MSG_RESULT([yes])
+			     AC_MSG_CHECKING([current Git branch])
+			     gitbranch=`${GIT} describe --contains --all HEAD`
+			     AC_MSG_RESULT([$gitbranch])
+
+			     AC_MSG_CHECKING([current Git tag])
+			     gittag=`${GIT} describe --exactmatch 2>/dev/null`
+			     AS_IF([ test "x" != "x$gittag"],
+				   [
+				    AC_MSG_RESULT([$gittag])
+				    gitistag=yes
+				   ],
+				   [
+				    AC_MSG_RESULT([none])
+				    gitistag=no
+
+				    AC_MSG_CHECKING([closest Git tag])
+				    gittag=`${GIT} describe --abbrev=0 2>/dev/null`
+				    AC_MSG_RESULT([$gittag])
+				   ])
+
+			     AX_WITH_PROG([MAKEPKG],[makepkg])
+			     AS_IF([test "x$MAKEPKG" != "x"],[
+				    AX_GIT_SEARCH_TREEISH([ArchLinux],
+							  [gitarchref],
+							  [archlinux/$gittag,
+							   staging/archlinux/$gittag,
+							   origin/archlinux/$gittag,
+							   archlinux/$gitbranch,
+							   staging/archlinux/$gitbranch,
+							   origin/archlinux/$gitbranch,
+							   archlinux/master,
+							   staging/archlinux/master],
+							   [origin/archlinux/master])
+				   ])
+			     AX_WITH_PROG([DPKG_BUILDPACKAGE],[dpkg-buildpackage])
+			     AX_WITH_PROG([DCH],[dch])
+			     AS_IF([test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"],[
+				    AX_GIT_SEARCH_TREEISH([Debian],
+							  [gitdebref],
+							  [debian/$gittag,
+							   staging/debian/$gittag,
+							   origin/debian/$gittag,
+							   debian/$gitbranch,
+							   staging/debian/$gitbranch,
+							   origin/debian/$gitbranch,
+							   debian/master,
+							   staging/debian/master],
+							   [origin/debian/master])
+				   ])
+			     AX_WITH_PROG([RPMBUILD],[rpmbuild])
+			     AS_IF([test "x$RPMBUILD" != "x"], [
+				    AX_GIT_SEARCH_TREEISH([RPM],
+							  [gitrpmref],
+							  [rpm/$gittag,
+							   staging/rpm/$gittag,
+							   origin/rpm/$gittag,
+							   rpm/$gitbranch,
+							   staging/rpm/$gitbranch,
+							   origin/rpm/$gitbranch,
+							   rpm/master,
+							   staging/rpm/master],
+							   [origin/rpm/master])
+				   ])
+			    ],
+			    [
+			     AC_MSG_RESULT([no])
+			     AC_MSG_WARN([--enable-packaging needs a Git repo for binary distributions])
+			     enable_packaging=partial
+			    ])
+		      ])],
+	      [enable_packaging=no])
+AC_SUBST([GITBRANCH],[$gitbranch])
+AC_SUBST([GITTAG],[$gittag])
+AC_SUBST([GITHEAD],[$githead])
+AC_SUBST([GITARCHREF],[$gitarchref])
+AC_SUBST([GITDEBREF],[$gitdebref])
+AC_SUBST([GITRPMREF],[$gitrpmref])
+AM_CONDITIONAL([ENABLE_PACKAGING], [test "x$enable_packaging" != "xno" && test "x$enable_packaging" != "xpartial"])
+AM_CONDITIONAL([GITISTAG], [test "x$gitistag" != "xno"])
+AM_CONDITIONAL([BUILD_ARCH], [test "x$MAKEPKG" != "x"])
+AM_CONDITIONAL([BUILD_DEBIAN], [test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"])
+AM_CONDITIONAL([BUILD_RPM], [test "x$RPMBUILD" != "x"])
+
 AX_WITH_PROG([RUBY],[ruby])
 AX_PROG_RUBY_VERSION([1.8.7],
 		     [
@@ -114,30 +206,34 @@ AX_PROG_RUBY_VERSION([1.8.7],
 					  AC_MSG_WARN([No Ruby>=1.9 found; some tests will be skipped])
 					  missing_rubyge19=yes
 					  ])
-		      AX_WITH_PROG([GEM],[gem])
-		      AX_WITH_PROG([RAKE],[rake])
-		      AS_IF([test -z "$GEM"],[
-					    AC_MSG_WARN([Ruby found, but not the corresponding gem utility; the OML4r gem will not be built])
-					   ],
-					   [test -z "$RAKE"],
-					   [
-					    AC_MSG_WARN([Ruby found, but not the corresponding rake utility; the OML4r gem will not be built])
-					   ],
-					    dnl Hack to avoid nesting AS_IFs:
-					    dnl We actually do the bundler check befor telling the user
-					   [ ${GEM} list | grep -q "^bundler\s" ],
-					   [
-					    AC_MSG_CHECKING(whether the bundler gem is available)
-					    have_bundler=yes
-					    AC_MSG_RESULT([${have_bundler}])
-					   ],
-					   [
-					    AC_MSG_CHECKING(whether the bundler gem is available)
-					    have_bundler=no
-					    AC_MSG_RESULT([${have_bundler}])
-					    AC_MSG_WARN([The OML4r gem will not be built; you can run \`gem install bundler' and rerun configure to fix this issue])
-					   ]
+		      AS_IF([test "x$enable_packaging" != "xno"],[
+			     AX_WITH_PROG([GEM],[gem])
+			     AX_WITH_PROG([RAKE],[rake])
+			     AS_IF([test -z "$GEM"],[
+				    AC_MSG_WARN([Ruby found, but not the corresponding gem utility; the OML4r gem will not be built])
+				   ],
+				   [test -z "$RAKE"],
+				   [
+				    AC_MSG_WARN([Ruby found, but not the corresponding rake utility; the OML4r gem will not be built])
+				   ],
+				   dnl Hack to avoid nesting AS_IFs:
+				   dnl We actually do the bundler check befor telling the user
+				   [ ${GEM} list | grep -q "^bundler\s" ],
+				   [
+				    AC_MSG_CHECKING(whether the bundler gem is available)
+				    have_bundler=yes
+				    AC_MSG_RESULT([${have_bundler}])
+				    AC_MSG_NOTICE([The OML4R gem will be built])
+				    build_gem=yes
+				   ],
+				   [
+				    AC_MSG_CHECKING(whether the bundler gem is available)
+				    have_bundler=no
+				    AC_MSG_RESULT([${have_bundler}])
+				    AC_MSG_WARN([The OML4r gem will not be built; you can run \`gem install bundler' and rerun configure to fix this issue])
+				   ]
 			   )
+		      ])
 		     ],
 		     [
 		      AC_MSG_WARN([No Ruby>=1.8.7 found; the OML4r gem will not be built, and some tests will be skipped])
@@ -147,7 +243,7 @@ AX_PROG_RUBY_VERSION([1.8.7],
 		    )
 AM_CONDITIONAL([HAVE_RUBY_MIN_1_8_7], [test x"${missing_rubyge187}" != xyes])
 AM_CONDITIONAL([HAVE_RUBY_MIN_1_9], [test x"${missing_rubyge19}" != xyes])
-AM_CONDITIONAL([HAVE_GEM_BUNDLER], [test x$have_bundler = xyes])
+AM_CONDITIONAL([BUILD_GEM], [test x$build_gem = xyes])
 
 missing_check=""
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [], [missing_check="yes"])
@@ -159,7 +255,7 @@ AC_ARG_ENABLE([doc],
 		[],
 		[enable_doc=yes])
 
-AS_IF([test "x$enable_doc" != "xno"], 
+AS_IF([test "x$enable_doc" != "xno"],
       [
        # Check for asciidoc (for generating manpages).
        AC_PATH_PROG(A2X, a2x, no)
@@ -204,132 +300,6 @@ AS_IF([test x$enable_doxygen_callgraph = xno],
 DX_ENV_APPEND(GENERATE_LATEX, [NO]) dnl generates files not cleaned up, and DX_PDF_FEATURE and DX_PS_FEATURE are currently off
 DX_ENV_APPEND(TOPSRCDIR, [\$(top_srcdir)]) dnl let make deal with it
 
-
-dnl AX_GIT_SEARCH_TREEISH(DESCRIPTION, VARIABLE, COMMA-SEPARATED-LIST, [VALUE_IF_NOT_FOUND])
-dnl Copyright (C) 2012 NICTA, Olivier Mehani; under the terms of the GPL2 or later.
-dnl Search for the first existing branch of the COMMA-SEPARATED-LIST and return it in VAR, or
-dnl set it to VALUE_IF_NOT_FOUND if nono existed e.g.,
-dnl   AX_GIT_SEARCH_TREEISH([ArchLinux], [gitarchref],
-dnl			    [archlinux/$gittag,
-dnl			     origin/archlinux/$gittag
-dnl			     ],
-dnl			    [origin/archlinux/master])
-dnl XXX: This macro is a bit fragile and requires COMMA-SEPARATED-LIST not to
-dnl start with a newline.
-AC_DEFUN([AX_GIT_SEARCH_TREEISH],[
-	 m4_pushdef([DESCRIPTION],[$1])
-	 m4_pushdef([VARIABLE],[$2])
-	 m4_pushdef([LIST],[$3])
-	 m4_pushdef([VALUE_IF_NOT_FOUND],[$4])
-
-	 AC_MSG_CHECKING([for matching DESCRIPTION treeish])
-	 m4_foreach([TREEISH], [LIST],[
-		    AS_IF([test "x$VARIABLE" = "x" &&
-			   $GIT rev-list --max-count=0 TREEISH -- 2>/dev/null],
-		    [VARIABLE="TREEISH"])])
-	 AS_IF([test "x$VARIABLE" = "x"], [VARIABLE="VALUE_IF_NOT_FOUND"])
-	 AC_MSG_RESULT([$VARIABLE])
-
-	 m4_popdef([VALUE_IF_NOT_FOUND])
-	 m4_popdef([LIST])
-	 m4_popdef([VARIABLE])
-	 m4_popdef([DESCRIPTION])
-])
-
-AX_WITH_PROG([GIT],[git])
-AC_ARG_ENABLE([packaging],
-	      [AS_HELP_STRING([--enable-packaging],
-			      [enable targets to create distribution-specific packages (Git clone needed)])],
-	      [AS_IF([test "x$enable_packaging" != "xno"],
-		     [
-		     AC_MSG_CHECKING([whether \$srcdir is a Git repo])
-		     AS_IF([test "x${srcdir}" = "x." && $GIT status >/dev/null 2>&1],
-			   [
-			    AC_MSG_RESULT([yes])
-			    AC_MSG_CHECKING([current Git branch])
-			    gitbranch=`${GIT} describe --contains --all HEAD`
-			    AC_MSG_RESULT([$gitbranch])
-
-			    AC_MSG_CHECKING([current Git tag])
-			    gittag=`${GIT} describe --exactmatch 2>/dev/null`
-			    AS_IF([ test "x" != "x$gittag"],
-				  [
-				   AC_MSG_RESULT([$gittag])
-				   gitistag=yes
-				  ],
-				  [
-				   AC_MSG_RESULT([none])
-				   gitistag=no
-
-				   AC_MSG_CHECKING([closest Git tag])
-				   gittag=`${GIT} describe --abbrev=0 2>/dev/null`
-				   AC_MSG_RESULT([$gittag])
-				  ])
-
-			    AX_WITH_PROG([MAKEPKG],[makepkg])
-			    AS_IF([test "x$MAKEPKG" != "x"],[
-				   AX_GIT_SEARCH_TREEISH([ArchLinux],
-							 [gitarchref],
-							 [archlinux/$gittag,
-							  staging/archlinux/$gittag,
-							  origin/archlinux/$gittag,
-							  archlinux/$gitbranch,
-							  staging/archlinux/$gitbranch,
-							  origin/archlinux/$gitbranch,
-							  archlinux/master,
-							  staging/archlinux/master],
-							  [origin/archlinux/master])
-				   ])
-			    AX_WITH_PROG([DPKG_BUILDPACKAGE],[dpkg-buildpackage])
-			    AX_WITH_PROG([DCH],[dch])
-			    AS_IF([test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"],[
-				   AX_GIT_SEARCH_TREEISH([Debian],
-							 [gitdebref],
-							 [debian/$gittag,
-							  staging/debian/$gittag,
-							  origin/debian/$gittag,
-							  debian/$gitbranch,
-							  staging/debian/$gitbranch,
-							  origin/debian/$gitbranch,
-							  debian/master,
-							  staging/debian/master],
-							  [origin/debian/master])
-				   ])
-			    AX_WITH_PROG([RPMBUILD],[rpmbuild])
-			    AS_IF([test "x$RPMBUILD" != "x"], [
-				   AX_GIT_SEARCH_TREEISH([RPM],
-							 [gitrpmref],
-							 [rpm/$gittag,
-							  staging/rpm/$gittag,
-							  origin/rpm/$gittag,
-							  rpm/$gitbranch,
-							  staging/rpm/$gitbranch,
-							  origin/rpm/$gitbranch,
-							  rpm/master,
-							  staging/rpm/master],
-							  [origin/rpm/master])
-				   ])
-			    ],
-			    [
-			     AC_MSG_RESULT([no])
-			     AC_MSG_WARN([--enable-packaging needs a Git repo])
-			     enable_packaging=no
-			    ])
-	      ],
-	      [enable_packaging=no])
-])
-AC_SUBST([GITBRANCH],[$gitbranch])
-AC_SUBST([GITTAG],[$gittag])
-AC_SUBST([GITHEAD],[$githead])
-AC_SUBST([GITARCHREF],[$gitarchref])
-AC_SUBST([GITDEBREF],[$gitdebref])
-AC_SUBST([GITRPMREF],[$gitrpmref])
-AM_CONDITIONAL([ENABLE_PACKAGING], [test "x$enable_packaging" != "xno"])
-AM_CONDITIONAL([GITISTAG], [test "x$gitistag" != "xno"])
-AM_CONDITIONAL([BUILD_ARCH], [test "x$MAKEPKG" != "x"])
-AM_CONDITIONAL([BUILD_DEBIAN], [test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"])
-AM_CONDITIONAL([BUILD_RPM], [test "x$RPMBUILD" != "x"])
-
 AC_CONFIG_FILES([Makefile
 		 gnulib/Makefile
 		 lib/Makefile
@@ -352,7 +322,7 @@ AC_CONFIG_FILES([Makefile
 		 ])
 AC_CONFIG_COMMANDS([issue610-exec], [chmod a+x test/server/issue610.rb])
 dnl Copy source files for the Gem in VPATH so rake is happy
-AS_IF([test x$srcdir != x. && test x$have_bundler = xyes], 
+AS_IF([test x$srcdir != x. && test x$build_gem = xyes],
       [AC_CONFIG_COMMANDS([oml4r-vpath-copy],
 			  [mkdir -p ruby/oml4r/lib/oml4r && \
 			   for file in \
@@ -363,8 +333,9 @@ AS_IF([test x$srcdir != x. && test x$have_bundler = xyes],
 				   ruby/oml4r/oml4r.gemspec \
 				   ruby/oml4r/LICENSE \
 				   ruby/oml4r/Gemfile \
-				   ruby/oml4r/.yardopts; do
-			  cp -f $srcdir/${file} ./${file}; done
+				   ruby/oml4r/.yardopts \
+			  ; do
+			  ln -f $srcdir/${file} ./${file}; done
 			  ],[srcdir=$srcdir])
 ])
 dnl If the above command has copied files, let ruby/Makefile.am know that they have to be cleaned up

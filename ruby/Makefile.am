@@ -31,7 +31,7 @@ uninstall-hook:
 
 oml4rdir=$(pkgdatadir)/oml4r
 
-if HAVE_GEM_BUNDLER
+if BUILD_GEM
 OML4R_GEM = oml4r/pkg/oml4r-$(GEM_VERSION).gem
 CLEANFILES += $(OML4R_GEM)
 if CLEANUP_OML4R_GEM_SRC
