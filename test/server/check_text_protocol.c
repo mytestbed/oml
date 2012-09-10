@@ -115,13 +115,10 @@ START_TEST(test_text_insert)
   /* Process the second sample */
   client_callback(&source, ch, s2, strlen(s2));
 
-  /* Close all */
-  client_handler_free(ch);
-
-  loginfo("Checking recorded data\n");
+  loginfo("Checking recorded data in %s.sq3\n", exp_id);
   /* Open database */
   db = database_find(exp_id);
-  fail_if(db == 0, "Cannot open SQLite3 database");
+  fail_if(db == NULL || ((Sq3DB*)(db->handle))->conn == NULL , "Cannot open SQLite3 database");
   rc = sqlite3_prepare_v2(((Sq3DB*)(db->handle))->conn, select, -1, &stmt, 0);
   fail_unless(rc == 0, "Preparation of statement `%s' failed; rc=%d", select, rc);
 
@@ -136,6 +133,11 @@ START_TEST(test_text_insert)
   fail_unless(fabs(sqlite3_column_double(stmt, 0) - time2) < 10e-10, "Invalid oml_ts_value in 2nd row: expected `%f', got `%f'", time2, sqlite3_column_double(stmt, 0));
 
   /* Check timestamp */
+  /* TODO */
+
+  /* Close all */
+  client_handler_free(ch);
+  database_release(db);
 }
 END_TEST
 
