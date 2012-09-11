@@ -22,6 +22,14 @@ import socket
 from time import time
 from time import sleep
 
+# Compatibility with Python 2 and 3's string type
+if float(sys.version[:3])<3:
+    def to_bytes(s):
+        return s
+else:
+    def to_bytes(s):
+        return bytes(s, "UTF-8")
+
 
 class OMLBase:
     """
