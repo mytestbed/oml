@@ -104,11 +104,12 @@ AX_CHECK_POSTGRES_DB([],
 AM_CONDITIONAL([HAVE_LIBPQ], [test x$HAVE_LIBPQ = xyes])
 LIBS=$oldLIBS
 
-AX_WITH_PROG([GIT],[git])
 AC_ARG_ENABLE([packaging],
 	      [AS_HELP_STRING([--enable-packaging],
 			      [enable targets to create distribution-specific packages (Git clone needed)])],
-	      [AS_IF([test "x$enable_packaging" != "xno"],
+	      [
+	       AX_WITH_PROG([GIT],[git])
+	       AS_IF([test "x$enable_packaging" != "xno" && test -n "$GIT"],
 		     [
 		      AC_MSG_CHECKING([whether \$srcdir is a Git repo])
 		      AS_IF([test "x${srcdir}" = "x." && $GIT status >/dev/null 2>&1],
@@ -180,7 +181,7 @@ AC_ARG_ENABLE([packaging],
 			    ],
 			    [
 			     AC_MSG_RESULT([no])
-			     AC_MSG_WARN([--enable-packaging needs a Git repo for binary distributions])
+			     AC_MSG_WARN([--enable-packaging needs git and a Git repo for binary distributions])
 			     enable_packaging=partial
 			    ])
 		      ])],
