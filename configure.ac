@@ -198,6 +198,27 @@ AM_CONDITIONAL([BUILD_ARCH], [test "x$MAKEPKG" != "x"])
 AM_CONDITIONAL([BUILD_DEBIAN], [test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"])
 AM_CONDITIONAL([BUILD_RPM], [test "x$RPMBUILD" != "x"])
 
+AX_WITH_PROG([PYTHON],[python])
+AX_PROG_PYTHON_VERSION([2.7],
+		       [
+			have_python=yes
+			AS_IF([test "x$enable_packaging" != "xno"],[
+			       AC_MSG_NOTICE([The OML4Py egg will be built])
+			       build_egg=yes
+			      ])
+			AC_MSG_CHECKING(Python architecture)
+			#dnl This is Python. The indentation matters.
+			pythonarch=`${PYTHON} -c "import distutils.util
+print(distutils.util.get_platform())"`
+			AC_MSG_RESULT($pythonarch)
+		       ],
+		       [
+			AC_MSG_WARN([No Python>=2.7 found; OML4Py will not be built])
+		       ])
+AC_SUBST([PYTHON_ARCH], [$pythonarch])
+AM_CONDITIONAL([HAVE_PYTHON], [test x${have_python} = xyes])
+AM_CONDITIONAL([BUILD_OML4PY_EGG], [test x${build_egg} = xyes])
+
 AX_WITH_PROG([RUBY],[ruby])
 AX_PROG_RUBY_VERSION([1.8.7],
 		     [
@@ -307,6 +328,9 @@ AC_CONFIG_FILES([Makefile
 		 lib/client/Makefile
 		 lib/shared/Makefile
 		 lib/ocomm/Makefile
+		 python/Makefile
+		 python/oml4py/PKG-INFO
+		 python/oml4py/setup.py
 		 ruby/Makefile
 		 ruby/oml2-scaffold
 		 ruby/oml4r/lib/oml4r.rb
@@ -322,6 +346,20 @@ AC_CONFIG_FILES([Makefile
 		 test/system/blob/Makefile
 		 ])
 AC_CONFIG_COMMANDS([issue610-exec], [chmod a+x test/server/issue610.rb])
+dnl Copy source files for the  in VPATH so setup.py is happy
+AS_IF([test x$srcdir != x. && test x$have_python = xyes],
+      [AC_CONFIG_COMMANDS([oml4py-vpath-copy],
+			  [mkdir -p python/oml4py && \
+			   for file in \
+				   python/oml4py/CHANGES.txt \
+				   python/oml4py/oml4py.py \
+				   python/oml4py/README.txt \
+				   python/oml4py/LICENSE.txt \
+			  ; do
+			  ln -f $srcdir/${file} ./${file}; done
+			  ],[srcdir=$srcdir])
+])
+AC_CONFIG_COMMANDS([oml4py-setup-exec], [chmod a+x python/oml4py/setup.py])
 dnl Copy source files for the Gem in VPATH so rake is happy
 AS_IF([test x$srcdir != x. && test x$build_gem = xyes],
       [AC_CONFIG_COMMANDS([oml4r-vpath-copy],
@@ -339,8 +377,9 @@ AS_IF([test x$srcdir != x. && test x$build_gem = xyes],
 			  ln -f $srcdir/${file} ./${file}; done
 			  ],[srcdir=$srcdir])
 ])
-dnl If the above command has copied files, let ruby/Makefile.am know that they have to be cleaned up
-AM_CONDITIONAL([CLEANUP_OML4R_GEM_SRC], [test x$srcdir != x. && test x$have_bundler = xyes])
+dnl If the above command has copied files, let {python,ruby}/Makefile.am know that they have to be cleaned up
+AM_CONDITIONAL([CLEANUP_OML4PY_SRC], [test x$srcdir != x. && test x$have_python = xyes])
+AM_CONDITIONAL([CLEANUP_OML4R_GEM_SRC], [test x$srcdir != x. && test x$build_gem = xyes])
 
 AS_IF([test "x$missing_check" != "x"],
    [AC_MSG_WARN([could not find the `check' package, required for running unit tests. This will not stop OML from building, but it will cause `make check' to do nothing. Install the `check' package (http://check.sourceforge.net) if you wish to run the unit tests.])])

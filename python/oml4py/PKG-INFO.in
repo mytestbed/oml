@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: oml4py
-Version: 1.0.0
+Version: @VERSION@
 Summary: An OML client module for Python
 Home-page: http://witestlab.poly.edu
 Author: Fraida Fund
@@ -11,7 +11,7 @@ Description: ===========
         OML4PY
         ===========
         
-        This is a Python module for the OML measurement library based on the OML text 
+        This is a Python module for the OML measurement library based on the OML text
         protocol: http://mytestbed.net/projects/oml/wiki/Description_of_Text_protocol
         
         Installation
@@ -35,35 +35,35 @@ Description: ===========
             start
             addmp
             inject
-            close 
+            close
         
         To use OML in a python project, import the OMLBase class::
         
            from oml4py import OMLBase
         
-        Start by initializing an OMLBase object. The init method takes up to four 
-        arguments: 
-        *  the name of the application, 
-        *  the name of the experiment, 
-        *  the name of the node, 
+        Start by initializing an OMLBase object. The init method takes up to four
+        arguments:
+        *  the name of the application,
+        *  the name of the experiment,
+        *  the name of the node,
         *  and the OML server URI in the form tcp:hostname:port
         
         For example::
         
             x=OMLBase("app", "an-exp","r","tcp:myomlserver.com:3003")
         
-        The only mandatory argument is the first one (the name of the application). 
-        If you skip any of the others, they may be defined by environment variables 
-        (OML_EXP_ID, OML_NAME, OML_SERVER). If these environment variables are not 
-        defined and they are not passed in explicitly, then the application will 
-        run with OML disabled, and the measurements that would have been sent 
+        The only mandatory argument is the first one (the name of the application).
+        If you skip any of the others, they may be defined by environment variables
+        (OML_EXP_ID, OML_NAME, OML_SERVER). If these environment variables are not
+        defined and they are not passed in explicitly, then the application will
+        run with OML disabled, and the measurements that would have been sent
         to OML will be printed on stdout instead.
         
         
-        Next, add one or more measurement points. Pass the name of the measurement 
-        point and a schema string to the start method. The schema string should 
-        be in the format 
-        ``measurement_name1:measurement_type1 measurement_name2:measurement_type2`` 
+        Next, add one or more measurement points. Pass the name of the measurement
+        point and a schema string to the start method. The schema string should
+        be in the format
+        ``measurement_name1:measurement_type1 measurement_name2:measurement_type2``
         for example::
         
             x.addmp("fft", "freq:long amplitude:double fft_val:double")
@@ -72,8 +72,8 @@ Description: ===========
         
             x.start()
         
-        When you have a measurement point to send to OML, store them in a list. 
-        Then pass the name of the measurement point and list of values to inject, 
+        When you have a measurement point to send to OML, store them in a list.
+        Then pass the name of the measurement point and list of values to inject,
         as follows::
         
            x.inject("fft", [259888, 15, -38])

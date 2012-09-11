@@ -1,12 +1,13 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = gnulib lib server proxy_server ruby doc example test
+SUBDIRS = gnulib lib server proxy_server python ruby doc example test
 
 EXTRA_DIST = m4/gnulib-cache.m4 \
 	     $(top_srcdir)/.version \
 	     m4/ax_compare_version.m4 \
 	     m4/ax_git_search_treeish.m4 \
 	     m4/ax_prog_doxygen.m4 \
+	     m4/ax_prog_python_version.m4 \
 	     m4/ax_prog_ruby_version.m4 \
 	     m4/ax_with_prog.m4
 
@@ -15,6 +16,11 @@ $(top_srcdir)/.version:
 	echo $(VERSION) > $@-t && mv $@-t $@
 dist-hook:
 	echo $(VERSION) > $(distdir)/.tarball-version
+
+if BUILD_OML4PY_EGG
+oml4py-egg oml4py-push:
+	$(MAKE) -C python/ $@
+endif
 
 if BUILD_GEM
 oml4r-gem oml4r-push:
