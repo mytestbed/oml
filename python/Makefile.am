@@ -8,12 +8,15 @@ EXTRA_DIST = \
 	     oml4py/PKG-INFO.in \
 	     oml4py/oml4py.py.in \
 	     oml4py/setup.py.in \
-	     $(OML4PY_EGG_SRC)
+	     $(OML4PY_EGG_SRC) \
+	     oml4py/oml4py-simple-example.py
 
 if HAVE_PYTHON
 DISTCLEANFILES = oml4py_installed_files
 
 oml4pydir=$(pkgdatadir)/oml4py
+
+oml4py_DATA = oml4py/oml4py-simple-example.py
 
 all: oml4py-build
 
@@ -37,7 +40,7 @@ if BUILD_OML4PY_EGG
 OML4PY_EGG = oml4py/dist/oml4py-$(VERSION).$(PYTHON_ARCH).tar.gz
 CLEANFILES = $(OML4PY_EGG)
 
-oml4py_DATA = $(OML4PY_EGG)
+oml4py_DATA += $(OML4PY_EGG)
 
 oml4py-egg: $(OML4PY_EGG)
 $(OML4PY_EGG):
