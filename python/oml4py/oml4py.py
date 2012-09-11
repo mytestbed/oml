@@ -112,7 +112,7 @@ class OMLBase:
           self.starttime = int(time())
 
           header = "protocol: 1" + '\n' + "experiment-id: " + str(self.expid) + '\n' + \
-                 "start_time: " + str(self.starttime) + '\n' + "sender-id: " + str(self.sender) + '\n' + \
+                 "start-time: " + str(self.starttime) + '\n' + "sender-id: " + str(self.sender) + '\n' + \
                  "app-name: " + str(self.appname) + '\n' + \
                  str(self.schema) + '\n' + "content: text" + '\n' + '\n'    
     
