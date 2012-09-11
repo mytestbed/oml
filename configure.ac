@@ -330,6 +330,7 @@ AC_CONFIG_FILES([Makefile
 		 lib/ocomm/Makefile
 		 python/Makefile
 		 python/oml4py/PKG-INFO
+		 python/oml4py/oml4py.py
 		 python/oml4py/setup.py
 		 ruby/Makefile
 		 ruby/oml2-scaffold
@@ -352,7 +353,6 @@ AS_IF([test x$srcdir != x. && test x$have_python = xyes],
 			  [mkdir -p python/oml4py && \
 			   for file in \
 				   python/oml4py/CHANGES.txt \
-				   python/oml4py/oml4py.py \
 				   python/oml4py/README.txt \
 				   python/oml4py/LICENSE.txt \
 			  ; do

@@ -3,12 +3,10 @@ ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 OML4PY_EGG_SRC = \
 		oml4py/CHANGES.txt \
 		oml4py/LICENSE.txt \
-		oml4py/oml4py.py \
-		oml4py/README.txt \
-		oml4py/PKG-INFO \
-		oml4py/setup.py
+		oml4py/README.txt
 EXTRA_DIST = \
 	     oml4py/PKG-INFO.in \
+	     oml4py/oml4py.py.in \
 	     oml4py/setup.py.in \
 	     $(OML4PY_EGG_SRC)
 

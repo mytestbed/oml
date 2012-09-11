@@ -16,6 +16,7 @@
 # Date: 08/06/2012
 #
 
+import sys
 import os
 import socket
 from time import time
@@ -26,14 +27,24 @@ class OMLBase:
     """
     This is a Python OML class
     """
-    def __init__(self,appname,expid=None,sender=None,uri=None):
+
+    VERSION = "@VERSION@"
+    VERSION_STRING = ("OML4Py Client V@VERSION@")
+    COPYRIGHT = "Copyright 2012, NYU-Poly, Fraida Fund"
+    PROTOCOL = 1
+
+    def _banner(self):
+        sys.stderr.write("INFO\t%s [Protocol V%d] %s\n" % (self.VERSION_STRING, self.PROTOCOL, self.COPYRIGHT))
+
+    def __init__(self,appname,expid=None,sender=None,uri="tcp:localhost:3003"):
+        self._banner()
 
         self.oml = True
 
         # Set all the instance variables
         self.appname = appname
         if self.appname[:1].isdigit() or '-' in self.appname or '.' in self.appname:
-          print "OML::Invalid app name: %s" %  self.appname
+          sys.stderr.write("ERROR\tInvalid app name: %s\n" %  self.appname)
           self.oml = False
 
         if expid is None:
@@ -84,7 +95,7 @@ class OMLBase:
  
       if self.oml:
         if "-" in mpname or "." in mpname:
-          print "OML::Invalid measurement point name: %s" %  mpname
+          sys.stderr.write("ERROR\tInvalid measurement point name: %s\n" %  mpname)
           self.oml = False
 
         else:
@@ -116,14 +127,14 @@ class OMLBase:
                  "app-name: " + str(self.appname) + '\n' + \
                  str(self.schema) + '\n' + "content: text" + '\n' + '\n'    
     
-          self.sock.send(header)
-          print "OML::Connected to %s:%d" % (self.omlserver,self.omlport)
-        except socket.error, e:
-          print "OML::Error on connect to OML server: %s" %  e
+          self.sock.send(to_bytes(header))
+          sys.stderr.write("INFO\tCollection URI is tcp:%s:%d\n" % (self.omlserver,self.omlport))
+        except socket.error as e:
+          sys.stderr.write("ERROR\tCould not connect to OML server: %s\n" %  e)
           self.oml = False
-          print "OML::OML Disabled"
+          sys.stderr.write("ERROR\tOML disabled\n")
       else:
-        print "OML::OML Disabled"
+        sys.stderr.write("ERROR\tOML disabled\n")
 
 
     def close(self):
@@ -139,7 +150,7 @@ class OMLBase:
         # Inject data into OML 
 
         if self.starttime == 0:
-            print("OML::Did not call OML start")
+            sys.stderr.write("ERROR\tDid not call start()\n")
             self.oml = False
         else:
           timestamp = time() - self.starttime
@@ -153,12 +164,12 @@ class OMLBase:
                 str_inject += '\t'
                 str_inject += str(item)
               str_inject += '\n'
-              self.sock.send(str_inject)
+              self.sock.send(to_bytes(str_inject))
               self.nextseq[mpname]+=1
             except TypeError:
-              print "OML::Invalid measurement list."
+              sys.stderr.write("ERROR\tInvalid measurement list\n")
           except KeyError:
-            print "OML::Tried to inject into unknown MP %s" % mpname
+            sys.stderr.write("ERROR\tTried to inject into unknown MP '%s'\n" % mpname)
     
       else:
         timestamp = time() - self.starttime
@@ -167,7 +178,8 @@ class OMLBase:
           for item in values:
               str_inject += '\t'
               str_inject += str(item)
-          print str_inject
+          str_inject += '\n'
+          sys.stdout.write(str_inject)
         except TypeError:
-          print "OML::Invalid measurement list."
+          sys.stderr.write("ERROR\tInvalid measurement list\n")
 
