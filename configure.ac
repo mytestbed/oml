@@ -83,6 +83,7 @@ AC_SEARCH_LIBS([xmlParseFile], [xml2], [
 		AC_DEFINE([HAVE_LIBXML2], [1], [Define if libxml2 is installed.])
 		AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([XML2_LIBS], $ac_res)])
 
+		AS_IF([test x$cross_compiling = xno], [
 		AC_PATH_PROG([HAVE_XML2CFG], [xml2-config])
 		AS_IF([test "x$HAVE_XML2CFG" != "x" ],
 		      [
@@ -91,9 +92,12 @@ AC_SEARCH_LIBS([xmlParseFile], [xml2], [
 		       AC_MSG_CHECKING([how to include libxml2 headers])
 		       AC_MSG_RESULT([$XML2_CFLAGS])
 		       ])
+		],
+		[AC_MSG_WARN([skipping xml2-config because of cross compilation])]
+		)
 	       ], [missing_libs+=" libxml2"])
 
-AC_SEARCH_LIBS([sqlite3_open], [sqlite3], [
+AC_SEARCH_LIBS([sqlite3_open], [sqlite3 sqlite], [
 		AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])
 		AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([SQLITE3_LIBS], $ac_res)])
 	       ], [missing_libs+=" libsqlite3"])
