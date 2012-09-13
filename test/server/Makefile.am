@@ -42,7 +42,7 @@ msgloop_LDADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la
 check_server_CFLAGS = @CHECK_CFLAGS@
 
-check_server_LDADD = @CHECK_LIBS@ -lsqlite3 \
+check_server_LDADD = @CHECK_LIBS@ @SQLITE3_LIBS@ \
 	$(top_builddir)/lib/shared/libshared.la \
 	$(top_builddir)/lib/ocomm/libocomm.la
 

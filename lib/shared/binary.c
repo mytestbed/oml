@@ -20,6 +20,7 @@
  * THE SOFTWARE.
  *
  */
+#include <arpa/inet.h>
 #include <oml2/omlc.h>
 #include <mbuf.h>
 #include <marshal.h>

@@ -43,7 +43,7 @@ AC_TYPE_UINT8_T
 # Checks for library functions.
 AC_FUNC_FORK
 AC_FUNC_MALLOC
-AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memmove memset socket sqrt strerror])
+AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memmove memset socket strerror])
 
 AC_C_BIGENDIAN
 
@@ -59,10 +59,13 @@ AC_SUBST([pkglocalstatedir], [${localstatedir}/${PACKAGE}])
 # Check for presence of libraries, but don't add them to the default LIBS,
 # rather add create new Makefile variables xxx_LIBS
 oldLIBS=$LIBS
-AC_SEARCH_LIBS([sqrt], [m], [
-		AC_DEFINE([HAVE_LIBM], [1],[Define if libm is installed.])
-		AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([M_LIBS], $ac_res)])
-	       ], [missing_libs+=" libm"])
+AC_SEARCH_LIBS([sqrt], [m],[
+		AS_IF([test "$ac_res" != "none required"],[M_LIBS="$M_LIBS $ac_res"])
+	       ])
+AC_SEARCH_LIBS([frexp], [m], [
+		AS_IF([test "$ac_res" != "none required"],[M_LIBS="$M_LIBS $ac_res"])
+	       ])
+AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([M_LIBS], $M_LIBS)])
 LIBS=$oldLIBS
 AC_SEARCH_LIBS([pthread_create], [pthread], [
 		AC_DEFINE([HAVE_LIBPTHREAD], [1], [Define if libpthread is installed.])

@@ -23,23 +23,20 @@ oml2_server_SOURCES = \
 	table_descr.h \
 	version.h
 
-sharedir = $(datadir)/@PACKAGE@
+sharedir = $(datadir)/$(PACKAGE)
 dist_share_DATA = oml2-server-hook.sh
 
 if HAVE_LIBPQ
 oml2_server_SOURCES += psql_adapter.c psql_adapter.h
-else
-oml2_server_SOURCES +=
+oml2_server_LDFLAGS = $(PQLIBPATH)
 endif
 
-oml2_server_CPPFLAGS = @PQINCPATH@ $(AM_CPPFLAGS)
-
-oml2_server_LDFLAGS = @PQLIBPATH@
+oml2_server_CPPFLAGS = $(PQINCPATH) $(AM_CPPFLAGS)
 
 oml2_server_LDADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \
 	$(top_builddir)/lib/shared/libshared.la \
-	-lpopt -lsqlite3 @LIBPQ_LIBS@
+	$(M_LIBS) $(POPT_LIBS) $(SQLITE3_LIBS) $(LIBPQ_LIBS)
 
 install-data-hook:
 	$(install_sh) -d -m 755 $(DESTDIR)$(pkglocalstatedir)
