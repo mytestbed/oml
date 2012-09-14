@@ -208,7 +208,7 @@ database_find_or_create_table(Database *database, struct schema *schema)
   DbTable *table = NULL;
   struct schema *s = schema_copy(schema);
   int i = 1;
-  int diff, tnlen;
+  int diff = 0, tnlen;
 
   tnlen = strlen(schema->name);
   

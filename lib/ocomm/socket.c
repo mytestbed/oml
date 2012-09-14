@@ -615,7 +615,7 @@ socket_sendto(
       self->is_disconnected = 1;
       o_log(O_LOG_ERROR, "socket:%s: The remote peer closed the connection: %s\n",
             self->name, strerror(errno));
-    } else if (errno = EINTR) {
+    } else if (errno == EINTR) {
       o_log(O_LOG_WARN, "socket:%s: Sending data interrupted: %s\n",
             self->name, strerror(errno));
       return 0;

@@ -145,7 +145,7 @@ sq3_release(Database* db)
           HOOK_CMD_DBCLOSED, realpath(sqlite_database_dir, fullpath), db->name) == -1) {
       logwarn("sqlite:%s: Failed to construct command string for event hook\n", db->name);
     }
-    if(hook_write(mstring_buf(hook_command), mstring_len(hook_command)) < mstring_len(hook_command))
+    if(hook_write(mstring_buf(hook_command), mstring_len(hook_command)) < (int)mstring_len(hook_command))
       logwarn("sqlite:%s: Failed to send command string to event hook: %s\n", db->name, strerror(errno));
     mstring_delete(hook_command);
   }
@@ -228,6 +228,7 @@ sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id)
 MString*
 sq3_make_sql_insert (DbTable* table)
 {
+  MString* mstr = mstring_create ();
   int n = 0;
   int max = table->schema->nfields;
 
@@ -235,8 +236,6 @@ sq3_make_sql_insert (DbTable* table)
     logerror ("sqlite: Trying to insert 0 values into table %s\n", table->schema->name);
     goto fail_exit;
   }
-
-  MString* mstr = mstring_create ();
 
   if (mstr == NULL) {
     logerror("sqlite: Failed to create managed string for preparing SQL INSERT statement\n");
