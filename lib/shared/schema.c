@@ -340,6 +340,7 @@ schema_new (const char *name)
     if (schema->name) xfree (schema->name);
     xfree (schema);
   }
+  return NULL;
 }
 
 void
