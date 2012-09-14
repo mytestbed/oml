@@ -1,3 +1,9 @@
+oml2 (2.8.1-ubuntu3) precise; urgency=low
+
+  * Include static and Libtool convenience libs in -dev packages
+
+ -- Olivier Mehani <olivier.mehani@nicta.com.au>  Fri, 14 Sep 2012 10:08:24 +1000
+
 oml2 (2.8.1-ubuntu2) precise; urgency=low
 
   * packages now depend on the correct version of libc. Reported by Fraida Fund.
