@@ -1,15 +1,15 @@
 OML : Orbit Measurment Library : Installation instructions
-----------------------------------------------------------
+==========================================================
 
 For users
 ---------
 
 If you just want to use OML, you probably downloaded this package as a
-tarball.  The standard UNIX ./configure && make method works for this
-package.  Here's what to do:
+tarball. The standard UNIX ./configure && make method works for this
+package. Here's what to do:
 
-$ tar xvfz oml2-xxx.tar.gz
-$ cd oml2-xxx
+$ tar xvfz oml2-2.x.x.tar.gz
+$ cd oml2-2.x.x
 $ ./configure --help
 
 (to see the configuration options), and then:
@@ -18,15 +18,14 @@ $ ./configure [possible options]
 $ make
 $ make install							# As super user, or use sudo(1)
 
-The most useful option to configure is the --prefix option, which
-allows installation in a non-standard location.  The default is
-/usr/local.  If you just use the default, the liboml2 library will be
-installed in /usr/local/lib, and you should be able to link your
-programs against it with a simple -loml2 on the command line to the
-linker.  The server, proxy server, and oml2_scaffold will be installed
-in /usr/local/bin, and should be in your standard PATH.  The example
-programs and the programs in the app/ subdirectory will be installed
-in /usr/local/share/bin.
+The most useful option to configure is the --prefix option, which allows
+installation in a non-standard location. The default is /usr/local. If
+you just use the default, the liboml2 library will be installed in
+/usr/local/lib, and you should be able to link your programs against it
+with a simple -loml2 on the command line to the linker. The server,
+proxy server, and oml2_scaffold will be installed in /usr/local/bin, and
+should be in your standard PATH. The example programs and the programs
+in the app/ subdirectory will be installed in /usr/local/share/bin.
 
 To install OML in your home directory, use:
 
@@ -35,20 +34,22 @@ $ make
 $ make install
 
 Then you will probably need to add ${HOME}/usr/lib to your
-LD_LIBRARY_PATH environment variable.  The 'make install' process will
-print instructions on what to do.  To run the server, add
-${HOME}/usr/bin to your PATH environment variable
+LD_LIBRARY_PATH environment variable. The 'make install' process will
+print instructions on what to do. To run the server, add ${HOME}/usr/bin
+to your PATH environment variable
 
-By default the documentation won't be built.  The documentation is
-written in Asciidoc markup language, so you'll need Asciidoc installed
-('apt-get install asciidoc' on Debian/Ubuntu).  To enable building the
-documentation, use the '--with-doc' option to the configure script:
+By default the documentation will be built. The documentation is written
+in Asciidoc markup language, so you'll need Asciidoc installed ('apt-get
+install asciidoc' on Debian/Ubuntu). Code documentation based on Doxygen
+markup is also generated. To disable building the documentation, use the
+'--with-doc' option to the configure script. To only disable Doxygen
+documentation, use the '--without-doxygen-doc' option.
 
-$ ./configure --with-doc
-$ make									# This now builds the docs
+$ ./configure --without-doc
+$ make								# This now doesn't builds the docs
 $ make install							# As super user, or use sudo(1)
 
-The last command will install the man pages.  Starting points in the
+The last command will install the man pages. Starting points in the
 documentation are:
 
 $ man 1 liboml2
@@ -67,53 +68,41 @@ sources from the OML git repository at
 $ git clone git://mytestbed.net/oml.git
 
 In that case, in order to build the package you first need to generate
-the configure script and Makefiles.  To do this you need the Autotools
-installed: Autoconf, Automake, and Libtool.  If you use a Linux
+the configure script and Makefiles. To do this you need the Autotools
+installed: Autoconf, Automake, and Libtool. If you use a Linux
 distribution, these should all be available via your system's package
 manager.
 
-Once you have installed the Autotools you should be able to generate
-all the necessary configuration and Makefiles by doing this:
+Once you have installed the Autotools you should be able to generate all
+the necessary configuration and Makefiles by doing this:
 
-$ cd oml2-xxx
-$ autoreconf --install
+$ cd oml2
+$ ./autogen.sh
 
-If this doesn't work, you can run each of the Autotools individually.
-The following should work:
-
-$ libtoolize --copy
-$ aclocal
-$ autoconf
-$ automake --add-missing --copy
-
-At this point you should be ready to run 
+At this point you should be ready to run
 
 $ ./configure && make && make install
 
 as above.
 
 If you want to run the test suite you will also need to install the
-CHECK package (a unit testing framework).  You can find it here:
-
-http://check.sourceforge.net
-
-It's also available as a Debian package in the standard Debian and
-Ubuntu repositories:
+CHECK package (a unit testing framework) [0].  It's also available as a
+Debian package in the standard Debian and Ubuntu repositories:
 
 $ apt-get install check
 
 If you don't install CHECK then the test suite won't be run, but OML
-should still build and install correctly.  To run the test suite, use
-the 'check' target:
+should still build and install correctly. To run the test suite, use the
+'check' target:
 
 $ make check
 
 If you prefer to keep your executables, object files, and other
 generated files in a separate tree, Automake supports a parallel build
-using GNU Make's VPATH feature.  For instance, to build in a
-subdirectory called 'build', do the following:
+using GNU Make's VPATH feature. For instance, to build in a subdirectory
+called 'build', do the following:
 
-$ cd oml2-xxx
+$ cd oml2
 $ mkdir build
 $ cd build
 $ ../configure [possible options]
@@ -121,7 +110,7 @@ $ make
 $ make install							# As super user, or use sudo(1)
 
 All the files generated by configure and make will be put under the
-build directory.  Automake recognizes that configure was run in a
+build directory. Automake recognizes that configure was run in a
 directory different to the root of the source tree, and adjusts its
 behaviour accordingly.
 
@@ -129,8 +118,10 @@ Finally, if you want to restore the tree to a clean state, without the
 generated Makefile, Makefile.in, and copied Autoconf/Automake/Libtool
 files, do this:
 
-$ cd oml2-xxx
+$ cd oml2
 $ ./autoclean.sh
 
-Once you do this, you'll have to follow the above procedure again to
-get the tree into a state where you can build it.
+Once you do this, you'll have to follow the above procedure again to get
+the tree into a state where you can build it.
+
+[0] http://check.sourceforge.net
