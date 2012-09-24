@@ -40,18 +40,30 @@ PKG_AND_OUT_DIR=$(PKG_AND_BUILD_DIR)/$(PKG_AND_BASE_NAME)
 PKG_PACKAGES+=pkg-and
 PKG_CLEANFILES+=$(PKG_AND_BUILD_DIR)
 
-$(PKG_AND_BUILD_DIR):
+$(PKG_AND_BUILD_DIR): 
 	rm -rf $(PKG_AND_BUILD_DIR)
 	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/client/filter
 	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/client/oml2
 	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/shared
 	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/ocomm/ocomm
 	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/ocomm/test
+if HAVE_RUBY_MIN_1_8_7
+# It's OK to do the following as --enable-packaging is not compatible with VPATH
+# builds (it needs a Git checkout).
+	$(MAKE) SCAFFOLD="$(RUBY) $(abs_top_builddir)/ruby/oml2-scaffold" -C $(top_srcdir)/example/liboml2 generator_oml.h generator_popt.h
+	mkdir -p $(PKG_AND_OUT_DIR)/external/example-oml2
+	cd $(top_srcdir)/example/liboml2; \
+		find . \( -name "*.c" -o -name "*.h" \) -exec $(install_sh_DATA) {} $(abs_top_builddir)/$(PKG_AND_OUT_DIR)/external/example-oml2/{} \;
+# Clean up files created above. It assumes they weren't built before, but
+# they shouldn't have been as they are examples not part of the actual
+# build.
+	rm $(top_srcdir)/example/liboml2/generator_oml.h $(top_srcdir)/example/liboml2/generator_popt.h
+endif #HAVE_RUBY_MIN_1_8_7
 	cd $(top_srcdir)/lib; \
-		find . \( -name "*.c" -o -name "*.h" \) -exec $(install_sh_DATA) {} ../$(PKG_AND_OUT_DIR)/external/liboml2/{} \;
+		find . \( -name "*.c" -o -name "*.h" \) -exec $(install_sh_DATA) {} $(abs_top_builddir)/$(PKG_AND_OUT_DIR)/external/liboml2/{} \;
 	mkdir -p $(PKG_AND_OUT_DIR)/external/oml2-proxy-server
 	cd $(top_srcdir)/proxy_server; \
-		find . \( -name "*.c" -o -name "*.h" \) -exec $(install_sh_DATA) {} ../$(PKG_AND_OUT_DIR)/external/oml2-proxy-server/{} \;
+		find . \( -name "*.c" -o -name "*.h" \) -exec $(install_sh_DATA) {} $(abs_top_builddir)/$(PKG_AND_OUT_DIR)/external/oml2-proxy-server/{} \;
 	$(GIT) archive $(GITANDREF) | $(am__untar) -C $(PKG_AND_OUT_DIR)/
 # XXX: This sed invocation requires GNU sed.
 	cd $(PKG_AND_OUT_DIR); \

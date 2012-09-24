@@ -289,6 +289,8 @@ AX_PROG_RUBY_VERSION([1.8.7],
 		      AC_MSG_WARN([No Ruby>=1.8.7 found; the OML4r gem will not be built, and some tests will be skipped])
 		      missing_rubyge187=yes
 		      missing_rubyge19=yes
+		      AS_IF([test "x$enable_android" = "xyes"],
+			    [AC_MSG_WARN([The Android source package will not contain a working example-oml2, please do not distribute it])])
 		     ]
 		    )
 AM_CONDITIONAL([HAVE_RUBY_MIN_1_8_7], [test x"${missing_rubyge187}" != xyes])
