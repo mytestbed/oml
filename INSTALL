@@ -124,4 +124,22 @@ $ ./autoclean.sh
 Once you do this, you'll have to follow the above procedure again to get
 the tree into a state where you can build it.
 
+Android builds
+--------------
+
+Building OML for Android consists in leveraging the native process. This
+method requires a different set of source files, and cannot work with
+your current tree. If you are working from a Git checkout, you can
+generate this set of source files by running the following commands.
+
+$ ./configure --enable-packaging
+$ make pkg-and
+
+This will create an archive named p-android/oml2-2.x.x-android.tar.gz.
+Alternatively, you can find this archive at [1]. That fileset contains
+both the OML and libpopt source, as well as a README.oml2 file
+documenting the build process in more details. Please refer to it.
+
+
 [0] http://check.sourceforge.net
+[1] http://oml.mytestbed.net/projects/oml/files
