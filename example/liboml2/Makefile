@@ -11,7 +11,7 @@ SRCS = ${PROGRAM}.c
 
 CFLAGS = -g -I. -I/usr/local/include
 LDFLAGS =
-LIBS = -loml2 -lxml2 -lpopt -lpthread -lm
+LIBS = -loml2 -lpopt -lm
 
 
 #BUILD_TOP = $(TOP)/build
