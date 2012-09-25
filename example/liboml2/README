@@ -17,6 +17,7 @@ Most of the code has been generated with the following few steps.
   [add missing includes and sine-generation logic]
   ^]:wq
   $ oml2-scaffold --make generator.rb	# Create template Makefile
+  $ vim Makefile
   [add -lm to LIBS, necessary for sin(3)]
   ^]:wq
 
