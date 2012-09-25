@@ -7,6 +7,8 @@ INSTALL_DIR = $(DESTDIR)/usr/local/bin
 #### FOR EXPERTS ONLY  ###
 TOP = .
 
+SCAFFOLD = oml2-scaffold
+
 SRCS = ${PROGRAM}.c
 
 CFLAGS = -g -I. -I/usr/local/include
@@ -60,7 +62,7 @@ debug:
 $(OBJ_DIR)/$(PROGRAM).o: version.h $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
 $(PROGRAM)_popt.h: $(PROGRAM).rb
-	oml2-scaffold --opts $<
+	$(SCAFFOLD) --opts $<
 
 $(PROGRAM)_oml.h: $(PROGRAM).rb
-	oml2-scaffold --oml $<
+	$(SCAFFOLD) --oml $<
