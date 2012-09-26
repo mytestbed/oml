@@ -26,19 +26,19 @@
 #include <string.h>
 #include <inttypes.h>
 #include <sqlite3.h>
-#include <log.h>
 #include <time.h>
 #include <sys/time.h>
-#include <mstring.h>
-#include <htonll.h>
-#include <mem.h>
-#include <oml_value.h>
 #include "database.h"
-#include "schema.h"
-#include "oml_util.h"
-#include "table_descr.h"
-#include "sqlite_adapter.h"
 #include "hook.h"
+#include "htonll.h"
+#include "log.h"
+#include "mem.h"
+#include "mstring.h"
+#include "oml_util.h"
+#include "oml_value.h"
+#include "schema.h"
+#include "sqlite_adapter.h"
+#include "table_descr.h"
 
 extern char *sqlite_database_dir;
 
@@ -260,7 +260,7 @@ sq3_make_sql_insert (DbTable* table)
 
 /** Mapping from OML types to SQLite3 types.
  *
- * \param type OmlValueT
+ * \param type OmlValueT to convert
  * \return a pointer to a static string describing the SQLite3 type, or NULL if unknown
  */
 static const char*
