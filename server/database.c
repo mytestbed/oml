@@ -228,14 +228,10 @@ database_find_or_create_table(Database *database, struct schema *schema)
       } else if (diff > 0) {
         struct schema_field *client = &s->fields[diff-1];
         struct schema_field *stored = &table->schema->fields[diff-1];
-        if (!(((client->type == OML_UINT64_VALUE) || (client->type == OML_BLOB_VALUE)) &&
-              ((stored->type == OML_UINT64_VALUE) || (stored->type == OML_BLOB_VALUE)))) {
-
-          logdebug ("%s: Schema differ for table index '%s', at column %d: expected %s:%s, got %s:%s\n",
-              database->name, s->name, diff,
-              stored->name, oml_type_to_s (stored->type),
-              client->name, oml_type_to_s (client->type));
-        }
+        logdebug ("%s: Schema differ for table index '%s', at column %d: expected %s:%s, got %s:%s\n",
+            database->name, s->name, diff,
+            stored->name, oml_type_to_s (stored->type),
+            client->name, oml_type_to_s (client->type));
       }
 
       if (i == 1) {
