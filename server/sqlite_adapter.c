@@ -258,6 +258,44 @@ sq3_make_sql_insert (DbTable* table)
   return NULL;
 }
 
+/** Mapping from SQLite3 types to OML types.
+ *
+ * \param type string describing the SQLite3 type
+ * \return the corresponding OmlValueT or OML_UNKNOWN_VALUE if unknown
+ */
+static
+OmlValueT sqlite_to_oml_type (const char *s)
+{
+  static struct type_pair
+  {
+    OmlValueT type;
+    const char * const name;
+  } type_list [] =
+    {
+      { OML_INT32_VALUE,  "INTEGER"  },
+      { OML_UINT32_VALUE, "UNSIGNED INTEGER" },
+      { OML_INT64_VALUE,  "BIGINT"  },
+      { OML_UINT64_VALUE, "UNSIGNED BIGINT" },
+      { OML_DOUBLE_VALUE, "REAL" },
+      { OML_STRING_VALUE, "TEXT" },
+      { OML_BLOB_VALUE,   "BLOB" }
+    };
+  int i = 0;
+  int n = sizeof (type_list) / sizeof (type_list[0]);
+  OmlValueT type = OML_UNKNOWN_VALUE;
+
+  for (i = 0; i < n; i++)
+    if (strcmp (s, type_list[i].name) == 0) {
+        type = type_list[i].type;
+        break;
+    }
+
+  if (type == OML_UNKNOWN_VALUE)
+    logwarn("Unknown SQL type '%s' --> OML_UNKNOWN_VALUE\n", s);
+
+  return type;
+}
+
 /** Mapping from OML types to SQLite3 types.
  *
  * \param type OmlValueT to convert
@@ -632,7 +670,7 @@ sq3_get_table_list (Database *database, int *num_tables)
         strcmp (result[i], "_senders") == 0) {
       t = table_descr_new (result[i], NULL);
     } else {
-      struct schema *schema = schema_from_sql (result[j]);
+      struct schema *schema = schema_from_sql (result[j], sqlite_to_oml_type);
       if (!schema) {
         logwarn ("sqlite:%s: Failed to create table '%s': error parsing schema '%s'; not created by OML?\n",
             database->name, result[i], result[j]);

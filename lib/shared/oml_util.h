@@ -33,8 +33,6 @@ void chomp (char* str);
 const char *skip_white (const char *p);
 const char *find_white (const char *p);
 
-OmlValueT sql_to_oml_type (const char* type);
-
 char* to_octets (unsigned char* buf, int len);
 
 typedef enum {

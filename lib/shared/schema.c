@@ -156,22 +156,19 @@ schema_to_meta (struct schema *schema)
   return NULL;
 }
 
-/*
- * Parse an SQL name/type pair into a schema field object.  "sql"
- * points to the start of the column specifier.  The column specifier
- * can be part of a longer string and does not have to be null
- * terminated.  There must be no leading whitespace.
+/** Parse an SQL name/type pair into a schema field object.
  *
- * "len" is the length of the column specifier, from the first
- * character of the name up to but not including the comma (or closing
- * parenthesis) following the type.
+ * \param sql pointer to the start of the column specifier can be part of a
+ * longer string and does not have to be null terminated.  There must be no
+ * leading whitespace.
+ * \param len length of the column specifier, from the first character of the
+ * name up to but not including the comma (or closing parenthesis) following
+ * the type.
+ * \param[out] field parse result, must be allocated by the caller.
+ * \param reverse_typemap function pointer to the database adapter's SQL to OML type converter function
+ * \return 0 on success, -1 on failure.
  *
- * The parse result is stored in "field", which must be allocated by
- * the caller.
- *
- * Return 0 on success, -1 on failure.
- *
- * Example input:
+ * Example input (SQLite3 types):
  *
  *  "rx_packets INTEGER, tx_packets INTEGER, ..."
  *   ^          ^
@@ -189,9 +186,10 @@ schema_to_meta (struct schema *schema)
  *  oml_seq       INTEGER
  *  oml_ts_client REAL
  *  oml_ts_server REAL
+ *
  */
-int
-schema_field_from_sql (char *sql, size_t len, struct schema_field *field)
+static int
+schema_field_from_sql (char *sql, size_t len, struct schema_field *field, OmlValueT (*reverse_typemap) (const char *s))
 {
   char *p = sql, *q, *up, *uq;
   q = (char*)find_white (p);
@@ -202,7 +200,7 @@ schema_field_from_sql (char *sql, size_t len, struct schema_field *field)
   char *type = xstrndup (q, len - (q - p));
   if (!field->name || !type)
     goto exit;
-  field->type = sql_to_oml_type (type);
+  field->type = reverse_typemap (type);
   // OML_LONG_VALUE is deprecated, and converted to INT32 internally in server.
   field->type = (field->type == OML_LONG_VALUE) ? OML_INT32_VALUE : field->type;
   if (field->type == OML_UNKNOWN_VALUE)
@@ -246,8 +244,17 @@ schema_check_metadata (struct schema_field *field)
   return 1;
 }
 
+/** Parse an SQL input into a schema object.
+ *
+ * \param sql pointer to the start of the column specifier can be part of a
+ * longer string and does not have to be null terminated.  There must be no
+ * leading whitespace.
+ * \param reverse_typemap function pointer to the database adapter's SQL to OML type converter function
+ * \return 0 on success, -1 on failure.
+ *
+ */
 struct schema*
-schema_from_sql (char *sql)
+schema_from_sql (char *sql, OmlValueT (*reverse_typemap) (const char *s))
 {
   const char * const command = "CREATE TABLE ";
   int command_len = strlen (command);
@@ -286,7 +293,7 @@ schema_from_sql (char *sql)
       if (!f)
         goto exit;
       fields = f;
-      if (schema_field_from_sql (p, (q - p), &fields[nfields]) == -1)
+      if (schema_field_from_sql (p, (q - p), &fields[nfields], reverse_typemap) == -1)
         goto exit;
       int n = schema_check_metadata (&fields[nfields]);
       if (n == -1)
@@ -442,6 +449,12 @@ schema_diff (struct schema *s1, struct schema *s2)
   return 0;
 }
 
+/* Convert a schema into an SQL table creation statement.
+ *
+ * \param schema schema structure as created by, e.g., schema_from_meta()
+ * \param typemap function pointer to the database adapter's SQL to OML type converter function
+ * \return an MString containing the table-creation statement
+ */
 MString*
 schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT))
 {

@@ -59,38 +59,6 @@ find_white (const char *p)
   return p;
 }
 
-OmlValueT sql_to_oml_type (const char *s)
-{
-  static struct type_pair
-  {
-    OmlValueT type;
-    const char * const name;
-  } type_list [] =
-    {
-      { OML_INT32_VALUE,  "INTEGER"  },
-      { OML_UINT32_VALUE, "UNSIGNED INTEGER" },
-      { OML_INT64_VALUE,  "BIGINT"  },
-      { OML_UINT64_VALUE, "UNSIGNED BIGINT" },
-      { OML_DOUBLE_VALUE, "REAL" },
-      { OML_STRING_VALUE, "TEXT" },
-      { OML_BLOB_VALUE,   "BLOB" }
-    };
-  int i = 0;
-  int n = sizeof (type_list) / sizeof (type_list[0]);
-  OmlValueT type = OML_UNKNOWN_VALUE;
-
-  for (i = 0; i < n; i++)
-    if (strcmp (s, type_list[i].name) == 0) {
-        type = type_list[i].type;
-        break;
-    }
-
-  if (type == OML_UNKNOWN_VALUE)
-    logwarn("Unknown SQL type '%s' --> OML_UNKNOWN_VALUE\n", s);
-
-  return type;
-}
-
 char*
 to_octets (unsigned char* buf, int len)
 {
