@@ -540,6 +540,8 @@ psql_insert(Database* db,
   int i;
   double time_stamp_server;
   const char* insert_stmt = mstring_buf (psqltable->insert_stmt);
+  unsigned char *escaped_blob;
+  size_t eblob_len=-1;
 
   char * paramValues[4+value_count];
   for (i=0;i<4+value_count;i++) {
@@ -590,7 +592,26 @@ psql_insert(Database* db,
     case OML_UINT64_VALUE: sprintf(paramValues[4+i],"%" PRIu64,v->value.uint64Value); break;
     case OML_DOUBLE_VALUE: sprintf(paramValues[4+i],"%.8f",v->value.doubleValue); break;
     case OML_STRING_VALUE: sprintf(paramValues[4+i],"%s",v->value.stringValue.ptr); break;
-      //    case OML_BLOB_VALUE: sprintf(paramValues[4+i],"%s",v->value.blobValue.ptr); break;
+    case OML_BLOB_VALUE:
+                           escaped_blob = PQescapeByteaConn(psqldb->conn,
+                               v->value.blobValue.data, v->value.blobValue.fill, &eblob_len);
+                           if (!escaped_blob) {
+                             logerror("psql:%s: Error escaping blob in field %d of table '%s': %s\n",
+                                 db->name, i, table->schema->name, PQerrorMessage(psqldb->conn));
+                           }
+                           /* XXX: 512 char is the size allocated above. Nasty. */
+                           if (eblob_len > 512) {
+                             logdebug("psql:%s: Reallocating %d bytes for big blob\n", db->name, eblob_len);
+                             paramValues[4+i] = xrealloc(paramValues[4+i], eblob_len);
+                             if (!paramValues[4+i]) {
+                               logerror("psql:%s: Could not realloc()at memory for escaped blob in field %d of table '%s'\n",
+                                   db->name, i, table->schema->name);
+                               return -1;
+                             }
+                           }
+                           snprintf(paramValues[4+i], eblob_len, "%s", escaped_blob);
+                           PQfreemem(escaped_blob);
+                           break;
     default:
       logerror("psql:%s: Unknown type %d in col '%s' of table '%s'; this is probably a bug\n",
           db->name, field->type, field->name, table->schema->name);
