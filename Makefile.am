@@ -4,6 +4,7 @@ SUBDIRS = gnulib lib server proxy_server python ruby doc example test
 
 EXTRA_DIST = m4/gnulib-cache.m4 \
 	     $(top_srcdir)/.version \
+	     $(top_srcdir)/build-aux/gen-authors.sh \
 	     m4/ax_compare_version.m4 \
 	     m4/ax_git_search_treeish.m4 \
 	     m4/ax_prog_doxygen.m4 \
@@ -16,6 +17,9 @@ $(top_srcdir)/.version:
 	echo $(VERSION) > $@-t && mv $@-t $@
 dist-hook:
 	echo $(VERSION) > $(distdir)/.tarball-version
+	if test -d .git; then 							\
+		$(top_srcdir)/build-aux/gen-authors.sh > $(distdir)/AUTHORS;	\
+	fi
 
 if BUILD_OML4PY_EGG
 oml4py-egg oml4py-push:
