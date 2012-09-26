@@ -42,7 +42,7 @@
 #include <validate.h>
 #include "client_handler.h"
 #include "schema.h"
-#include "util.h"
+#include "oml_util.h"
 
 #define DEF_TABLE_COUNT 10
 

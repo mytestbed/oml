@@ -21,7 +21,7 @@
  *
  */
 #include <check.h>
-#include "util.h"
+#include "oml_util.h"
 
 #define N_URI_TEST 5
 START_TEST (test_util_uri)

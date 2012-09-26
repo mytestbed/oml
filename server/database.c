@@ -31,7 +31,7 @@
 #include <assert.h>
 #include "mem.h"
 #include "database.h"
-#include "util.h"
+#include "oml_util.h"
 #include "oml_value.h"
 
 #define DEF_COLUMN_COUNT 1

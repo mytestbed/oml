@@ -42,7 +42,7 @@
 #include <oml2/oml_filter.h>
 #include <oml2/oml_writer.h>
 #include "filter/factory.h"
-#include "util.h"
+#include "oml_util.h"
 #include "client.h"
 #include "version.h"
 

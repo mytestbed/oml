@@ -3,7 +3,7 @@
 #include <headers.h>
 #include <text.h>
 #include <binary.h>
-#include "util.h"
+#include "oml_util.h"
 
 /*
  * Used by:  test_tag_from_string

@@ -33,7 +33,7 @@ libshared_la_SOURCES = \
 	binary.h \
 	text.c \
 	text.h \
-	util.c \
-	util.h \
+	oml_util.c \
+	oml_util.h \
 	htonll.h
 

@@ -33,7 +33,7 @@
 
 #include <mem.h>
 #include <log.h>
-#include <util.h>
+#include "oml_util.h"
 
 #include <ocomm/o_log.h>
 #include <ocomm/o_socket.h>

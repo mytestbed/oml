@@ -28,7 +28,7 @@
 #include <mbuf.h>
 
 #include "client.h"
-#include "util.h"
+#include "oml_util.h"
 
 /*
 START_TEST (test_bw_create)

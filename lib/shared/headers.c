@@ -25,7 +25,7 @@
 #include <string.h>
 #include "headers.h"
 #include "mem.h"
-#include "util.h"
+#include "oml_util.h"
 
 static const struct {
   const char *name;

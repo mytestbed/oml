@@ -5,7 +5,7 @@
 #include <libpq-fe.h>
 #include <log.h>
 #include <mem.h>
-#include <util.h>
+#include "oml_util.h"
 #include <mstring.h>
 #include <time.h>
 #include <sys/time.h>

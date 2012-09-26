@@ -35,7 +35,7 @@
 #include <oml_value.h>
 #include "database.h"
 #include "schema.h"
-#include "util.h"
+#include "oml_util.h"
 #include "table_descr.h"
 #include "sqlite_adapter.h"
 #include "hook.h"

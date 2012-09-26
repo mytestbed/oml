@@ -27,7 +27,7 @@
 #include <ctype.h>
 #include <log.h>
 #include "mem.h"
-#include "util.h"
+#include "oml_util.h"
 
 /**
  * \brief Remove trailing space from a string

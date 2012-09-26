@@ -29,7 +29,7 @@
 #include <mstring.h>
 #include <oml_value.h>
 #include "schema.h"
-#include "util.h"
+#include "oml_util.h"
 
 /*
  * Parse a schema field like '<name>:<type>' into a struct schema_field.
