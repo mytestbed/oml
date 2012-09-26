@@ -543,7 +543,7 @@ psql_insert(Database* db,
 
   char * paramValues[4+value_count];
   for (i=0;i<4+value_count;i++) {
-    paramValues[i] = malloc(512*sizeof(char));
+    paramValues[i] = xmalloc(512*sizeof(char));
   }
 
   int paramLength[4+value_count];
@@ -614,7 +614,7 @@ psql_insert(Database* db,
   PQclear(res);
 
   for (i=0;i<4+value_count;i++) {
-    free(paramValues[i]);
+    xfree(paramValues[i]);
   }
 
   return 0;
