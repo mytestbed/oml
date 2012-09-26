@@ -514,15 +514,15 @@ psql_get_table_list (Database *database, int *num_tables)
   return tables;
 }
 
-/**
- * \brief Insert value in the sqlite3 database
- * \param db the database that contains the sqlite3 db
- * \param table the table to insert data in
- * \param sender_id the sender ID
- * \param seq_no the sequence number
- * \param time_stamp the timestamp of the receiving data
- * \param values the values to insert
- * \param value_count the number of values
+/** Insert value in the PostgreSQL database.
+ *
+ * \param db Database that links to the PostgreSQL db
+ * \param table DbTable to insert data in
+ * \param sender_id sender ID
+ * \param seq_no sequence number
+ * \param time_stamp timestamp of the receiving data
+ * \param values OmlValue array to insert
+ * \param value_count number of values
  * \return 0 if successful, -1 otherwise
  */
 static int
