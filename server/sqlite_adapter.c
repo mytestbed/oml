@@ -258,6 +258,29 @@ sq3_make_sql_insert (DbTable* table)
   return NULL;
 }
 
+/** Mapping from OML types to SQLite3 types.
+ *
+ * \param type OmlValueT
+ * \return a pointer to a static string describing the SQLite3 type, or NULL if unknown
+ */
+static const char*
+oml_to_sqlite_type (OmlValueT type)
+{
+  switch (type) {
+  case OML_LONG_VALUE:    return "INTEGER"; break;
+  case OML_DOUBLE_VALUE:  return "REAL"; break;
+  case OML_STRING_VALUE:  return "TEXT"; break;
+  case OML_BLOB_VALUE:    return "BLOB"; break;
+  case OML_INT32_VALUE:   return "INTEGER"; break;
+  case OML_UINT32_VALUE:  return "UNSIGNED INTEGER"; break;
+  case OML_INT64_VALUE:   return "BIGINT"; break;
+  case OML_UINT64_VALUE:  return "UNSIGNED BIGINT"; break;
+  default:
+    logerror("Unknown type %d\n", type);
+    return NULL;
+  }
+}
+
 /*
  * Create the adapter data structures required to represent a database
  * table, and if "backend_create" is true, actually issue the SQL
@@ -288,7 +311,7 @@ table_create (Database* db, DbTable* table, int backend_create)
   Sq3DB* sq3db = (Sq3DB*)db->handle;
 
   if (backend_create) {
-    create = schema_to_sql (table->schema, oml_to_sql_type);
+    create = schema_to_sql (table->schema, oml_to_sqlite_type);
     if (!create) {
       logerror("sqlite:%s: Failed to build SQL CREATE TABLE statement string for table %s\n",
           db->name, table->schema->name);

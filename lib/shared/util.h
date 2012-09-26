@@ -34,8 +34,6 @@ const char *skip_white (const char *p);
 const char *find_white (const char *p);
 
 OmlValueT sql_to_oml_type (const char* type);
-const char* oml_to_sql_type (OmlValueT type);
-const char* oml_to_postgresql_type (OmlValueT type);
 
 char* to_octets (unsigned char* buf, int len);
 

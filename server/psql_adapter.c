@@ -310,6 +310,30 @@ psql_set_key_value (Database *database, const char *table,
   return 0;
 }
 
+/** Mapping from OML types to PostgreSQL types.
+ *
+ * \param type OmlValueT
+ * \return a pointer to a static string describing the PostgreSQL type, or NULL if unknown
+ */
+static const char*
+oml_to_postgresql_type (OmlValueT type)
+{
+  switch (type) {
+  case OML_LONG_VALUE:    return "INT4"; break;
+  case OML_DOUBLE_VALUE:  return "FLOAT8"; break;
+  case OML_STRING_VALUE:  return "TEXT"; break;
+  case OML_BLOB_VALUE:    return "BYTEA"; break;
+  case OML_INT32_VALUE:   return "INT4"; break;
+  case OML_UINT32_VALUE:  return "INT8"; break; // PG doesn't support unsigned types --> promote
+  case OML_INT64_VALUE:   return "INT8"; break;
+  case OML_UINT64_VALUE:  return "BIGINT"; break;
+  default:
+    logerror("Unknown type %d\n", type);
+    return NULL;
+  }
+}
+
+
 /**
  * @brief Create a PostgreSQL table
  * @param db the database that contains the sqlite3 db

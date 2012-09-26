@@ -91,42 +91,6 @@ OmlValueT sql_to_oml_type (const char *s)
   return type;
 }
 
-const char*
-oml_to_sql_type (OmlValueT type)
-{
-  switch (type) {
-  case OML_LONG_VALUE:    return "INTEGER"; break;
-  case OML_DOUBLE_VALUE:  return "REAL"; break;
-  case OML_STRING_VALUE:  return "TEXT"; break;
-  case OML_BLOB_VALUE:    return "BLOB"; break;
-  case OML_INT32_VALUE:   return "INTEGER"; break;
-  case OML_UINT32_VALUE:  return "UNSIGNED INTEGER"; break;
-  case OML_INT64_VALUE:   return "BIGINT"; break;
-  case OML_UINT64_VALUE:  return "UNSIGNED BIGINT"; break;
-  default:
-    logerror("Unknown type %d\n", type);
-    return NULL;
-  }
-}
-
-const char*
-oml_to_postgresql_type (OmlValueT type)
-{
-  switch (type) {
-  case OML_LONG_VALUE:    return "INT4"; break;
-  case OML_DOUBLE_VALUE:  return "FLOAT8"; break;
-  case OML_STRING_VALUE:  return "TEXT"; break;
-    //  case OML_BLOB_VALUE:    return "BLOB"; break; // Blob support not ready yet
-  case OML_INT32_VALUE:   return "INT4"; break;
-  case OML_UINT32_VALUE:  return "INT8"; break; // PG doesn't support unsigned types --> promote
-  case OML_INT64_VALUE:   return "INT8"; break;
-  case OML_UINT64_VALUE:  return "BIGINT";
-  default:
-    logerror("Unknown type %d\n", type);
-    return NULL;
-  }
-}
-
 char*
 to_octets (unsigned char* buf, int len)
 {
