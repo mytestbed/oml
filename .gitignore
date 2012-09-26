@@ -50,5 +50,4 @@ gnulib
 build-aux
 !build-aux/gen-authors.sh
 .version
-p-debian
-p-rpm
+p-*
