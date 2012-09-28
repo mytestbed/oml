@@ -9,6 +9,7 @@ if [ "x$long" = "x--long" ]; then
 else
 	dir=short
 fi
+echo -n "Blob tests for SQLite3 backend ($dir): "
 
 mkdir -p $dir
 rm -f ${dir}/*.hex # Remove leftover blob data from last run
@@ -17,14 +18,11 @@ rm -f ${dir}/*.hex # Remove leftover blob data from last run
 [ -f ${dir}/blobgen-server.log ] && rm -f ${dir}/blobgen-server.log
 ${top_builddir}/server/oml2-server -l $port --logfile=${dir}/blobgen-server.log --data-dir=${dir} &
 server_pid=$!
-echo SERVER=${server_pid}
-
-cd $dir
-
+echo " SERVER=${server_pid}"
 sleep 1
 
+cd $dir
 blobgen=../blobgen
-
 if [ ! -x ${blobgen} ]; then
 	echo "Could not find test blob generator \'${blobgen}\'"
 	exit 1

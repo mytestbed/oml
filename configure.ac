@@ -108,7 +108,9 @@ LIBS=$oldLIBS
 oldLIBS=$LIBS
 AX_CHECK_POSTGRES_DB([],
 		     [AS_IF([test "$pg_prefix" != ""],[missing_libs+=" libpq"])])
+AX_WITH_PROG([POSTGRES],[postgres],[no])
 AM_CONDITIONAL([HAVE_LIBPQ], [test x$HAVE_LIBPQ = xyes])
+AM_CONDITIONAL([HAVE_POSTGRES], [test x$POSTGRES != xno])
 LIBS=$oldLIBS
 
 AC_ARG_ENABLE([packaging],
