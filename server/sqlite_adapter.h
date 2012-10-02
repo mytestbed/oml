@@ -25,8 +25,8 @@
 
 #include "database.h"
 
-int
-sq3_create_database(Database* db);
+int sq3_backend_setup (void);
+int sq3_create_database(Database* db);
 
 #endif /*SQLITE_ADAPTER_H_*/
 

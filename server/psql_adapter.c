@@ -11,8 +11,8 @@
 #include "mstring.h"
 #include "mem.h"
 
-extern char *pg_conninfo;
-extern char *pg_user;
+char *pg_conninfo;
+char *pg_user;
 
 typedef struct _psqlDB {
   PGconn *conn;
@@ -31,6 +31,54 @@ char* psql_get_key_value (Database *database, const char *table,
 int psql_set_key_value (Database *database, const char *table,
                         const char *key_column, const char *value_column,
                         const char *key, const char *value);
+
+/** Setup the PostgreSQL backend.
+ *
+ * \return 0 on success, -1 otherwise
+ */
+int
+psql_backend_setup ()
+{
+  MString *str;
+  
+  loginfo ("psql: Sending experiment data to PostgreSQL server with user '%s'\n",
+           pg_user);
+  str = mstring_create ();
+  mstring_sprintf (str, "%s user=%s dbname=postgres", pg_conninfo, pg_user);
+  PGconn *conn = PQconnectdb (mstring_buf (str));
+
+  logwarn ("PostgreSQL backend is still experimental\n");
+
+  if (PQstatus (conn) != CONNECTION_OK) {
+    logerror ("psql: Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
+         mstring_buf(str), PQerrorMessage (conn));
+    return -1;
+  }
+
+  /* oml2-server must be able to create new databases, so check that
+     our user has the required role attributes */
+  mstring_set (str, "");
+  mstring_sprintf (str, "SELECT rolcreatedb FROM pg_roles WHERE rolname='%s'", pg_user);
+  PGresult *res = PQexec (conn, mstring_buf (str));
+  mstring_delete(str);
+  if (PQresultStatus (res) != PGRES_TUPLES_OK) {
+    logerror ("psql: Failed to determine role privileges for role '%s': %s\n",
+         pg_user, PQerrorMessage (conn));
+    return -1;
+  }
+  char *has_create = PQgetvalue (res, 0, 0);
+  if (strcmp (has_create, "t") == 0)
+    logdebug ("psql: User '%s' has CREATE DATABASE privileges\n", pg_user);
+  else {
+    logerror ("psql: User '%s' does not have required role CREATE DATABASE\n", pg_user);
+    return -1;
+  }
+
+  PQclear (res);
+  PQfinish (conn);
+
+  return 0;
+}
 
 static int
 begin_transaction (PsqlDB *db)

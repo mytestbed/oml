@@ -3,6 +3,8 @@
 
 #include "database.h"
 
+int psql_backend_setup ();
+
 int
 psql_create_database(
   Database* db

@@ -27,6 +27,8 @@
 #include "table_descr.h"
 #include "schema.h"
 
+#define DEFAULT_DB_BACKEND "sqlite"
+
 #define MAX_DB_NAME_SIZE 64
 #define MAX_TABLE_NAME_SIZE 64
 #define MAX_COL_NAME_SIZE 64
@@ -87,10 +89,13 @@ struct _database{
   struct _database* next;
 };
 
-/*
- *  Return the database instance for +name+.
- * If no database with this name exists, a new
- * one is created;
+
+int database_setup_backend (const char* backend);
+db_adapter_create database_create_function (const char *backend);
+
+/**  Return the database instance for +name+.
+ *
+ * If no database with this name exists, a new one is created.
  */
 Database *database_find(char* name);
 

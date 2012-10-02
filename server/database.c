@@ -22,6 +22,9 @@
  */
 //! Implements the interface to a local database
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -29,22 +32,113 @@
 #include <sys/time.h>
 #include <log.h>
 #include <assert.h>
-#include "mem.h"
-#include "database.h"
+
 #include "oml_util.h"
 #include "oml_value.h"
+#include "mem.h"
+#include "database.h"
+#include "sqlite_adapter.h"
+#if HAVE_LIBPQ
+#include <libpq-fe.h>
+#include "psql_adapter.h"
+#endif
 
 #define DEF_COLUMN_COUNT 1
 #define DEF_TABLE_COUNT 1
 
+static struct db_backend
+{
+  const char * const name;
+  db_adapter_create fn;
+} backends [] =
+  {
+    { "sqlite", sq3_create_database },
+#if HAVE_LIBPQ
+    { "postgresql", psql_create_database },
+#endif
+  };
+
+char* dbbackend = DEFAULT_DB_BACKEND;
+
 static Database *first_db = NULL;
 
-db_adapter_create database_create_function ();
+/** Get the list of valid database backends.
+ *
+ * \return a comma-separated list of the available backends
+ */
+static const char *
+database_valid_backends ()
+{
+  static char s[256] = {0};
+  int i;
+  if (s[0] == '\0') {
+    char *p = s;
+    for (i = LENGTH (backends) - 1; i >= 0; i--) {
+      int n = sprintf(p, "%s", backends[i].name);
+      if (i) {
+        p[n++] = ',';
+        p[n++] = ' ';
+      }
+      p[n] = '\0';
+      p += n;
+    }
+  }
+  return s;
+}
+
+/** Setup the selected database backend.
+ *
+ * Must be called after droppnig privileges.
+ *
+ * \param backend name of the selected backend
+ * \return 0 on success, -1 otherwise
+ *
+ * \see sq3_backend_setup()
+ */
+int
+database_setup_backend (const char* backend)
+{
+  logdebug ("Database backend: '%s'\n", backend);
+
+  if (!database_create_function (backend)) {
+    logerror ("Unknown database backend '%s' (valid backends: %s)\n",
+         backend, database_valid_backends ());
+    return -1;
+  }
+
+  if (!strcmp (backend, "sqlite")) {
+    if(sq3_backend_setup ()) return -1;
+#if HAVE_LIBPQ
+  } else if (!strcmp (backend, "postgresql")) {
+    if(psql_backend_setup ()) return -1;
+#endif
+  }
+  return 0;
+}
+
+/** Get the database-creation function for the selected backend.
+ *
+ * \param backend name of the selected backed
+ * \return the backend's db_adapter_create function
+ */
+db_adapter_create
+database_create_function (const char *backend)
+{
+  size_t i = 0;
+  for (i = 0; i < LENGTH (backends); i++)
+    if (!strncmp (backend, backends[i].name, strlen (backends[i].name)))
+      return backends[i].fn;
+
+  return NULL;
+}
+
 
 int database_init (Database *self);
 
-/**
- * \brief create a date with the name +name+
+/**  Return the database instance for +name+.
+ *
+ * If no database with this name exists, a new one is created
+ *
  * \param name the name of the database
  * \return a new database
  */
@@ -67,7 +161,7 @@ database_find (char* name)
   logdebug("%s: Creating or opening database\n", name);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
   self->ref_count = 1;
-  self->create = database_create_function ();
+  self->create = database_create_function (dbbackend);
 
   if (self->create (self)) {
     xfree(self);

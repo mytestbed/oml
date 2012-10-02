@@ -40,7 +40,7 @@ check_server_SOURCES = \
 msgloop_LDADD = \
 	$(top_builddir)/lib/shared/libshared.la \
 	$(top_builddir)/lib/ocomm/libocomm.la
-check_server_CFLAGS = @CHECK_CFLAGS@
+check_server_CFLAGS = @CHECK_CFLAGS@ -UHAVE_CONFIG_H
 
 check_server_LDADD = @CHECK_LIBS@ @SQLITE3_LIBS@ \
 	$(top_builddir)/lib/shared/libshared.la \
@@ -50,11 +50,12 @@ endif
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/proxy_server \
-	-I  $(top_srcdir)/lib/client \
-	-I  $(top_srcdir)/lib/ocomm \
-	-I  $(top_srcdir)/lib/shared \
-	-I  $(top_srcdir)/server \
-	-I  $(srcdir)/../system \
+	-I $(top_srcdir)/lib/client \
+	-I $(top_srcdir)/lib/ocomm \
+	-I $(top_srcdir)/lib/shared \
+	-I $(top_srcdir)/server \
+	-I $(srcdir)/../system \
+	-D PKG_LOCAL_STATE_DIR=\".\" \
 	-DOML_TEST
 
 EXTRA_DIST = msggen.rb issue610.rb.in

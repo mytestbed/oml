@@ -28,6 +28,8 @@
 #include <sqlite3.h>
 #include <time.h>
 #include <sys/time.h>
+#include <unistd.h>
+
 #include "database.h"
 #include "hook.h"
 #include "htonll.h"
@@ -40,7 +42,7 @@
 #include "sqlite_adapter.h"
 #include "table_descr.h"
 
-extern char *sqlite_database_dir;
+char *sqlite_database_dir = NULL;
 
 typedef struct _sq3DB {
   sqlite3*  conn;
@@ -80,6 +82,70 @@ sq3_get_max_sender_id (Database* database);
 
 long
 sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id);
+
+/**
+ * @brief Work out which directory to put sqlite databases in, and set
+ * sqlite_database_dir to that directory.
+ *
+ * This works as follows: if the user specified --data-dir on the
+ * command line, we use that value.  Otherwise, if OML_SQLITE_DIR
+ * environment variable is set, use that dir.  Otherwise, use
+ * PKG_LOCAL_STATE_DIR, which is a preprocessor macro set by the build
+ * system (under Autotools defaults this should be
+ * ${prefix}/var/oml2-server, but on a distro it should be something
+ * like /var/lib/oml2-server).
+ *
+ */
+void
+sq3_dbdir_setup (void)
+{
+  if (!sqlite_database_dir) {
+    const char *oml_sqlite_dir = getenv ("OML_SQLITE_DIR");
+    if (oml_sqlite_dir) {
+      sqlite_database_dir = xstrndup (oml_sqlite_dir, strlen (oml_sqlite_dir));
+    } else {
+      sqlite_database_dir = PKG_LOCAL_STATE_DIR;
+    }
+  }
+}
+
+/** Setup the SQLite3 backend.
+ *
+ * \return 0 on success, -1 otherwise
+ */
+int
+sq3_backend_setup (void)
+{
+  sq3_dbdir_setup ();
+
+  /*
+   * The man page says access(2) should be avoided because it creates
+   * a race condition between calls to access(2) and open(2) where an
+   * attacker could swap the underlying file for a link to a file that
+   * the unprivileged user does not have permissions to access, which
+   * the effective user does.  We don't use the access/open sequence
+   * here. We check that we can create files in the
+   * sqlite_database_dir directory, and fail if not (as the server
+   * won't be able to do useful work otherwise).
+   *
+   * An attacker could potentially change the underlying file to a
+   * link and still cause problems if oml2-server is run as root or
+   * setuid root, but this check must happen after drop_privileges()
+   * is called, so if oml2-server is not run with superuser privileges
+   * such an attack would still fail.
+   *
+   * oml2-server should not be run as root or setuid root in any case.
+   */
+  if (access (sqlite_database_dir, R_OK | W_OK | X_OK) == -1) {
+    logerror ("sqlite: Can't access SQLite database directory %s: %s\n",
+         sqlite_database_dir, strerror (errno));
+    return -1;
+  }
+
+  loginfo ("sqlite: Creating SQLite3 databases in %s\n", sqlite_database_dir);
+
+  return 0;
+}
 
 static int
 begin_transaction (Sq3DB *db)

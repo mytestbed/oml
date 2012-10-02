@@ -28,9 +28,9 @@
 #include <math.h>
 #include <check.h>
 #include <sqlite3.h>
-#include <mem.h>
-#include <mbuf.h>
-#include <database.h>
+#include "mem.h"
+#include "mbuf.h"
+#include "database.h"
 #include "client_handler.h"
 #include "sqlite_adapter.h"
 
@@ -42,7 +42,8 @@ typedef struct _sq3DB {
 } Sq3DB;
 
 
-char *sqlite_database_dir=".";
+extern char *dbbackend;
+extern char *sqlite_database_dir;
 
 /********************************************************************************/
 /* Issue 672: timestamp from client not correctly processed by server over	*/
@@ -53,12 +54,6 @@ char *sqlite_database_dir=".";
 
 void                                                                                                                                   
 client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
-
-db_adapter_create                                                                                                                      
-database_create_function ( ) {
-  return sq3_create_database;
-}
-
 
 START_TEST(test_text_insert)
 {
@@ -145,6 +140,9 @@ Suite*
 text_protocol_suite (void)
 {
   Suite* s = suite_create ("Text protocol");
+
+  dbbackend = "sqlite";
+  sqlite_database_dir = ".";
 
   TCase* tc_text_insert = tcase_create ("Text insert");
 
