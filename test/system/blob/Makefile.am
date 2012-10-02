@@ -1,5 +1,5 @@
 
-TESTS_ENVIRONMENT = top_builddir=$(top_builddir) POSTGRES=$(POSTGRES)
+TESTS_ENVIRONMENT = top_builddir=$(top_builddir) POSTGRES=$(POSTGRES) TIMEOUT=$(TIMEOUT)
 TESTS = run.sh run-long.sh
 if HAVE_LIBPQ
 if HAVE_POSTGRES

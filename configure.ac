@@ -302,6 +302,7 @@ AM_CONDITIONAL([BUILD_GEM], [test x$build_gem = xyes])
 missing_check=""
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [], [missing_check="yes"])
 AM_CONDITIONAL([HAVE_CHECK], [test x"${missing_check}" != xyes])
+AX_WITH_PROG([TIMEOUT],[timeout])
 
 AC_ARG_ENABLE([doc],
 		[AS_HELP_STRING([--disable-doc],
