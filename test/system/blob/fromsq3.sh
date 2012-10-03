@@ -4,6 +4,7 @@ db=$sq3.sq3
 dir=$(dirname $sq3)
 seqs=$(sqlite3 $db 'SELECT oml_seq FROM blobgen_blobmp')
 
+sleep 10 # Wait a bit so the database is no longer locked
 echo -n "Extracting server-stored blobs from $db:"
 for i in $seqs; do
 	echo -n " $i"
