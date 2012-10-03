@@ -11,19 +11,17 @@ else
 	prefix=${dir}/
 fi
 
-printf "Checking that server stored blobs match client-generated blobs\n"
-
+echo -n "Checking that server stored blobs match client-generated blobs:"
 for f in ${prefix}g*.hex; do
 	g=$(basename $f .hex)
 	s="s${g#g}"
 	if diff -qw ${prefix}$g.hex ${prefix}$s.hex; then
-		printf "\r$g <==> $s OK      "
+		echo -n " $g==$s"
 	else
 		fail=yes
-		printf "\n$g <!=> $s FAIL\n"
+		printf "FAIL:$g!=$sL\n"
 	fi
 done
-
-printf "\r...done         \n"
+echo "."
 
 test "x$fail" != "xyes"

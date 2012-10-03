@@ -9,7 +9,7 @@ if [ "x$long" = "x--long" ]; then
 else
 	dir=short
 fi
-echo -n "Blob tests for SQLite3 backend ($dir): "
+echo -n "Blob tests for SQLite3 backend ($dir):"
 
 mkdir -p $dir
 rm -f ${dir}/*.hex # Remove leftover blob data from last run
@@ -18,7 +18,7 @@ rm -f ${dir}/*.hex # Remove leftover blob data from last run
 [ -f ${dir}/blobgen-server.log ] && rm -f ${dir}/blobgen-server.log
 ${top_builddir}/server/oml2-server -l $port --logfile=${dir}/blobgen-server.log --data-dir=${dir} &
 server_pid=$!
-echo " SERVER=${server_pid}"
+echo " oml2-server PID=${server_pid}"
 sleep 1
 
 cd $dir
@@ -39,21 +39,14 @@ if [ $? != 0 ]; then
 fi
 cd ..
 
-echo "Blob generating client finished OK"
-
 sleep 1
 kill $server_pid
-echo "Analyzing blobs"
-
-printf "\n...done\n"
 
 # Grab blobs from sqlite3
 ${srcdir}/fromsq3.sh ${dir}/${exp}
 
 # Calculate the diffs, produce result
-echo Making diffs...
 ${srcdir}/diff.sh ${dir}
 status=$?
-echo Finished diffs
 
 exit $status

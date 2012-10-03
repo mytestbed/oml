@@ -118,18 +118,20 @@ run (void)
   size_t blob_length = 0;
   char s[64];
 
+  fprintf (stderr, "Writing blobs:");
   for (i = 0; samples != 0; i++, samples--) {
     OmlValueU v[3];
     bzero (v, sizeof (v));
     snprintf (s, sizeof(s)-1, "sample-%04d\n",i);
     blob = randgen (&blob_length);
     blob_to_file (i + 1, blob, blob_length);
-    fprintf (stderr, "%04d: %ld\n", i, blob_length);
+    fprintf (stderr, " %04d (%ld B)", i, blob_length);
     omlc_set_string (v[0], s);
     omlc_set_int32 (v[1], i);
     omlc_set_blob (v[2], blob, blob_length);
     omlc_inject (mp, v);
   }
+  fprintf (stderr, ".\n");
 }
 
 
