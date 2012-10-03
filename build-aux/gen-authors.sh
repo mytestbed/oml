@@ -8,7 +8,10 @@ echo ''
 
 (
   # Pre-git authors
-  echo -e 'Manpreet Singh\nIvan Seskar\nPandurang Kama' # Some authors of "ORBIT Measurements Framework and Library (OML): Motivations, Design, Implementation, and Features" (others in Git log)
+  # Some authors of "ORBIT Measurements Framework and Library (OML): Motivations, Design, Implementation, and Features" (others in Git log)
+  echo 'Manpreet Singh'
+  echo 'Ivan Seskar'
+  echo 'Pandurang Kama'
   git log | sed -n -e 's/^Author: *//p'
 ) \
   | sed -e 's/ *<.*>.*//' \
