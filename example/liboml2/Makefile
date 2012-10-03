@@ -54,7 +54,7 @@ clean:
 
 run: ARGS = --loop --delay 1
 run: build
-	$(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-file -
+	$(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-collect file:-
 
 debug:
 	echo $(OBJS)

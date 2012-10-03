@@ -93,8 +93,7 @@ Command line
 
 * omlid::
 * omlexpid::
-* omlfile::
-* omlserver::
+* omlcollect::
 * omlsamples::
 * omlinterval::
 * omlconfig::
@@ -307,15 +306,15 @@ int main (int argc, char** argv)
 @end example
 
 The call to @code{omlc_init()} parses the OML command line options and
-configures the library.  The @code{omlc_start()} function is
-responsible for creating the filter configuration.  If there is no XML
-configuration file specified (i.e. @option{--oml-config} is not given)
-then a default filter configuration is used.  In this configuration,
-there is a single datastore, specified by either @option{--oml-file}
-or @option{--oml-server}, and every MP that has been previously
-registered by a call to @code{omlc_add_mp()} is given a filter for
-every element of its input @math{n}-tuple.  The filter type for each
-element of the @math{n}-tuple is chosen automatically:
+configures the library.  The @code{omlc_start()} function is responsible
+for creating the filter configuration.  If there is no XML configuration
+file specified (i.e. @option{--oml-config} is not given) then a default
+filter configuration is used.  In this configuration, there is a single
+collection URI, specified by either @option{--oml-collect}, and every MP
+that has been previously registered by a call to @code{omlc_add_mp()} is
+given a filter for every element of its input @math{n}-tuple.  The
+filter type for each element of the @math{n}-tuple is chosen
+automatically:
 
 @itemize
 @item
@@ -333,8 +332,7 @@ detail.
 @menu
 * omlid::
 * omlexpid::
-* omlfile::
-* omlserver::
+* omlcollect::
 * omlsamples::
 * omlinterval::
 * omlconfig::
@@ -366,24 +364,16 @@ to an OML server, as the OML server uses the experiment ID (and the
 node ID) to distinguish between measurements from different OML
 clients in the network.
 
-@node omlfile
-@subsubsection @option{--oml-file} @var{file}
+@node omlcollect
+@subsubsection @option{--oml-collect} @var{uri}
 
-@kindex --oml-file
-Send measurement output to the local @var{file}.  If @var{file} is
-`@code{-}' then output is sent to the client application's standard
-output stream.
-
-@node omlserver
-@subsubsection @option{--oml-server} @var{uri}
-
-@kindex --oml-server
-Send measurement output to the server (or proxy server) indicated by
-the @var{uri} parameter.  The @var{uri} can specify either UDP or TCP
+@kindex --oml-collect
+Send measurement output to the collection point indicated by the
+@var{uri} parameter.  The @var{uri} can specify either UDP or TCP
 protocol, together with a host and port number to connect to.  For
 example:
 @example
---oml-server tcp://10.0.0.1:1234
+--oml-collect tcp:10.0.0.1:1234
 @end example
 @noindent
 would connect to port 1234 on machine 10.0.0.1 using TCP protocol.

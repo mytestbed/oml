@@ -62,8 +62,8 @@ ERRORS
 * *liboml2* has not yet been initialized via a call to linkoml:omlc_init[3];
 * an error occurred parsing the external config file;
 * no config file was given and no output destination was specified on
-either the command line or using an environment variable (e.g. no
-'--oml-file' and no '--oml-server' command line options);
+either the command line or using an environment variable (e.g., no
+'--oml-collect' command line option);
 * there was an error in the specification of the output destination;
 * there was an error writing to the output destination stream(s).
 

@@ -242,11 +242,10 @@ CONFIGURATION WITHOUT XML FILE
 
 When no configuration file is given, *liboml2* provides a basic set of
 filters for each measurement point, and sends measurements to just one
-location (given by either the '--oml-server' or '--oml-file' command
-line options).  For each measurement point, each element of the
-measurement point's injected tuple is given its own filter.  The
-filter created depends on the type of the element and the current
-sampling policy.
+collection URI (given by either the '--oml-collect' command line
+option).  For each measurement point, each element of the measurement
+point's injected tuple is given its own filter.  The filter created
+depends on the type of the element and the current sampling policy.
 
 For instance, suppose a measurement point is defined with a
 measurement tuple as follows:

@@ -67,9 +67,12 @@ class OMLBase:
           self.expid = expid
 
         if uri is None:
-          try:
+          if 'OML_COLLECT' in os.environ.keys():
+            uri = os.environ['OML_COLLECT']
+          elif 'OML_SERVER' in os.environ.keys():
             uri = os.environ['OML_SERVER']
-          except KeyError:
+            sys.stderr.write("WARN\tOML_SERVER is getting deprecated; please use OML_COLLECT instead\n")
+          else:
             uri = "tcp:%s:%s" %(self.DEFAULT_HOST, self.DEFAULT_PORT)
         uri_l = uri.split(":")
 

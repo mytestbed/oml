@@ -88,7 +88,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   const char* experimentId = NULL;
   const char* config_file = NULL;
   const char* local_data_file = NULL;
-  const char* server_uri = NULL;
+  const char* collection_uri = NULL;
   enum StreamEncoding default_encoding = SE_None;
   int sample_count = 0;
   double sample_interval = 0.0;
@@ -129,6 +129,14 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
           return -1;
         }
         local_data_file = *++arg;
+        logwarn("Option --oml-file is getting deprecated; please use '--oml-collect file:%s' instead\n", local_data_file);
+        *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-collect") == 0) {
+        if (--i <= 0) {
+          logerror("Missing argument for '--oml-collect'\n");
+          return -1;
+        }
+        collection_uri = (char*)*++arg;
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-config") == 0) {
         if (--i <= 0) {
@@ -170,7 +178,8 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
           logerror("Missing argument for '--oml-server'\n");
           return -1;
         }
-        server_uri = (char*)*++arg;
+        collection_uri = (char*)*++arg;
+        logwarn("Option --oml-server is getting deprecated; please use '--oml-collect %s' instead\n", collection_uri);
         *pargc -= 2;
       } else if (strcmp (*arg, "--oml-text") == 0) {
         *pargc -= 1;
@@ -209,10 +218,13 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
     experimentId = getenv("OML_EXP_ID");
   if (config_file == NULL)
     config_file = getenv("OML_CONFIG");
-  if (local_data_file == NULL && server_uri == NULL)
-    server_uri = getenv("OML_SERVER");
-  if(server_uri == NULL) {
-    server_uri = default_uri(app_name, name, experimentId);
+  if (local_data_file == NULL && collection_uri == NULL)
+    if(!(collection_uri = getenv("OML_COLLECT")))
+      if (collection_uri = getenv("OML_SERVER"))
+        logwarn("Enviromnent variable OML_SERVER is getting deprecated; please use 'OML_COLLECT=\"%s\"' instead\n",
+            collection_uri);
+  if(collection_uri == NULL) {
+    collection_uri = default_uri(app_name, name, experimentId);
   }
 
   setup_features (getenv ("OML_FEATURES"));
@@ -232,9 +244,9 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
     // dump every sample into local_data_file
     if (local_data_file[0] == '-')
       local_data_file = "stdout";
-    snprintf(omlc_instance->server_uri, SERVER_URI_MAX_LENGTH, "file:%s", local_data_file);
-  } else if (server_uri != NULL) {
-    strncpy(omlc_instance->server_uri, server_uri, SERVER_URI_MAX_LENGTH);
+    snprintf(omlc_instance->collection_uri, COLLECTION_URI_MAX_LENGTH, "file:%s", local_data_file);
+  } else if (collection_uri != NULL) {
+    strncpy(omlc_instance->collection_uri, collection_uri, COLLECTION_URI_MAX_LENGTH);
   }
   omlc_instance->config_file = config_file;
 
@@ -317,8 +329,8 @@ omlc_start()
       return -1;
     }
   } else {
-    if (omlc_instance->server_uri == NULL) {
-      logerror("Missing either --oml-file or --oml-server declaration.\n");
+    if (omlc_instance->collection_uri == NULL) {
+      logerror("Missing --oml-collect declaration.\n");
       omlc_instance = NULL;
       return -2;
     }
@@ -417,10 +429,9 @@ usage(void)
   printf("%s\n", OMLC_COPYRIGHT);
   printf("\n");
   printf("OML specific parameters:\n\n");
-  printf("  --oml-file file        .. Writes measurements to 'file'\n");
   printf("  --oml-id id            .. Name to identify this app instance\n");
   printf("  --oml-exp-id expId     .. Name to experiment DB\n");
-  printf("  --oml-server uri       .. URI of server to send measurements to\n");
+  printf("  --oml-collect uri      .. URI of server to send measurements to\n");
   printf("  --oml-config file      .. Reads configuration from 'file'\n");
   printf("  --oml-samples count    .. Default number of samples to collect\n");
   printf("  --oml-interval seconds .. Default interval between measurements\n");
@@ -433,17 +444,21 @@ usage(void)
   printf("  --oml-list-filters     .. List the available types of filters\n");
   printf("  --oml-help             .. Print this message\n");
   printf("\n");
-  printf("Valid URI: [tcp|udp]:host:port, file:localPath or flush:localPath\n");
+  printf("Valid URI: [tcp:]host[:port], (file|flush):localPath\n");
   printf("\n");
   printf("The following environment variables are recognized:\n");
   printf("  OML_NAME=id            .. Name to identify this app instance (--oml-id)\n");
   printf("  OML_EXP_ID=expId       .. Name to experiment DB (--oml-exp-id)\n");
   printf("  OML_CONFIG=file        .. Read configuration from 'file' (--oml-config)\n");
-  printf("  OML_SERVER=uri         .. URI of server to send measurments to (--oml-server)\n");
+  printf("  OML_COLLECT=uri        .. URI of server to send measurements to (--oml-collect)\n");
+  printf("\n");
+  printf("Obsolescent interfaces:\n\n");
+  printf("  --oml-file localPath   .. Equivalent to --oml-collect file:localPath\n");
+  printf("  --oml-server uri       .. Equivalent to --oml-collect uri\n");
+  printf("  OML_SERVER=uri         .. Equivalent to OML_COLLECT\n");
   printf("\n");
   printf("If the corresponding command line option is present, it overrides\n");
-  printf("the environment variable.  Note that OML_SERVER accepts the file://\n");
-  printf("protocol.\n");
+  printf("the environment variable.\n");
   printf("\n");
 }
 
@@ -560,7 +575,7 @@ create_writer(const char* uri, enum StreamEncoding encoding)
   }
 
   if (uri == NULL) {
-    logerror ("Missing server definition (e.g. --oml-server)\n");
+    logerror ("Missing collection URI definition (e.g., --oml-collect)\n");
     return NULL;
   }
   if (omlc_instance->node_name == NULL) {
@@ -832,7 +847,7 @@ static int
 default_configuration(void)
 {
   OmlWriter* writer;
-  if ((writer = create_writer(omlc_instance->server_uri,
+  if ((writer = create_writer(omlc_instance->collection_uri,
                               omlc_instance->default_encoding)) == NULL) {
     return -1;
   }

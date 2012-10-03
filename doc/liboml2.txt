@@ -43,10 +43,10 @@ details, see linkoml:liboml2.conf[5].
 
 When no configuration file is given, *liboml2* provides a basic set of
 filters for each measurement point, and sends measurements to just one
-location (given by either the '--oml-server' or '--oml-file'
-options).  For each measurement point, each element of the measurement
-point's injected tuple is given its own filter.  The filter created
-depends on the type of the element and the current sampling policy.
+location (using the '--oml-collect' option).  For each measurement
+point, each element of the measurement point's injected tuple is given
+its own filter.  The filter created depends on the type of the element
+and the current sampling policy.
 
 For instance, suppose a measurement point defined with a measurement tuple
 as follows:
@@ -80,20 +80,25 @@ they are defined, see linkoml:liboml2[3,api] and linkoml:omlc_add_mp[3].
 MEASUREMENT OUTPUT AND SCHEMAS
 ------------------------------
 
-The measurement output of an OML program goes either to an SQL
-database (if using the '--oml-server' option) or a file (if using the
-'--oml-file' option).  Measurement points are created with a 'schema',
-as above, a schema being an ordered list of (name, type) pairs.
+Where measurement output of an OML program goes depends on the
+collection URI (see link:#_uri_format[URI FORMAT] below). If using the
+*tcp* scheme, it is sent to the named linkoml:oml2-server[1], for
+storage in an SQL database, while  using the *file* or *flush* schemes
+will create a local file with the given name containing OML text mode
+protocol which can later on be stream (e.g., using link:netcat[1]) to an
+*oml2-server*. Measurement points are created with a 'schema', as above,
+a schema being an ordered list of (name, type) pairs.
 
-OML filters also generate output with a declared schema.  For each
-measurement point, *liboml2* generates a single output measurement
-that is the union of the outputs of all filters attached to the MP.
-The names of the fields (or columns) of the schema are derived from
-the names of the original MP fields, and the output schemas of the
-filters.  The schemas can be observed directly in the '--oml-file'
-output (identical schemas are sent to the server when '--oml-server'
-is used).  For instance, here is the output schema for a simple
-example MP that measures a string ("label") and an integer ("seq_no"):
+OML filters also generate output with a declared schema. For each
+measurement point, *liboml2* generates a single output measurement that
+is the union of the outputs of all filters attached to the MP.  The
+names of the fields (or columns) of the schema are derived from the
+names of the original MP fields, and the output schemas of the filters.
+The schemas can be observed directly with the *file* collection URI
+schemes (e.g., *file:-*) output (identical schemas are sent to the
+server when the *tcp* scheme is used).  For instance, here is the output
+schema for a simple example MP that measures a string ("label") and an
+integer ("seq_no"):
 
 --------
 schema: 1 generator_lin label:string seq_no:uint32
@@ -139,10 +144,10 @@ filter output field.  (The 'first' filter is an exception in that it
 just takes the name of the input field and uses that as the output
 field name.)
 
-When the '--oml-server' option is used, a database table is created
-for each measurement point using the combined OML output schema as
-schema for the table.  For instance, the above example would translate
-to an SQL CREATE TABLE statement like:
+When a *tcp* collection URI is specified, the received *oml2-server*
+creates a database table for each measurement point using the combined
+OML output schema as schema for the table.  For instance, the above
+example would translate to an SQL CREATE TABLE statement like:
 
 --------
 CREATE TABLE generator_lin (label TEXT, seq_no_avg REAL, seq_no_min REAL,
@@ -187,31 +192,33 @@ OML OPTIONS
 	run).
 
 --oml-file filename::
-Write measurements to file 'filename', in a human readable text
-format.  This is an exact equivalent to '--oml-server file:filename',
-see below.  Only one of '--oml-file' and '--oml-server' can be
-specified at a time.
+Write measurements to file 'filename', in a human readable text format.
+This is an exact equivalent to '--oml-collect file:filename', see below.
+Only one of '--oml-collect' (or '--oml-server') or'--oml-file' can be
+specified at a time. This command line option is obsolescent, and
+'--oml-collect' with the *file* scheme should be prefered.
 
+--oml-collect uri::
 --oml-server uri::
-Send measurements to the OML server specified by the 'uri'.  Only
-one of '--oml-file' and '--oml-server' can be active at a time.
-The format of the 'uri' is described in *URI FORMAT* below.  The 'uri'
-can specify the address and port at which either an *oml2-server* or
-an *oml2-proxy-server* is listening.
+Send measurements to the OML server specified by the 'uri'.  Only one of
+'--oml-collect' or '--oml-server' can be active at a time.  The format
+of the 'uri' is described in link:#_uri_format[URI FORMAT] below.  The
+'uri' can specify the address and port at which either an *oml2-server*
+or an *oml2-proxy-server* is listening. The '--oml-server' option is
+obsolescent, and '--oml-collect' should be preferred.
 
 --oml-text::
 Encode measurements using text format when writing to either a local
 file or a remote server. Text format is easy for scripts to parse, with
-one measurement per line, and is the default when '--oml-file' is
-used. Only one of '--oml-text' and '--oml-binary' should be used on
-the same command line.
+one measurement per line, and is the default when a *file* URI scheme is
+used. Only one of '--oml-text' and '--oml-binary' should be used on the
+same command line.
 
 --oml-binary::
 Encode measurements using binary format when writing to either a local
-file or a remote server. The binary format is the default when
-'--oml-server' is given, and provides better performance.  Only one of
-'--oml-text' and '--oml-binary' should be used on the same command
-line.
+file or a remote server. The binary format is the default when *tcp*
+URI scheme is given, and provides better performance.  Only one of
+'--oml-text' and '--oml-binary' should be used on the same command line.
 
 --oml-bufsize size (bytes)::
 Set the size of internal buffers used by *liboml2*.  There is one
@@ -270,37 +277,37 @@ Prints a summary of the available OML options.
 
 URI FORMAT
 ----------
-*liboml2* accepts a 'uri' argument for the '--oml-server' option
-that is similar to an IETF URI (see e.g. RFC3986).  The OML URI
-consists of an optional network protocol, a host identifier, and an
-optional port number, or an optional 'file' protocol and a local
-filesystem path.  The format of the network server version is:
+*liboml2* accepts a 'uri' argument for the '--oml-collect' option that
+is similar to an IETF URI (see e.g. RFC3986).  The OML URI consists of
+an optional network protocol, a host identifier, and an optional port
+number, or a mandatory *file* (or *flush* )scheme and a local filesystem
+path.  The format of the network server version is:
 ---------------------------
-		[tcp|udp]:[//]<host>:<port>
+		[tcp:][//]<host>[:<port>]
 ---------------------------
 The formats for the local file version is:
 ---------------------------
-		[file|flush]:<local-path>
+		(file|flush):<local-path>
 ---------------------------
 
-For instance, 'tcp:10.0.0.200:3003' or 'tcp://10.0.0.200:3003' will
-send measurements to an *oml2-server* listening on port 3003 at IP
-address 10.0.0.200, using TCP. The '//' is recognized but optional.
-Either an IP address or a hostname can be used as the <host>
-specifier, and the <port> specifier is optional, defaulting to port
-3003.
+For instance, 'tcp:10.0.0.200:3003' or 'tcp://10.0.0.200:3003' will send
+measurements to an *oml2-server* listening on port 3003 at IP address
+10.0.0.200, using TCP. The '//' is recognized but optional.  Either an
+IP address or a hostname can be used as the '<host>' specifier, and the
+'<port>' specifier is optional, defaulting to port 3003. The *tcp*
+scheme is the default if this part is omitted.
 
-Alternatively, 'file:/tmp/myfile.txt' writes to the /tmp/myfile.txt
-file in the local filesystem. Relative paths are also accepted. There
-should be no double-slash after the colon: 'file://myfile.txt' is
-treated the same as 'file:/myfile.txt', i.e. it will try to write the
-output in the root directory. The special file URL 'file:-' will write
-output to the standard output. The 'flush:' scheme behaves exactly in
-the same way as 'file:' except the file descriptor is flushed after
-each a measurement line is written out. This allows to prevent any
-size-based buffering in the C library from delaying the recording of
-samples. This is useful in case of, e.g., real time graphing of the
-data based on the contents of the file.
+Alternatively, 'file:/tmp/myfile.txt' writes to the /tmp/myfile.txt file
+in the local filesystem. Relative paths are also accepted. There should
+be no double-slash after the colon: 'file://myfile.txt' is treated the
+same as 'file:/myfile.txt', i.e., it will try to write the output in the
+root directory. The special file URL 'file:-' will write output to the
+standard output. The *flush* scheme behaves exactly in the same way as
+*file* except the file descriptor is flushed after each a measurement
+line is written out. This allows to prevent any size-based buffering in
+the C library from delaying the recording of samples. This is useful in
+case of, e.g., real time graphing of the data based on the contents of
+the file.
 
 ENVIRONMENT VARIABLES
 ---------------------
@@ -321,14 +328,15 @@ OML_CONFIG::
 The path to the configuration file to use to configure the client.
 Equivalent to the '--oml-config' command line option.
 
+OML_COLLECT::
 OML_SERVER::
 The URI of the server to which the measurements should be sent.  The
 value of this environment variable should be a URI in the same format
-specified above (*URI FORMAT*).  If the URI specifies the 'file:'
-protocol, the measurements are written to the local text file
-specified in the URI, rather than being sent to an OML server.
-Equivalent to the '--oml-server' and '--oml-file' command line
-options.
+specified above (link:#_uri_format[URI FORMAT]).  If the URI specifies
+the *file* scheme, the measurements are written to the local text
+file specified in the URI, rather than being sent to an OML server.
+Equivalent to the '--oml-collect' command line option. 'OML_SERVER' is
+obsolescent and kept for backward compatibility.
 
 OML_FEATURES::
 A comma-separated list of run-time features to enable.  Currently the

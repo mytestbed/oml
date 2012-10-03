@@ -56,7 +56,7 @@ arguments:
 
 *  the name of the node,
 
-*  and the OML server URI in the form ``tcp:hostname:port``
+*  and the OML collection URI in the form ``[tcp:]hostname[:port]``
 
 
 For example::
@@ -66,7 +66,7 @@ For example::
 
 The only mandatory argument is the first one (the name of the application).
 If you skip any of the others, they may be defined by environment variables
-(OML_EXP_ID, OML_NAME, OML_SERVER). If these environment variables are not
+(OML_EXP_ID, OML_NAME, OML_COLLECT). If these environment variables are not
 defined and they are not passed in explicitly, then the application will
 run with OML disabled, and the measurements that would have been sent
 to OML will be printed on stdout instead.

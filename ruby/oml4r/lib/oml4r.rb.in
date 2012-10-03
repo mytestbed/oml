@@ -239,9 +239,12 @@ module OML4R
     appName = opts[:appName] || opts[:app]
 
     if  ENV['OML_URL'] || opts[:omlURL] || opts[:url]
-      raise 'ERROR	neither OML_URL, :omlURL nor :url are valid. Do you mean OML_SERVER or :omlServer?'
+      raise 'ERROR	neither OML_URL, :omlURL nor :url are valid. Do you mean OML_COLLECT or :omlCollect?'
     end
-    omlCollectUri = ENV['OML_SERVER'] || opts[:omlServer]
+    if ENV['OML_SERVER'] || opts[:omlServer]
+	$stderr.puts "WARN	opts[:omlServer] and ENV['OML_SERVER'] are getting deprecated; please use opts[:collect] or ENV['OML_COLLECT'] instead"
+    end
+    omlCollectUri = ENV['OML_COLLECT'] || ENV['OML_SERVER'] || opts[:collect] || opts[:omlServer]
     noop = opts[:noop] || false
 
 
@@ -250,13 +253,20 @@ module OML4R
     # Include the definition of application's specific arguments
     yield(op) if block
     # Include the definition of OML specific arguments
-    op.on("--oml-file file", "Writes measurements to 'file'") { |name| omlCollectUri = "file:#{name}" }
     op.on("--oml-id id", "Name to identify this app instance [#{nodeID || 'undefined'}]") { |name| nodeID = name }
     op.on("--oml-exp-id expId", "Name to experiment DB [#{domain || 'undefined'}]") { |name| domain = name }
     op.on("--oml-domain expId", "Name to experiment DB [#{domain || 'undefined'}] *EXPERIMENTAL*") { |name| domain = name }
-    op.on("--oml-server uri", "URI of server to send measurements to (tcp:host:port)") { |u|  omlCollectUri = u }
+    op.on("--oml-collect uri", "URI of server to send measurements to") { |u|  omlCollectUri = u }
     op.on("--oml-log-level l", "Log level used (info: 0 .. debug: 1)") { |l| OML4R.loglevel = l.to_i; puts "-> #{OML4R.loglevel}" }    
     op.on("--oml-noop", "Do not collect measurements") { noop = true }    
+    op.on("--oml-file localPath", "Obsolescent equivalent to --oml-collect file:localPath") { |name|
+      omlCollectUri = "file:#{name}"
+      $stderr.puts "WARN	Option --oml-file is getting deprecated; please use '--oml-collect #{omlCollectUri}' instead"
+    }
+    op.on("--oml-server uri", "Obsolescent equivalent to --oml-collect uri") {|u|
+      omlCollectUri = u
+      $stderr.puts "WARN	Option --oml-server is getting deprecated; please use '--oml-collect #{omlCollectUri}' instead"
+    }
     op.on_tail("--oml-help", "Show this message") { $stderr.puts op; exit }
     # XXX: This should be set by the application writer, not the command line
     #op.on("--oml-appid APPID", "Application ID for OML [#{appName || 'undefined'}] *EXPERIMENTAL*") { |name| appID = name }

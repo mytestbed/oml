@@ -36,7 +36,7 @@
 
 #include <mstring.h>
 
-#define SERVER_URI_MAX_LENGTH 64
+#define COLLECTION_URI_MAX_LENGTH 64
 
 #define xstr(s) str(s)
 #define str(s) #s
@@ -50,7 +50,7 @@ typedef struct _omlClient {
 
   OmlMP*       mpoints;
 
-  char server_uri[SERVER_URI_MAX_LENGTH + 1];
+  char collection_uri[COLLECTION_URI_MAX_LENGTH + 1];
 
   OmlWriter*  first_writer;
 
