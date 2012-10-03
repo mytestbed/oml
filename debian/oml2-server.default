@@ -1,1 +1,3 @@
 OPTS="-l 3003 --logfile=/var/log/oml2-server.log --user=oml2 --group=oml2"
+# Use a PostgreSQL backend (default values given explicitely)
+#OPTS="$OPTS --backend postgresql --pg-host=localhost --pg-port=5432 --pg-user=oml --pg-pass=''"
