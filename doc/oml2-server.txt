@@ -12,7 +12,9 @@ SYNOPSIS
 	    [-l port | --listen=port] [--user=UID] [--group=GID]
 	    [-d loglevel | --debug-level=loglevel] [--logfile=file]
 ifdef::have_pg[]
-	    [-b db | --backend=db] [--pg-user=user] [--pg-connect=conninfo]
+	    [-b db | --backend=db] [--pg-host=host] [--pg-port=port]
+	    [--pg-user=user] [--pg-pass=pass]
+	    [--pg-connect=conninfo]
 endif::have_pg[]
 	    [--usage] [--version | -v] [-? | --help]
 
@@ -107,15 +109,30 @@ ifdef::have_pg[]
 	SQLite3 files.  The other option is 'postgresql' which will
 	attempt to connect to a PostgreSQL database server.
 
+--pg-host=user::
+	Specify the database server to which the PostgreSQL backend
+	should connect. Defaults to 'localhost'.
+
+--pg-port=port::
+	Specify the database server port to which the PostgreSQL
+	backend should connect. Values from '/etc/services' suitable for
+	link:getservbyname[3] are also accepted. Defaults to
+	'postgresql' (i.e., use PostgreSQL's default, which is usually
+	5432).
+
 --pg-user=user::
 	Specify the PostgreSQL database user to use when the PostgreSQL
-	database backend is selected.  The specified user must have the
-	PostgreSQL CREATEDB role so that it can create a new database for
-	each new experiment.
+	backend is selected.  The specified user must have the
+	PostgreSQL CREATEDB role so that it can create a new database
+	for each new experiment. Defaults to 'oml'.
+
+--pg-pass=pass::
+	Specify the password of the pg-user to connect to the PostgreSQL
+	backend.  Defaults to the empty string.
 
 --pg-connect=conninfo::
-	For the PostgreSQL backend, this option gives a way to control the
-	database authentication scheme to use.  It is passed to the
+	For the PostgreSQL backend, this option gives a way to control
+	the database authentication scheme to use.  It is passed to the
 	PostgreSQL connection API with the user name and database name
 	appended.  For instance, for an experiment named "myexp" and
 	'--pg-user=oml2', a conninfo string of
@@ -126,8 +143,10 @@ ifdef::have_pg[]
   host=postgres.mycompany.com password=secret user=oml2
 --------------------------
 +
-The default connection info string is "host=localhost" and the
-default database user is "oml".
+Though parameters which have specific '--pg-X' options can be passed
+this way, unpredictable behaviours might be encountered if both '--pg-X'
+and '--pg-connect' specify these. It is therefore recommended to prefer
+the '--pg-X' variant, and only use '--pg-connect' if one doesn't exist.
 +
 If more than one 'key=value' pair must be passed as conninfo, the shell might
 make things difficult. A workaround is to wrap the entire argument in quotes,
@@ -139,7 +158,7 @@ that is:
 endif::have_pg[]
 
 --logfile=file::
-		Write log messages to file.
+		Write log messages to 'file'.
 
 --usage::
 		Print a brief usage message.

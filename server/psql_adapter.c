@@ -4,15 +4,22 @@
 #include <inttypes.h>
 #include <libpq-fe.h>
 #include <time.h>
-#include "log.h"
 #include <sys/time.h>
-#include "database.h"
-#include "oml_util.h"
-#include "mstring.h"
-#include "mem.h"
+#include <netdb.h>
+#include <arpa/inet.h>
 
-char *pg_conninfo;
-char *pg_user;
+#include "oml_util.h"
+#include "mem.h"
+#include "mstring.h"
+#include "log.h"
+#include "database.h"
+#include "psql_adapter.h"
+
+char *pg_host = DEFAULT_PG_HOST;
+char *pg_port = DEFAULT_PG_PORT;
+char *pg_user = DEFAULT_PG_USER;
+char *pg_pass = DEFAULT_PG_PASS;
+char *pg_conninfo = DEFAULT_PG_CONNINFO;
 
 typedef struct _psqlDB {
   PGconn *conn;
@@ -32,6 +39,42 @@ int psql_set_key_value (Database *database, const char *table,
                         const char *key_column, const char *value_column,
                         const char *key, const char *value);
 
+/** Prepare the conninfo string to connect to the Postgresql server.
+ *
+ * \param host server hostname
+ * \param port server port or service name
+ * \param user username
+ * \param pass password
+ * \param extra_conninfo additional connection parameters
+ * \return a dynamically allocated MString containing the connection information; the caller must take care of freeing it
+ *
+ * \see mstring_delete
+ */
+static MString *psql_prepare_conninfo(const char *database, const char *host, const char *port, const char *user, const char *pass, const char *extra_conninfo)
+{
+  struct servent *sse;
+  MString *conninfo;
+  int portnum = 5432, tmpport;
+  char *endptr;
+
+  conninfo = mstring_create();
+  sse = getservbyname(port, NULL);
+  if (sse) {
+    portnum = ntohs(sse->s_port);
+  } else {
+    tmpport = strtol(port, &endptr, 10);
+    if (endptr > port)
+      portnum = tmpport;
+    else
+      logwarn("psql: Could not resolve service '%s', defaulting to %d\n", port, portnum);
+  }
+  conninfo = mstring_create ();
+  mstring_sprintf (conninfo, "host='%s' port='%d' user='%s' password='%s' dbname='%s' %s",
+      host, portnum, user, pass, database, extra_conninfo);
+
+  return conninfo;
+}
+
 /** Setup the PostgreSQL backend.
  *
  * \return 0 on success, -1 otherwise
@@ -39,25 +82,26 @@ int psql_set_key_value (Database *database, const char *table,
 int
 psql_backend_setup ()
 {
-  MString *str;
-  
-  loginfo ("psql: Sending experiment data to PostgreSQL server with user '%s'\n",
-           pg_user);
-  str = mstring_create ();
-  mstring_sprintf (str, "%s user=%s dbname=postgres", pg_conninfo, pg_user);
-  PGconn *conn = PQconnectdb (mstring_buf (str));
+  MString *str, *conninfo;
 
   logwarn ("PostgreSQL backend is still experimental\n");
 
+  loginfo ("psql: Sending experiment data to PostgreSQL server %s:%s as user '%s'\n",
+           pg_host, pg_port, pg_user);
+
+  conninfo = psql_prepare_conninfo("postgres", pg_host, pg_port, pg_user, pg_pass, pg_conninfo);
+  PGconn *conn = PQconnectdb (mstring_buf (conninfo));
+
   if (PQstatus (conn) != CONNECTION_OK) {
     logerror ("psql: Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
-         mstring_buf(str), PQerrorMessage (conn));
+         mstring_buf(conninfo), PQerrorMessage (conn));
+    mstring_delete(conninfo);
     return -1;
   }
 
   /* oml2-server must be able to create new databases, so check that
      our user has the required role attributes */
-  mstring_set (str, "");
+  str = mstring_create();
   mstring_sprintf (str, "SELECT rolcreatedb FROM pg_roles WHERE rolname='%s'", pg_user);
   PGresult *res = PQexec (conn, mstring_buf (str));
   mstring_delete(str);
@@ -74,6 +118,7 @@ psql_backend_setup ()
     return -1;
   }
 
+  mstring_delete(conninfo);
   PQclear (res);
   PQfinish (conn);
 
@@ -753,51 +798,48 @@ psql_receive_notice(void *arg, const PGresult *res)
 }
 
 
-/**
- * @brief Create a Postgre database
- * @param db the databse to associate with the sqlite3 database
- * @return 0 if successful, -1 otherwise
+/** Create or open an PostgreSQL database
+ * \param db the databse to associate with the sqlite3 database
+ * \return 0 if successful, -1 otherwise
  */
 int
 psql_create_database(Database* db)
 {
-  MString *admin_conninfo = mstring_create ();
-  MString *conninfo = mstring_create ();
-  MString *str = mstring_create ();
-  PGconn     *conn;
+  MString *conninfo;
+  MString *str;
+  PGconn  *conn;
   PGresult *res = NULL;
+  int ret = -1;
 
-  mstring_sprintf (admin_conninfo, "%s user=%s dbname=postgres", pg_conninfo, pg_user);
-
-  loginfo ("psql:%s: Accessing database\n",
-           db->name);
+  loginfo ("psql:%s: Accessing database\n", db->name);
 
   /*
    * Make a connection to the database server -- check if the
    * requested database exists or not by connecting to the 'postgres'
    * database and querying that.
    */
-  conn = PQconnectdb(mstring_buf (admin_conninfo));
+  conninfo = psql_prepare_conninfo("postgres", pg_host, pg_port, pg_user, pg_pass, pg_conninfo);
+  conn = PQconnectdb(mstring_buf (conninfo));
 
   /* Check to see that the backend connection was successfully made */
   if (PQstatus(conn) != CONNECTION_OK) {
-    logerror("psql: Connection to database server failed: %s\n", PQerrorMessage(conn));
-    goto fail_exit;
+    logerror ("psql: Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
+         mstring_buf(conninfo), PQerrorMessage (conn));
+    goto cleanup_exit;
   }
-
   PQsetNoticeReceiver(conn, psql_receive_notice, "postgres");
 
+  str = mstring_create();
   mstring_sprintf (str, "SELECT datname from pg_database where datname='%s';", db->name);
   res = PQexec (conn, mstring_buf (str));
 
   if (PQresultStatus (res) != PGRES_TUPLES_OK) {
     logerror ("psql: Could not get list of existing databases\n");
-    goto fail_exit;
+    goto cleanup_exit;
   }
 
   /* No result rows means database doesn't exist, so create it instead */
   if (PQntuples (res) == 0) {
-    PQclear (res);
     loginfo ("psql:%s: Database does not exist, creating it\n", db->name);
     mstring_set (str, "");
     mstring_sprintf (str, "CREATE DATABASE \"%s\";", db->name);
@@ -805,22 +847,22 @@ psql_create_database(Database* db)
     res = PQexec (conn, mstring_buf (str));
     if (PQresultStatus (res) != PGRES_COMMAND_OK) {
       logerror ("psql:%s: Could not create database: %s\n", db->name, PQerrorMessage (conn));
-      goto fail_exit;
+      goto cleanup_exit;
     }
   }
 
-  PQclear (res);
   PQfinish (conn);
+  mstring_delete(conninfo);
 
-  mstring_sprintf (conninfo, "%s user=%s dbname=%s", pg_conninfo, pg_user, db->name);
-
-  /* Make a connection to the database server -- check if the requested database exists or not */
+  /* Now that the database should exist, make a connection to the it for real */
+  conninfo = psql_prepare_conninfo(db->name, pg_host, pg_port, pg_user, pg_pass, pg_conninfo);
   conn = PQconnectdb(mstring_buf (conninfo));
 
   /* Check to see that the backend connection was successfully made */
   if (PQstatus(conn) != CONNECTION_OK) {
-    logerror("psql:%s: Connection to database server failed: %s", db->name, PQerrorMessage(conn));
-    goto fail_exit;
+    logerror ("psql:%s: Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
+        db->name, mstring_buf(conninfo), PQerrorMessage (conn));
+    goto cleanup_exit;
   }
   PQsetNoticeReceiver(conn, psql_receive_notice, db->name);
 
@@ -842,17 +884,17 @@ psql_create_database(Database* db)
   db->handle = self;
 
   begin_transaction (self);
-  return 0;
 
- fail_exit:
-  if (res)
-    PQclear (res);
-  PQfinish (conn);
+  /* Everything was successufl, prepare for cleanup */
+  ret = 0;
 
-  mstring_delete (admin_conninfo);
-  mstring_delete (conninfo);
+cleanup_exit:
+  if (res) PQclear (res);
+  if (ret) PQfinish (conn); /* If return !=0, cleanup connection */
+
   mstring_delete (str);
-  return -1;
+  mstring_delete (conninfo);
+  return ret;
 }
 
 /*

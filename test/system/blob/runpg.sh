@@ -26,7 +26,7 @@ echo -n " postgresql PID=${pg_pid}"
 sleep 1
 ${PGPATH}/createdb -U oml2 -p $pgport ${db}
 
-${top_builddir}/server/oml2-server -d 4 -l $port --logfile=${dir}/blobgen-server.log --backend=postgresql --pg-user=oml2 '--pg-connect=host=localhost port=5433' &
+${top_builddir}/server/oml2-server -d 4 -l $port --logfile=${dir}/blobgen-server.log --backend=postgresql --pg-user=oml2 --pg-port=5433 &
 server_pid=$!
 echo " oml2-server PID=${server_pid}"
 sleep 1
