@@ -301,7 +301,6 @@ process_schema(ClientHandler* self, char* value)
   static void
 process_meta(ClientHandler* self, char* key, char* value)
 {
-  int len;
   chomp (value);
   logdebug("%s: Meta '%s:%s'\n", self->name, key, value);
   if (strcmp(key, "protocol") == 0) {
@@ -493,12 +492,6 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
 
   unsigned char* sync = find_sync (mbuf_rdptr (mbuf),
       mbuf_remaining (mbuf));
-  int sync_pos;
-  if (sync == NULL)
-    sync_pos = -1;
-  else
-    sync_pos = sync - mbuf->base;
-  //logdebug("Received %d octets (sync at %d)\n", mbuf->fill, sync_pos);
 
   if (sync > mbuf->rdptr) {
     mbuf_read_skip (mbuf, sync - mbuf->rdptr);

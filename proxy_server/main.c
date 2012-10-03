@@ -315,6 +315,7 @@ setup_logging (char *logfile, int level)
 int
 main(int argc, const char *argv[])
 {
+  Socket* serverSock, *controlSock;
   int c;
 
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
@@ -358,12 +359,14 @@ main(int argc, const char *argv[])
 
   session->state = ProxyState_PAUSED;
 
-  Socket* serverSock, *controlSock;
   serverSock = socket_server_new("proxy_server", listen_port, on_connect, NULL);
   controlSock = socket_server_new("proxy_server_control", listen_port + 1, on_control_connect, NULL);
 
   eventloop_on_stdin(stdin_handler, session);
   eventloop_run();
+
+  socket_free(serverSock);
+  socket_free(controlSock);
 
   return(0);
 }

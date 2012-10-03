@@ -70,7 +70,7 @@ typedef struct _client {
    * from the other threads without locking if state == C_DATA.
    */
   enum ClientState state;
-  enum ClientState content;
+  enum ContentType content;
   struct header *headers;
   struct header *header_table[H_max];
   MBuffer *mbuf;

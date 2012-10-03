@@ -709,22 +709,18 @@ mp_fields_summary (OmlMP *mp)
 }
 
 
-/**
- * @brief Find a named MStream among the streams attached to an MP.
+/** Find a named MStream among the streams attached to an MP.
  *
- * @param name the name of the stream to search for.
- * @param mp the MP in which to search for the stream.
- * @return a pointer to the OmlMStream if found, or NULL if not.
+ * \param name name of the stream to search for
+ * \param mp MP in which to search for the stream
+ * \return a pointer to the OmlMStream if found, or NULL if not (or name is NULL)
  */
 OmlMStream *
 find_mstream_in_mp (const char *name, OmlMP *mp)
 {
-  size_t len;
   OmlMStream *ms = mp->streams;
 
-  if (name)
-    len = strlen (name);
-  else
+  if (!name)
     return NULL;
 
   while (ms) {

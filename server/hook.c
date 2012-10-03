@@ -22,6 +22,7 @@
  */
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/select.h>
@@ -89,7 +90,6 @@ hook_cleanup (void)
 void
 hook_setup (void)
 {
-  struct stat b;
   int pto[2], pfrom[2];
   fd_set readfds;
   struct timeval timeout = { .tv_sec=5, .tv_usec=0, };
@@ -97,10 +97,7 @@ hook_setup (void)
 
   if (!hook)
     return;
-/*  if (stat(hook, &b)) { 
-    logwarn("hook: Cannot stat `%s': %s\n", hook, strerror(errno));
-    return;
-  }*/ 
+
   if (pipe(pto) || pipe(pfrom)) {
     logwarn("hook: Cannot create pipes to `%s': %s\n", hook, strerror(errno));
     goto clean_pipes;
