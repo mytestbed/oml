@@ -66,5 +66,6 @@ CLEANFILES = \
 	dummy.bin \
 	log.txt \
 	text-test.sq3 \
+	text-flex-test.sq3 \
 	binary-resync-test.sq3 \
 	issue610.sq3

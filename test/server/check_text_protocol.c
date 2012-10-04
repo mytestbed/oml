@@ -107,6 +107,8 @@ START_TEST(test_text_insert)
   /* Process the second sample */
   client_callback(&source, ch, s2, strlen(s2));
 
+  check_server_destroy_client_handler(ch);
+
   logdebug("Checking recorded data in %s.sq3\n", domain);
   /* Open database */
   db = database_find(domain);
@@ -132,8 +134,149 @@ START_TEST(test_text_insert)
       "Invalid size in 2nd row: expected `%d', got `%d'",
       d2, sqlite3_column_int(stmt, 2));
 
-  /* Close all */
+  database_release(db);
+}
+END_TEST
+
+START_TEST(test_text_flexibility)
+{
+  /* XXX: Code duplication with check_binary_protocol.c:test_binary_flexibility*/
+  ClientHandler *ch;
+  Database *db;
+  sqlite3_stmt *stmt;
+  SockEvtSource source;
+
+  char domain[] = "text-flex-test";
+  char table[3][12] = { "flex1_table", "flex2_table", "flex3_table" };
+  double time1 = 1.096202;
+  double time2 = 2.092702;
+  int32_t d1 = 3319660544;
+  int32_t d2 = 106037248;
+
+  char h[200];
+  char s1[200];
+  char s2[200];
+  char s3[200];
+  char sample[200];
+  char select1[200];
+  char select2[200];
+  char select3[200];
+
+  int rc = -1;
+
+  snprintf(s1, sizeof(s1), "1 %s size:uint32", table[0]);
+  snprintf(s2, sizeof(s2), "2 %s size:uint32", table[1]);
+  snprintf(s3, sizeof(s3), "1 %s bli:int32", table[2]);
+  snprintf(h, sizeof(h),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\ncontent: text\nschema: %s\n\n", domain, basename(__FILE__), __FUNCTION__, s1);
+  snprintf(select1, sizeof(select1), "select oml_ts_client, oml_seq, size from %s;", table[0]);
+  snprintf(select2, sizeof(select2), "select oml_ts_client, oml_seq, size from %s;", table[1]);
+  snprintf(select3, sizeof(select3), "select oml_ts_client, oml_seq, bli from %s;", table[2]);
+
+  memset(&source, 0, sizeof(SockEvtSource));
+  source.name = "text flex socket";
+
+  o_set_log_level(2);
+
+  /* Create the ClientHandler almost as server/client_handler.h:client_handler_new() would */
+  ch = (ClientHandler*) xmalloc(sizeof(ClientHandler));
+  ch->state = C_HEADER;
+  ch->content = C_TEXT_DATA;
+  ch->mbuf = mbuf_create ();
+  ch->socket = NULL;
+  ch->event = &source;
+  strncpy (ch->name, "test_text_flex", MAX_STRING_SIZE);
+
+  fail_unless(ch->state == C_HEADER);
+  fail_unless(ch->table_count == 0, "Unexpected number of tables (%d instead of 0)", ch->table_count);
+
+  logdebug("Sending header '%s'\n", h);
+  client_callback(&source, ch, h, strlen(h));
+
+  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
+  fail_unless(ch->content == C_TEXT_DATA);
+  fail_if(ch->database == NULL);
+  fail_if(ch->sender_id == 0);
+  fail_if(ch->sender_name == NULL);
+  fail_if(ch->app_name == NULL);
+  fail_unless(ch->table_count == 1, "Unexpected number of tables (%d instead of 1)", ch->table_count);
+
+  logdebug("Sending first sample\n");
+  snprintf(sample, sizeof(sample), "%f\t%d\t%d\t%d\n",
+      /* time,  schema, sequence, sample */
+      time1,    1,      1,        d1
+      );
+  client_callback(&source, ch, sample, strlen(sample));
+
+  logdebug("Sending meta 'schema':'%s'\n", s2);
+  snprintf(sample, sizeof(sample), "%f\t%d\t%d\tschema\t%s\n",
+      /* time,  schema, sequence, schemadef */
+      time2,    0,      1,        s2
+      );
+  client_callback(&source, ch, sample, strlen(sample));
+  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
+  fail_unless(ch->table_count == 2, "Unexpected number of tables (%d instead of 2)", ch->table_count);
+
+  logdebug("Sending second sample\n");
+  snprintf(sample, sizeof(sample), "%f\t%d\t%d\t%d\n",
+      /* time,  schema, sequence, sample */
+      time2,    2,      1,        d2
+      );
+  client_callback(&source, ch, sample, strlen(sample));
+
+  logdebug("Overwriting schema: '%s'\n", s3);
+  snprintf(sample, sizeof(sample), "%f\t%d\t%d\tschema\t%s\n",
+      /* time,  schema, sequence, schemadef */
+      time2,    0,      1,        s3 /* XXX: We should probably not ignore time or sequence */
+      );
+  client_callback(&source, ch, sample, strlen(sample));
+  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
+  fail_unless(ch->table_count == 2, "Unexpected number of tables (%d instead of 2)", ch->table_count);
+  fail_unless(ch->state == C_TEXT_DATA);
+
+  logdebug("Sending third sample\n");
+  snprintf(sample, sizeof(sample), "%f\t%d\t%d\t%d\n",
+      /* time,  schema, sequence, sample */
+      time1,    1,      1,        d1
+      );
+  client_callback(&source, ch, sample, strlen(sample));
+
   client_handler_free(ch);
+
+  logdebug("Checking recorded data in %s.sq3\n", domain);
+  /* Open database */
+  db = database_find(domain);
+  fail_if(db == NULL || ((Sq3DB*)(db->handle))->conn == NULL , "Cannot open SQLite3 database");
+
+  rc = sqlite3_prepare_v2(((Sq3DB*)(db->handle))->conn, select1, -1, &stmt, 0);
+  fail_unless(rc == 0, "Preparation of statement `%s' failed; rc=%d", select1, rc);
+  rc = sqlite3_step(stmt);
+  fail_unless(rc == 100, "First step of statement `%s' failed; rc=%d", select1, rc);
+  fail_unless(fabs(sqlite3_column_double(stmt, 0) - time1) < 1e-8,
+      "Invalid oml_ts_value in 1st table: expected `%e', got `%e'",
+      time1, sqlite3_column_double(stmt, 0), fabs(sqlite3_column_double(stmt, 0) - time1));
+  fail_unless(sqlite3_column_int(stmt, 2) - d1 == 0,
+      "Invalid size in 1st table: expected `%d', got `%d'", d1, sqlite3_column_double(stmt, 2));
+
+  rc = sqlite3_prepare_v2(((Sq3DB*)(db->handle))->conn, select2, -1, &stmt, 0);
+  fail_unless(rc == 0, "Preparation of statement `%s' failed; rc=%d", select2, rc);
+  rc = sqlite3_step(stmt);
+  fail_unless(rc == 100, "First step of statement `%s' failed; rc=%d", select2, rc);
+  fail_unless(fabs(sqlite3_column_double(stmt, 0) - time2) < 1e-8,
+      "Invalid oml_ts_value in 2nd table: expected `%e', got `%e'",
+      time1, sqlite3_column_double(stmt, 0), fabs(sqlite3_column_double(stmt, 0) - time2));
+  fail_unless(sqlite3_column_int(stmt, 2) - d2 == 0,
+      "Invalid size in 2nd table: expected `%d', got `%d'", d1, sqlite3_column_double(stmt, 2));
+
+  rc = sqlite3_prepare_v2(((Sq3DB*)(db->handle))->conn, select3, -1, &stmt, 0);
+  fail_unless(rc == 0, "Preparation of statement `%s' failed; rc=%d", select1, rc);
+  rc = sqlite3_step(stmt);
+  fail_unless(rc == 100, "First step of statement `%s' failed; rc=%d", select1, rc);
+  fail_unless(fabs(sqlite3_column_double(stmt, 0) - time1) < 1e-8,
+      "Invalid oml_ts_value in 3rd table: expected `%e', got `%e'",
+      time1, sqlite3_column_double(stmt, 0), fabs(sqlite3_column_double(stmt, 0) - time1));
+  fail_unless(sqlite3_column_int(stmt, 2) - d1 == 0,
+      "Invalid bli in 3rd table: expected `%d', got `%d'", d1, sqlite3_column_double(stmt, 2));
+
   database_release(db);
 }
 END_TEST
@@ -147,12 +290,12 @@ text_protocol_suite (void)
   sqlite_database_dir = ".";
 
   TCase* tc_text_insert = tcase_create ("Text insert");
-
-  /* Add tests to test case "FilterCore" */
   tcase_add_test (tc_text_insert, test_text_insert);
-
-  /* Add the test cases to this test suite */
   suite_add_tcase (s, tc_text_insert);
+
+  TCase* tc_text_flex = tcase_create ("Text flexibility");
+  tcase_add_test (tc_text_flex, test_text_flexibility);
+  suite_add_tcase (s, tc_text_flex);
 
   return s;
 }
