@@ -26,9 +26,16 @@
 #include <time.h>
 #include <ocomm/o_socket.h>
 #include <ocomm/o_eventloop.h>
+#include <oml2/oml_writer.h>
 #include <mbuf.h>
 
 #include "database.h"
+
+#if OML_PROTOCOL_VERSION == 4
+# error The library now speaks Protocol V4
+#endif
+#define MAX_PROTOCOL_VERSION OML_PROTOCOL_VERSION + 1
+#define MIN_PROTOCOL_VERSION 1
 
 typedef enum _cstate {
   C_HEADER,       // processing header info
