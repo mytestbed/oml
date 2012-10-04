@@ -168,6 +168,8 @@ main (int argc, char **argv)
 
   client = client_new (NULL, 4096, "dummy.bin", 0, "dummy.com");
 
+
+  fprintf (stderr, "Processing messages:");
   do {
     int i;
     int seqno = 0;
@@ -190,8 +192,9 @@ main (int argc, char **argv)
       break;
     }
 
-    fprintf (stderr, "msgloop:  message %d processed\n", n);
+    fprintf (stderr, " %d", n);
   } while (result == 1);
+  fprintf (stderr, ".\n");
 
   fprintf (stderr, "Printing headers:\n");
 
@@ -219,9 +222,6 @@ main (int argc, char **argv)
     msg_queue_remove (client->messages);
   }
   fflush (stdout);
-
-  fprintf (stderr, "msgloop:  Exiting\n");
-
   fclose (stdout);
   return 0;
 }
