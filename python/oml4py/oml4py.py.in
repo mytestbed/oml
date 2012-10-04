@@ -39,7 +39,7 @@ class OMLBase:
     VERSION = "@VERSION@"
     VERSION_STRING = ("OML4Py Client V@VERSION@")
     COPYRIGHT = "Copyright 2012, NYU-Poly, Fraida Fund"
-    PROTOCOL = 1
+    PROTOCOL = 3
 
     DEFAULT_HOST="localhost"
     DEFAULT_PORT=3003
@@ -47,7 +47,7 @@ class OMLBase:
     def _banner(self):
         sys.stderr.write("INFO\t%s [Protocol V%d] %s\n" % (self.VERSION_STRING, self.PROTOCOL, self.COPYRIGHT))
 
-    def __init__(self,appname,expid=None,sender=None,uri=None):
+    def __init__(self,appname,domain=None,sender=None,uri=None,expid=None):
         self._banner()
 
         self.oml = True
@@ -58,13 +58,21 @@ class OMLBase:
           sys.stderr.write("ERROR\tInvalid app name: %s\n" %  self.appname)
           self._disable_oml()
 
-        if expid is None:
-          try:
-            self.expid = os.environ['OML_EXP_ID']
-          except KeyError:
+        if expid is not None:
+          sys.stderr.write("WARN\t%s parameter 'expid' is getting deprecated; please use 'domain' instead\n" % self.__class__.__name__)
+          if domain is None:
+            domain = expid
+        if domain is None:
+          if 'OML_DOMAIN' in os.environ.keys():
+            self.domain = os.environ['OML_DOMAIN']
+          elif 'OML_EXP_ID' in os.environ.keys():
+            self.domain = os.environ['OML_EXP_ID']
+            sys.stderr.write("WARN\tOML_EXP_ID is getting deprecated; please use OML_DOMAIN instead\n")
+          else:
+            sys.stderr.write("ERROR\tNo experimental domain specified\n")
             self._disable_oml()
         else:
-          self.expid = expid
+          self.domain = domain
 
         if uri is None:
           if 'OML_COLLECT' in os.environ.keys():
@@ -145,8 +153,8 @@ class OMLBase:
 
         self.starttime = int(time())
 
-        header = "protocol: " + str(self.PROTOCOL) + '\n' + "experiment-id: " + str(self.expid) + '\n' + \
-               "start-time: " + str(self.starttime) + '\n' + "sender-id: " + str(self.sender) + '\n' + \
+        header = "protocol: " + str(self.PROTOCOL) + '\n' + "experiment-id: " + str(self.domain) + '\n' + \
+               "start_time: " + str(self.starttime) + '\n' + "sender-id: " + str(self.sender) + '\n' + \
                "app-name: " + str(self.appname) + '\n' + \
                str(self.schema) + '\n' + "content: text" + '\n' + '\n'    
 

@@ -27,9 +27,9 @@ def serialize(type_, value, content)
 end
 
 class Client
-  def initialize(sender, experiment, application, start_time)
+  def initialize(sender, domain, application, start_time)
     @sender = sender
-    @experiment = experiment
+    @domain = domain
     @application = application
     @start_time = start_time
     @streams = []
@@ -42,9 +42,9 @@ class Client
 
   def headers(content)
     h = []
-    h << "protocol: 2"
-    h << "experiment-id: #{@experiment}"
-    h << "start-time: #{@start_time}"
+    h << "protocol: 3"
+    h << "experiment-id: #{@domain}"
+    h << "start_time: #{@start_time}"
     h << "sender-id: #{@sender}"
     h << "app-name: #{@application}"
     h = h + @streams.collect { |stream| stream.schema_string }

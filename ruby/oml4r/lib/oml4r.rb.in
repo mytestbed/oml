@@ -45,7 +45,7 @@ module OML4R
   COPYRIGHT = "Copyright 2009-2012, NICTA"
   DEF_SERVER_PORT = 3003
 
-  PROTOCOL = 1
+  PROTOCOL = 3
   @loglevel = 0
   class << self; attr_accessor :loglevel; end
 
@@ -220,7 +220,7 @@ module OML4R
     if d = (ENV['OML_EXP_ID'] || opts[:expID])
       # XXX: It is still too early to complain about that. We need to be sure
       # of the nomenclature before making user-visible changes.
-      #$stderr.puts "WARN	ENV['OML_EXP_ID'] and opts[:expID] are deprecated, use #DOMAIN or opts[:domain] instead"
+      $stderr.puts "WARN	opts[:expID] and ENV['OML_EXP_ID'] are getting deprecated; please use opts[:domain] or ENV['OML_DOMAIN']  instead"
       opts[:domain] ||= d
     end
     domain ||= ENV['OML_DOMAIN'] || opts[:domain]
@@ -254,11 +254,14 @@ module OML4R
     yield(op) if block
     # Include the definition of OML specific arguments
     op.on("--oml-id id", "Name to identify this app instance [#{nodeID || 'undefined'}]") { |name| nodeID = name }
-    op.on("--oml-exp-id expId", "Name to experiment DB [#{domain || 'undefined'}]") { |name| domain = name }
-    op.on("--oml-domain expId", "Name to experiment DB [#{domain || 'undefined'}] *EXPERIMENTAL*") { |name| domain = name }
+    op.on("--oml-domain domain", "Name of experimental domain [#{domain || 'undefined'}] *EXPERIMENTAL*") { |name| domain = name }
     op.on("--oml-collect uri", "URI of server to send measurements to") { |u|  omlCollectUri = u }
     op.on("--oml-log-level l", "Log level used (info: 0 .. debug: 1)") { |l| OML4R.loglevel = l.to_i; puts "-> #{OML4R.loglevel}" }    
     op.on("--oml-noop", "Do not collect measurements") { noop = true }    
+    op.on("--oml-exp-id domain", "Obsolescent equivalent to --oml-domain domain") { |name|
+      domain = name
+      $stderr.puts "WARN	Option --oml-exp-id is getting deprecated; please use '--oml-domain #{domain}' instead"
+    }
     op.on("--oml-file localPath", "Obsolescent equivalent to --oml-collect file:localPath") { |name|
       omlCollectUri = "file:#{name}"
       $stderr.puts "WARN	Option --oml-file is getting deprecated; please use '--oml-collect #{omlCollectUri}' instead"
@@ -280,7 +283,7 @@ module OML4R
     return if noop
 
     unless domain && nodeID && appName
-      raise 'OML4R: Missing values for parameters :expID (--oml-exp-id), :nodeID (--oml-id), or :appName (in code)!'
+      raise 'OML4R: Missing values for parameters :domain (--oml-domain), :nodeID (--oml-id), or :appName (in code)!'
     end
 
     Channel.create(:default, omlCollectUri) if omlCollectUri
@@ -325,7 +328,7 @@ module OML4R
     end
 
     def self._create(key, domain, url)
-      #oml_opts = {:exp_id => 'image_load', :node_id => 'n1', :app_name => 'img_load'}
+      #oml_opts = {:domain => 'image_load', :node_id => 'n1', :app_name => 'img_load'}
       if url.start_with? 'file:'
 	proto, fname = url.split(':')
 	out = (fname == '-' ? $stdout : File.open(fname, "w+"))
@@ -423,7 +426,7 @@ module OML4R
       d = (@domain == :default) ? @@default_domain : @domain
       raise "Missing domain name" unless d
       @queue.push "experiment-id: #{d}"
-      @queue.push "start-time: #{startTime.tv_sec}"
+      @queue.push "start_time: #{startTime.tv_sec}"
       @queue.push "sender-id: #{nodeID}"
       @queue.push "app-name: #{appName}"
       @queue.push "content: text"

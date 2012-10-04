@@ -183,25 +183,25 @@ proxy_message_loop (const char *client_id, Client *client, void *buf, size_t siz
       goto loop;
     break;
   case C_CONFIGURE:
-    if (client->header_table[H_EXPERIMENT_ID] == NULL ||
+    if (client->header_table[H_DOMAIN] == NULL ||
         client->header_table[H_CONTENT] == NULL ||
-        client->header_table[H_EXPERIMENT_ID]->tag == H_NONE ||
+        client->header_table[H_DOMAIN]->tag == H_NONE ||
         client->header_table[H_CONTENT]->tag == H_NONE) {
       if (client->headers == NULL) {
         logdebug ("Headers NULL!");
       }
       client->state = C_PROTOCOL_ERROR;
     } else {
-      client->experiment_id = client->header_table[H_EXPERIMENT_ID]->value;
+      client->domain = client->header_table[H_DOMAIN]->value;
       client->content = content_from_string (client->header_table[H_CONTENT]->value);
       if (client->content == CONTENT_NONE)
         client->state = C_PROTOCOL_ERROR;
     }
     if (client->state != C_PROTOCOL_ERROR) {
-      logdebug ("%s\n", client->experiment_id);
+      logdebug ("%s\n", client->domain);
       logdebug ("%d\n", client->content);
     } else {
-      logdebug ("Can't write out experiment id and content because of protocol error in input\n");
+      logdebug ("Can't write out domain and content because of protocol error in input\n");
       logdebug ("Input is: '%s'\n", buf);
     }
     for (header = client->headers; header != NULL; header = header->next) {

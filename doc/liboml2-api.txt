@@ -321,7 +321,7 @@ Here is an example command line to run this application with a default
 set of filters:
 
 --------
-$ ./counter --oml-id myid --oml-exp-id count --oml-collect file:-
+$ ./counter --oml-id myid --oml-domain count --oml-collect file:-
 --------
 
 The output from this command will appear on the terminal because we told

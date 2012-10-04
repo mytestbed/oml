@@ -62,7 +62,7 @@ START_TEST(test_text_insert)
   sqlite3_stmt *stmt;
   SockEvtSource source;
 
-  char exp_id[] = "text-test";
+  char domain[] = "text-test";
   char table[] = "text_table";
   double time1 = 1.096202;
   double time2 = 2.092702;
@@ -74,7 +74,7 @@ START_TEST(test_text_insert)
 
   int rc = -1;
 
-  snprintf(h, sizeof(h),  "protocol: 3\nexperiment-id: %s\nstart-time: 1332132092\nsender-id: sender\napp-name: tester\nschema: 1 %s size:uint32\n\n", exp_id, table);
+  snprintf(h, sizeof(h),  "protocol: 1\nexperiment-id: %s\nstart_time: 1332132092\nsender-id: sender\napp-name: tester\nschema: 1 %s size:uint32\n\n", domain, table);
   snprintf(s1, sizeof(s1), "%f\t1\t%d\t%s\n", time1, 1, "3319660544");
   snprintf(s2, sizeof(s2), "%f\t1\t%d\t%s\n", time2, 2, "106037248");
   snprintf(select, sizeof(select), "select oml_ts_client, oml_seq from %s;", table);
@@ -110,9 +110,9 @@ START_TEST(test_text_insert)
   /* Process the second sample */
   client_callback(&source, ch, s2, strlen(s2));
 
-  loginfo("Checking recorded data in %s.sq3\n", exp_id);
+  loginfo("Checking recorded data in %s.sq3\n", domain);
   /* Open database */
-  db = database_find(exp_id);
+  db = database_find(domain);
   fail_if(db == NULL || ((Sq3DB*)(db->handle))->conn == NULL , "Cannot open SQLite3 database");
   rc = sqlite3_prepare_v2(((Sq3DB*)(db->handle))->conn, select, -1, &stmt, 0);
   fail_unless(rc == 0, "Preparation of statement `%s' failed; rc=%d", select, rc);

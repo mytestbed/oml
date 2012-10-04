@@ -56,7 +56,7 @@ typedef struct _client {
   //! Name used for debugging
   char        name[64];
   int         sender_id;
-  char*       experiment_id;
+  char*       domain;
   char*       downstream_addr;
   int         downstream_port;
   struct _session *session;

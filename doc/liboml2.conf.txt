@@ -104,7 +104,7 @@ The configuration file must be an XML file. The root element must be
 example shows the skeleton of an OML config file:
 
 --------------------------
-    <omlc experiment="my_experiment" id="my_source_id">
+    <omlc domain="my_experiment" id="my_source_id">
         <collect url=...>
            ...
         </collect>
@@ -117,11 +117,13 @@ example shows the skeleton of an OML config file:
     </omlc>
 --------------------------
 
-The 'omlc' element recognizes two attributes: 'experiment' and 'id'.  The
-'experiment' attribute names the experiment that the client wants to join.
-It names the database that the measurements will be stored in by the
-linkoml:oml2-server[1] if one of the destinations is a server.  This is the
-same as the '--oml-exp-id' flag on the command line.
+The 'omlc' element recognizes two attributes: 'experiment' and 'id'.
+The 'domain' attribute names the experimental domain that the client
+wants to join.  It names the database that the measurements will be
+stored in by the linkoml:oml2-server[1] if one of the destinations is a
+server.  This is the same as the '--oml-domain' flag on the command
+line. The obsolescent 'experiment' attribute can still be used for this
+purpose.
 
 The 'id' attribute identifies the source of these measurements.
 Typically it is used to identify the machine, but it is up to the
@@ -139,7 +141,7 @@ named MP. Here is an example of a configuration with two 'stream'
 elements:
 
 --------------------------
-    <omlc experiment="my_experiment" id="my_source_id">
+    <omlc domain="my_experiment" id="my_source_id">
         <collect url="tcp://10.0.0.200">
            <stream mp="radiotap" interval="2">
               <filter field="sig_strength_dBm" />
@@ -301,7 +303,7 @@ generated using an 'mp' element with 'samples="1"' and no explicit
 filter:
 
 --------
-<omlc exp_id="my_experiment" id="my_source_id">
+<omlc domain="my_experiment" id="my_source_id">
  <collect url="file:-">
    <stream mp="lin" samples="1" />
  </collect>
@@ -357,7 +359,7 @@ the schema will follow the 'name' attribute rather than the name of
 the source MP.  For instance consider this configuration file:
 
 --------
-<omlc exp_id="my_experiment" id="my_source_id">
+<omlc domain="my_experiment" id="my_source_id">
  <collect url="file:-">
    <stream mp="lin" samples="1" name="foo"/>
  </collect>
@@ -500,7 +502,7 @@ the new ones:
 [width="90%",cols="<2,<1"]
 |=====================
 ^| OLD     ^| NEW
-|  <omlc exp_id="abc" ...> | <omlc experiment="abc" ... >
+|  <omlc domain="abc" ...> | <omlc experiment="abc" ... >
 |  <mp name="def" rename="bar"...> | <stream mp="def" name="bar"...>
 |  <f fname="avg" ...> | <filter operation="avg" ...>
 |  <f pname="foo" ...> | <filter field="foo" ...>

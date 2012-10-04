@@ -42,7 +42,7 @@ def run
     server = IO.popen(["#{ENV['TOPBUILDDIR']}/server/oml2-server", "-D", ".", "-l", "#{confirmedPort}", "--logfile=-", :err=>[:child, :out]])
     sleep 1
 
-    opts = { :appName => 'app', :expID => 'issue610', :nodeID => "id", :collect => "tcp:localhost:#{confirmedPort}" }
+    opts = { :appName => 'app', :domain => 'issue610', :nodeID => "id", :collect => "tcp:localhost:#{confirmedPort}" }
     OML4R::init(ARGV, opts)
     Issue610MP.inject 1, 'OK'
     Issue610MP.inject 2, ''

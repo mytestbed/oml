@@ -121,7 +121,7 @@ client_send_headers (Client *client)
 {
   enum HeaderTag header_tags [] = {
     H_PROTOCOL,
-    H_EXPERIMENT_ID,
+    H_DOMAIN,
     H_START_TIME,
     H_SENDER_ID,
     H_APP_NAME,

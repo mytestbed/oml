@@ -52,7 +52,7 @@ arguments:
 
 *  the name of the application,
 
-*  the name of the experiment,
+*  the name of the experimental domain,
 
 *  the name of the node,
 
@@ -66,7 +66,7 @@ For example::
 
 The only mandatory argument is the first one (the name of the application).
 If you skip any of the others, they may be defined by environment variables
-(OML_EXP_ID, OML_NAME, OML_COLLECT). If these environment variables are not
+(OML_DOMAIN, OML_NAME, OML_COLLECT). If these environment variables are not
 defined and they are not passed in explicitly, then the application will
 run with OML disabled, and the measurements that would have been sent
 to OML will be printed on stdout instead.

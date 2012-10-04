@@ -1,4 +1,4 @@
-<omlc exp_id="exp99" id="node11">
+<omlc domain="exp99" id="node11">
     <collect url="file:-">
         <mp name="d_sin" interval="2" > <!-- interval="" -->
             <f pname="value" /> <!-- default filter -->

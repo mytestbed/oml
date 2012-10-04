@@ -61,7 +61,7 @@ static void termination_handler(int signum);
 static void install_close_handler(void);
 static void setup_features(const char * const features);
 
-static char *default_uri(const char *app_name, const char *name, const char *experimentId);
+static char *default_uri(const char *app_name, const char *name, const char *domain);
 
 extern int parse_config(char* config_file);
 
@@ -85,7 +85,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 {
   const char *app_name = validate_app_name (application);
   const char* name = NULL;
-  const char* experimentId = NULL;
+  const char* domain = NULL;
   const char* config_file = NULL;
   const char* local_data_file = NULL;
   const char* collection_uri = NULL;
@@ -116,12 +116,20 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
         }
         name = *++arg;
         *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-domain") == 0) {
+        if (--i <= 0) {
+          logerror("Missing argument for '--oml-domain'\n");
+          return -1;
+        }
+        domain = *++arg;
+        *pargc -= 2;
       } else if (strcmp(*arg, "--oml-exp-id") == 0) {
         if (--i <= 0) {
           logerror("Missing argument for '--oml-exp-id'\n");
           return -1;
         }
-        experimentId = *++arg;
+        domain = *++arg;
+        logwarn("Option --oml-exp-id is getting deprecated; please use '--oml-domain %s' instead\n", domain);
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-file") == 0) {
         if (--i <= 0) {
@@ -214,8 +222,8 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
   if (name == NULL)
     name = getenv("OML_NAME");
-  if (experimentId == NULL)
-    experimentId = getenv("OML_EXP_ID");
+  if (domain == NULL)
+    domain = getenv("OML_EXP_ID");
   if (config_file == NULL)
     config_file = getenv("OML_CONFIG");
   if (local_data_file == NULL && collection_uri == NULL)
@@ -224,7 +232,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
         logwarn("Enviromnent variable OML_SERVER is getting deprecated; please use 'OML_COLLECT=\"%s\"' instead\n",
             collection_uri);
   if(collection_uri == NULL) {
-    collection_uri = default_uri(app_name, name, experimentId);
+    collection_uri = default_uri(app_name, name, domain);
   }
 
   setup_features (getenv ("OML_FEATURES"));
@@ -234,7 +242,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
   omlc_instance->app_name = app_name;
   omlc_instance->node_name = name;
-  omlc_instance->experiment_id = experimentId;
+  omlc_instance->domain = domain;
   omlc_instance->sample_count = sample_count;
   omlc_instance->sample_interval = sample_interval;
   omlc_instance->default_encoding = default_encoding;
@@ -430,7 +438,7 @@ usage(void)
   printf("\n");
   printf("OML specific parameters:\n\n");
   printf("  --oml-id id            .. Name to identify this app instance\n");
-  printf("  --oml-exp-id expId     .. Name to experiment DB\n");
+  printf("  --oml-domain domain    .. Name of experimental domain\n");
   printf("  --oml-collect uri      .. URI of server to send measurements to\n");
   printf("  --oml-config file      .. Reads configuration from 'file'\n");
   printf("  --oml-samples count    .. Default number of samples to collect\n");
@@ -448,13 +456,15 @@ usage(void)
   printf("\n");
   printf("The following environment variables are recognized:\n");
   printf("  OML_NAME=id            .. Name to identify this app instance (--oml-id)\n");
-  printf("  OML_EXP_ID=expId       .. Name to experiment DB (--oml-exp-id)\n");
+  printf("  OML_DOMAIN=domain      .. ame of experimental domain (--oml-domain)\n");
   printf("  OML_CONFIG=file        .. Read configuration from 'file' (--oml-config)\n");
   printf("  OML_COLLECT=uri        .. URI of server to send measurements to (--oml-collect)\n");
   printf("\n");
   printf("Obsolescent interfaces:\n\n");
+  printf("  --oml-exp-id domain    .. Equivalent to --oml-domain domain\n");
   printf("  --oml-file localPath   .. Equivalent to --oml-collect file:localPath\n");
   printf("  --oml-server uri       .. Equivalent to --oml-collect uri\n");
+  printf("  OML_EXP_ID=domain      .. Equivalent to OML_DOMAIN\n");
   printf("  OML_SERVER=uri         .. Equivalent to OML_COLLECT\n");
   printf("\n");
   printf("If the corresponding command line option is present, it overrides\n");
@@ -582,8 +592,8 @@ create_writer(const char* uri, enum StreamEncoding encoding)
     logerror ("Missing '--oml-id' flag \n");
     return NULL;
   }
-  if (omlc_instance->experiment_id == NULL) {
-    logerror ("Missing '--oml-exp-id' flag \n");
+  if (omlc_instance->domain == NULL) {
+    logerror ("Missing '--oml-domain' flag \n");
     return NULL;
   }
 
@@ -933,9 +943,9 @@ write_meta(void)
     char s[128];
     sprintf(s, "protocol: %d", OML_PROTOCOL_VERSION);
     writer->meta(writer, s);
-    sprintf(s, "experiment-id: %s", omlc_instance->experiment_id);
+    sprintf(s, "experiment-id: %s", omlc_instance->domain);
     writer->meta(writer, s);
-    sprintf(s, "start-time: %d", (int)omlc_instance->start_time);
+    sprintf(s, "start_time: %d", (int)omlc_instance->start_time);
     writer->meta(writer, s);
     sprintf(s, "sender-id: %s", omlc_instance->node_name);
     writer->meta(writer, s);
@@ -1118,12 +1128,12 @@ setup_features (const char * const features)
  *
  * @param app_ame	the name of the application
  * @param name		the OML ID of the instance
- * @param experimentId	the ID of the experiment
+ * @param domain	the experimental domain
  *
  * @return	A statically allocated buffer containing the URI of the output
  */
 static char*
-default_uri(const char *app_name, const char *name, const char *experimentId)
+default_uri(const char *app_name, const char *name, const char *domain)
 {
   /* Use a statically allocated buffer to avoid having to free it,
    * just like other URI sources in omlc_init() */
@@ -1150,10 +1160,10 @@ default_uri(const char *app_name, const char *name, const char *experimentId)
     remaining -= strlen(name);
   }
 
-  if (experimentId) {
+  if (domain) {
     strncat(uri, "_", remaining);
     remaining--;
-    strncat(uri, experimentId, remaining);
+    strncat(uri, domain, remaining);
   }
 
   strncat(uri, "_", remaining);

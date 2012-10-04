@@ -1,4 +1,4 @@
-<omlc exp_id="my_experiment" id="my_source_id">
+<omlc domain="my_experiment" id="my_source_id">
 	<collect url="tcp://localhost:3003">
 		<stream source="d_sin" samples="1" />
 	</collect>

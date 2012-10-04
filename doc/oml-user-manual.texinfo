@@ -92,7 +92,7 @@ Client configuration
 Command line
 
 * omlid::
-* omlexpid::
+* omldomain::
 * omlcollect::
 * omlsamples::
 * omlinterval::
@@ -331,7 +331,7 @@ detail.
 
 @menu
 * omlid::
-* omlexpid::
+* omldomain::
 * omlcollect::
 * omlsamples::
 * omlinterval::
@@ -350,19 +350,19 @@ detail.
 @kindex --oml-id
 Set the client application's node ID.  This is not required if output is
 only going to a file, but it is mandatory if output is going to an OML
-server, as the OML server uses the node ID (and the experiment ID) to
-distinguish between measurements from different OML clients in the
+server, as the OML server uses the node ID (and the experimental domain)
+to distinguish between measurements from different OML clients in the
 network.
 
-@node omlexpid
-@subsubsection @option{--oml-exp-id} @var{id}
+@node omldomain
+@subsubsection @option{--oml-domain} @var{id}
 
-@kindex --oml-exp-id
-Set the client application's experiment ID.  This is not required if
-output is only going to a file, but it is mandatory if output is going
-to an OML server, as the OML server uses the experiment ID (and the
-node ID) to distinguish between measurements from different OML
-clients in the network.
+@kindex --oml-domain
+Set the client application's experimental domain.  This is not required
+if output is only going to a file, but it is mandatory if output is
+going to an OML server, as the OML server uses the domain (and the node
+ID) to distinguish between measurements from different OML clients in
+the network.
 
 @node omlcollect
 @subsubsection @option{--oml-collect} @var{uri}
@@ -498,19 +498,19 @@ $ my-oml-app --oml-config config.xml ...
 
 The XML file must have a root element with tag @code{<omlc/>}.  The root
 element can also specify the node identifier and the experiment
-identifier, using the @code{id} and @code{exp_id} attributes,
+identifier, using the @code{id} and @code{domain} attributes,
 respectively.  For example, suppose that the client is running on a
 node called ``node-21'', and that this experiment is testing a new
 WiFi networking algorithm called ``xtream-wifi''.  The XML
 configuration file for this experiment might look like this:
 
 @example
-<omlc id="node-21" exp_id="xtream-wifi-1">
+<omlc id="node-21" domain="xtream-wifi-1">
 ...
 </omlc>
 @end example
 
-The @code{id} and @code{exp_id} attributes are not mandatory if
+The @code{id} and @code{domain} attributes are not mandatory if
 results are being written to a file, however the OML client library
 can't send measurement output to an OML server without them.  In that
 case, @code{omlc_start()} will return an error.
@@ -610,7 +610,7 @@ file with one collector, one MP, and two filters might look like the
 following:
 
 @example
-<omlc id="node-21" exp_id="xtream-wifi-1">
+<omlc id="node-21" domain="xtream-wifi-1">
       <collect url="file:xtream-wifi-1-output.txt">
                <mp name="packets" interval=1.0>
                    <f .../>
@@ -718,7 +718,7 @@ OML client application.  Here is a slightly longer example of an OML
 XML configuration file.
 
 @smallexample
-<omlc exp_id="exp99" id="node11">
+<omlc domain="exp99" id="node11">
     <collect url="tcp:localhost:15500">
         <mp name="omlsigar" interval="2" >
             <f fname="avg" sname="cpu_user" pname="cpu_user" />
@@ -1451,7 +1451,7 @@ server.  The OML client library sends the argument of the
 The @code{experiment-id} header names the database in which the client's
 measurements should be stored; all measurement data from the same
 experiment is stored in a single database.  The OML client library sends
-the argument given to the @code{--oml-exp-id} command line option as the
+the argument given to the @code{--oml-domain} command line option as the
 value of this header.
 
 @node start_time

@@ -13,7 +13,7 @@ static struct {
   enum HeaderTag tag;
 } vector_header_names [] = {
   { "protocol", H_PROTOCOL },
-  { "experiment-id", H_EXPERIMENT_ID },
+  { "experiment-id", H_DOMAIN },
   { "sender-id", H_SENDER_ID },
   { "app-name", H_APP_NAME },
   { "content", H_CONTENT },
@@ -65,8 +65,8 @@ static struct {
   int is_null;
   int is_null_short; // NULL in the short test
 } vector_headers [] = {
-  { "protocol: 1", { H_PROTOCOL, "1", NULL }, 0, 1 },
-  { "experiment-id: abc", { H_EXPERIMENT_ID, "abc", NULL }, 0, 0 },
+  { "protocol: 3", { H_PROTOCOL, "3", NULL }, 0, 1 },
+  { "experiment-id: abc", { H_DOMAIN, "abc", NULL }, 0, 0 },
   { "content: binary", { H_CONTENT, "binary", NULL }, 0, 0 },
   { "content: text  ", { H_CONTENT, "text  ", NULL }, 0, 0 },
   { "content: t", { H_CONTENT, "t", NULL }, 0, 1 },
@@ -107,8 +107,8 @@ START_TEST (test_header_from_string)
   fail_if (is_null  && header != NULL);
 
   if (!is_null) {
-    fail_unless (header->tag == expected->tag);
-    fail_unless (strcmp (header->value, expected->value) == 0);
+    fail_unless (header->tag == expected->tag, "Incorrect tag, expected '%d', but got '%d'", expected->tag, header->tag);
+    fail_unless (strcmp (header->value, expected->value) == 0, "Incorrect header, expected '%s', but got '%s'", expected->value, header->value);
   }
 }
 END_TEST

@@ -79,7 +79,7 @@ static void init_tokens (void)
   /* The canonical name goes last here, but ends up at the head of the linked list */
   setcurtok (CT_ROOT),             mksyn ("omlc");
   setcurtok (CT_NODE),             mksyn ("id");
-  setcurtok (CT_EXP),              mksyn ("exp_id"), mksyn ("experiment");
+  setcurtok (CT_EXP),              mksyn ("exp_id"), mksyn ("experiment"), mksyn ("domain");
   setcurtok (CT_COLLECT),          mksyn ("collect");
   setcurtok (CT_COLLECT_URL),      mksyn ("url");
   setcurtok (CT_COLLECT_ENCODING), mksyn ("encoding");
@@ -264,8 +264,8 @@ parse_config(char* configFile)
   if (omlc_instance->node_name == NULL) {
     omlc_instance->node_name = get_xml_attr(cur, CT_NODE);
   }
-  if (omlc_instance->experiment_id == NULL) {
-    omlc_instance->experiment_id = get_xml_attr(cur, CT_EXP);
+  if (omlc_instance->domain == NULL) {
+    omlc_instance->domain = get_xml_attr(cur, CT_EXP);
   }
 
   cur = cur->xmlChildrenNode;

@@ -31,7 +31,7 @@ fi
 if [ ! -z "${TIMEOUT}" ]; then
 	TIMEOUT="${TIMEOUT} 30s"
 fi
-${TIMEOUT} $blobgen -h -n 100 $long --oml-id a --oml-exp-id ${exp} --oml-collect localhost:$port --oml-bufsize 110000
+${TIMEOUT} $blobgen -h -n 100 $long --oml-id a --oml-domain ${exp} --oml-collect localhost:$port --oml-bufsize 110000
 if [ $? != 0 ]; then
 	echo "Error or timeout generating blobs"; 
 	kill $server_pid;

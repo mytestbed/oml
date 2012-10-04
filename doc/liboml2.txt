@@ -181,15 +181,17 @@ OML OPTIONS
 	printed and measurement collection will not occur (although the
 	application may still run).
 
---oml-exp-id exp-id::
-	Set the OML client's experiment to 'exp-id'.  This is used by the
-	linkoml:oml2-server[1] to group measurements from different
-	clients that logically belong to the same 'experiment'.  Multiple
-	different applications running on multiple different machines can
-	contribute measurements to the same experiment.  If '--oml-exp-id'
-	is not given, an error is written to the log file and measurement
-	collection will not occur (although the application may still
-	run).
+--oml-domain domain::
+--oml-exp-id domain::
+Set the OML client's experimental domain to 'domain'.  This is used by
+the linkoml:oml2-server[1] to group measurements from different clients
+that logically belong to the same gropu.  Multiple applications running
+on different machines can contribute measurements to the same
+experiment.  If '--oml-domain' is not given, an error is written to the
+log file and measurement collection will not occur (although the
+application may still run). The '--oml-exp-id' option is obsolescent,
+and '--oml-collect' should be preferred.
+
 
 --oml-file filename::
 Write measurements to file 'filename', in a human readable text format.
@@ -319,10 +321,12 @@ OML_NAME::
 The name to identify this client to the OML server, equivalent to the
 '--oml-id' command line option.
 
+OML_DOMAIN::
 OML_EXP_ID::
-The name of the experiment to which this client's measurements
-belong.  Used for grouping measurements into the same database on the
-server.  Equivalent to the '--oml-exp-id' command line option.
+The name of the experiment to which this client's measurements belong.
+Used for grouping measurements into the same database on the server.
+Equivalent to the '--oml-domain' command line option. 'OML_EXP_ID' is
+obsolescent and kept for backward compatibility.
 
 OML_CONFIG::
 The path to the configuration file to use to configure the client.

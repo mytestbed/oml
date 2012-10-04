@@ -45,7 +45,7 @@
 
 typedef struct _omlClient {
   const char* app_name;
-  const char* experiment_id;
+  const char* domain;
   const char* node_name;
 
   OmlMP*       mpoints;

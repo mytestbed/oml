@@ -29,7 +29,7 @@
 enum HeaderTag {
   H_NONE,
   H_PROTOCOL,
-  H_EXPERIMENT_ID,
+  H_DOMAIN,
   H_CONTENT,
   H_APP_NAME,
   H_SENDER_ID,

@@ -33,13 +33,13 @@ static const struct {
   enum HeaderTag tag;
 } header_map [] = {
   { "protocol",      8,  H_PROTOCOL },
-  { "experiment-id", 13, H_EXPERIMENT_ID },
+  { "experiment-id", 13, H_DOMAIN },
   { "content",       7,  H_CONTENT },
   { "app-name",      8,  H_APP_NAME },
   { "schema",        6,  H_SCHEMA },
   { "sender-id",     9,  H_SENDER_ID },
-  { "start-time",    10, H_START_TIME },
   { "start_time",    10, H_START_TIME }, /* This one will be deprecated at some point */
+  { "start-time",    10, H_START_TIME },
   { NULL, 0, H_NONE }
 };
 
