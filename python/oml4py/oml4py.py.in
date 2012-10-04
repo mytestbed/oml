@@ -44,7 +44,7 @@ class OMLBase:
     def _banner(self):
         sys.stderr.write("INFO\t%s [Protocol V%d] %s\n" % (self.VERSION_STRING, self.PROTOCOL, self.COPYRIGHT))
 
-    def __init__(self,appname,expid=None,sender=None,uri="tcp:localhost:3003"):
+    def __init__(self,appname,expid=None,sender=None,uri=None):
         self._banner()
 
         self.oml = True
@@ -65,11 +65,10 @@ class OMLBase:
 
         if uri is None:
           try:
-            uri_l = os.environ['OML_SERVER'].split(":")
+            uri = os.environ['OML_SERVER']
           except KeyError:
-            self.oml = False
-        else:
-          uri_l = uri.split(":")
+            uri = "tcp:localhost:3003"
+        uri_l = uri.split(":")
 
         try:
           self.omlserver = uri_l[1]

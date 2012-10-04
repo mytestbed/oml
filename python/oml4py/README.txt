@@ -20,13 +20,18 @@ or download the package and run::
 Usage
 -------------
 
-This module provides the OMLBase class, which contains the following methods::
+This module provides the OMLBase class, which contains the following methods:
 
-    init
-    start
-    addmp
-    inject
-    close
+* init
+
+* start
+
+* addmp
+
+* inject
+
+* close
+
 
 To use OML in a python project, import the OMLBase class::
 
@@ -34,14 +39,20 @@ To use OML in a python project, import the OMLBase class::
 
 Start by initializing an OMLBase object. The init method takes up to four
 arguments:
+
 *  the name of the application,
+
 *  the name of the experiment,
+
 *  the name of the node,
-*  and the OML server URI in the form tcp:hostname:port
+
+*  and the OML server URI in the form ``tcp:hostname:port``
+
 
 For example::
 
     x=OMLBase("app", "an-exp","r","tcp:myomlserver.com:3003")
+
 
 The only mandatory argument is the first one (the name of the application).
 If you skip any of the others, they may be defined by environment variables
@@ -72,4 +83,3 @@ as follows::
 At the end of your program, call close to gracefully close the database::
 
    x.close()
-
