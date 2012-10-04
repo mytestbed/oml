@@ -34,8 +34,8 @@ static const struct {
   enum HeaderTag tag;
 } header_map [] = {
   { "protocol",      8,  H_PROTOCOL },
-  { "experiment-id", 13, H_DOMAIN }, /* This one will be deprecated at some point */
-  { "domain",        6,  H_DOMAIN }, /* Move up when switching to protocol V4 */
+  { "domain",        6,  H_DOMAIN },
+  { "experiment-id", 13, H_DOMAIN },
   { "content",       7,  H_CONTENT },
   { "app-name",      8,  H_APP_NAME },
   { "schema",        6,  H_SCHEMA },

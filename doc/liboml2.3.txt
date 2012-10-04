@@ -355,10 +355,10 @@ OML to use the standard output ('--oml-collect file:-').  Here is what
 it looks like:
 
 --------
-INFO   OML Client V2.9.0 [Protocol V3] Copyright 2007-2012, NICTA
-protocol: 3
-experiment-id: count
-start_time: 1283160287
+INFO   OML Client V2.x.y [Protocol V4] Copyright 2007-2012, NICTA
+protocol: 4
+domain: count
+start-time: 1283160287
 sender-id: myid
 app-name: Counter
 schema: 1 Counter_counter count:uint32 count_str:string count_real:double

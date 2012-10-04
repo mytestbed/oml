@@ -45,7 +45,7 @@ module OML4R
   COPYRIGHT = "Copyright 2009-2013, NICTA"
   DEF_SERVER_PORT = 3003
 
-  PROTOCOL = 3
+  PROTOCOL = 4
   @loglevel = 0
   class << self; attr_accessor :loglevel; end
 
@@ -427,8 +427,8 @@ module OML4R
       @header << "protocol: #{PROTOCOL}"
       d = (@domain == :default) ? @@default_domain : @domain
       raise "Missing domain name" unless d
-      @header << "experiment-id: #{d}"
-      @header << "start_time: #{startTime.tv_sec}"
+      @header << "domain: #{d}"
+      @header << "start-time: #{startTime.tv_sec}"
       @header << "sender-id: #{nodeID}"
       @header << "app-name: #{appName}"
       @header << "content: text"

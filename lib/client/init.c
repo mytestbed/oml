@@ -1015,9 +1015,9 @@ write_meta(void)
     char s[128];
     sprintf(s, "protocol: %d", OML_PROTOCOL_VERSION);
     writer->meta(writer, s);
-    sprintf(s, "experiment-id: %s", omlc_instance->domain);
+    sprintf(s, "domain: %s", omlc_instance->domain);
     writer->meta(writer, s);
-    sprintf(s, "start_time: %d", (int)omlc_instance->start_time);
+    sprintf(s, "start-time: %d", (int)omlc_instance->start_time);
     writer->meta(writer, s);
     sprintf(s, "sender-id: %s", omlc_instance->node_name);
     writer->meta(writer, s);

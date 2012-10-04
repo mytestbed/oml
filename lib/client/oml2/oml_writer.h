@@ -26,7 +26,7 @@
 
 #include <oml2/omlc.h>
 
-#define OML_PROTOCOL_VERSION 3
+#define OML_PROTOCOL_VERSION 4
 
 struct _omlWriter;
 

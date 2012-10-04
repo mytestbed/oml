@@ -31,10 +31,7 @@
 
 #include "database.h"
 
-#if OML_PROTOCOL_VERSION == 4
-# error The library now speaks Protocol V4
-#endif
-#define MAX_PROTOCOL_VERSION OML_PROTOCOL_VERSION + 1
+#define MAX_PROTOCOL_VERSION OML_PROTOCOL_VERSION
 #define MIN_PROTOCOL_VERSION 1
 
 typedef enum _cstate {

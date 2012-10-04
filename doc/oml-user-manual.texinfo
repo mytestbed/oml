@@ -138,6 +138,7 @@ Protocol headers
 * Protocol::
 * app-name::
 * sender-id::
+* domain::
 * experiment-id::
 * start_time::
 * start-time::
@@ -1377,6 +1378,7 @@ format for the headers:
                        @code{app-name} | @*
                        @code{sender-id} | @*
                        @code{experiment-id} | @*
+                       @code{domain} | @*
                        @code{start_time} | @*
                        @code{start-time} | @*
                        @code{content} | @*
@@ -1408,7 +1410,7 @@ the other headers appear more than once, the server will accept the
 header without complaint, but the results will be undefined and may
 cause improper behaviour of the server.  Omission of any header except
 @code{app-name} will also result in undefined behaviour.  The
-@code{sender-id} header must follow the @code{experiment-id} header,
+@code{sender-id} header must follow the @code{domain} header,
 otherwise the server will report an error and drop the connection to
 the client.
 
@@ -1416,6 +1418,7 @@ the client.
 * Protocol::
 * app-name::
 * sender-id::
+* domain::
 * experiment-id::
 * start_time::
 * start-time::
@@ -1445,14 +1448,20 @@ The @code{sender-id} header is used to identify the client to the
 server.  The OML client library sends the argument of the
 @code{--oml-id} command line option as the value of this header.
 
-@node experiment-id
-@subsection @code{experiment-id}
+@node domain
+@subsection @code{domain}
 
-The @code{experiment-id} header names the database in which the client's
+The @code{domain} header names the database in which the client's
 measurements should be stored; all measurement data from the same
 experiment is stored in a single database.  The OML client library sends
 the argument given to the @code{--oml-domain} command line option as the
 value of this header.
+
+@node experiment-id
+@subsection @code{experiment-id}
+
+The @code{experiment-id} header is a synonym for the @code{domain}
+header, supported for backwards compatibility reasons.
 
 @node start_time
 @subsection @code{start_time}
