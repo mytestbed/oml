@@ -671,7 +671,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
 {
   uint8_t header_str[PACKET_HEADER_SIZE + 2];
   uint8_t stream_header_str[STREAM_HEADER_SIZE];
-  int result;
+  int result, n;
   OmlValue seqno;
   OmlValue timestamp;
 
@@ -702,7 +702,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
     uint16_t nv16 = 0;
     result = mbuf_read (mbuf, (uint8_t*)&nv16, sizeof (uint16_t));
     if (result == -1) {
-      int n = mbuf_remaining (mbuf) - 2;
+      n = mbuf_remaining (mbuf) - 2;
       mbuf_reset_read (mbuf);
       return n;
     }
@@ -712,7 +712,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
     uint32_t nv32 = 0;
     result = mbuf_read (mbuf, (uint8_t*)&nv32, sizeof (uint32_t));
     if (result == -1) {
-      int n = mbuf_remaining (mbuf) - 4;
+      n = mbuf_remaining (mbuf) - 4;
       mbuf_reset_read (mbuf);
       return n;
     }
@@ -729,11 +729,11 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   }
 
   result = mbuf_read (mbuf, stream_header_str, LENGTH (stream_header_str));
-  if (result == -1)
-    {
-      logerror("Unable to read stream header\n");
-      return 0;
-    }
+  if (result == -1) {
+      n = mbuf_remaining (mbuf) - LENGTH (stream_header_str);
+      mbuf_reset_read (mbuf);
+      return n;
+  }
 
   header->values = (int)stream_header_str[0];
   header->stream = (int)stream_header_str[1];

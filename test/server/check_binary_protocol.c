@@ -213,7 +213,6 @@ START_TEST(test_binary_resync)
 
   rc = sqlite3_step(stmt);
   fail_unless(rc == 100, "First step of statement `%s' failed; rc=%d", select1, rc);
-  logdebug("Expect %f, read %f (id=%d)\n", time1, sqlite3_column_double(stmt, 0), sqlite3_column_int(stmt, 1));
   fail_unless(fabs(sqlite3_column_double(stmt, 0) - time1) < 1e-8,
       "Invalid oml_ts_value in 1st table: expected `%e', got `%e'",
       time1, sqlite3_column_double(stmt, 0), fabs(sqlite3_column_double(stmt, 0) - time1));

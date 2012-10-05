@@ -512,9 +512,18 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 {
   int table_index = header->stream - 1;
   MBuffer* mbuf = self->mbuf;
-  OmlValue *values = self->values_vectors[table_index];
-  int count = self->values_vector_counts[table_index];
-  int cnt = unmarshal_measurements(mbuf, header, values, count);
+  OmlValue *values;
+  int count;
+  int cnt;
+
+  if (table_index >= self->table_count || table_index < 0) {
+    logwarn("%s(bin): Table index %d out of bounds, discarding sample %d\n", self->name, table_index, header->seqno, header->length);
+    return;
+  }
+
+  values = self->values_vectors[table_index];
+  count = self->values_vector_counts[table_index];
+  cnt = unmarshal_measurements(mbuf, header, values, count);
 
   /* Some error occurred in unmarshaling; can't continue */
   if (cnt < 0)
@@ -565,13 +574,11 @@ static int process_bin_message(ClientHandler* self, MBuffer* mbuf)
 
   res = unmarshal_init(mbuf, &header);
   if (res == 0) {
-    logerror("%s(bin): Error while reading message header\n", self->name);
-    mbuf_clear (mbuf);
-    self->state = C_PROTOCOL_ERROR;
+    logwarn("%s(bin): Could not find message header\n", self->name);
     return 0;
   } else if (res < 0 && mbuf->fill>0) {
     // not enough data
-    logdebug("%s(bin): Not enough data (%dB) for a new measurement yet (%dB missing)\n",
+    logdebug("%s(bin): Not enough data (%dB) for a new measurement yet (at least %dB missing)\n",
         self->name, mbuf_remaining(mbuf), -res);
     return 0;
   }
@@ -579,6 +586,8 @@ static int process_bin_message(ClientHandler* self, MBuffer* mbuf)
   case OMB_DATA_P:
   case OMB_LDATA_P:
     process_bin_data_message(self, &header);
+    if (self->state != C_BINARY_DATA)
+      return 0;
     break;
   default:
     logwarn("%s(bin): Ignoring unsupported message type '%d'\n", self->name, header.type);
