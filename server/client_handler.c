@@ -134,17 +134,17 @@ client_realloc_tables (ClientHandler *self, int ntables)
  *  so that it is expanded or contracted to have nvalues elements.
  */
   int
-client_realloc_values (ClientHandler *self, int index, int nvalues)
+client_realloc_values (ClientHandler *self, int idx, int nvalues)
 {
-  if (!self || index < 0 || index > self->table_count || nvalues <= 0)
+  if (!self || idx < 0 || idx > self->table_count || nvalues <= 0)
     return -1;
 
-  if (nvalues > self->values_vector_counts[index]) {
-    OmlValue *new_values = xrealloc (self->values_vectors[index], nvalues * sizeof (OmlValue));
+  if (nvalues > self->values_vector_counts[idx]) {
+    OmlValue *new_values = xrealloc (self->values_vectors[idx], nvalues * sizeof (OmlValue));
     if (!new_values)
       return -1;
-    self->values_vectors[index] = new_values;
-    self->values_vector_counts[index] = nvalues;
+    self->values_vectors[idx] = new_values;
+    self->values_vector_counts[idx] = nvalues;
   }
 
   return 0;
@@ -264,7 +264,9 @@ process_schema(ClientHandler* self, char* value)
     return;
   }
 
-  int index = schema->index;
+  int idx = schema->index - 1;
+  logdebug("%s: New schema %d '%s'\n", self->name, idx, value);
+
   DbTable* table = database_find_or_create_table(self->database, schema);
   if (table == NULL) {
     logerror("%s: Can't find table '%s' or client schema '%s' doesn't match any of the existing tables.\n",
@@ -275,17 +277,17 @@ process_schema(ClientHandler* self, char* value)
   }
   schema_free (schema);
 
-  if (client_realloc_tables (self, index + 1) == -1) {
-    logerror ("%s: Failed to allocate memory for table index %d\n", self->name, index);
+  if (client_realloc_tables (self, idx + 1) == -1) {
+    logerror ("%s: Failed to allocate memory for table index %d\n", self->name, idx);
     return;
   }
 
-  self->tables[index] = table;
+  self->tables[idx] = table;
 
   /* Reallocate the values vector if this schema has more columns than can fit already. */
-  if (client_realloc_values (self, index, table->schema->nfields) == -1) {
+  if (client_realloc_values (self, idx, table->schema->nfields) == -1) {
     logwarn ("%s: Could not allocate values vector of size %d for table index %d\n",
-        self->name, table->schema->nfields, index);
+        self->name, table->schema->nfields, idx);
   }
 }
 
@@ -349,6 +351,7 @@ process_meta(ClientHandler* self, char* key, char* value)
     process_schema(self, value);
   } else if (strcmp(key, "content") == 0) {
     if (strcmp(value, "binary") == 0) {
+      logdebug("%s: Switching to binary mode\n", self->name);
       self->content = C_BINARY_DATA;
     } else if (strcmp(value, "text") == 0) {
       self->content = C_TEXT_DATA;
@@ -446,10 +449,10 @@ process_header(ClientHandler* self, MBuffer* mbuf)
   static void
 process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 {
-  int index = header->stream;
+  int table_index = header->stream - 1;
   MBuffer* mbuf = self->mbuf;
-  OmlValue *values = self->values_vectors[index];
-  int count = self->values_vector_counts[index];
+  OmlValue *values = self->values_vectors[table_index];
+  int count = self->values_vector_counts[table_index];
   int cnt = unmarshal_measurements(mbuf, header, values, count);
 
   /* Some error occurred in unmarshaling; can't continue */
@@ -460,20 +463,20 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 
   ts = self->time_offset + header->timestamp;
   /* XXX: Return to header-parsing state on table_index = 0 */
-  DbTable* table = self->tables[index];
+  DbTable* table = self->tables[table_index];
   if (table == NULL) {
-    logerror("%s(bin): Undefined table index %d\n", self->name, index);
+    logerror("%s(bin): Undefined table index %d\n", self->name, table_index);
     self->state = C_PROTOCOL_ERROR;
     return;
   }
   logdebug("%s(bin): Inserting data into table index %d (seqno=%d, ts=%f)\n",
-      self->name, index, header->seqno, ts);
+      self->name, table_index, header->seqno, ts);
   self->database->insert(self->database,
       table,
       self->sender_id,
       header->seqno,
       ts,
-      self->values_vectors[index],
+      self->values_vectors[table_index],
       cnt);
 
   mbuf_consume_message (mbuf);
@@ -541,13 +544,12 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
   }
 
   double ts = atof(msg[0]);
-  long table_index = atol(msg[1]);
+  long table_index = atol(msg[1]) - 1;
   long seq_no = atol(msg[2]);
 
   ts += self->time_offset;
   if (table_index >= self->table_count || table_index < 0) {
-    /* XXX: Return to header-parsing state on table_index = -1 */
-    logerror("%s(txt): Table index %d out of bounds\n", self->name, table_index);
+    logwarn("%s(txt): Table index %d out of bounds, discarding sample %d\n", self->name, table_index, seq_no);
     return;
   }
   DbTable* table = self->tables[table_index];
@@ -575,7 +577,7 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
   }
 
   logdebug("%s(txt): Inserting data into table index %d (seqno=%d, ts=%f)\n",
-      self->name, self->sender_name, index, seq_no, ts);
+      self->name, table_index, seq_no, ts);
   self->database->insert(self->database, table, self->sender_id, seq_no,
       ts, self->values_vectors[table_index], size - 3);
 }
