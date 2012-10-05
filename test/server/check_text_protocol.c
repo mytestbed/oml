@@ -20,14 +20,15 @@
  * THE SOFTWARE.
  *
  */
-/*!\file check_text_protocol.c
-  \brief Tests issues related to the text protocol.
-*/
+/** \file Tests behaviour and issues related to the text protocol. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <check.h>
 #include <sqlite3.h>
+#include <libgen.h>
+
+#include "ocomm/o_log.h"
 #include "mem.h"
 #include "mbuf.h"
 #include "database.h"
@@ -44,7 +45,7 @@ extern char *sqlite_database_dir;
 
 /* Prototypes of functions to test */
 
-void                                                                                                                                   
+void
 client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 
 START_TEST(test_text_insert)
@@ -58,6 +59,8 @@ START_TEST(test_text_insert)
   char table[] = "text_table";
   double time1 = 1.096202;
   double time2 = 2.092702;
+  int d1 = 3319660544;
+  int d2 = 106037248;
 
   char h[200];
   char s1[50];
@@ -66,13 +69,15 @@ START_TEST(test_text_insert)
 
   int rc = -1;
 
-  snprintf(h, sizeof(h),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: sender\napp-name: tester\nschema: 1 %s size:uint32\n\n", domain, table);
-  snprintf(s1, sizeof(s1), "%f\t1\t%d\t%s\n", time1, 1, "3319660544");
-  snprintf(s2, sizeof(s2), "%f\t1\t%d\t%s\n", time2, 2, "106037248");
-  snprintf(select, sizeof(select), "select oml_ts_client, oml_seq from %s;", table);
-  
+  snprintf(h, sizeof(h),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\nschema: 1 %s size:uint32\n\n", domain, basename(__FILE__), __FUNCTION__, table);
+  snprintf(s1, sizeof(s1), "%f\t1\t%d\t%d\n", time1, 1, d1);
+  snprintf(s2, sizeof(s2), "%f\t1\t%d\t%d\n", time2, 2, d2);
+  snprintf(select, sizeof(select), "select oml_ts_client, oml_seq, size from %s;", table);
+
   memset(&source, 0, sizeof(SockEvtSource));
-  source.name = "fake socket";
+  source.name = "text insert socket";
+
+  o_set_log_level(-1);
 
   /* Create the ClientHandler almost as server/client_handler.h:client_handler_new() would */
   ch = (ClientHandler*) xmalloc(sizeof(ClientHandler));
@@ -85,11 +90,11 @@ START_TEST(test_text_insert)
 
   fail_unless(ch->state == C_HEADER);
 
-  loginfo("Processing text protocol for issue #672\n");
+  logdebug("Processing text protocol for issue #672\n");
   /* Process the header */
   client_callback(&source, ch, h, strlen(h));
 
-  fail_unless(ch->state == C_TEXT_DATA);
+  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
   fail_unless(ch->content == C_TEXT_DATA);
   fail_if(ch->database == NULL);
   fail_if(ch->sender_id == 0);
@@ -102,7 +107,7 @@ START_TEST(test_text_insert)
   /* Process the second sample */
   client_callback(&source, ch, s2, strlen(s2));
 
-  loginfo("Checking recorded data in %s.sq3\n", domain);
+  logdebug("Checking recorded data in %s.sq3\n", domain);
   /* Open database */
   db = database_find(domain);
   fail_if(db == NULL || ((Sq3DB*)(db->handle))->conn == NULL , "Cannot open SQLite3 database");
@@ -111,16 +116,21 @@ START_TEST(test_text_insert)
 
   rc = sqlite3_step(stmt);
   fail_unless(rc == 100, "First step of statement `%s' failed; rc=%d", select, rc);
-  loginfo("Expect %f, read %f (id=%d)\n", time1, sqlite3_column_double(stmt, 0), sqlite3_column_int(stmt, 1));
-  fail_unless(fabs(sqlite3_column_double(stmt, 0) - time1) < 10e-10, "Invalid oml_ts_value in 1st row: expected `%f', got `%f'", time1, sqlite3_column_double(stmt, 0));
+  fail_unless(fabs(sqlite3_column_double(stmt, 0) - time1) < 10e-10,
+      "Invalid oml_ts_value in 1st row: expected `%f', got `%f'",
+      time1, sqlite3_column_double(stmt, 0));
+  fail_unless(fabs(sqlite3_column_int(stmt, 2) == d1),
+      "Invalid size in 1st row: expected `%d', got `%d'",
+      d1, sqlite3_column_int(stmt, 2));
 
   rc = sqlite3_step(stmt);
   fail_unless(rc == 100, "Second step of statement `%f' failed; rc=%d", select, rc);
-  loginfo("Expect %f, read %f (id=%d)\n", time2, sqlite3_column_double(stmt, 0), sqlite3_column_int(stmt, 1));
-  fail_unless(fabs(sqlite3_column_double(stmt, 0) - time2) < 10e-10, "Invalid oml_ts_value in 2nd row: expected `%f', got `%f'", time2, sqlite3_column_double(stmt, 0));
-
-  /* Check timestamp */
-  /* TODO */
+  fail_unless(fabs(sqlite3_column_double(stmt, 0) - time2) < 10e-10,
+      "Invalid oml_ts_value in 2nd row: expected `%f', got `%f'",
+      time2, sqlite3_column_double(stmt, 0));
+  fail_unless(fabs(sqlite3_column_int(stmt, 2) == d2),
+      "Invalid size in 2nd row: expected `%d', got `%d'",
+      d2, sqlite3_column_int(stmt, 2));
 
   /* Close all */
   client_handler_free(ch);
