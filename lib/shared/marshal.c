@@ -20,12 +20,14 @@
  * THE SOFTWARE.
  *
  */
-/*!\file marshal.c
-  \brief Implements marhsalling and unmarshalling of basic types for transmission across the network.
+/** \file Implements marhsalling and unmarshalling of basic types for binary
+ * transmission across the network.
+ *
+ * Marshalling is done directly into Mbuffers.
+ *
+ * \see marshal_init, marshal_measurements, marshal_values, marshal_finalize
+ */
 
-*/
-
-#include "log.h"
 #include <math.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -39,8 +41,8 @@
 #include "mem.h"
 #include "log.h"
 #include "mbuf.h"
-#include "htonll.h"
 #include "oml_value.h"
+#include "marshal.h"
 
 #define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
 
@@ -59,11 +61,13 @@
 
 #define SYNC_BYTE 0xAA
 
+/** Size of short marshalled message headers (OMB_DATA_P); OMB_LDATA_P are 2 bytes longer */
 #define PACKET_HEADER_SIZE 5
 #define STREAM_HEADER_SIZE 2
 
 #define LONG_T_SIZE       4
 #define DOUBLE_T_SIZE     5
+/** Marshalled strings are limited to 254 characters */
 #define STRING_T_MAX_SIZE 254
 #define INT32_T_SIZE      4
 #define UINT32_T_SIZE     4
@@ -75,11 +79,8 @@
 
 #define MIN_LENGTH 64
 
-/*
- * Map from OML_*_VALUE types to protocol types.
- *
- * NOTE:  This array must be ordered identically to the OmlValueT enum.
- */
+/** Map from OML_*_VALUE types to protocol types. */
+/* This array must be ordered identically to the OmlValueT enum. */
 static const int oml_type_map [] =
   {
     DOUBLE_T,
@@ -93,11 +94,8 @@ static const int oml_type_map [] =
     BLOB_T
   };
 
-/*
- * Map from protocol types to OML_*_VALUE types.
- *
- * NOTE: This array must be ordered identically to the values of the protocol types.
- */
+/** Map from protocol types to OML_*_VALUE types.  */
+/* This array must be ordered identically to the values of the protocol types. */
 static const size_t protocol_type_map [] =
   {
     OML_UNKNOWN_VALUE,
@@ -112,11 +110,8 @@ static const size_t protocol_type_map [] =
     OML_BLOB_VALUE
   };
 
-/*
- * Map from protocol types to protocol sizes.
- *
- * NOTE:  This array must be ordered identically to the values of the protocol types.
- */
+/** Map from protocol types to protocol sizes. */
+/* NOTE: This array must be ordered identically to the values of the protocol types. */
 static const size_t protocol_size_map [] =
   {
     -1,
@@ -131,11 +126,8 @@ static const size_t protocol_size_map [] =
     BLOB_T_MAX_SIZE
   };
 
-/*
- * Map from OML_*_VALUE types to size of protocol types on the wire.
- *
- * NOTE:  This array must be ordered identically to the OmlValueT enum.
- */
+/** Map from OML_*_VALUE types to size of protocol types on the wire. */
+/* NOTE: This array must be ordered identically to the OmlValueT enum. */
 static const size_t oml_size_map [] =
   {
     DOUBLE_T_SIZE,
@@ -149,19 +141,30 @@ static const size_t oml_size_map [] =
     BLOB_T_MAX_SIZE
   };
 
+/** Find two synchronisation bytes (SYNC_BYTE) back to back.
+ *
+ * \param buf buffer to search for SYNC_BYTEs
+ * \param len length of buf
+ * \return a pointer to the first of two subsequent SYNC_BYTEs
+ * */
 unsigned char*
 find_sync (unsigned char* buf, int len)
 {
   int i;
 
   for (i = 1; i < len; i++)
-    {
+  {
       if (buf[i] == SYNC_BYTE && buf[i-1] == SYNC_BYTE)
         return &buf[i-1];
     }
   return NULL;
 }
 
+/** Prepare a short marshalling header into an MBuffer.
+ *
+ * \param mbuf MBuffer to write the mbuf marshalling header to
+ * \return the 0 on success, -1 on failure (\see mbuf_write)
+ */
 static int marshal_header_short (MBuffer *mbuf)
 {
   uint8_t buf[] = {
@@ -170,6 +173,11 @@ static int marshal_header_short (MBuffer *mbuf)
   return mbuf_write (mbuf, buf, LENGTH (buf));
 }
 
+/** Prepare a long marshalling header into an MBuffer.
+ *
+ * \param mbuf MBuffer to write the mbuf marshalling header to
+ * \return the 0 on success, -1 on failure (\see mbuf_write)
+ */
 static int marshal_header_long (MBuffer *mbuf)
 {
   uint8_t buf[] = {
@@ -178,22 +186,40 @@ static int marshal_header_long (MBuffer *mbuf)
   return mbuf_write (mbuf, buf, LENGTH (buf));
 }
 
+/** Retrieve the message type from an MBuffer containing a marshalling packet.
+ *
+ * \param mbuf MBuffer to read the mbuf marshalling header frow
+ * \return the OmlBinMsgType of the packet
+ */
 OmlBinMsgType
 marshal_get_msgtype (MBuffer *mbuf)
 {
   return (OmlBinMsgType)(mbuf_message (mbuf))[2];
 }
 
-/**
- * @brief Initialize the buffer to serialize a new measurement packet,
- * starting at the current write pointer.
+/** Initialise the MBuffer to serialise a new measurement packet, starting at
+ * the current write pointer.
  *
- * @param mbuf The buffer to serialize into.
- * @param msgtype the type of packet to build.
+ * Two basic types (OmlBinMsgType) of packets are available, short and long.
+ * Short packets (OMB_DATA_P) can contain up to UINT16_MAX, whislt long packets
+ * (OMB_LDATA_P) extend this to UINT32_MAX.
  *
- * @return 0 on success, -1 on failure.  This function can fail if
- * there is a memory allocation failure or if the buffer is
- * misconfigured.
+ * Packets headers start with two SYNC_BYTEs (0xAA), then the packet type
+ * (OMB_DATA_P or OMB_LDATA_P).
+ * - OMB_DATA_P headers are 5 bytes long, the last two bytes containing the
+ *   size of the message (including headers) as a 16-bit integer.
+ * - OMB_LDATA_P headers are 7 bytes long, the last four bytes containing the
+ *   size of the message (including headers) as a 32-bit integer.
+ *
+ * Metadata about the stream can then be packed in with marshal_measurements().
+ *
+ * This function can fail if there is a memory allocation failure or if the
+ * buffer is misconfigured.
+ *
+ * \param mbuf MBuffer to serialize into
+ * \param msgtype OmlBinMsgType of packet to build
+ * \return 0 on success, -1 on failure
+ * \see marshal_measurements
  */
 int
 marshal_init(MBuffer *mbuf, OmlBinMsgType msgtype)
@@ -220,12 +246,25 @@ marshal_init(MBuffer *mbuf, OmlBinMsgType msgtype)
   return 0;
 }
 
-/**
- * \brief
- * \param mbuf
- * \param ms
- * \param now
- * \return 1 if successful
+/** Marshal meta-data for an OML measurement stream's sample
+ *
+ * An OML measurement stream is written as two bytes; the first one is the
+ * counter for the number of elements in the message, and therefore starts at
+ * 0, and the second one is the stream's index. This is followed by a
+ * marshalled long value containing the sequence number, and a double value
+ * containing the timestamp.
+ *
+ * A marshalling message should have been prepared in the MBuffer first with
+ * marshal_init(). Actual data can then be marshalled into the message with
+ * marshal_values().
+ *
+ *
+ * \param mbuf MBuffer to write marshalled data to
+ * \param stream Measurement Stream's index
+ * \param seqno message sequence number
+ * \param now message time
+ * \return 1 if successful, -1 otherwise
+ * \see marshal_init, marshal_values
  */
 int
 marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
@@ -240,6 +279,7 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
     return -1;
   }
 
+  /* XXX: Why is this still marshalled as an unstable long rather than, say, an uint32? */
   v.longValue = seqno;
   marshal_value(mbuf, OML_LONG_VALUE, &v);
 
@@ -249,21 +289,38 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
   return 1;
 }
 
-/**
- * \brief Marshal the array of +values+ into +buffer+ and return the size of the buffer used. If the returned number is negative marshalling didn't finish as the provided buffer was short of the number of bytes returned (when multiplied by -1).
- * \param mbuf
- * \param values
- * \param value_count
- * \return 1 when finished
+/** Marshal the array of values into an MBuffer.
+ *
+ * Metadata of the measurement stream should already have been written with
+ * marshal_measurements(). Each element of values is written with
+ * marshal_value().  Finally, the number of elements in the message is updated
+ * in its header, by incrementing the relevant field (depending on its
+ * OmlBinMsgType) by value_count.
+ *
+ * If the returned number is negative, marshalling didn't finish as the
+ * provided buffer was short of the number of bytes returned (when multiplied
+ * by -1); the entire message has been reset (by marshal_value()), and
+ * marshalling should restart with marshal_init(), after the MBuffer has been
+ * adequately resized or repacked.
+ *
+ * Once all data has been marshalled, marshal_finalize() should be called to
+ * finish preparing the message.
+ *
+ * \param mbuf MBuffer to write marshalled data to
+ * \param values array of OmlValue of length value_count
+ * \param value_count length  the values array
+ * \return 1 on success, or -1 otherwise (marshalling should then restart from marshal_init())
+ * \see marshal_init, marshal_measurements, marshal_value, marshal_finalize, mbuf_repack_message, mbuf_repack_message2, mbuf_resize
  */
 int
 marshal_values(MBuffer* mbuf, OmlValue* values, int value_count)
 {
   OmlValue* val = values;
-  int i;
+  int i, ret;
 
   for (i = 0; i < value_count; i++, val++) {
-    marshal_value(mbuf, val->type, &val->value);
+    if(!marshal_value(mbuf, val->type, &val->value))
+      return -1;
   }
 
   uint8_t* buf = mbuf_message (mbuf);
@@ -275,6 +332,18 @@ marshal_values(MBuffer* mbuf, OmlValue* values, int value_count)
   return 1;
 }
 
+/** Marshal a single OmlValueU of type OmlValueT into mbuf.
+ *
+ * Usually called by marshal_values(). On failure, the whole message writing is
+ * reset using mbuf_reset_write(), and marshalling should restart with
+ * marshal_init(), after the MBuffer has been adequately resized or repacked.
+ *
+ * \param mbuf MBuffer to write marshalled data to
+ * \param val_type OmlValueT representing the type of val
+ * \param val pointer to OmlValueU, of type val_type, to marshall
+ * \return 1 on success, or 0 otherwise (marshalling should then restart from marshal_init())
+ * \see marshal_values, marshal_init, mbuf_reset_write, mbuf_repack_message, mbuf_repack_message2, mbuf_resize
+ */
 inline int
 marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 {
@@ -436,10 +505,15 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
   return 1;
 }
 
-/**
- * \brief
- * \param mbuf
- * \return 1 when finished
+/** Finalise a marshalled message.
+ *
+ * Depending on the number of values packed, change the type of message, and
+ * write the actual size in the right location of the header, in network byte
+ * order.
+ *
+ * \param mbuf MBuffer where marshalled data is
+ * \return 1
+ * \see marshal_init, marshal_measurements, marshal_values
  */
 int
 marshal_finalize(MBuffer*  mbuf)
@@ -473,43 +547,49 @@ marshal_finalize(MBuffer*  mbuf)
 
 
   switch (type) {
-  case OMB_DATA_P: {
+  case OMB_DATA_P:
     len -= PACKET_HEADER_SIZE; // Data length minus header
-    uint16_t nlen = htons (len);
-    memcpy (&buf[3], &nlen, sizeof (nlen));
+    uint16_t nlen16 = htons (len);
+    memcpy (&buf[3], &nlen16, sizeof (nlen16));
     break;
-  }
-  case OMB_LDATA_P: {
+  case OMB_LDATA_P:
     len -= PACKET_HEADER_SIZE + 2; // Data length minus header
-    uint32_t nlen = htonl (len); // pure data length
-    memcpy (&buf[3], &nlen, sizeof (nlen));
+    uint32_t nlen32 = htonl (len); // pure data length
+    memcpy (&buf[3], &nlen32, sizeof (nlen32));
     break;
-  }
   }
 
   return 1;
 }
 
-/** Read the header information contained in an MBuf.
+/** Read the marshalling header information contained in an MBuffer.
  *
- * \param mbuf MBuf to read from
- * \param header reference to an OmlBinaryHeader into which the data from the mbuf should be unmasrhalled
- * \return 1 if everything is fine, the size of the missing section as a negative number if the buffer is too short or 0 if something failed
+ * \param mbuf MBuffer to read from
+ * \param header pointer to an OmlBinaryHeader into which the data from the
+ *               mbuf should be unmarshalled
+ * \return 1 on success, the size of the missing section as a negative number
+ *         if the buffer is too short, or 0 if something failed
  */
 int
 unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
 {
   uint8_t header_str[PACKET_HEADER_SIZE + 2];
   uint8_t stream_header_str[STREAM_HEADER_SIZE];
+  int result;
 
-  // Assumption:  msgptr == rdptr at this point
-  int result = mbuf_read (mbuf, header_str, 3);
+  result = mbuf_begin_read (mbuf);
+  if (result == -1) {
+    logerror("Couldn't start unmarshalling packet (mbuf_begin_read())\n");
+    return 0;
+  }
 
-  if (result == -1)
+  result = mbuf_read (mbuf, header_str, 3);
+  if (result == -1) {
     return mbuf_remaining (mbuf) - 3;
+  }
 
   if (! (header_str[0] == SYNC_BYTE && header_str[1] == SYNC_BYTE)) {
-    logerror("Out of sync.\n");
+    logerror("Cannot find sync bytes in binary stream, out of sync\n");
     return 0;
   }
 
@@ -517,24 +597,24 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
 
   if (header->type == OMB_DATA_P) {
     // Read 2 more bytes of the length field
-    uint16_t nv = 0;
-    result = mbuf_read (mbuf, (uint8_t*)&nv, sizeof (uint16_t));
+    uint16_t nv16 = 0;
+    result = mbuf_read (mbuf, (uint8_t*)&nv16, sizeof (uint16_t));
     if (result == -1) {
       int n = mbuf_remaining (mbuf) - 2;
       mbuf_reset_read (mbuf);
       return n;
     }
-    header->length = (int)ntohs (nv);
+    header->length = (int)ntohs (nv16);
   } else if (header->type == OMB_LDATA_P) {
     // Read 4 more bytes of the length field
-    uint32_t nv = 0;
-    result = mbuf_read (mbuf, (uint8_t*)&nv, sizeof (uint32_t));
+    uint32_t nv32 = 0;
+    result = mbuf_read (mbuf, (uint8_t*)&nv32, sizeof (uint32_t));
     if (result == -1) {
       int n = mbuf_remaining (mbuf) - 4;
       mbuf_reset_read (mbuf);
       return n;
     }
-    header->length = (int)ntohl (nv);
+    header->length = (int)ntohl (nv32);
   } else {
     logwarn ("Unknown packet type %d\n", (int)header->type);
     return -1;
@@ -571,17 +651,9 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   return 1;
 }
 
-/**
- * \brief
- * \param mbuf
- * \param table_index
- * \param seq_no_p
- * \param ts_p
- * \param values measurement values
- * \param max_value_count max. length of above array
- * \return 1 if successful, 0 otherwise
+/** \see unmarshal_values
  */
-int
+inline int
 unmarshal_measurements(
   MBuffer* mbuf,
   OmlBinaryHeader* header,
@@ -591,27 +663,34 @@ unmarshal_measurements(
   return unmarshal_values(mbuf, header, values, max_value_count);
 }
 
-/**
- * \brief Unmarshals the content of +buffer+ into an array of +values+ whose max. allocated size is +value_count+.
- * \param mbuffer
- * \param values type of sample
- * \param max_value_count max. length of above array
- * \return the number of values found. If the returned number is negative, there were more values in the buffer. The number (when multiplied by -1) indicates  by how much the +values+ array should be extended. If the number is less then -100, it indicates an error.
+/** Unmarshals the content of buffer into an array of values of size
+ * value_count.
+ *
+ * If the returned number is negative, there were more values than could fit in
+ * the array in the buffer, and some were skipped.  This number (when
+ * multiplied by -1) indicates  by how much the values array should be
+ * extended. If the number is less than
+ * -100, it indicates an error.
+ *
+ * \param mbuf MBuffer to read from
+ * \param header pointer to an OmlBinaryHeader corresponding to this message
+ * \param values array of OmlValue to be filled
+ * \param max_value_count length of the array (XXX: Should be < 100, otherwise confusion may happen with error returns)
+ * \return the number of values found (positive), or the number of values that didn't fit in the array (negative; multiplied by -1), <-100 in case of error
+ * \see unmarshal_init
  */
 int
 unmarshal_values(
   MBuffer*  mbuf,
   OmlBinaryHeader* header,
   OmlValue*    values,
-  int          max_value_count
+  int          max_value_count 
 ) {
   int value_count = header->values;
 
   if (value_count > max_value_count) {
     logwarn("Measurement packet contained %d too many values for internal storage (max %d, actual %d); skipping packet\n",
-           (value_count - max_value_count),
-           max_value_count,
-           value_count);
+           (value_count - max_value_count), max_value_count, value_count);
     logwarn("Message length appears to be %d + 5\n", header->length);
 
     mbuf_read_skip (mbuf, header->length + PACKET_HEADER_SIZE);
@@ -625,18 +704,17 @@ unmarshal_values(
   OmlValue* val = values;
   for (i = 0; i < value_count; i++, val++) {
     if (unmarshal_value(mbuf, val) == 0) {
-      logwarn("unmarshal_values():  Some kind of ERROR in unmarshal_value() call #%d of %d\n",
-              i, value_count);
-      return -1;
+      logwarn("Could not unmarshal values %d of %d\n", i, value_count);
+      return -101;
     }
   }
   return value_count;
 }
 
-/**
- * \brief
- * \param mbuffer
- * \param value
+/** Unmarshals the next content of an MBuffer into a OmlValue
+ *
+ * \param mbuf MBuffer to read from
+ * \param value pointer to OmlValue to unmarshall the read data into
  * \return 1 if successful, 0 otherwise
  */
 int
@@ -644,13 +722,10 @@ unmarshal_value(
   MBuffer*  mbuf,
   OmlValue*    value
 ) {
-  if (mbuf_remaining(mbuf) == 0)
-    {
-      o_log(O_LOG_ERROR,
-            "Tried to unmarshal a value from the buffer, "
-            "but didn't receive enough data to do that\n");
+  if (mbuf_remaining(mbuf) == 0) {
+      o_log(O_LOG_ERROR, "Tried to unmarshal a value from the buffer, but didn't receive enough data to do that\n");
       return 0;
-    }
+  }
 
   int type = mbuf_read_byte (mbuf);
   if (type == -1) return 0;
@@ -780,21 +855,27 @@ unmarshal_value(
   return 1;
 }
 
+/** Unmarshals the next content of an MBuffer into an OmlValue with
+ * type-checking.
+ *
+ * \param mbuf MBuffer to read from
+ * \param type OmlValueT specifying the type to unmarshall
+ * \param value pointer to OmlValue to unmarshall the read data into
+ * \return 1 if successful, 0 otherwise (e.g., type mismatch)
+ */
 int
 unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue* value)
 {
-  if (unmarshal_value (mbuf, value) != 1)
-    {
+  if (unmarshal_value (mbuf, value) != 1) {
       logerror("Error reading %s from binary packet\n", name);
       return -1;
-    }
+  }
 
-  if (value->type != type)
-    {
-      logerror("Expected type '%s' for %s, but got type '%d' instead\n",
+  if (value->type != type) {
+      logerror("Expected type '%s' for %s, but got type '%s' instead\n",
              oml_type_to_s (type), name, oml_type_to_s (value->type));
       return -1;
-    }
+  }
   return 0;
 }
 
