@@ -43,16 +43,6 @@
 
 char *sqlite_database_dir = NULL;
 
-typedef struct _sq3DB {
-  sqlite3*  conn;
-  int       sender_cnt;
-  time_t    last_commit;
-} Sq3DB;
-
-typedef struct _sq3Table {
-  sqlite3_stmt* insert_stmt;  // prepared insert statement
-} Sq3Table;
-
 static int
 sql_stmt(Sq3DB* self, const char* stmt);
 

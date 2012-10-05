@@ -23,7 +23,18 @@
 #ifndef SQLITE_ADAPTER_H_
 #define SQLITE_ADAPTER_H_
 
+#include <sqlite3.h>
 #include "database.h"
+
+typedef struct _sq3DB {
+  sqlite3*  conn;
+  int       sender_cnt;
+  time_t    last_commit;
+} Sq3DB;
+
+typedef struct _sq3Table {
+  sqlite3_stmt* insert_stmt;  // prepared insert statement
+} Sq3Table;
 
 int sq3_backend_setup (void);
 int sq3_create_database(Database* db);

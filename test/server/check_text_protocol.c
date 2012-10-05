@@ -34,14 +34,6 @@
 #include "client_handler.h"
 #include "sqlite_adapter.h"
 
-/* XXX: this should be declared in server/sqlite_adapter.c */
-typedef struct _sq3DB {
-  sqlite3*  conn;
-  int       sender_cnt;
-  time_t    last_commit;
-} Sq3DB;
-
-
 extern char *dbbackend;
 extern char *sqlite_database_dir;
 
