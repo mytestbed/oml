@@ -41,6 +41,9 @@ class OMLBase:
     COPYRIGHT = "Copyright 2012, NYU-Poly, Fraida Fund"
     PROTOCOL = 1
 
+    DEFAULT_HOST="localhost"
+    DEFAULT_PORT=3003
+
     def _banner(self):
         sys.stderr.write("INFO\t%s [Protocol V%d] %s\n" % (self.VERSION_STRING, self.PROTOCOL, self.COPYRIGHT))
 
@@ -53,13 +56,13 @@ class OMLBase:
         self.appname = appname
         if self.appname[:1].isdigit() or '-' in self.appname or '.' in self.appname:
           sys.stderr.write("ERROR\tInvalid app name: %s\n" %  self.appname)
-          self.oml = False
+          self._disable_oml()
 
         if expid is None:
           try:
             self.expid = os.environ['OML_EXP_ID']
           except KeyError:
-            self.oml = False
+            self._disable_oml()
         else:
           self.expid = expid
 
@@ -67,22 +70,34 @@ class OMLBase:
           try:
             uri = os.environ['OML_SERVER']
           except KeyError:
-            uri = "tcp:localhost:3003"
+            uri = "tcp:%s:%s" %(self.DEFAULT_HOST, self.DEFAULT_PORT)
         uri_l = uri.split(":")
 
-        try:
+        if len(uri_l) == 1:       # host
+          self.omlserver = uri_l[0]
+          self.omlport = self.DEFAULT_PORT
+        if len(uri_l) == 2:
+          if uri_l[0] == "tcp":   # tcp:host or host:port
+            self.omlserver = uri_l[1]
+            self.omlport = self.DEFAULT_PORT
+          else:
+            self.omlserver = uri_l[0]
+            self.omlport = uri_l[1]
+        if len(uri_l) == 3:       # tcp:host:port
           self.omlserver = uri_l[1]
-          self.omlport = int(uri_l[2])
-        except NameError:
-          self.oml = False
-        except IndexError:
-          self.oml = False
+          self.omlport = uri_l[2]
+        try:
+          self.omlport = int(self.omlport)
+        except ValueError:
+          sys.stderr.write("ERROR\tCannot use '%s' as a port number\n" % self.omlport)
+          self._disable_oml()
 
         if sender is None:
           try:
             self.sender =  os.environ['OML_NAME']
           except KeyError:
-            self.oml = False
+            sys.stderr.write("ERROR\tNo sender ID specified (OML_NAME)\n")
+            self._disable_oml()
         else:
           self.sender = sender
 
@@ -103,7 +118,7 @@ class OMLBase:
       if self.oml:
         if "-" in mpname or "." in mpname:
           sys.stderr.write("ERROR\tInvalid measurement point name: %s\n" %  mpname)
-          self.oml = False
+          self._disable_oml()
 
         else:
           # Count number of streams
@@ -123,25 +138,25 @@ class OMLBase:
 
       if self.oml:        
         # Use socket to connect to OML server
+        sys.stderr.write("INFO\tCollection URI is tcp:%s:%d\n" % (self.omlserver, self.omlport))
+
+        self.starttime = int(time())
+
+        header = "protocol: " + str(self.PROTOCOL) + '\n' + "experiment-id: " + str(self.expid) + '\n' + \
+               "start-time: " + str(self.starttime) + '\n' + "sender-id: " + str(self.sender) + '\n' + \
+               "app-name: " + str(self.appname) + '\n' + \
+               str(self.schema) + '\n' + "content: text" + '\n' + '\n'    
+
         try:
           self.sock.connect((self.omlserver,self.omlport))
           self.sock.settimeout(None)
-  
-          self.starttime = int(time())
-
-          header = "protocol: 1" + '\n' + "experiment-id: " + str(self.expid) + '\n' + \
-                 "start-time: " + str(self.starttime) + '\n' + "sender-id: " + str(self.sender) + '\n' + \
-                 "app-name: " + str(self.appname) + '\n' + \
-                 str(self.schema) + '\n' + "content: text" + '\n' + '\n'    
-    
           self.sock.send(to_bytes(header))
-          sys.stderr.write("INFO\tCollection URI is tcp:%s:%d\n" % (self.omlserver,self.omlport))
         except socket.error as e:
           sys.stderr.write("ERROR\tCould not connect to OML server: %s\n" %  e)
-          self.oml = False
-          sys.stderr.write("ERROR\tOML disabled\n")
+          self._disable_oml()
+          sys.stdout.write(header)
       else:
-        sys.stderr.write("ERROR\tOML disabled\n")
+        sys.stderr.write("WARN\tOML disabled\n")
 
 
     def close(self):
@@ -153,40 +168,44 @@ class OMLBase:
 
     def inject(self,mpname,values):
 
-      if self.oml:        
-        # Inject data into OML 
+      if self.oml and self.starttime == 0:
+        sys.stderr.write("ERROR\tDid not call start()\n")
+        self._disable_oml()
 
-        if self.starttime == 0:
-            sys.stderr.write("ERROR\tDid not call start()\n")
-            self.oml = False
-        else:
-          timestamp = time() - self.starttime
-          try:
-            streamid = self.streamid[mpname]
-            seqno = self.nextseq[mpname]
-            str_inject = str(timestamp) + '\t' + str(streamid) + '\t' + str(seqno)
+      timestamp = time() - self.starttime
+      try:
+        streamid = self.streamid[mpname]
+        seqno = self.nextseq[mpname]
+        str_inject = str(timestamp) + '\t' + str(streamid) + '\t' + str(seqno)
+      except KeyError:
+        sys.stderr.write("ERROR\tTried to inject into unknown MP '%s'\n" % mpname)
 
-            try:
-              for item in values:
-                str_inject += '\t'
-                str_inject += str(item)
-              str_inject += '\n'
-              self.sock.send(to_bytes(str_inject))
-              self.nextseq[mpname]+=1
-            except TypeError:
-              sys.stderr.write("ERROR\tInvalid measurement list\n")
-          except KeyError:
-            sys.stderr.write("ERROR\tTried to inject into unknown MP '%s'\n" % mpname)
-    
-      else:
-        timestamp = time() - self.starttime
-        str_inject = str(timestamp) + '\t'
+      try:
+        for item in values:
+          str_inject += '\t'
+          str_inject += str(item)
+        str_inject += '\n'
+        self.nextseq[mpname]+=1
+      except TypeError:
+        sys.stderr.write("ERROR\tInvalid measurement list\n")
+
+      if self.oml:
         try:
-          for item in values:
-              str_inject += '\t'
-              str_inject += str(item)
-          str_inject += '\n'
-          sys.stdout.write(str_inject)
-        except TypeError:
-          sys.stderr.write("ERROR\tInvalid measurement list\n")
+          self.sock.send(to_bytes(str_inject))
+        except:
+          sys.stderr.write("ERROR\tCould not send injected sample\n")
 
+      else:
+          sys.stdout.write(str_inject)
+
+    def _disable_oml(self):
+      sys.stderr.write("WARN\tDisabling OML output\n")
+      self.oml = False
+
+
+# Local Variables:
+# mode: C
+# tab-width: 2
+# indent-tabs-mode: nil
+# End:
+# vim: sw=2:sts=2:expandtab
