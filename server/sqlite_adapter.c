@@ -546,7 +546,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
       char *received = oml_type_to_s (v->type);
       logerror("sqlite:%s: Value %d type mismatch for table '%s'\n", db->name, i, table->schema->name);
       logdebug("sqlite:%s: -> Column name='%s', type=%s, but trying to insert a %s\n",
-          schema->fields[i].name, expected, received);
+          db->name, schema->fields[i].name, expected, received);
       sqlite3_reset (stmt);
       return -1;
     }
