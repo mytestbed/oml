@@ -250,7 +250,7 @@ marshal_init(MBuffer *mbuf, OmlBinMsgType msgtype)
  * An OML measurement stream is written as two bytes; the first one is the
  * counter for the number of elements in the message, and therefore starts at
  * 0, and the second one is the stream's index. This is followed by a
- * marshalled long value containing the sequence number, and a double value
+ * marshalled int32 value containing the sequence number, and a double value
  * containing the timestamp.
  *
  * A marshalling message should have been prepared in the MBuffer first with
@@ -278,9 +278,8 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
     return -1;
   }
 
-  /* XXX: Why is this still marshalled as an unstable long rather than, say, an uint32? */
-  v.longValue = seqno;
-  marshal_value(mbuf, OML_LONG_VALUE, &v);
+  v.int32Value = seqno;
+  marshal_value(mbuf, OML_INT32_VALUE, &v);
 
   v.doubleValue = now;
   marshal_value(mbuf, OML_DOUBLE_VALUE, &v);
