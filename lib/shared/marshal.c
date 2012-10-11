@@ -35,6 +35,9 @@
 #include <oml2/omlc.h>
 
 #include "marshal.h"
+#include "htonll.h"
+#include "mem.h"
+#include "log.h"
 #include "mbuf.h"
 #include "htonll.h"
 #include "oml_value.h"
@@ -733,11 +736,11 @@ unmarshal_value(
 
       if (len >= value->value.stringValue.size) {
         if (value->value.stringValue.size > 0) {
-          free(value->value.stringValue.ptr);
+          xfree(value->value.stringValue.ptr);
         }
         int mlen = (len < MIN_LENGTH) ? MIN_LENGTH : len + 1;
 
-        value->value.stringValue.ptr = (char*)malloc(mlen);
+        value->value.stringValue.ptr = (char*)xmalloc(mlen);
         value->value.stringValue.size = mlen - 1;
         value->value.stringValue.length = mlen;
       }
