@@ -92,40 +92,45 @@ text_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
   OmlValue value;
   int bytes = 0;
 
+  oml_value_init(&value);
+
   if (len == -1)
     return 0; // Haven't got a full line
 
   msg->length = (uint32_t)len + 1;
 
   /* Read the timestamp first */
-  value.type = OML_DOUBLE_VALUE;
+  oml_value_set_type(&value, OML_DOUBLE_VALUE);
   bytes = text_read_value (mbuf, &value, len);
   if (bytes == -1)
     return -1;
   else
     len -= bytes;
 
-  msg->timestamp = value.value.doubleValue;
+  msg->timestamp = omlc_get_double(*oml_value_get_value(&value));
 
   /* Read the stream index */
-  value.type = OML_UINT32_VALUE;
+  oml_value_set_type(&value, OML_UINT32_VALUE);
   bytes = text_read_value (mbuf, &value, len);
   if (bytes == -1)
     return -1;
   else
     len -= bytes;
 
-  msg->stream = value.value.uint32Value;
+  msg->stream = omlc_get_uint32(*oml_value_get_value(&value));
 
   /* Read the sequence number */
-  value.type = OML_UINT32_VALUE;
+  oml_value_set_type(&value, OML_UINT32_VALUE);
   bytes = text_read_value (mbuf, &value, len);
   if (bytes == -1)
     return -1;
   else
     len -= bytes;
 
-  msg->seqno = (uint32_t)value.value.uint32Value;
+  msg->seqno = omlc_get_uint32(*oml_value_get_value(&value));
+
+  oml_value_reset(&value);
+
   return msg->length;
 }
 
@@ -148,7 +153,7 @@ text_read_msg_values (struct oml_message *msg, MBuffer *mbuf, struct schema *sch
 
   for (i = 0; i < schema->nfields; i++) {
     int bytes;
-    values[i].type = schema->fields[i].type;
+    oml_value_set_type(&values[i], schema->fields[i].type);
     bytes = text_read_value (mbuf, &values[i], length);
 
     if (bytes == -1)

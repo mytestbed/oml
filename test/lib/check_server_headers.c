@@ -151,6 +151,8 @@ START_TEST (test_text_read)
   struct schema *schema = schema_from_meta (meta);
   OmlValue values[3];
 
+  oml_value_array_init(values, 3);
+
   bzero(&msg, sizeof(msg));
 
   mbuf_write (mbuf, buf, sizeof(buf));
@@ -166,6 +168,8 @@ START_TEST (test_text_read)
   result = text_read_msg_values (&msg, mbuf, schema, values);
 
   result *= 42;
+
+  oml_value_array_reset(values, 3);
 }
 END_TEST
 
@@ -185,6 +189,8 @@ START_TEST (test_bin_read)
   struct oml_message msg;
   struct schema *schema = schema_from_meta (meta);
   OmlValue values [3];
+
+  oml_value_array_init(values, 3);
 
   bzero(&msg, sizeof(msg));
 
@@ -208,9 +214,11 @@ START_TEST (test_bin_read)
   int i = 0;
   for (i = 0; i < 3; i++) {
     char s[64];
-    oml_value_to_s (&values[i].value, values[i].type, s);
+    oml_value_to_s (&values[i], s, 64);
     fprintf (stderr, "%s\n", s);
   }
+
+  oml_value_array_reset(values, 3);
 }
 END_TEST
 

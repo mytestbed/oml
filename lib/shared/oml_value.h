@@ -23,39 +23,62 @@
 #ifndef OML_VALUE_H__
 #define OML_VALUE_H__
 
-#include <oml2/omlc.h>
 #include <stdint.h>
 #include <limits.h>
+
+#include "oml2/omlc.h"
+#include "ocomm/o_log.h"
 
 static inline int32_t oml_value_clamp_long (long value)
 {
 #if LONG_MAX > INT_MAX
-  if (value > INT_MAX)
+  if (value > INT_MAX) {
+    logwarn("Deprecated OML_LONG_VALUE %ld clamped to %d, please use OML_INT64_VALUE instead for such large values\n", value, INT_MAX);
     return INT_MAX;
-  if (value < INT_MIN)
+  } else if (value < INT_MIN) {
+    logwarn("Deprecated OML_LONG_VALUE %ld clamped to %d, please use OML_INT64_VALUE instead for such large values\n", value, INT_MIN);
     return INT_MIN;
+  }
 #endif
   return (int32_t)value;
 }
 
+/** Get the OmlValueU of an OmlValue.
+ *
+ * \param v pointer to the OmlValue to manipulate
+ * \return a pointer to the OmlValueU contained in v
+ */
+#define oml_value_get_value(v) \
+  ((OmlValueU*)&(v)->value)
 
-extern char*
-oml_type_to_s(OmlValueT type);
+/** Get the type of an OmlValue.
+ *
+ * \param v pointer to the OmlValue to manipulate
+ * \return the type of the data stored in theOmlValue
+ */
+#define oml_value_get_type(v) \
+  ((OmlValueT)(v)->type)
 
-extern OmlValueT
-oml_type_from_s (const char *s);
+int oml_value_set(OmlValue* to, OmlValueU* value, OmlValueT type);
+int oml_value_copy(OmlValueU* value, OmlValueT type, OmlValue* to) __attribute__ ((deprecated));
 
-void
-oml_value_to_s (OmlValueU *value, OmlValueT type, char *buf);
+void oml_value_init(OmlValue* v);
+void oml_value_array_init(OmlValue* v, unsigned int n);
 
-int
-oml_value_from_s (OmlValue *value, const char *value_s);
-int
+int oml_value_reset(OmlValue* v);
+void oml_value_array_reset(OmlValue* v, unsigned int n);
 
-oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *value_s);
+int oml_value_duplicate(OmlValue* dst, OmlValue* src);
 
-double
-oml_value_to_double (OmlValue *value);
+const char* oml_type_to_s(OmlValueT type);
+OmlValueT oml_type_from_s (const char *s);
+
+char *oml_value_to_s (OmlValue *value, char *buf, size_t size);
+int oml_value_from_s (OmlValue *value, const char *value_s);
+int oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *value_s);
+
+double oml_value_to_double (OmlValue *value);
+int oml_value_to_int (OmlValue *value);
 
 #endif // OML_VALUE_H__
 

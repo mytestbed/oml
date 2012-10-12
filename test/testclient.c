@@ -62,7 +62,9 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
-#include <oml2/omlc.h>
+
+#include "oml_value.h"
+#include "oml2/omlc.h"
 
 #define MAX_WORD 256
 #define MAX_SAMPLES 10000
@@ -134,38 +136,6 @@ perr_print (const char *s, const char *p)
 }
 
 const char*
-type_to_s (OmlValueT type)
-{
-  switch (type)
-    {
-    case OML_INPUT_VALUE: return "OML_INPUT_VALUE";
-    case OML_UNKNOWN_VALUE: return "OML_UNKNOWN_VALUE";
-    case OML_DOUBLE_VALUE: return "OML_DOUBLE_VALUE";
-    case OML_LONG_VALUE: return "OML_LONG_VALUE";
-    case OML_INT32_VALUE: return "OML_INT32_VALUE";
-    case OML_UINT32_VALUE: return "OML_UINT32_VALUE";
-    case OML_INT64_VALUE: return "OML_INT64_VALUE";
-    case OML_UINT64_VALUE: return "OML_UINT64_VALUE";
-    case OML_STRING_VALUE: return "OML_STRING_VALUE";
-    default: return "OML_BAD_TYPE";
-    }
-}
-
-OmlValueT
-type_from_s (const char *s)
-{
-  if (strncmp (s, "long", MAX_WORD) == 0) return OML_LONG_VALUE;
-  if (strncmp (s, "integer", MAX_WORD) == 0) return OML_INT32_VALUE;
-  if (strncmp (s, "int32", MAX_WORD) == 0) return OML_INT32_VALUE;
-  if (strncmp (s, "uint32", MAX_WORD) == 0) return OML_UINT32_VALUE;
-  if (strncmp (s, "int64", MAX_WORD) == 0) return OML_INT64_VALUE;
-  if (strncmp (s, "uint64", MAX_WORD) == 0) return OML_UINT64_VALUE;
-  if (strncmp (s, "double", MAX_WORD) == 0) return OML_DOUBLE_VALUE;
-  if (strncmp (s, "string", MAX_WORD) == 0) return OML_STRING_VALUE;
-  return OML_UNKNOWN_VALUE;
-}
-
-const char*
 input_to_s (enum mp_input input)
 {
   switch (input)
@@ -190,22 +160,24 @@ input_from_s (const char *s)
 void
 set_value (OmlMPDef *def, OmlValueU *v, int value)
 {
+  char str[MAX_WORD];
   switch (def->param_types)
     {
-    case OML_LONG_VALUE:    v->longValue   = value; break;
-    case OML_INT32_VALUE:   v->int32Value  = value; break;
-    case OML_UINT32_VALUE:  v->uint32Value = value; break;
-    case OML_INT64_VALUE:   v->int64Value  = value; break;
-    case OML_UINT64_VALUE:  v->uint64Value = value; break;
-    case OML_DOUBLE_VALUE:  v->doubleValue = value; break;
+    case OML_LONG_VALUE:    omlc_set_long(*v,   value); break;
+    case OML_INT32_VALUE:   omlc_set_int32(*v,  value); break;
+    case OML_UINT32_VALUE:  omlc_set_uint32(*v, value); break;
+    case OML_INT64_VALUE:   omlc_set_int64(*v,  value); break;
+    case OML_UINT64_VALUE:  omlc_set_uint64(*v, value); break;
+    case OML_DOUBLE_VALUE:  omlc_set_double(*v, value); break;
     case OML_STRING_VALUE:
-      {
-        if (v->stringValue.ptr == NULL)
-          v->stringValue.ptr = (char*) malloc (MAX_WORD);
-        sprintf (v->stringValue.ptr, "%d", value);
-        v->stringValue.length = strlen (v->stringValue.ptr);
-      }
-    default: v->longValue = -1; break;
+                            snprintf (str, MAX_WORD, "%d", value);
+                            omlc_set_string_copy(*v, str, strlen(str));
+                            break;
+    case OML_BLOB_VALUE:
+                            snprintf (str, MAX_WORD, "%d", value);
+                            omlc_set_blob(*v, str, strlen(str));
+                            break;
+    default: omlc_set_long(*v, -1); break;
     }
 }
 
@@ -373,7 +345,7 @@ read_mp_def (FILE *fp, int *mp_length)
       p = (char*) malloc (strlen (name) + 1);
       strncpy (p, name, strlen (name));
       new->def.name = p;
-      new->def.param_types = type_from_s (type);
+      new->def.param_types = oml_type_from_s (type);
       new->next = head;
       head = new;
       elt_count++;
@@ -499,11 +471,10 @@ main (int argc, const char **argv)
 
   printf ("MP : %s\n", mp->name);
   printf ("LEN : %d\n", mp->length);
-  int i;
-  for (i = 0; i < mp->length; i++)
-    {
-      printf ("-> %s : %s\n", mp->def[i].name, type_to_s (mp->def[i].param_types));
-    }
+  int i, j;
+  for (i = 0; i < mp->length; i++) {
+      printf ("-> %s : %s\n", mp->def[i].name, oml_type_to_s (mp->def[i].param_types));
+  }
 
   result = omlc_init ("testclient", &argc, argv, NULL);
 
@@ -524,17 +495,32 @@ main (int argc, const char **argv)
   omlc_start ();
 
   OmlValueU *v = (OmlValueU*) malloc (mp->length * sizeof (OmlValueU));
-  memset (v, 0, mp->length * sizeof (OmlValueU));
+  omlc_zero_array(v, mp->length);
 
-  for (i = 0; i < MAX_SAMPLES; i++)
-    {
-      int j;
-      for (j = 0; j < mp->length; j++)
-        {
-          set_value (&mp->def[j], &v[j], i);
-        }
-      omlc_inject (mp->mp, v);
+  for (i = 0; i < MAX_SAMPLES; i++) {
+    for (j = 0; j < mp->length; j++) {
+      set_value (&mp->def[j], &v[j], i);
     }
+    omlc_inject (mp->mp, v);
+  }
+
+  /* Reset storage if needed */
+  for (j = 0; j < mp->length; j++) {
+    if (mp->def[j].param_types == OML_STRING_VALUE)
+      omlc_reset_string(v[j]);
+    else if (mp->def[j].param_types == OML_BLOB_VALUE)
+      omlc_reset_blob(v[j]);
+  }
+  free(v);
 
   return 0;
 }
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 2
+ indent-tabs-mode: nil
+ End:
+ vim: sw=2:sts=2:expandtab
+*/

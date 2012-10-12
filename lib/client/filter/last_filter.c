@@ -29,6 +29,7 @@
 #include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
+#include "oml_value.h"
 #include "filter/last_filter.h"
 
 typedef struct _omlLastFilterInstanceData InstanceData;
@@ -52,7 +53,7 @@ omlf_last_new(
     self->result[0].type = type;  // FIXME:  Is this needed?
 
     if (type == OML_STRING_VALUE)
-      omlc_set_const_string (self->result[0].value, "");
+      omlc_set_const_string(*oml_value_get_value(&self->result[0]), "");
 
   } else {
     logerror ("Could not allocate %d bytes for last filter instance data\n",
@@ -87,15 +88,15 @@ sample(
     OmlValue * value  //! values of sample
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
-  OmlValueU* v = &value->value;
-  OmlValueT type = value->type;
+  OmlValueU* v = oml_value_get_value(value);;
+  OmlValueT type = oml_value_get_type(value);;
 
   if (type != self->result[0].type) {
     logerror ("Different type from initial definition\n");
     return 0;
   }
   /* Overwrite previously stored value */
-  return oml_value_copy(v, type, &self->result[0]);
+  return oml_value_set(&self->result[0], v, type);
 }
 
 static int
@@ -108,7 +109,7 @@ process(
   writer->out(writer, self->result, f->output_count);
   oml_value_reset(&self->result[0]);
   if (self->result[0].type == OML_STRING_VALUE)
-    omlc_set_const_string (self->result[0].value, "");
+    omlc_set_const_string (*oml_value_get_value(&self->result[0]), "");
   return 0;
 }
 

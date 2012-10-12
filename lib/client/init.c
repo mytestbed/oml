@@ -295,9 +295,9 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
     {
       if (dp->param_types == OML_LONG_VALUE)
         {
-          logwarn("Measurement Point '%s', field '%s':\n", mp->name, dp->name);
-          logwarn("--> OML_LONG_VALUE is deprecated and should not be used in new code\n");
-          logwarn("--> Values outside of [INT_MIN, INT_MAX] will be clamped!\n");
+          logwarn("MP '%s', field '%s': OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead; "
+              "values outside of [INT_MIN, INT_MAX] will be clamped\n",
+              mp->name, dp->name);
         }
       if (!validate_name (dp->name)) {
         logerror ("Found illegal field name '%s' in MP '%s'.  MP will not be created\n",

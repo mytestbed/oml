@@ -27,7 +27,6 @@
  * sizeof(size_t)+SIZE, and start with an offset of size_t from the malloc(3)'d
  * block. The first size_t element is used to store the actual size of the
  * xchunk (sizeof(size_t)+SIZE).
- *
  */
 #include <string.h>
 #include <stdint.h>

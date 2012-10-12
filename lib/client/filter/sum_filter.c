@@ -30,8 +30,8 @@
 #include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
-#include "sum_filter.h"
 #include "oml_value.h"
+#include "sum_filter.h"
 
 typedef struct _omlSumFilterInstanceData InstanceData;
 
@@ -104,7 +104,7 @@ process(OmlFilter* f, OmlWriter* writer)
 {
   InstanceData* self = (InstanceData*)f->instance_data;
 
-  omlc_set_double(self->result[0].value, self->sample_sum);
+  omlc_set_double(*oml_value_get_value(&self->result[0]), self->sample_sum);
   writer->out(writer, self->result, f->output_count);
 
   self->sample_sum = 0.;

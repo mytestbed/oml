@@ -541,9 +541,9 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
     return -1;
   }
   for (i = 0; i < schema->nfields; i++, v++) {
-    if (v->type != schema->fields[i].type) {
+    if (oml_value_get_type(v) != schema->fields[i].type) {
       char *expected = oml_type_to_s (schema->fields[i].type);
-      char *received = oml_type_to_s (v->type);
+      char *received = oml_type_to_s (oml_value_get_type(v));
       logerror("sqlite:%s: Value %d type mismatch for table '%s'\n", db->name, i, table->schema->name);
       logdebug("sqlite:%s: -> Column name='%s', type=%s, but trying to insert a %s\n",
           db->name, schema->fields[i].name, expected, received);
@@ -567,14 +567,14 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
       }
     case OML_STRING_VALUE:
       {
-        res = sqlite3_bind_text (stmt, idx, v->value.stringValue.ptr,
+        res = sqlite3_bind_text (stmt, idx, omlc_get_string_ptr(*oml_value_get_value(v)),
                                  -1, SQLITE_TRANSIENT);
         break;
       }
     case OML_BLOB_VALUE: {
       res = sqlite3_bind_blob (stmt, idx,
-                               v->value.blobValue.data,
-                               v->value.blobValue.fill,
+                               v->value.blobValue.ptr,
+                               v->value.blobValue.length,
                                SQLITE_TRANSIENT);
       break;
     }

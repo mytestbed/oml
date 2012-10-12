@@ -150,7 +150,7 @@ row_cols(OmlWriter* writer, OmlValue* values, int value_count)
   OmlValue* v = values;
   for (i = 0; i < value_count; i++, v++) {
     int res;
-    switch (v->type) {
+    switch (oml_value_get_type(v)) {
     case OML_LONG_VALUE: {
       res = mbuf_print(mbuf, "\t%" PRId32, oml_value_clamp_long (v->value.longValue));
       break;
@@ -160,21 +160,21 @@ row_cols(OmlWriter* writer, OmlValue* values, int value_count)
     case OML_INT64_VALUE:  res = mbuf_print(mbuf, "\t%" PRId64,  v->value.int64Value);  break;
     case OML_UINT64_VALUE: res = mbuf_print(mbuf, "\t%" PRIu64,  v->value.uint64Value); break;
     case OML_DOUBLE_VALUE: res = mbuf_print(mbuf, "\t%f",  v->value.doubleValue); break;
-    case OML_STRING_VALUE: res = mbuf_print(mbuf, "\t%s",  v->value.stringValue.ptr); break;
+    case OML_STRING_VALUE: res = mbuf_print(mbuf, "\t%s",  omlc_get_string_ptr(*oml_value_get_value(v))); break;
     case OML_BLOB_VALUE: {
       const unsigned int max_bytes = 6;
-      int bytes = v->value.blobValue.fill < max_bytes ? v->value.blobValue.fill : max_bytes;
+      int bytes = v->value.blobValue.length < max_bytes ? v->value.blobValue.length : max_bytes;
       int i = 0;
       res = mbuf_print(mbuf, "blob ");
       for (i = 0; i < bytes; i++) {
-        res = mbuf_print(mbuf, "%02x", ((uint8_t*)v->value.blobValue.data)[i]);
+        res = mbuf_print(mbuf, "%02x", ((uint8_t*)v->value.blobValue.ptr)[i]);
       }
       res = mbuf_print (mbuf, " ...");
       break;
     }
     default:
       res = -1;
-      logerror( "Unsupported value type '%d'\n", v->type);
+      logerror( "Unsupported value type '%d'\n", oml_value_get_type(v));
       return 0;
     }
     if (res < 0) {

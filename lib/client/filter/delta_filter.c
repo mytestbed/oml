@@ -111,8 +111,8 @@ process(
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
 
-  omlc_set_double(self->result[0].value, (self->current - self->previous));
-  omlc_set_double(self->result[1].value, self->current);
+  omlc_set_double(*oml_value_get_value(&self->result[0]), (self->current - self->previous));
+  omlc_set_double(*oml_value_get_value(&self->result[1]), self->current);
   writer->out(writer, self->result, f->output_count);
 
   self->previous = self->current;

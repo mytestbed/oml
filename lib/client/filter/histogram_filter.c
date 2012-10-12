@@ -30,6 +30,7 @@
 #include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
+#include "oml_value.h"
 #include "filter/histogram_filter.h"
 
 typedef struct _omlHistFilterInstanceData InstanceData;
@@ -93,8 +94,8 @@ sample(
     OmlValue*  value  //! values of sample
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
-  OmlValueU* v = &value->value;
-  OmlValueT type = value->type;
+  OmlValueU* v = oml_value_get_value(value);;
+  OmlValueT type = oml_value_get_type(value);;
   double val;
 
   switch (type) {
@@ -123,13 +124,13 @@ process(
   InstanceData* self = (InstanceData*)f->instance_data;
 
   if (self->sample_count > 0) {
-    self->result[0].value.doubleValue = 1.0 * self->sample_sum / self->sample_count;
-    self->result[1].value.doubleValue = self->sample_min;
-    self->result[2].value.doubleValue = self->sample_max;
+    omlc_set_double(*oml_value_get_value(&self->result[0]), 1.0 * self->sample_sum / self->sample_count);
+    omlc_set_double(*oml_value_get_value(&self->result[1]), self->sample_min);
+    omlc_set_double(*oml_value_get_value(&self->result[2]), self->sample_max);
   } else {
-    self->result[0].value.doubleValue = 0;
-    self->result[1].value.doubleValue = 0;
-    self->result[2].value.doubleValue = 0;
+    omlc_set_double(*oml_value_get_value(&self->result[0]), 0);
+    omlc_set_double(*oml_value_get_value(&self->result[1]), 0);
+    omlc_set_double(*oml_value_get_value(&self->result[2]), 0);
   }
 
   writer->out(writer, self->result, 3);

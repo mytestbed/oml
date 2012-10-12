@@ -28,11 +28,13 @@
 #include <math.h>
 #include <arpa/inet.h>
 #include <check.h>
-#include <marshal.h>
-#include <oml_value.h>
-#include <htonll.h>
 
+#include "oml2/omlc.h"
+#include "marshal.h"
+#include "oml_value.h"
+#include "htonll.h"
 #include "check_util.h"
+#include "ocomm/o_log.h"
 
 #define FIRST_VALPTR(mbuf) (mbuf->base + 5)
 
@@ -264,7 +266,8 @@ START_TEST (test_marshal_value_long)
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
-  v.longValue = long_values[_i];
+  omlc_zero(v);
+  omlc_set_long(v, long_values[_i]);
   int result = marshal_value (mbuf, OML_LONG_VALUE, &v);
 
   uint32_t nv = 0;
@@ -289,7 +292,8 @@ START_TEST (test_marshal_value_int32)
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
-  v.int32Value = int32_values[_i];
+  omlc_zero(v);
+  omlc_set_int32(v, int32_values[_i]);
   int result = marshal_value (mbuf, OML_INT32_VALUE, &v);
 
   uint32_t nv = 0;
@@ -312,7 +316,8 @@ START_TEST (test_marshal_value_uint32)
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
-  v.uint32Value = (uint32_t)int32_values[_i];
+  omlc_zero(v);
+  omlc_set_uint32(v, (uint32_t)int32_values[_i]);
   int result = marshal_value (mbuf, OML_UINT32_VALUE, &v);
 
   uint32_t nv = 0;
@@ -335,7 +340,8 @@ START_TEST (test_marshal_value_int64)
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
-  v.int64Value = (int64_t)int64_values[_i];
+  omlc_zero(v);
+  omlc_set_int64(v, (int64_t)int64_values[_i]);
   int result = marshal_value (mbuf, OML_INT64_VALUE, &v);
 
   uint64_t nv = 0;
@@ -358,7 +364,8 @@ START_TEST (test_marshal_value_uint64)
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
-  v.uint64Value = (uint64_t)int64_values[_i];
+  omlc_zero(v);
+  omlc_set_uint64(v, (uint64_t)int64_values[_i]);
   int result = marshal_value (mbuf, OML_UINT64_VALUE, &v);
 
   uint64_t nv = 0;
@@ -381,7 +388,8 @@ START_TEST (test_marshal_value_double)
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
-  v.doubleValue = double_values[_i];
+  omlc_zero(v);
+  omlc_set_double(v, double_values[_i]);
   int iexp;
   double dmant = frexp (v.doubleValue, &iexp) * (1 << 30);
   int32_t imant = (int32_t)dmant;
@@ -416,14 +424,14 @@ START_TEST (test_marshal_value_string)
   fail_if (mbuf->base == NULL);
 
   OmlValueU v;
+  omlc_zero(v);
   char* test_string = string_values[_i];
   size_t len = strlen (test_string);
-  v.stringValue.ptr = test_string;
-  v.stringValue.is_const = 1;
-  v.stringValue.size = len;
-  v.stringValue.length = len + 1; // Underlying storage.
+  omlc_set_string(v, test_string);
 
   int result = marshal_value (mbuf, OML_STRING_VALUE, &v);
+
+  omlc_reset_string(v);
 
   fail_if (result != 1);
   fail_if (*FIRST_VALPTR(mbuf) != 0x4); // STRING_T
@@ -448,6 +456,8 @@ START_TEST (test_marshal_value_string)
 }
 END_TEST
 
+#warning test_marshal_value_blob is missing
+
 START_TEST (test_marshal_unmarshal_long)
 {
   int VALUES_OFFSET = 7;
@@ -456,6 +466,9 @@ START_TEST (test_marshal_unmarshal_long)
   const int UINT32_VALUE_OFFSET = 1;
   const int UINT32_SIZE = sizeof (uint32_t);
   int result;
+  OmlValue value;
+
+  oml_value_init(&value);
 
   MBuffer* mbuf = mbuf_create ();
   marshal_init (mbuf, OMB_DATA_P);
@@ -470,7 +483,8 @@ START_TEST (test_marshal_unmarshal_long)
   for (i = 0; i < LENGTH (long_values); i++)
     {
       OmlValueU v;
-      v.longValue = long_values[i];
+      omlc_zero(v);
+      omlc_set_long(v, long_values[i]);
       int result = marshal_value (mbuf, OML_LONG_VALUE, &v);
 
       uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * UINT32_LENGTH];
@@ -496,7 +510,6 @@ START_TEST (test_marshal_unmarshal_long)
 
   for (i = 0; i < LENGTH (long_values); i++)
     {
-      OmlValue value;
 
       unmarshal_value (mbuf, &value);
 
@@ -505,11 +518,13 @@ START_TEST (test_marshal_unmarshal_long)
        * to OML_INT32_VALUE; the marshalling process clamps the
        * OML_LONG_VALUE to an INT32 anyway.
        */
-      fail_unless (value.type == OML_INT32_VALUE);
-      fail_unless (value.value.int32Value == oml_value_clamp_long(long_values[i]),
+      fail_unless (oml_value_get_type(&value) == OML_INT32_VALUE);
+      fail_unless (omlc_get_int32(*oml_value_get_value(&value)) == oml_value_clamp_long(long_values[i]),
                    "Unmarshalled value %ld, expected %ld\n",
-                   value.value.int32Value, oml_value_clamp_long(long_values[i]));
+                   omlc_get_int32(*oml_value_get_value(&value)), oml_value_clamp_long(long_values[i]));
     }
+
+  oml_value_reset(&value);
 }
 END_TEST
 
@@ -521,6 +536,9 @@ START_TEST (test_marshal_unmarshal_int32)
   const int UINT32_VALUE_OFFSET = 1;
   const int UINT32_SIZE = sizeof (uint32_t);
   int result;
+  OmlValue value;
+
+  oml_value_init(&value);
 
   MBuffer* mbuf = mbuf_create ();
   marshal_init (mbuf, OMB_DATA_P);
@@ -535,7 +553,8 @@ START_TEST (test_marshal_unmarshal_int32)
   for (i = 0; i < LENGTH (int32_values); i++)
     {
       OmlValueU v;
-      v.int32Value = int32_values[i];
+      omlc_zero(v);
+      omlc_set_int32(v, int32_values[i]);
       int result = marshal_value (mbuf, OML_INT32_VALUE, &v);
 
       uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * UINT32_LENGTH];
@@ -562,15 +581,16 @@ START_TEST (test_marshal_unmarshal_int32)
 
   for (i = 0; i < LENGTH (int32_values); i++)
     {
-      OmlValue value;
 
       unmarshal_value (mbuf, &value);
 
-      fail_unless (value.type == OML_INT32_VALUE);
-      fail_unless (value.value.int32Value == int32_values[i],
+      fail_unless (oml_value_get_type(&value) == OML_INT32_VALUE);
+      fail_unless (omlc_get_int32(*oml_value_get_value(&value)) == int32_values[i],
                    "Unmarshalled value %ld, expected %ld\n",
-                   value.value.int32Value, int32_values[i]);
+                   omlc_get_int32(*oml_value_get_value(&value)), int32_values[i]);
     }
+
+  oml_value_reset(&value);
 }
 END_TEST
 
@@ -582,6 +602,9 @@ START_TEST (test_marshal_unmarshal_uint32)
   const int UINT32_VALUE_OFFSET = 1;
   const int UINT32_SIZE = sizeof (uint32_t);
   int result;
+  OmlValue value;
+
+  oml_value_init(&value);
 
   MBuffer* mbuf = mbuf_create ();
   marshal_init (mbuf, OMB_DATA_P);
@@ -596,7 +619,8 @@ START_TEST (test_marshal_unmarshal_uint32)
   for (i = 0; i < LENGTH (int32_values); i++)
     {
       OmlValueU v;
-      v.uint32Value = (uint32_t)int32_values[i];
+      omlc_zero(v);
+      omlc_set_uint32(v, (uint32_t)int32_values[i]);
       int result = marshal_value (mbuf, OML_UINT32_VALUE, &v);
 
       uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * UINT32_LENGTH];
@@ -622,15 +646,15 @@ START_TEST (test_marshal_unmarshal_uint32)
 
   for (i = 0; i < LENGTH (int32_values); i++)
     {
-      OmlValue value;
 
       unmarshal_value (mbuf, &value);
 
-      fail_unless (value.type == OML_UINT32_VALUE);
-      fail_unless (value.value.uint32Value == (uint32_t)int32_values[i],
+      fail_unless (oml_value_get_type(&value) == OML_UINT32_VALUE);
+      fail_unless (omlc_get_uint32(*oml_value_get_value(&value)) == (uint32_t)int32_values[i],
                    "Unmarshalled value %ld, expected %ld\n",
-                   value.value.uint32Value, (uint32_t)int32_values[i]);
+                   omlc_get_uint32(*oml_value_get_value(&value)), (uint32_t)int32_values[i]);
     }
+  oml_value_reset(&value);
 }
 END_TEST
 
@@ -642,6 +666,9 @@ START_TEST (test_marshal_unmarshal_int64)
   const int UINT64_VALUE_OFFSET = 1;
   const int UINT64_SIZE = sizeof (uint64_t);
   int result;
+  OmlValue value;
+
+  oml_value_init(&value);
 
   MBuffer* mbuf = mbuf_create ();
   marshal_init (mbuf, OMB_DATA_P);
@@ -656,7 +683,8 @@ START_TEST (test_marshal_unmarshal_int64)
   for (i = 0; i < LENGTH (int64_values); i++)
     {
       OmlValueU v;
-      v.int64Value = int64_values[i];
+      omlc_zero(v);
+      omlc_set_int64(v, int64_values[i]);
       int result = marshal_value (mbuf, OML_INT64_VALUE, &v);
 
       uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * UINT64_LENGTH];
@@ -682,14 +710,13 @@ START_TEST (test_marshal_unmarshal_int64)
 
   for (i = 0; i < LENGTH (int64_values); i++)
     {
-      OmlValue value;
 
       unmarshal_value (mbuf, &value);
 
-      fail_unless (value.type == OML_INT64_VALUE);
-      fail_unless (value.value.int64Value == int64_values[i],
+      fail_unless (oml_value_get_type(&value) == OML_INT64_VALUE);
+      fail_unless (omlc_get_int64(*oml_value_get_value(&value)) == int64_values[i],
                    "Unmarshalled value %ld, expected %ld\n",
-                   value.value.int64Value, int64_values[i]);
+                   omlc_get_int64(*oml_value_get_value(&value)), int64_values[i]);
     }
 }
 END_TEST
@@ -702,6 +729,9 @@ START_TEST (test_marshal_unmarshal_uint64)
   const int UINT64_VALUE_OFFSET = 1;
   const int UINT64_SIZE = sizeof (uint64_t);
   int result;
+  OmlValue value;
+
+  oml_value_init(&value);
 
   MBuffer* mbuf = mbuf_create ();
   marshal_init (mbuf, OMB_DATA_P);
@@ -716,7 +746,8 @@ START_TEST (test_marshal_unmarshal_uint64)
   for (i = 0; i < LENGTH (int64_values); i++)
     {
       OmlValueU v;
-      v.uint64Value = (uint64_t)int64_values[i];
+      omlc_zero(v);
+      omlc_set_uint64(v, (uint64_t)int64_values[i]);
       int result = marshal_value (mbuf, OML_UINT64_VALUE, &v);
 
       uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * UINT64_LENGTH];
@@ -742,15 +773,15 @@ START_TEST (test_marshal_unmarshal_uint64)
 
   for (i = 0; i < LENGTH (int64_values); i++)
     {
-      OmlValue value;
 
       unmarshal_value (mbuf, &value);
 
-      fail_unless (value.type == OML_UINT64_VALUE);
-      fail_unless (value.value.uint64Value == (uint64_t)int64_values[i],
+      fail_unless (oml_value_get_type(&value) == OML_UINT64_VALUE);
+      fail_unless (omlc_get_uint64(*oml_value_get_value(&value)) == (uint64_t)int64_values[i],
                    "Unmarshalled value %ld, expected %ld\n",
-                   value.value.uint64Value, (uint64_t)int64_values[i]);
+                   omlc_get_uint64(*oml_value_get_value(&value)), (uint64_t)int64_values[i]);
     }
+  oml_value_reset(&value);
 }
 END_TEST
 
@@ -763,6 +794,9 @@ START_TEST (test_marshal_unmarshal_double)
   const int DOUBLE_EXP_OFFSET = 5;
   const int DOUBLE_MANT_SIZE = sizeof (int32_t);
   int result;
+  OmlValue value;
+
+  oml_value_init(&value);
 
   MBuffer* mbuf = mbuf_create ();
   marshal_init (mbuf, OMB_DATA_P);
@@ -777,7 +811,8 @@ START_TEST (test_marshal_unmarshal_double)
   for (i = 0; i < LENGTH (double_values); i++)
     {
       OmlValueU v;
-      v.doubleValue = double_values[i];
+      omlc_zero(v);
+      omlc_set_double(v, double_values[i]);
       result = marshal_value (mbuf, OML_DOUBLE_VALUE, &v);
 
       uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * DOUBLE_LENGTH];
@@ -795,9 +830,9 @@ START_TEST (test_marshal_unmarshal_double)
 
       fail_if (result != 1);
       fail_if (type != DOUBLE_T, "Type == %d", type); // DOUBLE_T
-      fail_if (fabs((val - v.doubleValue)/v.doubleValue) >= EPSILON,
+      fail_if (fabs((val - omlc_get_double(v))/omlc_get_double(v)) >= EPSILON,
                "Unmarshalled %g, expected %g\n",
-               val, v.doubleValue);
+               val, omlc_get_double(v));
     }
 
   marshal_finalize (mbuf);
@@ -808,15 +843,15 @@ START_TEST (test_marshal_unmarshal_double)
 
   for (i = 0; i < LENGTH (double_values); i++)
     {
-      OmlValue value;
 
       unmarshal_value (mbuf, &value);
 
-      fail_unless (value.type == OML_DOUBLE_VALUE);
-      fail_unless (relative_error (value.value.doubleValue, double_values[i]) < EPSILON,
+      fail_unless (oml_value_get_type(&value) == OML_DOUBLE_VALUE);
+      fail_unless (relative_error (omlc_get_double(*oml_value_get_value(&value)), double_values[i]) < EPSILON,
                    "Unmarshalled value %g, expected %g\n",
-                   value.value.doubleValue, double_values[i]);
+                   omlc_get_double(*oml_value_get_value(&value)), double_values[i]);
     }
+  oml_value_reset(&value);
 }
 END_TEST
 
@@ -828,6 +863,9 @@ START_TEST (test_marshal_unmarshal_string)
   const int STRING_VALUE_OFFSET = 2;
   int result;
   char string[MAX_MARSHALLED_STRING_LENGTH + 16];
+  OmlValue value;
+
+  oml_value_init(&value);
 
   MBuffer* mbuf = mbuf_create ();
   marshal_init (mbuf, OMB_DATA_P);
@@ -844,12 +882,12 @@ START_TEST (test_marshal_unmarshal_string)
     {
       memset (string, 0, LENGTH(string));
       OmlValueU v;
-      v.stringValue.ptr = string_values[i];
-      v.stringValue.is_const = 1;
-      v.stringValue.size = strlen (string_values[i]);
-      v.stringValue.length = v.stringValue.size + 1; // Underlying storage.
+      omlc_zero(v);
+      omlc_set_string(v, string_values[i]);
 
       result = marshal_value (mbuf, OML_STRING_VALUE, &v);
+
+      omlc_reset_string(v);
 
       uint8_t* buf = &mbuf->base[current_index];
       int type =  buf[STRING_TYPE_OFFSET];
@@ -887,29 +925,30 @@ START_TEST (test_marshal_unmarshal_string)
   fail_unless (header.type == OMB_DATA_P);
 
   for (i = 0; i < LENGTH (string_values); i++) {
-    OmlValue value;
     unmarshal_value (mbuf, &value);
 
-    fail_unless (value.type == OML_STRING_VALUE);
-    fail_if (value.value.stringValue.ptr == NULL);
+    fail_unless (oml_value_get_type(&value) == OML_STRING_VALUE);
+    fail_if (omlc_get_string_ptr(*oml_value_get_value(&value)) == NULL);
 
     int original_length = strlen (string_values[i]);
-    int len = value.value.stringValue.ptr ? strlen (value.value.stringValue.ptr) : 0;
+    int len = omlc_get_string_length(*oml_value_get_value(&value));
     if (original_length <= MAX_MARSHALLED_STRING_LENGTH) {
       fail_unless (len == original_length, "Expected length %d, unmarshalled length %d\n", original_length, len);
-      fail_unless (strcmp (value.value.stringValue.ptr, string_values[i]) == 0,
-                   "Expected string:\n%s\nUnmarshalled string:\n%s\n",
-                   value.value.stringValue.ptr, string_values[i]);
+      fail_unless (strcmp (omlc_get_string_ptr(*oml_value_get_value(&value)), string_values[i]) == 0,
+                   "Expected string: '%s', Unmarshalled string:'%s'\n",
+                   omlc_get_string_ptr(*oml_value_get_value(&value)), string_values[i]);
     } else {
       fail_unless (len == MAX_MARSHALLED_STRING_LENGTH);
-      fail_unless (strncmp (value.value.stringValue.ptr, string_values[i], MAX_MARSHALLED_STRING_LENGTH) == 0,
-                   "Expected string:\n%s\nUnmarshalled string:\n%s\n",
-                   value.value.stringValue.ptr, string_values[i]);
+      fail_unless (strncmp (omlc_get_string_ptr(*oml_value_get_value(&value)), string_values[i], MAX_MARSHALLED_STRING_LENGTH) == 0,
+                   "Expected string: '%s' Unmarshalled string: '%s'",
+                   omlc_get_string_ptr(*oml_value_get_value(&value)), string_values[i]);
     }
   }
+  oml_value_reset(&value);
 }
 END_TEST
 
+#warning test_unmarshal_value_blob is missing
 
 #define dumpmessage(mbuf)                                                                                   \
   do {                                                                                                      \

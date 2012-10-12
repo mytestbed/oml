@@ -20,9 +20,7 @@
  * THE SOFTWARE.
  *
  */
-/*!\file oml_value.c
-  \brief Support functions for manipulating OmlValue objects.
-*/
+/** Support functions for manipulating OmlValue objects. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,199 +29,182 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include <errno.h>
-#include <oml2/omlc.h>
+
+#include "oml2/omlc.h"
+#include "ocomm/o_log.h"
 #include "oml_value.h"
-#include "log.h"
 
-/**
- * @brief Copy an OmlValueU into an OmlValueT.
+static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size);
+static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s);
+
+/** Initialise one OmlValues.
  *
- * This function copies +value+, which must be of the given +type+,
- * into the OmlValue pointed to by +to+.  The +to+ object is set to
- * have the given +type+.  If +type+ is a simple numeric type, the
- * copy simply copies the value.
+ * It is *MANDATORY* to use this function before any OmlValue setting,
+ * otherwise, uninitialised memory might lead to various issues with dynamic
+ * allocation.
  *
- * If +type+ is OML_STRING_VALUE, then the string contents are copied
- * into new storage in +to+.  If +to+ was previously set to be a
- * "is_const" string, then the "is_const" flag is cleared and a new
- * block of memory is allocated to store the copy, sized to the exact
- * number of bytes required to store the string and its terminating
- * null character.  If +to+ did not previously have the "is_const"
- * flag set, and its string pointer was null, then a new block of
- * memory is also allocated.  If the string pointer was not null, then
- * the string is copied into the previously allocated memory block if
- * it is large enough to fit; otherwize the block is freed and a new
- * one allocated large enough to hold the string (and its terminator).
- *
- * If the source string pointer is NULL then an error is returned and
- * a warning message is sent to the log.
- *
- * @param value the original value
- * @param type the type of +value+
- * @param to OmlValue into which the value should be copied
- * @return 0 if successful, -1 otherwise
+ * \param v pointer to the OmlValue to manipulate
+ * \see oml_value_array_init
  */
-int
-oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to)
-{
-  if (omlc_is_numeric_type (type))
-    {
-      to->type = type;
-      to->value = *value;
-    }
-  else
-    {
-      /*
-       * Currently the only non-numeric type is OML_STRING_VALUE, but
-       * this will change in future.
-       */
-      switch (type)
-        {
-        case OML_STRING_VALUE:
-          {
-            char* fstr = value->stringValue.ptr;
-            if (!fstr)
-              {
-                logwarn("Trying to copy OML_STRING_VALUE from a NULL source\n");
-                return -1;
-              }
-            int length = strlen(fstr);
-
-            if (to->type == OML_STRING_VALUE)
-              {
-                if (to->value.stringValue.is_const)
-                  {
-                    to->value.stringValue.is_const = 0;
-                    to->value.stringValue.ptr = NULL;
-                  }
-                else if (to->value.stringValue.size < length + 1)
-                  {
-                    if (to->value.stringValue.ptr != NULL)
-                      {
-                        free (to->value.stringValue.ptr);
-                        to->value.stringValue.ptr = NULL;
-                      }
-                    to->value.stringValue.length = 0;
-                    to->value.stringValue.size = 0;
-                  }
-              }
-            else
-              {
-                to->type = OML_STRING_VALUE;
-                to->value.stringValue.ptr = NULL;
-                to->value.stringValue.length = 0;
-                to->value.stringValue.size = 0;
-                to->value.stringValue.is_const = 0;
-              }
-
-            /*
-             * At this point, if the dest string value's pointer is NULL,
-             * we should allocate the right amount of memory for it.  If
-             * not, then it should already have enough memory to store the
-             * string correctly.
-             *
-             * This assumes correct accounting of to.value.stringValue.{length,size}
-             */
-            if (to->value.stringValue.ptr == NULL)
-              {
-                to->value.stringValue.ptr = (char*)malloc(length + 1);
-                memset(to->value.stringValue.ptr, 0, length + 1);
-                to->value.stringValue.size = length + 1;
-              }
-
-            strncpy (to->value.stringValue.ptr, fstr, length + 1);
-            to->value.stringValue.length = length;
-            break;
-          }
-        case OML_BLOB_VALUE: {
-          if (value->blobValue.data == NULL || value->blobValue.size == 0) {
-            logwarn("Trying to copy OML_BLOB_VALUE from a NULL source\n");
-            to->value.blobValue.fill = 0;
-            return -1;
-          } else {
-            if (to->value.blobValue.data == NULL) {
-              void *new = malloc (value->blobValue.fill);
-              if (new == NULL) {
-                logerror ("Failed to allocate memory for new OML_BLOB_VALUE:  %s\n", strerror (errno));
-                return -1;
-              }
-              to->value.blobValue.data = new;
-              to->value.blobValue.size = value->blobValue.fill;
-            } else if (to->value.blobValue.size < value->blobValue.fill) {
-              void * new = realloc (to->value.blobValue.data, value->blobValue.fill);
-              if (new == NULL) {
-                logerror ("Failed to re-allocate memory for new OML_BLOB_VALUE:  %s\n", strerror (errno));
-                return -1;
-              }
-              to->value.blobValue.data = new;
-              to->value.blobValue.size = value->blobValue.fill;
-            }
-            memcpy (to->value.blobValue.data, value->blobValue.data, value->blobValue.fill);
-            to->value.blobValue.fill = value->blobValue.fill;
-          }
-          break;
-        }
-        default:
-          logerror("XCopy for type '%d' not implemented'\n", type);
-          return -1;
-        }
-    }
-  return 0;
+void oml_value_init(OmlValue *v) {
+  oml_value_array_init(v, 1);
+}
+/** Initialise arrays of OmlValues.
+ *
+ * It is *MANDATORY* to use this function before any OmlValue setting,
+ * otherwise, uninitialised memory might lead to various issues with dynamic
+ * allocation.
+ *
+ * \param v pointer to the first OmlValue of the array to manipulate
+ * \param n length of the array
+ * \see oml_value_init
+ */
+void oml_value_array_init(OmlValue *v, unsigned int n) {
+  memset(v, 0, n*sizeof(OmlValue));
 }
 
-/**
- * \brief reset the set of values in +v+
- * \param v the +OmlValue+ to reset
- * \return 0 if successful, -1 otherwise
+/** Set the type of an OmlValue, cleaning up if need be.
+ *
+ * \param v pointer to the OmlValue to manipulate
+ * \param type new type to set
+ * \see oml_value_init, oml_value_reset
  */
-int
-oml_value_reset(OmlValue* v)
-{
-  switch(v->type)
-    {
-    case OML_LONG_VALUE:   v->value.longValue   = 0;    break;
-    case OML_INT32_VALUE:  v->value.int32Value  = 0;    break;
-    case OML_UINT32_VALUE: v->value.uint32Value = 0;    break;
-    case OML_INT64_VALUE:  v->value.int64Value  = 0LL;  break;
-    case OML_UINT64_VALUE: v->value.uint64Value = 0ULL; break;
-    case OML_DOUBLE_VALUE: v->value.doubleValue = 0;    break;
-    case OML_STRING_VALUE: {
-      if (v->value.stringValue.is_const) {
-        v->value.stringValue.ptr = NULL;
-      } else {
-        v->value.stringValue.size = 0;
-        if (v->value.stringValue.length > 0) {
-          *v->value.stringValue.ptr = '\0';
-        }
+void oml_value_set_type(OmlValue* v, OmlValueT type){
+  if (v->type != type) {
+    oml_value_reset(v);
+    v->type = type;
+  }
+}
+
+/** Assign the content of an OmlValueU of the given OmlValueT to an OmlValue.
+ *
+ * This function copies value, which is assumed to be of the given type (no
+ * check can be made), into the OmlValue pointed to by to.  The to object is
+ * set to have the given type. If type is a simple numeric type, the copy
+ * simply copies the value.
+ *
+ * If type is OML_STRING_VALUE, then the string contents are copied into new
+ * storage in to.  If to was previously set to be a const string, then the
+ * is_const flag is cleared and a new block of memory is allocated to store the
+ * copy and its terminating null character. If to did not previously have the
+ * is_const flag set, and its string pointer was NULL, then a new block of
+ * memory is also allocated as well.  If the string pointer was not NULL, then
+ * the string is copied into the previously allocated memory block if it is
+ * large enough to fit; otherwise the block is freed and a new one allocated
+ * large enough to hold the string (and its terminator).
+ *
+ * Blobs are handled in a similar fashion.
+ *
+ * If the source pointer is NULL then an error is returned and a warning
+ * message is sent to the log.
+ *
+ * \param to pointer to OmlValue into which the value should be copied
+ * \param value pointer to original OmlValueU to copy into to
+ * \param type OmlValueT of value
+ * \return 0 if successful, -1 otherwise
+ * \see oml_value_init, omlc_copy_string, omlc_copy_blob
+ */
+int oml_value_set(OmlValue *to, OmlValueU *value, OmlValueT type) {
+  oml_value_set_type(to, type);
+  if (omlc_is_numeric_type (type)) {
+      to->value = *value;
+  } else {
+    switch (type) {
+    case OML_STRING_VALUE:
+      if (!omlc_get_string_ptr(*value)) {
+        logwarn("Trying to copy OML_STRING_VALUE from a NULL source\n");
+        return -1;
       }
+      omlc_copy_string(*oml_value_get_value(to), *value);
       break;
-    }
-    case OML_BLOB_VALUE: {
-      OmlBlob *blob = &v->value.blobValue;
-      if (blob->data != NULL) {
-        bzero (blob->data, blob->size);
-      } else {
-        blob->size = 0;
+
+    case OML_BLOB_VALUE:
+      if (!omlc_get_blob_ptr(*value)) {
+        logwarn("Trying to copy OML_BLOB_VALUE from a NULL source\n");
+        return -1;
       }
-      blob->fill = 0;
+      omlc_copy_blob(*oml_value_get_value(to), *value);
       break;
-    }
-    default:
-      logerror("Reset for type '%d' not implemented'\n", v->type);
+
+  default:
+      logerror("%s() for type '%d' not implemented'\n", __FUNCTION__, type);
       return -1;
     }
+  }
   return 0;
 }
-/**
- * \brief give the type of the value
- * \param type the type to return
- * \return a string that represent the type +type+
+/** DEPRECATED \see oml_value_set */
+int oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to) {
+ logwarn("%s() is deprecated, please use oml_value_set(to, value, type) instead\n", __FUNCTION__);
+ return oml_value_set(to, value, type);
+}
+
+/** Reset one OmlValue, cleaning any allocated memory.
+ *
+ * The type of the value is also reset (to 0, i.e., OML_DOUBLE_VALUE).
+ *
+ * \param v pointer to OmlValue to reset
+ * \return 0 if successful, -1 otherwise
+ * \see oml_value_init, oml_value_array_reset, memset(3)
  */
-char*
-oml_type_to_s (OmlValueT type)
-{
+int oml_value_reset(OmlValue* v) {
+  switch(v->type) {
+  case OML_LONG_VALUE:
+    logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
+  case OML_INT32_VALUE:
+  case OML_UINT32_VALUE:
+  case OML_INT64_VALUE:
+  case OML_UINT64_VALUE:
+  case OML_DOUBLE_VALUE:
+    /* No deep cleanup needed, memset(3) below is sufficient */
+    break;
+  case OML_STRING_VALUE:
+    omlc_reset_string(v->value);
+    break;
+
+  case OML_BLOB_VALUE:
+    omlc_reset_blob(v->value);
+    break;
+
+  default:
+    logwarn("%s() for type '%d' not implemented, zeroing storage\n", __FUNCTION__, v->type);
+  }
+  memset(v, 0, sizeof(OmlValue));
+  return 0;
+}
+/** Reset array of OmlValue, cleaning any allocated memory.
+ *
+ * \param v pointer to the first OmlValue of the array to manipulate
+ * \param n length of the array
+ * \see oml_value_init
+ */
+void oml_value_array_reset(OmlValue* v, unsigned int n) {
+ int i;
+ for (i=0; i<n; i++)
+   oml_value_reset(&v[i]);
+}
+
+/** Deep copy an OmlValue.
+ *
+ * \param dst OmlValue to copy to
+ * \param src OmlValue to copy
+ * \return 0 on success, -1 otherwise
+ * \see oml_value_init, oml_value_set, oml_value_get_value, oml_value_get_type
+ */
+int oml_value_duplicate(OmlValue* dst, OmlValue* src) {
+  return oml_value_set(dst, oml_value_get_value(src), oml_value_get_type(src));
+}
+
+/** Get a string representing the given OmlValueT type.
+ *
+ * \param type OmlValueT type to get the representation for
+ * \return a string that represent the type, or "UNKNOWN"
+ */
+const char* oml_type_to_s (OmlValueT type) {
   switch(type) {
-  case OML_LONG_VALUE:   return "long";
+  case OML_LONG_VALUE:
+    logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
+    return "long";
   case OML_INT32_VALUE:  return "int32";
   case OML_UINT32_VALUE: return "uint32";
   case OML_INT64_VALUE:  return "int64";
@@ -235,9 +216,12 @@ oml_type_to_s (OmlValueT type)
   }
 }
 
-OmlValueT
-oml_type_from_s (const char *s)
-{
+/** Convert string to an OmlValueT type.
+ *
+ * \param s string representing the type to get
+ * \return the OmlValueT corresponding to the string, or OML_UNKNOWN_VALUE
+ */
+OmlValueT oml_type_from_s (const char *s) {
   static struct type_pair
   {
     OmlValueT type;
@@ -251,7 +235,7 @@ oml_type_from_s (const char *s)
       { OML_UINT64_VALUE, "uint64" },
       { OML_DOUBLE_VALUE, "double" },
       { OML_STRING_VALUE, "string" },
-      { OML_BLOB_VALUE, "blob" }
+      { OML_BLOB_VALUE,   "blob" }
     };
   int i = 0;
   int n = sizeof (type_list) / sizeof (type_list[0]);
@@ -264,109 +248,193 @@ oml_type_from_s (const char *s)
     }
   }
 
+  if (type == OML_LONG_VALUE);
+    logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
+
   return type;
 }
 
-void
-oml_value_to_s (OmlValueU *value, OmlValueT type, char *buf)
-{
-  switch (type) {
-  case OML_LONG_VALUE: {
-    sprintf(buf, "\t%" PRId32, oml_value_clamp_long (value->longValue));
-    break;
-  }
-  case OML_INT32_VALUE:  sprintf(buf, "%" PRId32,  value->int32Value);  break;
-  case OML_UINT32_VALUE: sprintf(buf, "%" PRIu32,  value->uint32Value); break;
-  case OML_INT64_VALUE:  sprintf(buf, "%" PRId64,  value->int64Value);  break;
-  case OML_UINT64_VALUE: sprintf(buf, "%" PRIu64,  value->uint64Value); break;
-  case OML_DOUBLE_VALUE: sprintf(buf, "%f",  value->doubleValue); break;
-  case OML_STRING_VALUE: sprintf(buf, "%s",  value->stringValue.ptr); break;
-  case OML_BLOB_VALUE: {
-    const unsigned int max_bytes = 6;
-    int bytes = value->blobValue.fill < max_bytes ? value->blobValue.fill : max_bytes;
-    int i = 0;
-    int n = 5;
-    strcpy (buf, "blob ");
-    for (i = 0; i < bytes; i++) {
-      n += sprintf(buf + n, "%02x", ((uint8_t*)value->blobValue.data)[i]);
-    }
-    strcat (buf, " ...");
-    break;
-  }
-  default:
-    logerror ("Unsupported value type '%d'\n", type);
-  }
+/** Convert data stored in an OmlValue to a string representation.
+ *
+ * The given buffer will contain a nul-terminated C string.
+ *
+ * \param value pointer to OmlValue containing data
+ * \param buf buffer to put the textual representation of the value in
+ * \param size size of the buffer
+ * \return a pointer to buf, or NULL on error
+ * \see oml_value_ut_to_s
+ */
+char *oml_value_to_s (OmlValue *value, char *buf, size_t size) {
+  OmlValueU* v = oml_value_get_value(value);
+  OmlValueT type = oml_value_get_type(value);
+
+  return oml_value_ut_to_s(v, type, buf, size);
 }
 
-int
-oml_value_from_s (OmlValue *value, const char *value_s)
-{
-  switch (value->type) {
-  case OML_STRING_VALUE: {
-    /* Make sure we do a deep copy */
-    OmlValue v;
-    omlc_set_string (v.value, (char*)value_s);
-    oml_value_copy (&v.value, value->type, value);
+/** Convert data stored in an OmlValueU of the given OmlValueT to a string representation.
+ *
+ * The given buffer will contain a nul-terminated C string.
+ *
+ * \param value pointer to OmlValue containing data
+ * \param buf buffer to put the textual representation of the value in
+ * \param size size of the buffer
+ * \return a pointer to buf, or NULL on error
+ */
+static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size) {
+  int i, n = 0;
+
+  switch (type) {
+  case OML_LONG_VALUE:
+    logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
+    n += snprintf(buf, size, "%" PRId32, omlc_get_long(*value));
     break;
+  case OML_INT32_VALUE:  n += snprintf(buf, size, "%" PRId32, omlc_get_int32(*value));  break;
+  case OML_UINT32_VALUE: n += snprintf(buf, size, "%" PRIu32, omlc_get_uint32(*value)); break;
+  case OML_INT64_VALUE:  n += snprintf(buf, size, "%" PRId64, omlc_get_int64(*value));  break;
+  case OML_UINT64_VALUE: n += snprintf(buf, size, "%" PRIu64, omlc_get_uint64(*value)); break;
+  case OML_DOUBLE_VALUE: n += snprintf(buf, size, "%f", omlc_get_double(*value)); break;
+  case OML_STRING_VALUE: n += snprintf(buf, size, "%s", omlc_get_string_ptr(*value)); break;
+  case OML_BLOB_VALUE:
+    strncpy (buf, "0x", size);
+    for (n = 2, i = 0; n < size, i < omlc_get_blob_length(*value); i++) /* n = 2 because of the 0x prefix */
+      n += sprintf(buf + n, "%02x", ((uint8_t*)(omlc_get_blob_ptr(*value) + i)));
+    if (n == size && i < omlc_get_blob_length(*value)) /* if there was more data than we could write */
+      strncpy(buf+size-4, "...", 4);
+    break;
+  default:
+    logerror("%s() for type '%d' not implemented'\n", __FUNCTION__, type);
+    return NULL;
   }
-  case OML_BLOB_VALUE: {
+
+  /* It is not guaranteed that snprintf() nul-terminates... */
+  if (n >= size)
+    /* snprintf() returns the full length of what would have been written if there was room;
+     * if larger than size, there wasn't, and we don't want to overshoot */
+    buf[size] = '\0';
+  else
+    buf[n] = '\0';
+
+  return buf;
+}
+
+/** Try to convert a string to the current type of OmlValue, and store it there.
+ *
+ * \param value pointer to output OmlValue
+ * \param value_s input string
+ * \return  0 on success, -1 otherwise
+ * \see oml_value_init, oml_value_ut_from_s
+ */
+int oml_value_from_s (OmlValue *value, const char *value_s) {
+  return oml_value_ut_from_s(oml_value_get_value(value), oml_value_get_type(value), value_s);
+}
+
+/** Try to convert a string to the type represented by the given string, and store it an OmlValue.
+ *
+ * \param value pointer to output OmlValue
+ * \param type_s string representing an OmlValueT
+ * \param value_s input string
+ * \return  0 on success, -1 otherwise
+ * \see oml_value_init, oml_value_ut_from_s, oml_type_from_s
+ */
+int oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *value_s) {
+  OmlValueT type = oml_type_from_s (type_s);
+  oml_value_set_type(value, type);
+  return oml_value_ut_from_s(oml_value_get_value(value), type, value_s);
+}
+
+/** Try to convert a string to the given OmlValueT and store it an OmlValueU.
+ *
+ * Storage for value should have already been cleared (e.g., with
+ * oml_value_set_type(), oml_value_reset() omlc_reset_string() or
+ * omlc_reset_blob() if appropriate).
+ *
+ * Assumes the destination OmlValueU has been properly reset.
+ *
+ * \param value pointer to output OmlValue
+ * \param type type of data to get from the string
+ * \param value_s input string
+ * \return  0 on success, -1 otherwise (e.g., conversion error)
+ * \see oml_value_from_s, oml_value_from_typed_s
+ * \see oml_value_set_type, oml_value_reset, omlc_reset_string, omlc_reset_blob
+ */
+static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s) {
+  switch (type) {
+  case OML_LONG_VALUE:
+    logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
+    omlc_set_long (*value, strtol (value_s, NULL, 0));
+    break;
+  case OML_INT32_VALUE:   omlc_set_int32 (*value, strtol (value_s, NULL, 0)); break;
+  case OML_UINT32_VALUE:  omlc_set_uint32 (*value, strtoul (value_s, NULL, 0)); break;
+  case OML_INT64_VALUE:   omlc_set_int64 (*value, strtoll (value_s, NULL, 0)); break;
+  case OML_UINT64_VALUE:  omlc_set_uint64 (*value, strtoull (value_s, NULL, 0)); break;
+  case OML_DOUBLE_VALUE:  omlc_set_double (*value, strtod (value_s, NULL)); break;
+  case OML_STRING_VALUE:
+    omlc_set_string_copy (*value, value_s, strlen(value_s));
+    break;
+
+  case OML_BLOB_VALUE:
     /* Can't retrieve a blob from a string (yet) */
-    value->value.blobValue.fill = 0;
+    logerror("%s(): cannot retrieve a blob from a string (yet), zeroing blob", __FUNCTION__);
+    omlc_reset_blob(*value);
     break;
-  }
-  case OML_LONG_VALUE: omlc_set_long (value->value, strtol (value_s, NULL, 0)); break;
-  case OML_INT32_VALUE: omlc_set_int32 (value->value, strtol (value_s, NULL, 0)); break;
-  case OML_UINT32_VALUE: omlc_set_uint32 (value->value, strtoul (value_s, NULL, 0)); break;
-  case OML_INT64_VALUE: omlc_set_int64 (value->value, strtoll (value_s, NULL, 0)); break;
-  case OML_UINT64_VALUE: omlc_set_uint64 (value->value, strtoull (value_s, NULL, 0)); break;
-  case OML_DOUBLE_VALUE: omlc_set_double (value->value, strtod (value_s, NULL)); break;
-  default: {
-    logerror("Unknown type for value converted from string '%s'.\n", value_s);
+
+  default:
+    logerror("%s() for type '%d' not implemented to convert '%s'\n", __FUNCTION__, type, value_s);
     return -1;
+
   }
-  }
+
   if (errno == ERANGE) {
-    logerror("Underflow or overlow converting value from string '%s'\n", value_s);
+    logerror("%s(): underflow or overlow converting value from string '%s'\n", __FUNCTION__, value_s);
     return -1;
   }
+
   return 0;
 }
 
-int
-oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *value_s)
-{
-  value->type = oml_type_from_s (type_s);
-  return oml_value_from_s (value, value_s);
-}
-
-
-double
-oml_value_to_double (OmlValue *value)
-{
-  OmlValueU *v = &value->value;
-  switch (value->type) {
-  case OML_LONG_VALUE:   return (double) v->longValue;
-  case OML_INT32_VALUE:  return (double) v->int32Value;
-  case OML_UINT32_VALUE: return (double) v->uint32Value;
-  case OML_INT64_VALUE:  return (double) v->int64Value;
-  case OML_UINT64_VALUE: return (double) v->uint64Value;
-  case OML_DOUBLE_VALUE: return (double) v->doubleValue;
-  default: return 0.0;
+/** Cast the data contained in an OmlValue to a double.
+ *
+ * \param value pointer to OmlValue containing the data to cast
+ * \return a double, which defaults to 0. on error
+ */
+double oml_value_to_double (OmlValue *value) {
+  OmlValueU *v = oml_value_get_value(value);
+  OmlValueT type = oml_value_get_type(value);
+  switch (type) {
+  case OML_LONG_VALUE:
+    logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
+    return (double) omlc_get_long(*v);
+  case OML_INT32_VALUE:  return (double) omlc_get_int32(*v);
+  case OML_UINT32_VALUE: return (double) omlc_get_uint32(*v);
+  case OML_INT64_VALUE:  return (double) omlc_get_int64(*v);
+  case OML_UINT64_VALUE: return (double) omlc_get_uint64(*v);
+  case OML_DOUBLE_VALUE: return (double) omlc_get_double(*v);
+  default:
+    logerror("%s() for type '%d' not implemented'\n", __FUNCTION__, type);
+    return 0.0;
   }
 }
 
-int
-oml_value_to_int (OmlValue *value)
-{
-  OmlValueU *v = &value->value;
-  switch (value->type) {
-  case OML_LONG_VALUE:   return (int) v->longValue;
-  case OML_INT32_VALUE:  return (int) v->int32Value;
-  case OML_UINT32_VALUE: return (int) v->uint32Value;
-  case OML_INT64_VALUE:  return (int) v->int64Value;
-  case OML_UINT64_VALUE: return (int) v->uint64Value;
-  case OML_DOUBLE_VALUE: return (int) v->doubleValue;
-  default: return 0;
+/** Cast the data contained in an OmlValue to an int.
+ *
+ * \param value pointer to OmlValue containing the data to cast
+ * \return an integer, which defaults to 0 on error
+ */
+int oml_value_to_int (OmlValue *value) {
+  OmlValueU *v = oml_value_get_value(value);
+  OmlValueT type = oml_value_get_type(value);
+  switch (type) {
+  case OML_LONG_VALUE:
+    logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
+    return (int) omlc_get_long(*v);
+  case OML_INT32_VALUE:  return (int) omlc_get_int32(*v);
+  case OML_UINT32_VALUE: return (int) omlc_get_uint32(*v);
+  case OML_INT64_VALUE:  return (int) omlc_get_int64(*v);
+  case OML_UINT64_VALUE: return (int) omlc_get_uint64(*v);
+  case OML_DOUBLE_VALUE: return (int) omlc_get_double(*v);
+  default:
+    logerror("%s() for type '%d' not implemented'\n", __FUNCTION__, type);
+  return 0;
   }
 }
 

@@ -71,11 +71,15 @@ char *protocol;
 
 OmlValueU values[5];
 
+omlc_zero_array(values, 5);
+
 omlc_set_uint32 (values[0], source_id);
 omlc_set_uint32 (values[1], destination_id);
 omlc_set_uint32 (values[2], packet_length);
 omlc_set_double (values[3], weight);
 omlc_set_string (values[4], protocol);
+
+omlc_reset_string(values[4]);
 
 omlc_inject (mp, values);
 ----
@@ -112,7 +116,7 @@ Manual Pages
 ~~~~~~~~~~~~
 linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
 
-linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_start[3], linkoml:omlc_set_int32[3]
+linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_start[3], linkoml:OmlValue[3]
 
 include::manual.txt[]
 

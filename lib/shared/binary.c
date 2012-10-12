@@ -68,7 +68,7 @@ bin_find_sync (MBuffer *mbuf)
 size_t
 bin_value_size (OmlValue *value)
 {
-  switch (value->type) {
+  switch (oml_value_get_type(value)) {
   case OML_LONG_VALUE:
   case OML_INT32_VALUE:
   case OML_UINT32_VALUE:
@@ -79,9 +79,9 @@ bin_value_size (OmlValue *value)
   case OML_DOUBLE_VALUE:
     return 6;
   case OML_STRING_VALUE:
-    return 2 + value->value.stringValue.length;
+    return 2 + omlc_get_string_length(*oml_value_get_value(value));
   case OML_BLOB_VALUE:
-    return 1 + sizeof (uint32_t) + value->value.blobValue.fill;
+    return 1 + sizeof (uint32_t) + value->value.blobValue.length;
   default:
     return 0;
   }
@@ -99,6 +99,10 @@ bin_value_size (OmlValue *value)
 int
 bin_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
 {
+  OmlValue value;
+
+  oml_value_init(&value);
+
   if (msg == NULL || mbuf == NULL)
     return -1;
 
@@ -154,17 +158,18 @@ bin_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
   msg->length = length + header_length;
   msg->count = count;
 
-  OmlValue value;
 
-  value.type = OML_LONG_VALUE;
+  oml_value_set_type(&value, OML_INT32_VALUE);
   // FIXME: check for error (e.g. type mismatch)
   bin_read_value (mbuf, &value);
-  msg->seqno = value.value.longValue;
+  msg->seqno = omlc_get_int32(*oml_value_get_value(&value));
 
-  value.type = OML_DOUBLE_VALUE;
+  oml_value_set_type(&value, OML_DOUBLE_VALUE);
   // FIXME: check for error (e.g. type mismatch)
   bin_read_value (mbuf, &value);
-  msg->timestamp = value.value.doubleValue;
+  msg->timestamp = omlc_get_double(*oml_value_get_value(&value));
+
+  oml_value_reset(&value);
 
   return msg->length;
 }

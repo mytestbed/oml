@@ -605,15 +605,18 @@ static int
 set_filter_property(OmlFilter* f, const char* name, const char* type, const char* value)
 {
   OmlValue v;
-  v.type = oml_type_from_s (type);
+  oml_value_init(&v);
+  int ret;
 
-  if (oml_value_from_s (&v, value) == -1) {
+  if (oml_value_from_typed_s (&v, type, value) == -1) {
     logerror("Could not convert property '%s' value from string '%s'\n",
              name, value);
     return 0;
   }
 
-  return f->set(f, name, &v);
+  ret = f->set(f, name, &v);
+  oml_value_reset(&v);
+  return ret;
 }
 
 /*

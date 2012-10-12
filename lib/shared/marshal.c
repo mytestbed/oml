@@ -272,16 +272,18 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
   uint8_t s[2] = { 0, (uint8_t)stream };
   int result = mbuf_write (mbuf, s, LENGTH (s));
 
+  omlc_zero(v);
+
   if (result == -1) {
     logerror("Unable to marshal table number and measurement count (mbuf_write())\n");
     mbuf_reset_write (mbuf);
     return -1;
   }
 
-  v.int32Value = seqno;
+  omlc_set_int32(v, seqno);
   marshal_value(mbuf, OML_INT32_VALUE, &v);
 
-  v.doubleValue = now;
+  omlc_set_double(v, now);
   marshal_value(mbuf, OML_DOUBLE_VALUE, &v);
 
   return 1;
@@ -317,7 +319,7 @@ marshal_values(MBuffer* mbuf, OmlValue* values, int value_count)
   int i, ret;
 
   for (i = 0; i < value_count; i++, val++) {
-    if(!marshal_value(mbuf, val->type, &val->value))
+    if(!marshal_value(mbuf, oml_value_get_type(val), oml_value_get_value(val)))
       return -1;
   }
 
@@ -347,7 +349,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 {
   switch (val_type) {
   case OML_LONG_VALUE: {
-    long v = oml_value_clamp_long (val->longValue);
+    long v = oml_value_clamp_long (omlc_get_long(*val));
     uint32_t uv = (uint32_t)v;
     uint32_t nv = htonl(uv);
     uint8_t buf[LONG_T_SIZE+1];
@@ -377,13 +379,13 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 
     if (oml_size_map[val_type] == 4)
       {
-        uv32 = val->uint32Value;
+        uv32 = omlc_get_uint32(*val);
         nv32 = htonl(uv32);
         p_nv = (uint8_t*)&nv32;
       }
     else
       {
-        uv64 = val->uint64Value;
+        uv64 = omlc_get_uint64(*val);
         nv64 = htonll(uv64);
         p_nv = (uint8_t*)&nv64;
       }
@@ -404,7 +406,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
   }
   case OML_DOUBLE_VALUE: {
     uint8_t type = DOUBLE_T;
-    double v = val->doubleValue;
+    double v = omlc_get_double(*val);
     int exp;
     double mant = frexp(v, &exp);
     int8_t nexp = (int8_t)exp;
@@ -432,7 +434,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
    break;
  }
  case OML_STRING_VALUE: {
-   char* str = val->stringValue.ptr;
+   char* str = omlc_get_string_ptr(*val);
 
    if (str == NULL)
      {
@@ -468,8 +470,8 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
  }
  case OML_BLOB_VALUE: {
    int result = 0;
-   void *blob = val->blobValue.data;
-   size_t length = val->blobValue.fill;
+   void *blob = omlc_get_blob_ptr(*val);
+   size_t length = omlc_get_blob_length(*val);
    if (blob == NULL || length == 0) {
      logwarn ("Attempting to send NULL or empty blob; blob of length 0 will be sent\n");
      length = 0;
@@ -576,6 +578,11 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   uint8_t header_str[PACKET_HEADER_SIZE + 2];
   uint8_t stream_header_str[STREAM_HEADER_SIZE];
   int result;
+  OmlValue seqno;
+  OmlValue timestamp;
+
+  oml_value_init(&seqno);
+  oml_value_init(&timestamp);
 
   result = mbuf_begin_read (mbuf);
   if (result == -1) {
@@ -637,17 +644,17 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   header->values = (int)stream_header_str[0];
   header->stream = (int)stream_header_str[1];
 
-  OmlValue seqno;
-  OmlValue timestamp;
-
   if (unmarshal_typed_value (mbuf, "seq-no", OML_INT32_VALUE, &seqno) == -1)
     return 0;
 
   if (unmarshal_typed_value (mbuf, "timestamp", OML_DOUBLE_VALUE, &timestamp) == -1)
     return 0;
 
-  header->seqno = seqno.value.int32Value;
-  header->timestamp = timestamp.value.doubleValue;
+  header->seqno = omlc_get_int32(*oml_value_get_value(&seqno));
+  header->timestamp = omlc_get_double(*oml_value_get_value(&timestamp));
+
+  oml_value_reset(&seqno);
+  oml_value_reset(&timestamp);
 
   return 1;
 }
@@ -756,8 +763,8 @@ unmarshal_value(
      * (by truncating to [INT_MIN, INT_MAX].  Therefore, unmarshall a
      * LONG_T value into an OML_INT32_VALUE object.
      */
+    oml_value_set_type(value, OML_INT32_VALUE);
     value->value.int32Value = v;
-    value->type = OML_INT32_VALUE;
     break;
   }
   case INT32_T:
@@ -773,11 +780,11 @@ unmarshal_value(
         return 0;
       }
 
+    oml_value_set_type(value, oml_type);
     if (protocol_size_map[type] == 4)
       value->value.uint32Value = ntohl(*((uint32_t*)buf));
     else
       value->value.uint64Value = ntohll(*((uint64_t*)buf));
-    value->type = oml_type;
     break;
   }
     case DOUBLE_T: {
@@ -793,8 +800,8 @@ unmarshal_value(
       double mant = hmant * 1.0 / (1 << BIG_L);
       int exp = (int8_t) buf[4];
       double v = ldexp(mant, exp);
+      oml_value_set_type(value, oml_type);
       value->value.doubleValue = v;
-      value->type = oml_type;
       break;
     }
     case STRING_T: {
@@ -809,24 +816,8 @@ unmarshal_value(
           return 0;
         }
 
-      // FIXME:  All this fiddling with the string internals should be behind an API.
-      if (value->type != OML_STRING_VALUE) {
-        value->value.stringValue.size = 0;
-        value->type = OML_STRING_VALUE;
-      }
-
-      if (len >= value->value.stringValue.size) {
-        if (value->value.stringValue.size > 0) {
-          xfree(value->value.stringValue.ptr);
-        }
-        int mlen = (len < MIN_LENGTH) ? MIN_LENGTH : len + 1;
-
-        value->value.stringValue.ptr = (char*)xmalloc(mlen);
-        value->value.stringValue.size = mlen - 1;
-        value->value.stringValue.length = mlen;
-      }
-      strncpy(value->value.stringValue.ptr, (char*)buf, len);
-      *(value->value.stringValue.ptr + len) = '\0';
+      oml_value_set_type(value, OML_STRING_VALUE);
+      omlc_set_string_copy(*oml_value_get_value(value), buf, len);
       break;
     }
     case BLOB_T: {
@@ -848,8 +839,8 @@ unmarshal_value(
       }
 
       void *ptr = mbuf_rdptr (mbuf);
-      omlc_set_blob (value->value, ptr, len);
-      value->type = OML_BLOB_VALUE;
+      oml_value_set_type(value, OML_BLOB_VALUE);
+      omlc_set_blob (*oml_value_get_value(value), ptr, len); /*XXX*/
       mbuf_read_skip (mbuf, len);
       break;
     }
@@ -877,9 +868,9 @@ unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue
       return -1;
   }
 
-  if (value->type != type) {
+  if (oml_value_get_type(value) != type) {
       logerror("Expected type '%s' for %s, but got type '%s' instead\n",
-             oml_type_to_s (type), name, oml_type_to_s (value->type));
+             oml_type_to_s (type), name, oml_type_to_s (oml_value_get_type(value)));
       return -1;
   }
   return 0;

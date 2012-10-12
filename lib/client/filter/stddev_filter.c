@@ -49,8 +49,8 @@
 #include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
-#include "stddev_filter.h"
 #include "oml_value.h"
+#include "stddev_filter.h"
 
 typedef struct _omlStddevFilterInstanceData InstanceData;
 
@@ -119,7 +119,7 @@ input (
   double new_s;
   double val;
 
-  if (! omlc_is_numeric_type (value->type))
+  if (! omlc_is_numeric (*value))
     return -1;
 
   val = oml_value_to_double (value);
@@ -145,11 +145,11 @@ output (
   InstanceData* self = (InstanceData*)f->instance_data;
 
   if (self->sample_count > 0) {
-    self->result[1].value.doubleValue = 1.0 * self->s / (self->sample_count - 1);
-    self->result[0].value.doubleValue = sqrt (self->result[1].value.doubleValue);
+    omlc_set_double(*oml_value_get_value(&self->result[1]), 1.0 * self->s / (self->sample_count - 1));
+    omlc_set_double(*oml_value_get_value(&self->result[0]), sqrt (omlc_get_double(*oml_value_get_value(&self->result[1]))));
   } else {
-    self->result[0].value.doubleValue = 0;
-    self->result[1].value.doubleValue = 0;
+    omlc_set_double(*oml_value_get_value(&self->result[0]), 0);
+    omlc_set_double(*oml_value_get_value(&self->result[1]), 0);
   }
 
   writer->out (writer, self->result, f->output_count);

@@ -114,6 +114,7 @@ client_realloc_tables (ClientHandler *self, int ntables)
         self->values_vectors[i] = xcalloc (DEF_NUM_VALUES, sizeof (OmlValue));
         if (self->values_vectors[i]) {
           self->values_vector_counts[i] = DEF_NUM_VALUES;
+          oml_value_array_init(self->values_vectors[i], self->values_vector_counts[i]);
         } else {
           self->values_vector_counts[i] = -1;
           logdebug ("%s: Could not allocate memory for values vector for table index %d\n", self->name, i);
@@ -136,15 +137,23 @@ client_realloc_tables (ClientHandler *self, int ntables)
   int
 client_realloc_values (ClientHandler *self, int idx, int nvalues)
 {
+  int curnvalues;
+
   if (!self || idx < 0 || idx > self->table_count || nvalues <= 0)
     return -1;
 
-  if (nvalues > self->values_vector_counts[idx]) {
+  curnvalues = self->values_vector_counts[idx];
+
+  if (nvalues > curnvalues) {
     OmlValue *new_values = xrealloc (self->values_vectors[idx], nvalues * sizeof (OmlValue));
     if (!new_values)
       return -1;
+
+    oml_value_array_init(&new_values[curnvalues], nvalues - curnvalues);
+
     self->values_vectors[idx] = new_values;
     self->values_vector_counts[idx] = nvalues;
+
   }
 
   return 0;
@@ -191,8 +200,7 @@ client_handler_free (ClientHandler* self)
   int i, j;
   for (i = 0; i < self->table_count; i++) {
     for (j = 0; j < self->values_vector_counts[i]; j++) {
-      if (self->values_vectors[i][j].type == OML_STRING_VALUE)
-        free (self->values_vectors[i][j].value.stringValue.ptr);
+      oml_value_reset(&self->values_vectors[i][j]);
     }
     xfree (self->values_vectors[i]);
   }
@@ -570,9 +578,9 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
   char** val_ap = msg + 3;
   for (i= 0; i < schema->nfields; i++, v++, val_ap++) {
     char* val = *val_ap;
-    v->type = schema->fields[i].type;
+    oml_value_set_type(v, schema->fields[i].type);
     if (oml_value_from_s (v, val) == -1)
-      logerror("%s(txt): Error converting value of type %d from string '%s'\n", self->name, v->type, val);
+      logerror("%s(txt): Error converting value of type %d from string '%s'\n", self->name, oml_value_get_type(v), val);
     /* FIXME: Do something here */
   }
 

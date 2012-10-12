@@ -29,6 +29,7 @@
 #include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
+#include "oml_value.h"
 #include "filter/first_filter.h"
 
 typedef struct _omlFirstFilterInstanceData InstanceData;
@@ -54,10 +55,10 @@ omlf_first_new(
 
     self->is_first = 1;
     self->result = result;
-    self->result[0].type = type;  // FIXME:  Is this needed?
+    oml_value_set_type(&self->result[0], type);
 
     if (type == OML_STRING_VALUE)
-      omlc_set_const_string (self->result[0].value, "");
+      omlc_set_string(*oml_value_get_value(&self->result[0]), "");
   } else {
     logerror ("Could not allocate %d bytes for first filter instance data\n",
        sizeof(InstanceData));
@@ -91,8 +92,8 @@ sample(
     OmlValue * value  //! values of sample
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
-  OmlValueU* v = &value->value;
-  OmlValueT type = value->type;
+  OmlValueU* v = oml_value_get_value(value);
+  OmlValueT type = oml_value_get_type(value);
 
   if (type != self->result[0].type) {
     logerror ("Different type from initial definition\n");
@@ -100,7 +101,7 @@ sample(
   }
   if (self->is_first) {
     self->is_first = 0;
-    return oml_value_copy(v, type, &self->result[0]);
+    return oml_value_set(&self->result[0], v, type);
   }
   return 0;
 }
@@ -117,7 +118,7 @@ process(
   self->is_first = 1;
   oml_value_reset(&self->result[0]);
   if (self->result[0].type == OML_STRING_VALUE)
-    omlc_set_const_string (self->result[0].value, "");
+    omlc_set_const_string(*oml_value_get_value(&self->result[0]), "");
 
   return 0;
 }

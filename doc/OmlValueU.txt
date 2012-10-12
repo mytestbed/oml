@@ -1,0 +1,94 @@
+OmlValueU(3)
+============
+
+NAME
+----
+OmlValueU - manipulation functions
+
+SYNOPSIS
+--------
+[verse]
+*#include <oml2/omlc.h>*
+[verse]
+'void'   *omlc_zero*('OmlValueU' value); +
+'void'   *omlc_zero_array*('OmlValueU' varray[], 'unsigned int' n); +
+[verse]
+'void'   *omlc_set_int32*('OmlValueU' value, 'int32_t' int32val); +
+'void'   *omlc_set_uint32*('OmlValueU' value, 'uint32_t' uint32val); +
+'void'   *omlc_set_int64*('OmlValueU' value, 'int64_t' int64val); +
+'void'   *omlc_set_uint64*('OmlValueU' value, 'uint64_t' uint64val); +
+'void'   *omlc_set_double*('OmlValueU' value, 'double' doubleval); +
+[verse]
+'void'   *omlc_set_string*('OmlValueU' value, 'char*' stringval); +
+'void'   *omlc_set_string_copy*('OmlValueU' value, 'char*' stringval); +
+'void'   *omlc_copy_string*('OmlValueU' dst, 'OmlValueU' src); +
+'void'   *omlc_reset_string*('OmlValueU' var); +
+[verse]
+'void'   *omlc_set_blob*('OmlValueU' value, 'char*' stringval, 'size_t' len); +
+'void'   *omlc_copy_blob*('OmlValueU' dst, 'OmlValueU' src); +
+'void'   *omlc_reset_blob*('OmlValueU' var); +
+
+DESCRIPTION
+-----------
+
+These functions are convenience macros for setting the values of an
+'OmlValueU' array to be passed to linkoml:omlc_inject[3].  The
+underlying 'OmlValueU' array is a simple union, but it should be treated
+as an opaque type to ensure backwards compatibility for applications
+using OML.  These macros operate on this type.
+
+Before any manipulation, 'OmlValueU' storage needs to be zeroed out
+properly to avoid memory corruption issue. This is done through the
+'omlc_zero' and 'omlc_zero_array' functions. They can then be
+manipulated with the 'omlc_set_*' group of functions described below.
+
+The '(u)int{32,64}' variants are for setting integral types.  The
+argument should be one of the equivalent types from *stdint.h*.  The
+'double' variant is for setting double precision floating point values.
+
+The 'string' variant is for setting nul-terminated string values. Note
+that only the pointer is copied by the macro, but that the library
+internally copies the caller's string into its own internally managed
+memory, so the caller does not need to worry about preserving the string
+after any call to linkoml:omlc_inject[3] on the 'OmlValueU' array. The
+'string_copy' variant actually duplicates the string in dynamically
+allocated storage. To avoid memory leaks, it is advised to use
+'omlc_reset_string' on an 'OmlValueU' which last contained strings prior
+to reusing them for other types.
+
+The 'blob' variant is for storing arbitrary binary data. The data is
+copied in a dynamically allocated memory buffer. To avoid memory leaks,
+'omlc_reset_blob' must be used on an 'OmlValueU' which last contained
+blobs prior to reusing them for other types.
+
+The 'copy_*' variants do a deep copy of the 'OmlValue' of the relevant
+type, duplicating the stored data in a dynamically allocated memory
+buffer.
+
+For an example of how these macros should be used, refer
+to linkoml:omlc_inject[3] and linkoml:liboml2[3,api].
+
+RETURN VALUE
+------------
+
+These functions are defined as macros and so don't return values.
+They should be treated as separate statements, rather than as proper
+functions.  In a future version of OML they may be converted to real
+inline functions.
+
+BUGS
+----
+C preprocessor macros are generally brittle and error prone.
+Unfortunately, they are all we've got.
+
+include::bugs.txt[]
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+linkoml:liboml2[3,api], linkoml:omlc_inject[3]
+
+include::manual.txt[]
+
+// vim: ft=asciidoc:tw=72

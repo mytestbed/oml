@@ -57,19 +57,21 @@ void
 omlc_inject(OmlMP *mp, OmlValueU *values)
 {
   OmlMStream* ms;
+  OmlValue v;
+
   if (omlc_instance == NULL) return;
   if (mp == NULL || values == NULL) return;
-  if (mp_lock(mp) == -1) return;
 
+  oml_value_init(&v);
+
+  if (mp_lock(mp) == -1) return;
   ms = mp->streams;
   while (ms) {
     OmlFilter* f = ms->filters;
     for (; f != NULL; f = f->next) {
-      OmlValue v;
 
       /* FIXME:  Should validate this indexing */
-      v.value = *(values + f->index);
-      v.type = mp->param_defs[f->index].param_types;
+      oml_value_set(&v, &values[f->index], mp->param_defs[f->index].param_types);
 
       f->input(f, &v);
     }
@@ -77,6 +79,7 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
     ms = ms->next;
   }
   mp_unlock(mp);
+  oml_value_reset(&v);
 }
 
 /**

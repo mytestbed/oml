@@ -27,6 +27,7 @@
 #include "check_util.h"
 #include "oml2/omlc.h"
 #include "oml2/oml_writer.h"
+#include "oml_value.h"
 
 
 OmlValueU*
@@ -37,33 +38,33 @@ make_vector (void* v, OmlValueT type, int n)
   if (result)
     {
       int i = 0;
-      memset (result, 0, n * sizeof (OmlValueU));
+      omlc_zero_array(result, n);
 
       switch (type)
         {
         case OML_LONG_VALUE:
           for (i = 0; i < n; i++)
-            result[i].longValue = ((long*)v)[i];
+            omlc_set_long(result[i], ((long*)v)[i]);
           break;
         case OML_DOUBLE_VALUE:
           for (i = 0; i < n; i++)
-            result[i].doubleValue = ((double*)v)[i];
+            omlc_set_double(result[i], ((double*)v)[i]);
           break;
         case OML_INT32_VALUE:
           for (i = 0; i < n; i++)
-            result[i].int32Value = ((int32_t*)v)[i];
+            omlc_set_int32(result[i], ((int32_t*)v)[i]);
           break;
         case OML_UINT32_VALUE:
           for (i = 0; i < n; i++)
-            result[i].uint32Value = ((uint32_t*)v)[i];
+            omlc_set_uint32(result[i], ((uint32_t*)v)[i]);
           break;
         case OML_INT64_VALUE:
           for (i = 0; i < n; i++)
-            result[i].int64Value = ((int64_t*)v)[i];
+            omlc_set_int64(result[i], ((int64_t*)v)[i]);
           break;
         case OML_UINT64_VALUE:
           for (i = 0; i < n; i++)
-            result[i].uint64Value = ((uint64_t*)v)[i];
+            omlc_set_uint64(result[i], ((uint64_t*)v)[i]);
           break;
         default:
           // Can't do non-numeric types yet
@@ -107,7 +108,7 @@ vector_type_check (OmlValue* values, OmlValueT type, int n)
 {
   int i = 0;
   for (i = 0; i < n; i++)
-      if (values[i].type != type)
+      if (oml_value_get_type(&values[i]) != type)
         return 0;
   return 1;
 }
@@ -117,38 +118,36 @@ vector_values_check (OmlValue* values, OmlValueU* expected, OmlValueT type, int 
 {
   double epsilon = 1e-9;
   int i = 0;
-  for (i = 0; i < n; i++)
-    {
-      switch (type)
-        {
+  for (i = 0; i < n; i++) {
+      switch (type) {
         case OML_LONG_VALUE:
-          if (values[i].value.longValue != expected[i].longValue)
+          if (omlc_get_long(*oml_value_get_value(&values[i])) != omlc_get_long(expected[i]))
             return 0;
           break;
         case OML_DOUBLE_VALUE:
-          if (fabs(values[i].value.doubleValue - expected[i].doubleValue) > epsilon)
+          if (fabs(omlc_get_double(*oml_value_get_value(&values[i])) - omlc_get_double(expected[i])) > epsilon)
             return 0;
           break;
         case OML_STRING_VALUE:
-          if (values[i].value.stringValue.size != expected[i].stringValue.size)
+          if (omlc_get_string_length(*oml_value_get_value(&values[i])) != omlc_get_string_length(expected[i]))
             return 0;
-          if (strcmp (values[i].value.stringValue.ptr, expected[i].stringValue.ptr) != 0)
+          if (strcmp (omlc_get_string_ptr(*oml_value_get_value(&values[i])), omlc_get_string_ptr(expected[i])) != 0)
             return 0;
           break;
         case OML_INT32_VALUE:
-          if (values[i].value.int32Value != expected[i].int32Value)
+          if (omlc_get_int32(*oml_value_get_value(&values[i])) != omlc_get_int32(expected[i]))
             return 0;
           break;
         case OML_UINT32_VALUE:
-          if (values[i].value.uint32Value != expected[i].uint32Value)
+          if (omlc_get_uint32(*oml_value_get_value(&values[i])) != omlc_get_uint32(expected[i]))
             return 0;
           break;
         case OML_INT64_VALUE:
-          if (values[i].value.int64Value != expected[i].int64Value)
+          if (omlc_get_int64(*oml_value_get_value(&values[i])) != omlc_get_int64(expected[i]))
             return 0;
           break;
         case OML_UINT64_VALUE:
-          if (values[i].value.uint64Value != expected[i].uint64Value)
+          if (omlc_get_uint64(*oml_value_get_value(&values[i])) != omlc_get_uint64(expected[i]))
             return 0;
           break;
         default:
@@ -194,6 +193,9 @@ run_filter_test (TestData* test_data, OmlFilter* f)
   int i = 0, j = 0;
   int count = 0;
   OmlTestWriter w;
+  OmlValue v;
+
+  oml_value_init(&v);
 
   w.out = test_writer_out;
 
@@ -201,11 +203,11 @@ run_filter_test (TestData* test_data, OmlFilter* f)
     {
       TestVector* input = test_data->inputs[i];
       TestVector* output = test_data->outputs[i];
-      OmlValue v;
-      v.type = input->type;
+      oml_value_set_type(&v, input->type);
       for (j = 0; j < input->length; j++, count++)
         {
           int res;
+          /* XXX: is this really legal? */
           v.value = input->vector[j];
           res = f->input(f, &v);
           fail_unless (res == 0);
@@ -217,6 +219,8 @@ run_filter_test (TestData* test_data, OmlFilter* f)
       fail_unless (vector_type_check (w.values, output->type, output->length));
       fail_unless (vector_values_check (w.values, output->vector, output->type, output->length));
     }
+
+  oml_value_reset(&v);
 }
 
 /*

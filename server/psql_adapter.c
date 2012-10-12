@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 
 #include "oml_util.h"
+#include "oml_value.h"
 #include "mem.h"
 #include "mstring.h"
 #include "log.h"
@@ -674,7 +675,7 @@ psql_insert(Database* db,
   OmlValue* v = values;
   for (i = 0; i < value_count; i++, v++) {
     struct schema_field *field = &table->schema->fields[i];
-    if (v->type != field->type) {
+    if (oml_value_get_type(v) != field->type) {
       logerror("psql:%s: Value %d type mismatch for table '%s'\n", db->name, i, table->schema->name);
       return -1;
     }
@@ -685,10 +686,10 @@ psql_insert(Database* db,
     case OML_INT64_VALUE:  sprintf(paramValues[4+i],"%" PRId64,v->value.int64Value); break;
     case OML_UINT64_VALUE: sprintf(paramValues[4+i],"%" PRIu64,v->value.uint64Value); break;
     case OML_DOUBLE_VALUE: sprintf(paramValues[4+i],"%.8f",v->value.doubleValue); break;
-    case OML_STRING_VALUE: sprintf(paramValues[4+i],"%s",v->value.stringValue.ptr); break;
+    case OML_STRING_VALUE: sprintf(paramValues[4+i],"%s", omlc_get_string_ptr(*oml_value_get_value(v))); break;
     case OML_BLOB_VALUE:
                            escaped_blob = PQescapeByteaConn(psqldb->conn,
-                               v->value.blobValue.data, v->value.blobValue.fill, &eblob_len);
+                               v->value.blobValue.ptr, v->value.blobValue.length, &eblob_len);
                            if (!escaped_blob) {
                              logerror("psql:%s: Error escaping blob in field %d of table '%s': %s\n",
                                  db->name, i, table->schema->name, PQerrorMessage(psqldb->conn));

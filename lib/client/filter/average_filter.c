@@ -31,8 +31,8 @@
 #include <log.h>
 #include <oml2/omlc.h>
 #include <oml2/oml_filter.h>
-#include "average_filter.h"
 #include "oml_value.h"
+#include "average_filter.h"
 
 typedef struct _omlAvgFilterInstanceData InstanceData;
 
@@ -94,7 +94,7 @@ sample(OmlFilter* f, OmlValue* value)
   InstanceData* self = (InstanceData*)f->instance_data;
   double val;
 
-  if (! omlc_is_numeric_type (value->type))
+  if (! omlc_is_numeric (*value))
     return -1;
 
   val = oml_value_to_double (value);
@@ -113,13 +113,13 @@ process(OmlFilter* f, OmlWriter* writer)
   InstanceData* self = (InstanceData*)f->instance_data;
 
   if (self->sample_count > 0) {
-    self->result[0].value.doubleValue = 1.0 * self->sample_sum / self->sample_count;
-    self->result[1].value.doubleValue = self->sample_min;
-    self->result[2].value.doubleValue = self->sample_max;
+    omlc_set_double(*oml_value_get_value(&self->result[0]), 1.0 * self->sample_sum / self->sample_count);
+    omlc_set_double(*oml_value_get_value(&self->result[1]), self->sample_min);
+    omlc_set_double(*oml_value_get_value(&self->result[2]), self->sample_max);
   } else {
-    self->result[0].value.doubleValue = 0;
-    self->result[1].value.doubleValue = 0;
-    self->result[2].value.doubleValue = 0;
+    omlc_set_double(*oml_value_get_value(&self->result[0]), 0);
+    omlc_set_double(*oml_value_get_value(&self->result[1]), 0);
+    omlc_set_double(*oml_value_get_value(&self->result[2]), 0);
   }
 
   writer->out(writer, self->result, f->output_count);
