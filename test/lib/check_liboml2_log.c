@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2012 National ICT Australia (NICTA), Australia
+ * Copyright 2012 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,23 +20,63 @@
  * THE SOFTWARE.
  *
  */
-#ifndef CHECK_LIBOML2_SUITES_H__
-#define CHECK_LIBOML2_SUITES_H__
-
 #include <check.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include "ocomm/o_log.h"
 
-extern Suite* filters_suite (void);
-extern Suite* util_suite (void);
-extern Suite* log_suite (void);
-extern Suite* api_suite (void);
-extern Suite* parser_suite (void);
-extern Suite* marshal_suite (void);
-extern Suite* mbuf_suite (void);
-extern Suite* cbuf_suite (void);
-extern Suite* bswap_suite (void);
-extern Suite* writers_suite (void);
+START_TEST (test_log_rate)
+{
+  int i;
+  char *logfile = "check_oml2_log.log";
+  struct stat statbuf;
 
-#endif /* CHECK_LIBOML2_SUITES_H__ */
+  unlink(logfile);
+
+  o_set_log_file (logfile);
+
+  for (i=0;i<(1<<16);i++) {
+    o_log_simplified(O_LOG_ERROR, "Unlimited\n");
+    o_log_simplified(O_LOG_ERROR, "Unlimited\n");
+    o_log_simplified(O_LOG_ERROR, "Unlimited\n");
+  }
+
+  for (i=0;i<(1<<4);i++) {
+    usleep(500000);
+    o_log_simplified(O_LOG_ERROR, "1/2 second\n");
+  }
+
+  for (i=0;i<(1<<2);i++) {
+    usleep(2000000);
+    o_log_simplified(O_LOG_ERROR, "2 seconds\n");
+  }
+  
+  /* Roughly test that the log is not gigantic (>10k).
+   *
+   * The log file is line-buffered, so most should already have been written
+   * out.
+   */
+  stat(logfile, &statbuf);
+  fail_if(statbuf.st_size > 10000, "Log file too big despite rate limitation");
+}
+END_TEST
+
+Suite*
+log_suite (void)
+{
+  Suite* s = suite_create ("Log");
+
+  TCase* tc_log = tcase_create ("Log");
+  tcase_set_timeout(tc_log, 0);
+
+  tcase_add_test (tc_log, test_log_rate);
+
+
+  suite_add_tcase (s, tc_log);
+
+  return s;
+}
 
 /*
  Local Variables:

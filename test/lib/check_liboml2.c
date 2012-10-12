@@ -33,6 +33,7 @@ main (void)
   o_set_log_file ("check_oml2.log");
   SRunner* sr = srunner_create (filters_suite ());
   srunner_add_suite (sr, util_suite ());
+  srunner_add_suite (sr, log_suite ());
   srunner_add_suite (sr, api_suite ());
   srunner_add_suite (sr, parser_suite ());
   srunner_add_suite (sr, bswap_suite ());

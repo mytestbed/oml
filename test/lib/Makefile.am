@@ -8,6 +8,7 @@ check_liboml2_SOURCES = \
 	check_util.c \
 	check_util.h \
 	check_liboml2.c \
+	check_liboml2_log.c \
 	check_liboml2_util.c \
 	check_liboml2_api.c \
 	check_liboml2_filters.c \
@@ -55,6 +56,7 @@ CLEANFILES = \
 	stddev_0.c \
 	stddev_1.c \
 	check_oml2.log \
+	check_oml2_log.log \
 	test_fw_create_buffered
 
 STDDEV = $(srcdir)/stddev.py

@@ -27,15 +27,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <stdarg.h>
 #include <time.h>
 
 #include "ocomm/o_log.h"
 
+/** Maximal logging period for repeated messages, in seconds */
+#define MAX_MESSAGE_RATE 1
+/** Maximum buffer length for log messages */
+#define LOG_BUF_LEN  1024
+/** Defines for how many repeated messages a log entry should be written first */
+#define INIT_LOG_EXPONENT 8
+
 extern int errno;
 
-static void o_log_simplified(int level, const char* format, ...);
-static void o_vlog_simplified(int level, const char* format, va_list va);
+void o_log_simplified(int level, const char* format, ...);
+void o_vlog_simplified(int level, const char* format, va_list va);
 
 static FILE* logfile;
 int o_log_level = O_LOG_INFO;
@@ -106,9 +115,15 @@ o_set_simplified_logging (void)
   o_vlog = o_vlog_simplified;
 }
 
-void
-o_vlog_simplified (int level, const char *format, va_list va)
-{
+/** Print meta information about log message depending on the output stream.
+ *
+ * \param stream file descriptor where to write the messag
+ * \param now time to label the message with
+ * \param level loglevel of the message
+ * \return \return the number of characters written to the log by fprintf()
+ * \see time, fprintf
+ */
+static int _o_vlog_metainformation(FILE *stream, time_t now, int level) {
   const char * const labels [] = {
     "ERROR",
     "WARN",
@@ -118,38 +133,119 @@ o_vlog_simplified (int level, const char *format, va_list va)
   const int label_max = sizeof(labels) / sizeof(labels[0]) - 1;
   int label_index;
   int debug_level;
-
-  if (level > o_log_level) return;
+  struct tm* ltime;
+  char now_str[20];
+  int n = 0;
 
   label_index = level - O_LOG_ERROR; /* O_LOG_ERROR is negative */
   label_index = (label_index < 0) ? 0 : label_index;
   label_index = (label_index > label_max) ? label_max : label_index;
+
+  if (stream != stderr) {
+    ltime = localtime(&now);
+
+    strftime(now_str, 20, "%b %d %H:%M:%S", ltime);
+    n += fprintf (logfile, "%s  ", now_str);
+  }
+
+  n += fprintf (logfile, "%-5s", labels[label_index]);
+
+  if (level > O_LOG_DEBUG) {
+    debug_level = level - O_LOG_INFO;
+    n += fprintf (logfile, "%-2d ", debug_level);
+  } else {
+    n += fprintf (logfile, "  ");
+  }
+  
+  return n;
+}
+
+/** Rate limit log output to at most one similar message per occurence or time
+ * period, whichever comes first.
+ *
+ * The time period is set by MAX_MESSAGE_RATE (1s), and the occurence count
+ * increases exponentially up to 2^63, starting at 1, but printing a final
+ * tally when the message changes.
+ *
+ * The log message is limited to 1024 bytes, not counting metaninformation.
+ *
+ * \param stream file descriptor where to write the message
+ * \param level loglevel of the message
+ * \param now current time as given by time()
+ * \param format format string
+ * \param va variadic list of arguments for format
+ * \return the number of characters written to the log by fprintf()
+ * \see time, fprintf
+ */
+static int _o_vlog_ratelimited(FILE *stream, int level, time_t now, const char *format, va_list va) {
+  static char b1[LOG_BUF_LEN], b2[LOG_BUF_LEN], *new_log=NULL, *last_log=NULL;
+  static time_t last_time = (time_t)-1;
+  static int last_level = O_LOG_INFO;
+  static uint64_t nseen = 0;
+  static uint64_t exponent = INIT_LOG_EXPONENT;
+  int n = 0;
+  char *tmp;
+  
+  if (!new_log || !last_log || last_time == (time_t)-1) {
+    /* Initialisation of static arrays */
+    *b1=0;
+    *b2=0;
+    new_log = b1;
+    last_log = b2;
+    last_time = now - 2*MAX_MESSAGE_RATE;
+  }
+
+  vsnprintf(new_log, LOG_BUF_LEN, format, va);
+
+  if (difftime(now, last_time) < MAX_MESSAGE_RATE || nseen > 0) {
+    if (!strncmp(new_log, last_log, LOG_BUF_LEN)) {
+      nseen++;
+      if(nseen <= exponent) return 0;
+
+      n += _o_vlog_metainformation(stream, now, level);
+      n += fprintf(logfile, "Last message repeated %" PRIu64 " time%s\n", nseen, nseen>1?"s":"");
+
+      last_time = now;
+      nseen = 0;
+      if (exponent < (1ul<<63)) exponent <<= 1;
+
+      return n;
+    } else if (nseen >0) {
+      /* Give a final count of all the previously unreported similar messages before printing the new one */
+      n += _o_vlog_metainformation(stream, last_time, last_level);
+      n += fprintf(logfile, "Last message repeated %d time%s\n", nseen, nseen>1?"s":"");
+    }
+  }
+
+  n += _o_vlog_metainformation(stream, now, level);
+  n += fprintf(logfile, "%s", new_log);
+
+  last_time = now;
+  last_level = level;
+  nseen = 0;
+  exponent = INIT_LOG_EXPONENT;
+
+  tmp = new_log;
+  new_log = last_log;
+  last_log = tmp;
+
+  return n;
+}
+
+void
+o_vlog_simplified (int level, const char *format, va_list va)
+{
+  time_t t;
+  time(&t);
+
+  if (level > o_log_level) return;
 
   if (logfile == NULL) {
     logfile = stderr;
     setlinebuf(logfile);
   }
 
-  if (logfile != stderr) {
-    time_t t;
-    time(&t);
-    struct tm* ltime = localtime(&t);
-
-    char now[20];
-    strftime(now, 20, "%b %d %H:%M:%S", ltime);
-    fprintf (logfile, "%s  ", now);
-  }
-
-  fprintf (logfile, "%-5s", labels[label_index]);
-
-  if (level > O_LOG_DEBUG) {
-    debug_level = level - O_LOG_INFO;
-    fprintf (logfile, "%-2d ", debug_level);
-  } else {
-    fprintf (logfile, "  ");
-  }
-
-  vfprintf(logfile, format, va);
+  _o_vlog_ratelimited(logfile, level, t, format, va);
 }
 
 void
