@@ -67,8 +67,13 @@ typedef enum _omlValueE {
   ((omlc_is_integer_type(t)) ||                             \
   ((t) == OML_DOUBLE_VALUE))
 
+#define omlc_is_string_type(t) ((t) == OML_STRING_VALUE)
+#define omlc_is_blob_type(t) ((t) == OML_BLOB_VALUE)
+
 #define omlc_is_integer(v) omlc_is_integer_type((v).type)
 #define omlc_is_numeric(v) omlc_is_numeric_type((v).type)
+#define omlc_is_string(v) omlc_is_string_type((v).type)
+#define omlc_is_blob(v) omlc_is_blob_type((v).type)
 
 /**
  *  Representation of a string measurement value.
