@@ -76,6 +76,7 @@ package() {
 		${pkgdir}/usr/share/licenses/${pkgname}/COPYING
 	install -D -m 0755 ${startdir}/oml2-server.rc ${pkgdir}/etc/rc.d/oml2-server
 	install -D -m 0644 ${startdir}/oml2-server.conf ${pkgdir}/etc/conf.d/oml2-server.conf
+	install -D -m 0644 ${startdir}/oml2-server.logrotate ${pkgdir}/etc/logrotate.d/oml2-server
 }
 
 check() {
