@@ -2,7 +2,7 @@
 #
 # starts and stops the OML2 server
 #     Written by Christoph Dwertmann
-#
+# Stop waiting logic adapted from Debian's /etc/init.d/apache2
 
 ### BEGIN INIT INFO
 # Provides:          oml2-server
@@ -15,6 +15,7 @@
 ### END INIT INFO
 
 NAME=oml2-server
+PIDFILE=/var/run/$NAME.pid
 
 test -x /usr/bin/$NAME || exit 0
 
@@ -24,14 +25,50 @@ fi
 
 start(){
     echo -n "Starting OML server: $NAME"
-	start-stop-daemon --start --quiet --background --pidfile /var/run/$NAME.pid --make-pidfile --exec /usr/bin/$NAME -- $OPTS
+	start-stop-daemon --start --quiet --background --pidfile $PIDFILE --make-pidfile --exec /usr/bin/$NAME -- $OPTS
     echo "."
 }
 
 stop(){
     echo -n "Stopping OML server: $NAME"
-	start-stop-daemon --stop --quiet --oknodo --pidfile /var/run/$NAME.pid
+	start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
     echo "."
+}
+
+
+pidof_oml2server(){
+    if [ -e "$PIDFILE" ]; then
+	if pidof $NAME | tr ' ' '\n' | grep -w $(cat $PIDFILE); then
+	    return 0
+	fi
+    fi
+    return 1
+}
+
+wait_stop(){
+    PIDTMP=$(pidof_oml2server) || true
+    if kill -0 "${PIDTMP:-}" 2> /dev/null; then
+	PID=$PIDTMP
+    fi
+
+    stop
+
+    if [ -n "${PID:-}" ]; then
+	i=0
+	while kill -0 "${PID:-}" 2> /dev/null;  do
+	    if [ $i = '60' ]; then
+		break;
+	    else
+		if [ $i = '0' ]; then
+		    echo -n "waiting"
+		else
+		    echo -n "."
+		fi
+		i=$(($i+1))
+		sleep 1
+	    fi
+	done
+    fi
 }
 
 case "$1" in
@@ -42,7 +79,7 @@ case "$1" in
     stop
     ;;
   restart|force-reload)
-    stop
+    wait_stop
     start
     ;;
   *)
@@ -52,3 +89,4 @@ esac
 
 exit 0
 
+# vim: sw=4
