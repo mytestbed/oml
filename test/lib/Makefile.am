@@ -15,6 +15,7 @@ check_liboml2_SOURCES = \
 	check_liboml2_log.c \
 	check_liboml2_marshal.c \
 	check_liboml2_mbuf.c \
+	check_liboml2_omlvalue.c \
 	check_liboml2_suites.h \
 	check_liboml2_util.c \
 	check_liboml2_writers.c \

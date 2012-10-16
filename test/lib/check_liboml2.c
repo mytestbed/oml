@@ -31,6 +31,8 @@ main (void)
   int number_failed = 0;
 
   o_set_log_file ("check_oml2.log");
+  SRunner* sr = srunner_create (omlvalue_suite());
+  srunner_add_suite (sr, bswap_suite ());
   srunner_add_suite (sr, mbuf_suite ());
   srunner_add_suite (sr, cbuf_suite ());
   srunner_add_suite (sr, marshal_suite ());
