@@ -11,6 +11,9 @@ void *xmemdupz (const void *data, size_t len);
 char *xstrndup (const char *str, size_t len);
 void xfree (void *ptr);
 
+size_t xmembytes();
+size_t xmemnew();
+size_t xmemfreed();
 void xmemreport (void);
 
 #endif /* MEM_H__ */
