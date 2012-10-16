@@ -109,7 +109,7 @@ ifdef::have_pg[]
 	SQLite3 files.  The other option is 'postgresql' which will
 	attempt to connect to a PostgreSQL database server.
 
---pg-host=user::
+--pg-host=host::
 	Specify the database server to which the PostgreSQL backend
 	should connect. Defaults to 'localhost'.
 
@@ -121,10 +121,20 @@ ifdef::have_pg[]
 	5432).
 
 --pg-user=user::
+
 	Specify the PostgreSQL database user to use when the PostgreSQL
 	backend is selected.  The specified user must have the
 	PostgreSQL CREATEDB role so that it can create a new database
 	for each new experiment. Defaults to 'oml'.
++
+You can create this user in PostgreSQL as follows.
++
+--------------------------
+  createuser  --no-createdb --pwprompt --no-createrole --no-superuser --no-replication oml
+--------------------------
++
+Doing so will ask you to enter and confirm the password for this
+role. It should match that passed to '--pg-pass' below.
 
 --pg-pass=pass::
 	Specify the password of the pg-user to connect to the PostgreSQL
@@ -220,6 +230,9 @@ SEE ALSO
 Manual Pages
 ~~~~~~~~~~~~
 linkoml:oml2-proxy-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api]
+ifdef::have_pg[]
+link:createuser[1]
+endif::have_pg[]
 
 include::manual.txt[]
 
