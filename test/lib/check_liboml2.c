@@ -31,16 +31,14 @@ main (void)
   int number_failed = 0;
 
   o_set_log_file ("check_oml2.log");
-  SRunner* sr = srunner_create (filters_suite ());
-  srunner_add_suite (sr, util_suite ());
-  srunner_add_suite (sr, log_suite ());
-  srunner_add_suite (sr, api_suite ());
-  srunner_add_suite (sr, parser_suite ());
-  srunner_add_suite (sr, bswap_suite ());
-  srunner_add_suite (sr, marshal_suite ());
   srunner_add_suite (sr, mbuf_suite ());
   srunner_add_suite (sr, cbuf_suite ());
+  srunner_add_suite (sr, marshal_suite ());
+  srunner_add_suite (sr, api_suite ());
   srunner_add_suite (sr, writers_suite ());
+  srunner_add_suite (sr, filters_suite ());
+  srunner_add_suite (sr, util_suite ());
+  srunner_add_suite (sr, log_suite ());
 
   srunner_run_all (sr, CK_NORMAL);
   number_failed += srunner_ntests_failed (sr);

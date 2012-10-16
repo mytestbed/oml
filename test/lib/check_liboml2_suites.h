@@ -25,15 +25,15 @@
 
 #include <check.h>
 
-extern Suite* filters_suite (void);
-extern Suite* util_suite (void);
-extern Suite* log_suite (void);
 extern Suite* api_suite (void);
-extern Suite* parser_suite (void);
+extern Suite* bswap_suite (void);
+extern Suite* cbuf_suite (void);
+extern Suite* filters_suite (void);
+extern Suite* log_suite (void);
 extern Suite* marshal_suite (void);
 extern Suite* mbuf_suite (void);
-extern Suite* cbuf_suite (void);
-extern Suite* bswap_suite (void);
+extern Suite* omlvalue_suite (void);
+extern Suite* util_suite (void);
 extern Suite* writers_suite (void);
 
 #endif /* CHECK_LIBOML2_SUITES_H__ */

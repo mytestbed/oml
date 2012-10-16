@@ -57,10 +57,8 @@ util_suite (void)
 {
   Suite* s = suite_create ("Util");
 
-  /* Parser test cases */
   TCase* tc_util = tcase_create ("Util");
 
-  /* Add tests to test case "Parser" */
   tcase_add_test (tc_util, test_util_uri);
 
   suite_add_tcase (s, tc_util);

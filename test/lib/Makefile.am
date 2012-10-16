@@ -8,17 +8,16 @@ check_liboml2_SOURCES = \
 	check_util.c \
 	check_util.h \
 	check_liboml2.c \
-	check_liboml2_log.c \
-	check_liboml2_util.c \
 	check_liboml2_api.c \
-	check_liboml2_filters.c \
-	check_liboml2_parser.c \
 	check_liboml2_bswap.c \
+	check_liboml2_cbuf.c \
+	check_liboml2_filters.c \
+	check_liboml2_log.c \
 	check_liboml2_marshal.c \
 	check_liboml2_mbuf.c \
-	check_liboml2_cbuf.c \
-	check_liboml2_writers.c \
 	check_liboml2_suites.h \
+	check_liboml2_util.c \
+	check_liboml2_writers.c \
 	$(top_srcdir)/lib/client/oml2/omlc.h \
 	$(top_srcdir)/lib/client/oml2/oml_filter.h
 
