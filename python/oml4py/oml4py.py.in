@@ -114,35 +114,34 @@ class OMLBase:
 
         self.starttime = 0
 
+        self.streams = 0
+        self.schema = ""
+        self.nextseq = {}
+        self.streamid = {}
         if self.oml:        
           # Set socket
           self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
           self.sock.settimeout(5) 
-          self.streams = 0
-          self.schema = ""
-          self.nextseq = {}
-          self.streamid = {}
 
 
     def addmp(self,mpname,schema):
  
-      if self.oml:
-        if "-" in mpname or "." in mpname:
-          sys.stderr.write("ERROR\tInvalid measurement point name: %s\n" %  mpname)
-          self._disable_oml()
+      if "-" in mpname or "." in mpname:
+        sys.stderr.write("ERROR\tInvalid measurement point name: %s\n" %  mpname)
+        self._disable_oml()
 
-        else:
-          # Count number of streams
-          self.streams += 1
+      else:
+        # Count number of streams
+        self.streams += 1
 
-          if self.streams > 1:
-             self.schema += '\n'
+        if self.streams > 1:
+           self.schema += '\n'
 
-          str_schema = "schema: " + str(self.streams) + " " + self.appname + "_" + mpname + " " + schema
+        str_schema = "schema: " + str(self.streams) + " " + self.appname + "_" + mpname + " " + schema
 
-          self.schema += str_schema
-          self.nextseq[mpname] = 0
-          self.streamid[mpname] = self.streams
+        self.schema += str_schema
+        self.nextseq[mpname] = 0
+        self.streamid[mpname] = self.streams
    
 
     def start(self):
@@ -179,6 +178,8 @@ class OMLBase:
 
     def inject(self,mpname,values):
 
+      str_inject = ""
+
       if self.oml and self.starttime == 0:
         sys.stderr.write("ERROR\tDid not call start()\n")
         self._disable_oml()
@@ -190,6 +191,7 @@ class OMLBase:
         str_inject = str(timestamp) + '\t' + str(streamid) + '\t' + str(seqno)
       except KeyError:
         sys.stderr.write("ERROR\tTried to inject into unknown MP '%s'\n" % mpname)
+        return
 
       try:
         for item in values:
@@ -199,6 +201,7 @@ class OMLBase:
         self.nextseq[mpname]+=1
       except TypeError:
         sys.stderr.write("ERROR\tInvalid measurement list\n")
+        return
 
       if self.oml:
         try:
@@ -210,6 +213,8 @@ class OMLBase:
           sys.stdout.write(str_inject)
 
     def _disable_oml(self):
+      if not self.oml:
+        return
       sys.stderr.write("WARN\tDisabling OML output\n")
       self.oml = False
 
