@@ -192,6 +192,21 @@ sq3_table_create_meta (Database *db, const char *name)
   return -1;
 }
 
+/** Build a URI for this database.
+ *
+ * \param db Database object
+ * \param uri output string buffer
+ * \param size length of uri
+ * \return uri on success, NULL otherwise (e.g., uri buffer too small)
+ */
+char* sq3_get_uri(Database *db, char *uri, size_t size)
+{
+  if(snprintf(uri, size, "file:%s/%s.sq3\n", realpath(sqlite_database_dir, fullpath), db->name) >= size)
+    return NULL;
+  return uri;
+}
+
+
 /**
  * \brief Release the sqlite3 database
  * \param db the database that contains the sqlite3 database
@@ -980,6 +995,7 @@ sq3_create_database(Database* db)
   db->add_sender_id = sq3_add_sender_id;
   db->set_metadata = sq3_set_metadata;
   db->get_metadata = sq3_get_metadata;
+  db->get_uri = sq3_get_uri;
   db->get_table_list = sq3_get_table_list;
 
   db->handle = self;

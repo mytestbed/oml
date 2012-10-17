@@ -58,6 +58,7 @@ typedef int (*db_adapter_insert)(Database *db, DbTable* table,
                                  OmlValue* values, int value_count);
 typedef char* (*db_adapter_get_metadata) (Database* db, const char* key);
 typedef int   (*db_adapter_set_metadata) (Database* db, const char* key, const char* value);
+typedef char* (*db_adapter_get_uri) (Database* db, char* uri, size_t size);
 typedef int (*db_add_sender_id)(Database* db, char* sender_id);
 typedef TableDescr* (*db_adapter_get_table_list) (Database* db, int *num_tables);
 
@@ -83,6 +84,7 @@ struct _database{
   db_adapter_insert  insert;
   db_adapter_get_metadata get_metadata;
   db_adapter_set_metadata set_metadata;
+  db_adapter_get_uri get_uri;
   db_add_sender_id   add_sender_id;
   db_adapter_get_table_list get_table_list;
 
