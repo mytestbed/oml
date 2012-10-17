@@ -44,6 +44,10 @@ while read COMMAND ARGUMENTS; do
 					echo "db ${DBFILE} closed, pushing to iRODS..." >&2
 					${IPUT} ${DBFILE}
 					;;
+				postgresql://*)
+					DBFILE=${ARGUMENTS}
+					echo "Don't really know how to handle ${DBFILE}..." >&2
+					;;
 				*)
 					echo "db ${ARGUMENTS} closed, but don't know how to handle it..." >&2
 					;;

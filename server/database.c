@@ -37,6 +37,7 @@
 #include "oml_value.h"
 #include "mem.h"
 #include "database.h"
+#include "hook.h"
 #include "sqlite_adapter.h"
 #if HAVE_LIBPQ
 #include <libpq-fe.h>
@@ -196,6 +197,9 @@ database_find (char* name)
 void
 database_release(Database* self)
 {
+  MString *hook_command = mstring_create();
+  char dburi[PATH_MAX+1];
+
   if (self == NULL) {
     logerror("NONE: Trying to release a NULL database.\n");
     return;
@@ -231,6 +235,18 @@ database_release(Database* self)
 
   loginfo ("%s: Closing database\n", self->name);
   self->release (self);
+
+  if(hook_enabled()) {
+    if(!self->get_uri(self, dburi, sizeof(dburi)))
+      logwarn("%s: Unable to get full URI to database for hook\n", self->name);
+    else if (mstring_sprintf(hook_command, "%s %s\n",
+          HOOK_CMD_DBCLOSED, dburi) == -1) {
+      logwarn("%s: Failed to construct command string for event hook\n", self->name);
+    }
+    if(hook_write(mstring_buf(hook_command), mstring_len(hook_command)) < (int)mstring_len(hook_command))
+      logwarn("%s: Failed to send command string to event hook: %s\n", self->name, strerror(errno));
+    mstring_delete(hook_command);
+  }
 
   xfree(self);
 }

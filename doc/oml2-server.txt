@@ -72,7 +72,7 @@ OML HOOK READY
 +
 It should then process its input in a loop, looking for the 
 commands described in the following section. Apart from its banner, the
-*omr2-server* does not currently read anything the hook program outputs
+*oml2-server* does not currently read anything the hook program outputs
 on its 'stdout'.
 +
 A simple example hook, *oml2-server-hook.sh*, is available in {pkgdatadir}.
@@ -184,16 +184,24 @@ HOOK COMMANDS
 The external event hook program should expect some of the following commands on
 its standard input.
 
-*EXIT*::
+EXIT::
 	Command the hook to cleanup and terminate. This command has no argument.
 
-*DBCLOSED* 'uri'::
+DBCLOSED 'uri'::
 	Indication that the last client for a given database has now exited and
 	cleanup tasks on the data can be performed. This command has one
-	argument, 'uri', which is an URI identifying the database. Currently,
-	only the 'file:fullpath' URI is implementend for SQLite3 databases,
-	where 'fullpath' is the full path to the database in the *oml2-server*'s
-	local filesystem.
+	argument, 'uri', which is an URI identifying the database. The URI
+	schemes vary with the backend, and are as follows.
+ifdef::have_pg[]
+	* PostgreSQL: 'postgresql://USER@HOST:PORT/dbname' where 'USER',
+	'HOST' and 'PORT' are the values of the equivalent '--pg-*'
+	command-line options, and DBNAME is the name of the experimental
+	domain. This scheme is PostgreSQL's own, and is therefore directly
+	usable with other tools.
+endif::have_pg[]
+
+	* SQLite3: 'file:fullpath' where 'fullpath' is the full path to the
+	database in the *oml2-server*'s local filesystem.
 
 ENVIRONMENT VARIABLES
 ---------------------
