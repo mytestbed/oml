@@ -85,7 +85,7 @@ collection URI (see link:#_uri_format[URI FORMAT] below). If using the
 *tcp* scheme, it is sent to the named linkoml:oml2-server[1], for
 storage in an SQL database, while  using the *file* or *flush* schemes
 will create a local file with the given name containing OML text mode
-protocol which can later on be stream (e.g., using link:netcat[1]) to an
+protocol which can later on be stream (e.g., using linkman:netcat[1]) to an
 *oml2-server*. Measurement points are created with a 'schema', as above,
 a schema being an ordered list of (name, type) pairs.
 
@@ -150,8 +150,7 @@ OML output schema as schema for the table.  For instance, the above
 example would translate to an SQL CREATE TABLE statement like:
 
 --------
-CREATE TABLE generator_lin (label TEXT, seq_no_avg REAL, seq_no_min REAL,
-                            seq_no_max REAL);
+CREATE TABLE generator_lin (label TEXT, seq_no_avg REAL, seq_no_min REAL, seq_no_max REAL);
 --------
 
 Note that even though an MP field may have an integral type, it may be
@@ -190,7 +189,7 @@ on different machines can contribute measurements to the same
 experiment.  If '--oml-domain' is not given, an error is written to the
 log file and measurement collection will not occur (although the
 application may still run). The '--oml-exp-id' option is obsolescent,
-and '--oml-collect' should be preferred.
+and '--oml-domain' should be preferred.
 
 
 --oml-file filename::
@@ -285,11 +284,11 @@ an optional network protocol, a host identifier, and an optional port
 number, or a mandatory *file* (or *flush* )scheme and a local filesystem
 path.  The format of the network server version is:
 ---------------------------
-		[tcp:][//]<host>[:<port>]
+[tcp:][//]<host>[:<port>]
 ---------------------------
 The formats for the local file version is:
 ---------------------------
-		(file|flush):<local-path>
+(file|flush):<local-path>
 ---------------------------
 
 For instance, 'tcp:10.0.0.200:3003' or 'tcp://10.0.0.200:3003' will send
@@ -360,7 +359,7 @@ schema in the measurement output compared to other possible
 configurations available from the command line, which use the 'avg'
 filter.  It is not clear whether this is a feature or a bug.
 
-include::bugs.txt []
+include::bugs.txt[]
 
 SECURITY CONSIDERATIONS
 -----------------------

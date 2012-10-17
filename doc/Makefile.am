@@ -52,11 +52,12 @@ if DX_COND_doc
 all: doxygen-doc
 endif
 
-A2X_ARGS = \
-	   --destination-dir=. --attribute='pkglocalstatedir=$(pkglocalstatedir)' --attribute='oml_version=$(VERSION)' --attribute='date=$(DATE)' --attribute='pkgdatadir=$(pkgdatadir)' -f manpage
+ASCIIDOC_ARGS = --attribute='badges' --attribute='icons'
+ASCIIDOC_ARGS += --attribute='pkglocalstatedir=$(pkglocalstatedir)' --attribute='oml_version=$(VERSION)' --attribute='pkgdatadir=$(pkgdatadir)'
 if HAVE_LIBPQ
-A2X_ARGS += --attribute='have_pg'
+ASCIIDOC_ARGS += --attribute='have_pg'
 endif
+A2X_ARGS = --destination-dir=. -f manpage $(ASCIIDOC_ARGS) --attribute='date=$(DATE)'
 
 if HAVE_A2X
 man_MANS = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
@@ -120,7 +121,7 @@ endif #HAVE_A2X
 if HAVE_ASCIIDOC
 SUFFIXES = .html
 .txt.html:
-	$(ASCIIDOC) -o $@ $<
+	$(ASCIIDOC) $(ASCIIDOC_ARGS) -o $@ $<
 
 all: html
 html:	$(html_docs)

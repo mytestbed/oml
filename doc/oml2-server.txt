@@ -116,7 +116,7 @@ ifdef::have_pg[]
 --pg-port=port::
 	Specify the database server port to which the PostgreSQL
 	backend should connect. Values from '/etc/services' suitable for
-	link:getservbyname[3] are also accepted. Defaults to
+	linkman:getservbyname[3] are also accepted. Defaults to
 	'postgresql' (i.e., use PostgreSQL's default, which is usually
 	5432).
 
@@ -230,8 +230,9 @@ SEE ALSO
 Manual Pages
 ~~~~~~~~~~~~
 linkoml:oml2-proxy-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api]
+
 ifdef::have_pg[]
-link:createuser[1]
+linkman:createuser[1]
 endif::have_pg[]
 
 include::manual.txt[]
