@@ -58,10 +58,7 @@ size_t xmemnew() { return xnew; }
 /** Report the cumulated freed memory tracked by x*() functions */
 size_t xmemfreed() { return xfreed; }
 
-/** Log a summary of the dynamically allocated memory tracked by x*() functions
- *
- * \see xmalloc, xfree, xmembytes, xmemnew, xmemfreed
- * */
+/** Log a summary of the dynamically allocated memory tracked by x*() functions */
 void xmemreport (void)
 {
   size_t xbytes_h = xbytes;
@@ -83,17 +80,11 @@ void xmemreport (void)
              (uintmax_t)xnew, (uintmax_t)xfreed, (uintmax_t)xbytes);
 }
 
-/** Handle a memory allocation error.
- *
- * \param ptr pointer to return
- * \param size requested allocation size
- * \param str custom error string
- * \return ptr
- */
 #define xreturn(ptr, size, str)                                         \
   do {                                                                  \
-    logerror("%s: %d bytes allocated, trying to add %d bytes\n",        \
-             str, xbytes, size);                                        \
+    logerror(str);                                                      \
+    logerror("%d bytes allocated, trying to add %d bytes\n",            \
+             xbytes, size);                                             \
     return ptr;                                                         \
   } while (0);
 
