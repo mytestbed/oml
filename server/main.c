@@ -156,17 +156,17 @@ static void sighandler(int signum)
   }
 }
 
-/** Set up the signal handler.
+/** XXX: Type of a signal handler, as I'm not sure __sighandler_t from <signal.h> is portable */
+typedef void (*sh_t) (int);
+/** Actually install a new signal handler.
  *
- * \see sighandler
+ * \see sigaction(3)
  */
-void signal_setup (void)
+static signal_install(sh_t handler)
 {
   struct sigaction sa;
 
-  logdebug("Installing signal handlers\n");
-
-  sa.sa_handler = sighandler;
+  sa.sa_handler = (void(*) (int))handler;
   sigemptyset (&sa.sa_mask);
   sa.sa_flags = 0;
 
@@ -176,6 +176,28 @@ void signal_setup (void)
     logwarn("Unable to install SIGINT handler: %s\n", strerror(errno));
   if(sigaction(SIGUSR1, &sa, NULL))
     logwarn("Unable to install SIGUSR1 handler: %s\n", strerror(errno));
+}
+
+/** Set up the signal handler.
+ *
+ * \see signal_install, sighandler, sigaction(3)
+ */
+static void signal_setup (void)
+{
+  logdebug("Installing signal handlers\n");
+  signal_install(sighandler);
+}
+
+/** Clean up the signal handler.
+ *
+ * \see signal_install, sigaction(3)
+ */
+static void signal_cleanup (void)
+{
+  struct sigaction sa;
+
+  logdebug("Restoring default signal handlers\n");
+  signal_install((sh_t)SIG_DFL);
 }
 
 static void drop_privileges (const char *uidstr, const char *gidstr)
@@ -279,6 +301,8 @@ int main(int argc, const char **argv)
   hook_setup();
 
   eventloop_run();
+
+  signal_cleanup();
 
   hook_cleanup();
 
