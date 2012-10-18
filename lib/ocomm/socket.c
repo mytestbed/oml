@@ -192,7 +192,7 @@ s_socket(
   // open a socket
   if((self->sockfd = socket(PF_INET,
                 self->is_tcp ? SOCK_STREAM : SOCK_DGRAM, IPPROTO_IP)) < 0) {
-    o_log (O_LOG_ERROR, "socket: Error creating socket\n");
+    o_log (O_LOG_ERROR, "socket: Error creating socket: %s\n", strerror(errno));
     return 0;
   }
   if (nonblocking_mode) {
