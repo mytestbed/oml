@@ -35,6 +35,8 @@ const char *find_white (const char *p);
 
 char* to_octets (unsigned char* buf, int len);
 
+int resolve_service(const char *service, int defport);
+
 typedef enum {
   OML_URI_UNKNOWN = -1,
   OML_URI_FILE = 0,

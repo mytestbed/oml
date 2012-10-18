@@ -5,7 +5,6 @@
 #include <libpq-fe.h>
 #include <time.h>
 #include <sys/time.h>
-#include <netdb.h>
 #include <arpa/inet.h>
 
 #include "oml_util.h"
@@ -52,23 +51,11 @@ int psql_set_key_value (Database *database, const char *table,
  */
 static MString *psql_prepare_conninfo(const char *database, const char *host, const char *port, const char *user, const char *pass, const char *extra_conninfo)
 {
-  struct servent *sse;
   MString *conninfo;
-  int portnum = 5432, tmpport;
-  char *endptr;
+  int portnum;
 
+  portnum = resolve_service(port, 5432);
   conninfo = mstring_create();
-  sse = getservbyname(port, NULL);
-  if (sse) {
-    portnum = ntohs(sse->s_port);
-  } else {
-    tmpport = strtol(port, &endptr, 10);
-    if (endptr > port)
-      portnum = tmpport;
-    else
-      logwarn("psql: Could not resolve service '%s', defaulting to %d\n", port, portnum);
-  }
-  conninfo = mstring_create ();
   mstring_sprintf (conninfo, "host='%s' port='%d' user='%s' password='%s' dbname='%s' %s",
       host, portnum, user, pass, database, extra_conninfo);
 
@@ -212,7 +199,7 @@ psql_table_create_meta (Database *db, const char *name)
  */
 char* psql_get_uri(Database *db, char *uri, size_t size)
 {
-  if(snprintf(uri, size, "postgresql://%s@%s:%s/%s", pg_user, pg_host, pg_port, db->name) >= size)
+  if(snprintf(uri, size, "postgresql://%s@%s:%d/%s", pg_user, pg_host, resolve_service(pg_port, 5432), db->name) >= size)
     return NULL;
   return uri;
 }

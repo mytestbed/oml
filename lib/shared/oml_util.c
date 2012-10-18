@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <netdb.h>
 #include "log.h"
 #include "mem.h"
 #include "oml_util.h"
@@ -81,6 +82,35 @@ to_octets (unsigned char* buf, int len)
   }
 
   return out;
+}
+
+/** Resolve a string containing a service or port into an integer port.
+ *
+ * Setting default to an impossible value (say, -1) is sufficient to catch resolving errors;
+ *
+ * \param port string containing the textual service name or port
+ * \param defport default port value to return if resolving fails
+ * \return the port number as a host-order integer, or the default value if something failed
+ * \see getservbyname(3)
+ */
+int resolve_service(const char *service, int defport)
+{
+  struct servent *sse;
+  char *endptr;
+  int portnum = defport, tmpport;
+
+  sse = getservbyname(service, NULL);
+  if (sse) {
+    portnum = ntohs(sse->s_port);
+  } else {
+    tmpport = strtol(service, &endptr, 10);
+    if (endptr > service)
+      portnum = tmpport;
+    else
+      logwarn("Could not resolve service '%s', defaulting to %d\n", service, portnum);
+  }
+
+  return portnum;
 }
 
 /**
