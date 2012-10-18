@@ -28,36 +28,57 @@ irodsHost=irods.example.com
 irodsZone=tempZone
 export irodsUserName irodsHost irodsPort irodsZone
 
+LOGFILE=oml2-server-hook.log
+function log ()
+{
+	echo "$@" >> ${LOGFILE}
+}
+
 # XXX: You might need to initialise the iRODS password for the UNIX user
 # running tho oml2-server by running 'iinit' to create ~/.irods/.irodsA on its
 # behalf for iput to work
 IPUT=iput
+PGDUMP=pg_dump
 
 echo "OML HOOK READY"
 while read COMMAND ARGUMENTS; do
-	echo "`date` '${COMMAND}' '${ARGUMENTS}'" >> oml2-server-hook.log
+	# One report line must be printed in each control path;
+	# this first one puts out a timestamp and a dump of the received command, but no newline
+	log -n "`date`: ${COMMAND} ${ARGUMENTS}: "
 	case "${COMMAND}" in
 		"DBCLOSED")
 			case "${ARGUMENTS}" in
 				file:*)
 					DBFILE=${ARGUMENTS/file:/}
-					echo "db ${DBFILE} closed, pushing to iRODS..." >&2
+					log "SQLite3 DB ${DBFILE} closed, pushing to iRODS"
 					${IPUT} ${DBFILE}
 					;;
 				postgresql://*)
-					DBFILE=${ARGUMENTS}
-					echo "Don't really know how to handle ${DBFILE}..." >&2
+					# Separate the components of the URI by gradually eating them off the TMP variable
+					TMP="${ARGUMENTS/postgresql:\/\//}"
+					USER=${TMP/@*/}
+					TMP=${TMP/${USER}@/}
+					HOST=${TMP/:*/}
+					TMP=${TMP/${HOST}:/}
+					PORT=${TMP/\/*/}
+					TMP=${TMP/${PORT}\//}
+					DBNAME=${TMP}
+					DBFILE=${DBNAME}.`date +%Y-%m-%d_%H:%M:%S%z`.pg.sql
+					log "PostgreSQL DB ${DBNAME} closed, dumping as ${DBFILE} and pushing to iRODS"
+					${PGDUMP} -U ${USER} -h ${HOST} -p ${PORT} ${DBNAME} > ${DBFILE}
+					${IPUT} ${DBFILE}
 					;;
 				*)
-					echo "db ${ARGUMENTS} closed, but don't know how to handle it..." >&2
+					log "DB ${ARGUMENTS} closed, but don't know how to handle it"
 					;;
 			esac
 			;;
 		"EXIT")
-			echo "exiting..." >&2
+			log "Exiting"
 			exit 0
 			;;
 		*)
+			log "Unknown command"
 			;;
 	esac
 done
