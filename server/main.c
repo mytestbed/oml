@@ -52,8 +52,7 @@
 #include "psql_adapter.h"
 #endif
 
-void
-die (const char *fmt, ...)
+void die (const char *fmt, ...)
 {
   va_list va;
   va_start (va, fmt);
@@ -120,8 +119,7 @@ struct poptOption options[] = {
  * @param logfile the file to open
  * @param level the severity level at which to log
  */
-void
-setup_logging (char *logfile, int level)
+static void logging_setup (char *logfile, int level)
 {
   if (!logfile) {
     if (isatty (fileno (stderr)))
@@ -162,7 +160,7 @@ static void sighandler(int signum)
  *
  * \see sighandler
  */
-void setup_signal (void)
+void signal_setup (void)
 {
   struct sigaction sa;
 
@@ -180,8 +178,7 @@ void setup_signal (void)
     logwarn("Unable to install SIGUSR1 handler: %s\n", strerror(errno));
 }
 
-void
-drop_privileges (const char *uidstr, const char *gidstr)
+static void drop_privileges (const char *uidstr, const char *gidstr)
 {
   if (gidstr && !uidstr)
     die ("--gid supplied without --uid\n");
@@ -230,16 +227,14 @@ drop_privileges (const char *uidstr, const char *gidstr)
  * \see socket_server_new()
  * \see on_client_connect()
  */
-void
-on_connect(Socket* new_sock, void* handle)
+static void on_connect(Socket* new_sock, void* handle)
 {
   (void)handle;
   ClientHandler *client = client_handler_new(new_sock);
   logdebug("%s: New client connected\n", client->name);
 }
 
-int
-main(int argc, const char **argv)
+int main(int argc, const char **argv)
 {
   int c;
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
@@ -254,7 +249,7 @@ main(int argc, const char **argv)
     }
   }
 
-  setup_logging (logfile_name, log_level);
+  logging_setup (logfile_name, log_level);
 
   if (c < -1)
     die ("%s: %s\n", poptBadOption (optCon, POPT_BADOPTION_NOALIAS), poptStrerror (c));
@@ -279,7 +274,7 @@ main(int argc, const char **argv)
       exit(EXIT_FAILURE);
   }
 
-  setup_signal();
+  signal_setup();
 
   hook_setup();
 
