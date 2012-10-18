@@ -31,6 +31,7 @@ export irodsUserName irodsHost irodsPort irodsZone
 LOGFILE=oml2-server-hook.log
 function log ()
 {
+	echo "$@" >&2
 	echo "$@" >> ${LOGFILE}
 }
 
