@@ -84,18 +84,32 @@ typedef enum _omlValueE {
 /**  Representation of a string measurement value.
  */
 typedef struct _omlString {
-  char* ptr;	   /** pointer to a nul-terminated C string */
-  int   is_const; /** true if ptr references const storage */
-  int   length;   /** length of string */
-  int   size;     /** size of the allocated underlying storage (>= length + 1) */
+  /** pointer to a nul-terminated C string */
+  char *ptr;
+
+  /** length of string */
+  size_t length;
+
+  /** size of the allocated underlying storage (>= length + 1) */
+  size_t size;
+
+  /** true if ptr references const storage */
+  int   is_const;
+
 } OmlString;
 
 /**  Representation of a blob measurement value.
  */
 typedef struct _omlBlob {
-  void *ptr;      /** pointer to blob data storage */
-  size_t size;    /** size of the allocated underlying storage (>= length) */
-  size_t length;  /** length of the blob */
+  /** pointer to blob data storage */
+  void *ptr;
+
+  /** length of the blob */
+  size_t length;
+
+  /** size of the allocated underlying storage (>= length) */
+  size_t size;
+
 } OmlBlob;
 
 /** Multi-typed variable container without type information.
