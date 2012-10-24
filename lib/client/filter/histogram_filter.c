@@ -56,7 +56,7 @@ omlf_histogram_new(
     return NULL;
   }
 
-  InstanceData* self = (InstanceData *)malloc(sizeof(InstanceData));
+  InstanceData* self = (InstanceData *)xmalloc(sizeof(InstanceData));
   memset(self, 0, sizeof(InstanceData));
 
   self->sample_sum = 0;

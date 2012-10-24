@@ -49,7 +49,7 @@ omlf_sum_new(OmlValueT type, OmlValue* result)
     return NULL;
   }
 
-  InstanceData* self = (InstanceData *)malloc(sizeof(InstanceData));
+  InstanceData* self = (InstanceData *)xmalloc(sizeof(InstanceData));
 
   if (self) {
     memset(self, 0, sizeof(InstanceData));

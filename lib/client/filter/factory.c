@@ -27,6 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <log.h>
+#include "mem.h"
 #include "filter/factory.h"
 
 typedef struct _filterType {
@@ -73,7 +74,7 @@ next_filter_name(void)
 static OmlValue*
 create_filter_result_vector (OmlFilterDef* def, OmlValueT type, int count)
 {
-  OmlValue* result = (OmlValue*)malloc(count * sizeof(OmlValue));
+  OmlValue* result = (OmlValue*)xmalloc(count * sizeof(OmlValue));
 
   if (!result) {
     logerror ("Failed to allocate memory for filter result vector\n");
@@ -111,7 +112,7 @@ create_filter(
     return NULL;  // nothing found
   }
 
-  OmlFilter * f = (OmlFilter*)malloc(sizeof(OmlFilter));
+  OmlFilter * f = (OmlFilter*)xmalloc(sizeof(OmlFilter));
   memset(f, 0, sizeof(OmlFilter));
 
   strncpy (f->name, instance_name, sizeof(f->name));
@@ -137,7 +138,11 @@ create_filter(
  */
 int destroy_filter(OmlFilter* f) {
   if (f) {
-    free(f);
+    if(f->result)
+      xfree(f->result);
+    if(f->instance_data)
+      xfree(f->instance_data);
+    xfree(f);
   } else
     return -1;
   return 0;
@@ -181,7 +186,7 @@ default_filter_meta (OmlFilter* filter,
 static OmlFilterDef* copy_filter_definition (OmlFilterDef* def,
                          int count)
 {
-  OmlFilterDef* copy = (OmlFilterDef*)malloc((count+1) * sizeof(OmlFilterDef));
+  OmlFilterDef* copy = (OmlFilterDef*)xmalloc((count+1) * sizeof(OmlFilterDef));
 
   memcpy (copy, def, (count+1) * sizeof (OmlFilterDef));
 
@@ -209,7 +214,7 @@ omlf_register_filter(const char* filter_name,
     return -1;
   }
 
-  FilterType* ft = (FilterType*)malloc(sizeof(FilterType));
+  FilterType* ft = (FilterType*)xmalloc(sizeof(FilterType));
   ft->name = filter_name;
   ft->create = create;
   ft->set = set;
