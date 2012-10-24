@@ -432,3 +432,5 @@ include::manual.txt[]
 Ruby
 ~~~~
 http://www.ruby-lang.org
+
+// vim: ft=asciidoc:tw=72

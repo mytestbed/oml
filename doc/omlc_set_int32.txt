@@ -70,3 +70,5 @@ Manual Pages
 linkoml:liboml2[3,api], linkoml:omlc_inject[3]
 
 include::manual.txt[]
+
+// vim: ft=asciidoc:tw=72

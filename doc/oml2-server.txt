@@ -266,3 +266,5 @@ PostgreSQL
 ~~~~~~~~~~
 http://www.postgresql.org
 endif::have_pg[]
+
+// vim: ft=asciidoc:tw=72

@@ -9,3 +9,5 @@ Known Bugs
 
 For all known outstanding bugs, please consult
 http://oml.mytestbed.net/projects/oml/issues
+
+// vim: ft=asciidoc:tw=72

@@ -78,3 +78,5 @@ Manual Pages
 linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
 
 include::manual.txt[]
+
+// vim: ft=asciidoc:tw=72

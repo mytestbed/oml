@@ -368,3 +368,5 @@ linkoml:omlc_set_int32[3], linkoml:omlc_set_uint32[3], linkoml:omlc_set_int64[3]
 
 
 include::manual.txt[]
+
+// vim: ft=asciidoc:tw=72

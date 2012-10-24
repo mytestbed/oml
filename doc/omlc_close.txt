@@ -49,3 +49,5 @@ linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:libo
 linkoml:omlc_init[3], linkoml:omlc_add_mp[3], linkoml:omlc_start[3], linkoml:omlc_inject[3]
 
 include::manual.txt[]
+
+// vim: ft=asciidoc:tw=72

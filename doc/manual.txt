@@ -1,3 +1,5 @@
 OML User Manual
 ~~~~~~~~~~~~~~~
 http://oml.mytestbed.net/projects/oml/wiki/Documentation
+
+// vim: ft=asciidoc:tw=72
