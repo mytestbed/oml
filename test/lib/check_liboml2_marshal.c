@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <math.h>
 #include <arpa/inet.h>
 #include <check.h>
@@ -46,6 +47,8 @@ static const int INT32_T = 0x5;  // marshal.c INT32_T
 static const int UINT32_T = 0x6;  // marshal.c UINT32_T
 static const int INT64_T = 0x7;  // marshal.c INT64_T
 static const int UINT64_T = 0x8;  // marshal.c UINT64_T
+static const int BLOB_T = 0x9;  // marshal.c BLOB_T
+#define PACKET_HEADER_SIZE 5 // marshal.c
 
 static double double_values [] =
   {
@@ -271,7 +274,9 @@ START_TEST (test_marshal_value_long)
 
   fail_if (result != 1);
   fail_if ((int)*(FIRST_VALPTR(mbuf)) != LONG_T); // LONG_T
-  fail_if (val != oml_value_clamp_long (v.longValue));
+  fail_if (val != oml_value_clamp_long (v.longValue),
+      "Improrely clamped LONG: expected %ld, got %ld",
+      val, oml_value_clamp_long (v.longValue));
 }
 END_TEST
 
@@ -906,6 +911,346 @@ START_TEST (test_marshal_unmarshal_string)
 END_TEST
 
 
+#define dumpmessage(mbuf)                                                                                   \
+  do {                                                                                                      \
+    uint8_t *_m = mbuf_message(mbuf), *_p = _m;                                                             \
+    logdebug("Message of length %d\n", mbuf_message_length(mbuf));                                          \
+    do logdebug("> %02d: %#02x\t(%c)\n", (int)(_p-_m), (uint8_t)*_p, ((uint8_t)*_p>=' '?(uint8_t)*_p:'X')); \
+    while (++_p < _m + mbuf_message_length(mbuf));                                                          \
+  } while(0)
+
+START_TEST (test_marshal_full)
+{
+  MBuffer *mbuf;
+  OmlValue v, *va;
+  OmlBinaryHeader h;
+  int32_t d32 = -42;
+  uint32_t u32 = 1337;
+  int64_t d64 = (int64_t)d32 << 32;
+  uint64_t u64 = (uint64_t)u32 << 32;
+  double d = M_PI, d2;
+  long l = d32;
+  char s[] = "I am both a string AND a blob... Go figure.";
+  void *b = (void*)s, *p;
+  int len = strlen(s), count=0, i;
+  uint8_t *msg, offset;
+
+  o_set_log_level(O_LOG_DEBUG2);
+
+  oml_value_init(&v);
+
+  mbuf = mbuf_create();
+  fail_if(marshal_init(mbuf, OMB_DATA_P));
+  msg = mbuf_message(mbuf);
+
+  offset = 0;
+  fail_unless(msg[offset] == 0xAA,
+      "Fist sync byte not set properly; found '%#x' at offset %d",
+      msg[offset], offset);
+  offset++;
+  fail_unless(msg[offset] == 0xAA,
+      "Second sync byte not set properly; found '%#x' at offset %d",
+      msg[offset], offset);
+  offset++;
+  fail_unless(msg[offset] == OMB_DATA_P,
+      "Packet type not set properly; found '%#x' at offset %d",
+      msg[offset], offset);
+  offset++;
+  fail_unless(mbuf_message_length(mbuf) == 5,
+      "Current message should be 5 bytes");
+  offset+=2;
+
+  fail_unless(marshal_measurements(mbuf, 1, 2, 3.) == 1);
+  /* Before finalisation, the first byte of length contains the number of elements */
+  fail_unless(msg[5] == 0,
+      "Initial number of element not set properly; got %d instead of 0 at offset %d",
+      msg[5], offset);
+  offset++;
+  fail_unless(msg[offset] == 1,
+      "Stream number not set properly; got %d instead of 1 at offset %d",
+      msg[offset], offset);
+  offset++;
+
+  fail_unless(msg[offset] == INT32_T,
+      "Seqno type not set properly; got %d instead of %d at offset %d",
+      msg[offset], INT32_T, offset);
+  offset++;
+  p = &msg[offset];
+  fail_unless(ntohl(*(int32_t*)p) == 2,
+      "Seqno not set properly; got %d instead of 2 at offset %d",
+      ntohl(*(int32_t*)p), offset);
+  offset+=4;
+
+  fail_unless(msg[offset] == DOUBLE_T,
+      "Timestamp type not set properly; got %d instead of %d",
+      msg[offset], DOUBLE_T);
+  offset++;
+  d2 = ((double)(ntohl((int32_t)(msg[offset])) * (1 << msg[offset+4])))/(1<<30);
+  fail_unless(d2 - 3. < EPSILON,
+      "Timestamp not set properly; got M=%d, x=%d; 2^xM/2^30=%f instead of 3",
+      ntohl((int32_t)(msg[offset])), msg[offset+4], d2, offset);
+  offset+=5;
+
+  oml_value_set_type(&v, OML_INT32_VALUE);
+  omlc_set_int32(*oml_value_get_value(&v), d32);
+  marshal_values(mbuf, &v, 1);
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of elements not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == INT32_T,
+      "d32 type not set properly; got %d instead of %d at offset %d",
+      msg[offset], INT32_T, offset);
+  offset++;
+  p = &msg[offset];
+  fail_unless(ntohl(*(int32_t*)p) == d32,
+      "d32 not set properly; got %d instead of %" PRId32 " at offset %d",
+      ntohl(*(int32_t*)p), d32, offset);
+  offset+=sizeof(int32_t);
+
+  oml_value_set_type(&v, OML_UINT32_VALUE);
+  omlc_set_uint32(*oml_value_get_value(&v), u32);
+  marshal_values(mbuf, &v, 1);
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of elements not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == UINT32_T,
+      "u32 type not set properly; got %d instead of %d at offset %d",
+      msg[offset], UINT32_T, offset);
+  offset++;
+  p = &msg[offset];
+  fail_unless(ntohl(*(uint32_t*)p) == u32,
+      "u32 not set properly; got %d instead of %" PRIu32 " at offset %d",
+      ntohl(*(uint32_t*)p), u32, offset);
+  offset+=sizeof(uint32_t);
+
+  oml_value_set_type(&v, OML_INT64_VALUE);
+  omlc_set_int64(*oml_value_get_value(&v), d64);
+  marshal_values(mbuf, &v, 1);
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of elements not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == INT64_T,
+      "d64 type not set properly; got %d instead of %d at offset %d",
+      msg[offset], INT64_T, offset);
+  offset++;
+  p = &msg[offset];
+  fail_unless(ntohll(*(int64_t*)p) == d64,
+      "d64 not set properly; got %d instead of %" PRId64 " at offset %d",
+      ntohll(*(int64_t*)p), d64, offset);
+  offset+=sizeof(int64_t);
+
+  oml_value_set_type(&v, OML_UINT64_VALUE);
+  omlc_set_uint64(*oml_value_get_value(&v), u64);
+  marshal_values(mbuf, &v, 1);
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of element- not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == UINT64_T,
+      "u64 type not set properly; got %d instead of %d at offset %d",
+      msg[offset], UINT64_T, offset);
+  offset++;
+  p = &msg[offset];
+  fail_unless(ntohll(*(uint64_t*)p) == u64,
+      "u64 not set properly; got %d instead of %" PRIu64 " at offset %d",
+      ntohll(*(uint64_t*)p), u64, offset);
+  offset+=sizeof(uint64_t);
+
+  oml_value_set_type(&v, OML_LONG_VALUE);
+  omlc_set_long(*oml_value_get_value(&v), l);
+  marshal_values(mbuf, &v, 1);
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of elements not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == LONG_T,
+      "l type not set properly; got %d instead of %d at offset %d",
+      msg[offset], LONG_T, offset);
+  offset++;
+  p = &msg[offset];
+  /* Longs are 4 bytes on the wire, the size of an int32_t*/
+  fail_unless(ntohl(*(int32_t*)p) == oml_value_clamp_long(l),
+      "l not set properly; got %d instead of %ld at offset %d",
+      ntohl(*(int32_t*)p), oml_value_clamp_long(l), offset);
+  offset+=sizeof(int32_t);
+
+  oml_value_set_type(&v, OML_DOUBLE_VALUE);
+  omlc_set_double(*oml_value_get_value(&v), d);
+  marshal_values(mbuf, &v, 1);
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of elements not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == DOUBLE_T,
+      "d type not set properly; got %d instead of %d",
+      msg[offset], DOUBLE_T);
+  offset++;
+  d2 = ((double)(ntohl((int32_t)(msg[offset])) * (1 << msg[offset+4])))/(1<<30);
+  fail_unless(d2 - d < EPSILON,
+      "d not set properly; got M=%d, x=%d; 2^xM/2^30=%f instead of 2",
+      ntohl((int32_t)(msg[offset])), msg[offset+4], d2, offset);
+  offset+=5;
+
+  oml_value_set_type(&v, OML_STRING_VALUE);
+  omlc_set_string_copy(*oml_value_get_value(&v), s, len);
+  marshal_values(mbuf, &v, 1);
+  omlc_reset_string(*oml_value_get_value(&v));
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of elements not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == STRING_T,
+      "s type not set properly; got %d instead of %d at offset %d",
+      msg[offset], STRING_T, offset);
+  offset++;
+  fail_unless(msg[offset] == len,
+      "s length not set properly; got %d instead of %d at offset %d",
+      msg[offset], len, offset);
+  offset++;
+  fail_if(strncmp(&msg[offset], s, len),
+      "s mismatch");
+  offset+=len;
+
+  oml_value_set_type(&v, OML_BLOB_VALUE);
+  omlc_set_blob(*oml_value_get_value(&v), s, len);
+  marshal_values(mbuf, &v, 1);
+  omlc_reset_blob(*oml_value_get_value(&v));
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of elements not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == BLOB_T,
+      "b type not set properly; got %d instead of %d at offset %d",
+      msg[offset], BLOB_T, offset);
+  offset++;
+  /* Blobs have a 32 bits length field */
+  p = &msg[offset];
+  fail_unless(ntohl(*(uint32_t*)p) == len,
+      "b length not set properly; got %d instead of %" PRIu32 " at offset %d",
+      ntohl(*(uint32_t*)p), len, offset);
+  offset+=sizeof(uint32_t);
+  fail_if(strncmp(&msg[offset], s, len),
+      "b mismatch");
+  offset+=len;
+
+  fail_unless(marshal_finalize(mbuf) == 1);
+
+  dumpmessage(mbuf);
+
+  fail_unless((msg[2] == OMB_DATA_P && mbuf_message_length(mbuf)<=UINT16_MAX) ||
+      ((msg[2] == OMB_LDATA_P && mbuf_message_length(mbuf)>UINT16_MAX)),
+      "Message type not properly adjusted");
+  /* XXX: The following assumes OMB_DATA_P and will fail for OMB_LDATA_P;
+   * need to add 2 to PACKET_HEADER_SIZE in that case */
+  p = &msg[3];
+  fail_unless(ntohs(*(uint16_t*)p) == (mbuf_message_length(mbuf) - PACKET_HEADER_SIZE),
+      "Message length not set properly; got %d instead of %d at offset 3",
+      ntohs(*(uint16_t*)p), (mbuf_message_length(mbuf) - PACKET_HEADER_SIZE));
+  fail_unless(unmarshal_init(mbuf, &h) == 1);
+  fail_unless(h.length == (mbuf_message_length(mbuf) - PACKET_HEADER_SIZE),
+      "Message length not retrieved properly; got %d instead of %d at offset 3",
+      h.length, (mbuf_message_length(mbuf) - PACKET_HEADER_SIZE));
+  fail_unless(h.values == count,
+      "Number of elements not retrieved properly; got %d instead of %d",
+      h.values, count);
+  fail_unless(h.stream == 1,
+      "Stream number not set properly; got %d instead of 1 ",
+      h.stream);
+  fail_unless(h.seqno == 2,
+      "Seqno not set properly; got %d instead of 2 ",
+      h.seqno);
+  fail_unless(h.timestamp - 3. < EPSILON,
+      "Timestamp not set properly; got =%f instead of 3",
+      h.timestamp);
+
+  fail_unless((count=unmarshal_values(mbuf, &h, NULL, 0)) == -h.values,
+      "unmarshal_values() with no storage did not report the right needed space; %d instead of %d",
+      count, -h.values);
+  va = malloc(h.values*sizeof(OmlValue));
+  fail_unless((count=unmarshal_values(mbuf, &h, va, h.values)) == h.values,
+      "unmarshal_values() did not return the expected success value; %d instead of %d",
+      count, h.values);
+  offset = 0;
+
+  fail_unless(oml_value_get_type(&va[offset]) == OML_INT32_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_INT32_VALUE));
+  fail_unless(omlc_get_int32(*oml_value_get_value(&va[offset])) == d32,
+      "Read value at offset %d: got %" PRId32 " instead of %s",
+      offset, omlc_get_int32(*oml_value_get_value(&va[offset])), d32);
+  offset++;
+
+  fail_unless(oml_value_get_type(&va[offset]) == OML_UINT32_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_UINT32_VALUE));
+  fail_unless(omlc_get_uint32(*oml_value_get_value(&va[offset])) == u32,
+      "Read value at offset %d: got %" PRIu32 " instead of %s",
+      offset, omlc_get_uint32(*oml_value_get_value(&va[offset])), u32);
+  offset++;
+
+  fail_unless(oml_value_get_type(&va[offset]) == OML_INT64_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_INT64_VALUE));
+  fail_unless(omlc_get_int64(*oml_value_get_value(&va[offset])) == d64,
+      "Read value at offset %d: got %" PRId64 " instead of %" PRId64 "",
+      offset, omlc_get_int64(*oml_value_get_value(&va[offset])), d64);
+  offset++;
+
+  fail_unless(oml_value_get_type(&va[offset]) == OML_UINT64_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_UINT64_VALUE));
+  fail_unless(omlc_get_uint64(*oml_value_get_value(&va[offset])) == u64,
+      "Read value at offset %d: got %" PRIu64 " instead of %" PRIu64 "",
+      offset, omlc_get_uint64(*oml_value_get_value(&va[offset])), u64);
+  offset++;
+
+  /** The server unmarshalls LONG_T as OML_INT32_VALUE */
+  fail_unless(oml_value_get_type(&va[offset]) == OML_INT32_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_INT32_VALUE));
+  fail_unless(omlc_get_int32(*oml_value_get_value(&va[offset])) == l,
+      "Read value at offset %d: got %" PRId32 " instead of %" PRId32 "",
+      offset, omlc_get_int32(*oml_value_get_value(&va[offset])), l);
+  offset++;
+
+  fail_unless(oml_value_get_type(&va[offset]) == OML_DOUBLE_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_DOUBLE_VALUE));
+  fail_unless(omlc_get_double(*oml_value_get_value(&va[offset])) - d < EPSILON,
+      "Read value at offset %d: got %f instead of %f",
+      offset, omlc_get_double(*oml_value_get_value(&va[offset])), d);
+  offset++;
+
+  fail_unless(oml_value_get_type(&va[offset]) == OML_STRING_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_STRING_VALUE));
+  fail_unless(omlc_get_string_length(*oml_value_get_value(&va[offset])) == len,
+      "Read string at offset %d: got invalid length  %d instead of %d",
+      offset, omlc_get_string_length(*oml_value_get_value(&va[offset])), len);
+  fail_if(strncmp(omlc_get_string_ptr(*oml_value_get_value(&va[offset])), s, len),
+      "Read string at offset %d: mismatch",
+      offset);
+  offset++;
+
+  fail_unless(oml_value_get_type(&va[offset]) == OML_BLOB_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_BLOB_VALUE));
+  fail_unless(omlc_get_blob_length(*oml_value_get_value(&va[offset])) == len,
+      "Read blob at offset %d: got invalid length  %d instead of %d",
+      offset, omlc_get_blob_length(*oml_value_get_value(&va[offset])), len);
+  fail_if(strncmp(omlc_get_blob_ptr(*oml_value_get_value(&va[offset])), b, len),
+      "Read blob at offset %d: mismatch",
+      offset);
+  offset++;
+
+  free(va);
+  mbuf_destroy(mbuf);
+}
+END_TEST
+
 Suite*
 marshal_suite (void)
 {
@@ -931,6 +1276,8 @@ marshal_suite (void)
   tcase_add_test (tc_marshal, test_marshal_unmarshal_uint64);
   tcase_add_test (tc_marshal, test_marshal_unmarshal_double);
   tcase_add_test (tc_marshal, test_marshal_unmarshal_string);
+
+  tcase_add_test (tc_marshal, test_marshal_full);
 
   suite_add_tcase (s, tc_marshal);
 
