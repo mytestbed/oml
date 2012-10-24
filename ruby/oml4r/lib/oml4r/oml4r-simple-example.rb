@@ -56,7 +56,7 @@ opts = {:appName => 'oml4rSimpleExample',
 OML4R::init(ARGV, opts)
 
 # Now collect and inject some measurements
-5.times do |i|
+5000.times do |i|
   sleep 0.5
   angle = 15 * i
   SinMP.inject("label_#{angle}", angle, Math.sin(angle))
