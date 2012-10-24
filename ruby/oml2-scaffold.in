@@ -226,6 +226,8 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
       "float" => "double",
       :real => "double",
       "real" => "double",
+      :blob => "void*",
+      "blob" => "void*",
     }
     var_name = (@impl[:var_name] ||= long_name)
     s.puts "  #{ctypes[opts[:type]]} #{var_name};"
@@ -258,6 +260,9 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
       "float" => "0.",
       :real => "0.",
       "real" => "0.",
+      # XXX see opttypes in arg_info()
+      :blob => "\"\"",
+      "blob" => "\"\"",
     }
     return defaults[opts[:type]]
   end
@@ -305,6 +310,9 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
       "float" => "POPT_ARG_DOUBLE",
       :real => "POPT_ARG_DOUBLE",
       "real" => "POPT_ARG_DOUBLE",
+      # XXX: Not sure what we can do with it so far
+      :blob => "POPT_ARG_STRING",
+      "blob" => "POPT_ARG_STRING",
     }
     return opttypes[opts[:type]]
   end
@@ -433,7 +441,9 @@ class AppDefinition
 #ifndef #{template(:app_name).upcase}_OML_H
 #  define #{template(:app_name).upcase}_OML_H
 
-#include <stdint.h>
+/* Get size_t and NULL from <stddef.h>.  */
+#include <stddef.h>
+
 #include <oml2/omlc.h>
 
 typedef struct {
@@ -720,6 +730,8 @@ class Metric < Struct.new(:name, :type, :opts)
       "OML_INT64_VALUE"
     when :uint64
       "OML_UINT64_VALUE"
+    when :blob
+      "OML_BLOB_VALUE"
     else
       puts "ERROR: Unknown type #{type}"
       exit -1
@@ -761,6 +773,7 @@ class MeasurementPoint
       integertype = "int32_t";
     end
     ctypes = {
+      # We know we don't modify these
       :string => "const char*",
       "string" => "const char*",
       :long => "long",
@@ -781,10 +794,13 @@ class MeasurementPoint
       "float" => "double",
       :real => "double",
       "real" => "double",
+      # Ditto
+      :blob => "const void*",
+      "blob" => "const void*",
     }
     sets = {
-      :string => "const_string",
-      "string" => "const_string",
+      :string => "string",
+      "string" => "string",
       :long => "long",
       "long" => "long",
       :integer => integerval,
@@ -803,20 +819,36 @@ class MeasurementPoint
       "float" => "double",
       :real => "double",
       "real" => "double",
+      :blob => "blob",
+      "blob" => "blob",
     }
 
     stream.print "inline void oml_inject_#{@name}(OmlMP* mp"
     @ms.each do |m|
       stream.print ", #{ctypes[m.type]} #{m.name}"
+      if m.type == :blob || m.type == "blob"
+	stream.print ", size_t #{m.name}_len"
+      end
     end
     stream.puts ")\n{"
     stream.puts "  OmlValueU v[#{@ms.length}];\n\n"
+    stream.puts "  omlc_zero_array(v, #{@ms.length});\n\n"
     i = 0
     @ms.each do |m|
-      stream.puts "  omlc_set_#{sets[m.type]}(v[#{i}], #{m.name});"
+      stream.print "  omlc_set_#{sets[m.type]}(v[#{i}], #{m.name}"
+      if m.type == :blob || m.type == "blob"
+	stream.print ", #{m.name}_len"
+      end
+      stream.puts ");"
       i = i + 1
     end
-    stream.puts "\n  omlc_inject(mp, v);\n}\n\n"
+    stream.puts "\n  omlc_inject(mp, v);\n\n"
+    @ms.each do |m|
+      if m.type == :string || m.type == "string" || m.type == :blob || m.type == "blob"
+	stream.puts "  omlc_reset_#{sets[m.type]}(v[#{i}]);"
+      end
+    end
+    stream.puts "}\n\n"
   end
 
   def write_inject_example(stream)
@@ -846,6 +878,8 @@ class MeasurementPoint
       "float" => "1.0 / val",
       :real => "1.0 / val",
       "real" => "1.0 / val",
+      :blob => 'NULL, 0',
+      "blob" => 'NULL, 0',
     }
 
     stream.print "    oml_inject_#{@name}(oml_mps->#{@name}"
