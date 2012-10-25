@@ -460,83 +460,119 @@ typedef struct _omlValue {
 
 } OmlValue;
 
+/**
+ * Definition of one field of an MP.
+ *
+ * An array of these create a full measurement point.
+ * \see omlc_add_mp, OmlMP */
+typedef struct _omlMPDef
+{
+    /** Name of the field */
+    const char* name;
+
+    /** Type of the field */
+    OmlValueT  param_types;
+
+} OmlMPDef;
+
+/* Forward declaration, see below */
+struct _omlMStream;
+
+/** Definition of a Measurement Point.
+ *
+ * This structure contains an array of OmlMPDef defining the fields of the MP,
+ * and an array of OmlMStream defining which streams need to receive output
+ * from this MP.
+ *
+ * \see omlc_inject, OmlMStream, omlc_add_mp, OmlMP
+ */
+typedef struct _omlMP
+{
+    /** Name of this MP */
+    const char* name;
+
+    /** Array of the fields of this MP */
+    OmlMPDef*   param_defs;
+    /** Length of the param_defs (i.e., number of fields) */
+    int         param_count;
+
+    /** Number of MSs associated to this MP */
+    int         table_count;
+
+    /** Linked list of MSs */
+    struct _omlMStream* streams;
+#define firstStream streams
+
+    /** Set to 1 if this MP is active (i.e., there is at least one MS) */
+    int         active;
+
+    /** Mutex for the streams list */
+    pthread_mutex_t* mutexP;
+    /** Mutex for this storage */
+    pthread_mutex_t  mutex;
+
+    /** Next MP in the instance's linked list */
+    struct _omlMP*   next;
+
+} OmlMP;
+
 /* Forward declaration from oml_filter.h */
 struct _omlFilter;   // can't include oml_filter.h yet
 struct _omlWriter;   // forward declaration
 
-/**
- * Structure to store the definition of a measurement point.
- */
-typedef struct _omlMPDef
-{
-    const char* name;       ///< Name of MP
-    OmlValueT  param_types; ///< Types of paramters
-} OmlMPDef;
-
-struct _omlMP;
-
-/**
- * Structure to store how to collect a measurement point.
+/** Definition of a Measurement Stream.
+ *
+ * A measurement stream links an MP to an output, defined by a writing function
+ * (OmlWriter), passing some or all of the fields into a filter (OmlFilter).
+ *
+ * All the samples injected into an MP are received, but through filtering and
+ * aggregation, the output rate of the MS might be different (e.g., 1/n
+ * samples, or with a time-based periodicity).
+ *
+ * \see OmlMP, OmlWriter, OmlFilter, omlc_inject
  */
 typedef struct _omlMStream
 {
-    char table_name[64]; ///< Name of database table this stream is stored in
+    /** Name of this stream (and, usually, the database table it get stored in) */
+    char table_name[64];
 
-    struct _omlMP* mp; ///< Encompasing MP
+    /** MP associated to this stream */
+    OmlMP* mp;
 
+    /** Current output values */
     OmlValue** values;
 
-    union {
-      struct _omlFilter* firstFilter; ///< Linked list of filters on this MS.
-      struct _omlFilter* filters; ///< Linked list of filters on this MS.
-    };
 
-    int index; ///< Index to identify this stream
+    /** Linked list of the filters associated to this MS */
+    struct _omlFilter* filters;
+#define firstFilter filters
 
-    int sample_size; ///< Counts number of samples produced.
+    /** Index of this stream */
+    int index;
 
-    int sample_thres; ///< Number of samples to collect before creating next measurment.
+    /** Number of samples received in the last window */
+    int sample_size;
+    /** Number of samples to receive before producing an output (if > 1)*/
+    int sample_thres;
 
-    double sample_interval; ///< Interval between measurements in seconds
+    /** Interval between periodic reporting [s] */
+    double sample_interval;
 
-    long seq_no; ///< Counting the number of samples produced
+    /** Output's sequence number (i.e., number of samples produced so far */
+    long seq_no;
 
-    pthread_cond_t  condVar; ///< CondVar for filter in sample mode
+    /** Condition variable for sample-mode filter (XXX: Never used) */
+    pthread_cond_t  condVar;
+    /** Filtering thread */
+    pthread_t  filter_thread;
 
-    pthread_t  filter_thread; ///< Thread for filter on this stream
+    /** Outputting function */
+    struct _omlWriter* writer;
 
-    struct _omlWriter* writer; ///< Associated writer
+    /** Next MS in this MP's linked list */
+    struct _omlMStream* next;
 
-    struct _omlMStream* next; ///< Next MP structure for same measurement point.
 } OmlMStream;
-
-/**
- * Structure to store how to collect a measurement point.
- */
-typedef struct _omlMP
-{
-    const char* name;
-    OmlMPDef*   param_defs;
-    int         param_count;
-
-    //! Count how many MS are associated with this MP.
-    //! Used for creating unique table names
-    int         table_count;
-
-    //! Link to first stream.
-    //! If NULL then nobody is interested in this MP.
-    union {
-      OmlMStream* firstStream;
-      OmlMStream* streams;
-    };
-
-    int         active;  ///< Set to 1 if MP is active
-
-    pthread_mutex_t* mutexP; ///< Mutex for entire group of streams.
-    pthread_mutex_t  mutex;  ///< STORAGE
-
-    struct _omlMP*   next; ///< Next MP structure for same measurement point.
-} OmlMP;
 
 /** Initialise the measurement library. */
 int

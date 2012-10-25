@@ -32,99 +32,121 @@ extern "C" {
 
 struct _omlFilter;
 
-typedef void* (*oml_filter_create)(
-  OmlValueT   type,
-  OmlValue*   result
-);
-
-
-/*! Function to set filter parameters.
+/** Filter instance creation function.
  *
- * Return 0 on success, -1 otherwise
- */
-typedef int (*oml_filter_set)(
-  struct _omlFilter* filter, //! pointer to filter instance
-  const char* name,  //! Name of parameter
-  OmlValue* value    //! Value of paramter
-);
-
-
-/*! Called for every sample.
+ * If this filter needs to dynamically allocate instance date, this instance
+ * MUST be allocated using xmalloc().
  *
- * Return 0 on success, -1 otherwise
+ * \param type OmlValueT of the sample stream that this instance will process
+ * \param result pointer to a vector of OmlValue (of size output_count) where the oml_filter_output() will write
+ * \return xmalloc()ed instance data
+ * \see OmlFilter, oml_filter_output, xmalloc
  */
-typedef int (*oml_filter_input)(
-  struct _omlFilter* filter, //! pointer to filter instance
-  OmlValue*          value   //! value of sample
-);
+typedef void* (*oml_filter_create)(OmlValueT type, OmlValue* result);
+
+/** Optional unction to set filter parameters at runtime.
+ *
+ * \param filter pointer to OmlFilter instance
+ * \param name name of the parameter
+ * \param value new value of the parameter, as a pointer to an OmlValue
+ * \return 0 on success, -1 otherwise
+ */
+typedef int (*oml_filter_set)(struct _omlFilter* filter, const char* name, OmlValue* value);
+
+/** Function called whenever a new sample is to be delivered to the filter.
+ *
+ * \param filter pointer to OmlFilter instance
+ * \param value new sample, as a pointer to an OmlValue
+ * \return 0 on success, -1 otherwise
+ */
+typedef int (*oml_filter_input)(struct _omlFilter* filter, OmlValue* value);
 
 
-/*! Called to request the current filter output. This is most likely
+/** Function called whenever aggregated output is requested from the filter.
  * some function over the samples received since the last call.
  *
- * Return 0 on success, 1 if no sample was output, or -1 otherwise
+ * \param filter pointer to OmlFilter instance
+ * \param writer pointor to an OmlWriter in charge of outputting the aggregated sample
+ * \return 0 on success, -1 otherwise
  */
-typedef int (*oml_filter_output)(
-  struct _omlFilter* filter,
-  struct _omlWriter* writer //! Write results of filter to this function
-);
+typedef int (*oml_filter_output)(struct _omlFilter* filter, struct _omlWriter* writer);
 
-/*! Called once to write out the filters meta data
- * on its result arguments.
+/** Optional function returning metainformation for complex outputs.
  *
- * Return 0 on success, -1 otherwise.
+ * XXX: This function will probably go at some point soon. Don't use it.
+ *
+ * If a filter returns more than one output value, of possibly different types,
+ * they each need to be named and properly typed. This function allows to query
+ * information about a specific output, identified by its index.  It is however
+ * preferable to do so through the filter_def argument of the
+ * omlf_register_filter() function.
+ *
+ * \param filter pointer to OmlFilter instance
+ * \param index_offset index in result array to query for meta information
+ * \param[out] namePtr name of the output value at index index_offset (XXX: must be statically allocated)
+ * \param[out] type OmlTypeT of the output value at index index_offset
+ * \return 0 on success, -1 otherwise
+ * \see omlf_register_filter, OmlFilterDef
  */
-typedef int (*oml_filter_meta)(
-  struct _omlFilter* filter,
-  int index_offset,  //! Index to use for first parameter
-  char** namePtr,
-  OmlValueT* type
-);
+typedef int (*oml_filter_meta)(struct _omlFilter* filter, int index_offset, char** namePtr, OmlValueT* type);
 
+/** Definition of a filter's output element. */
 typedef struct _omlFilterDef {
-  //! Name of the filter output element
+  /* Name of the filter output element */
   const char* name;
-  //! Type of this filter output element
+
+  /* Type of this filter output element */
   OmlValueT   type;
+
 } OmlFilterDef;
 
-/**
- * \struct
- * \brief
+/** Definition of a filter instance.
+ *
+ * A filter is defined by its output schema and its methods.
+ *
+ * \see OmlFilterDef, oml_filter_create, oml_filter_set, oml_filter_input, oml_filter_output
  */
 typedef struct _omlFilter {
-  //! Prefix for column name
+  /** Name of the filter (suffix for the aggregated output's name) */
   char name[64];
 
-  //! Number of output value created
+  /** Number of output value (allocated by the factory) */
   int output_count;
 
-  //! Set filter parameters
+  /** Function to set filter parameters (optional) \see oml_filter_set */
   oml_filter_set set;
 
-  //! Process a new sample.
+  /** Function to process a new sample \see oml_filter_input */
   oml_filter_input input;
-
-  //! Calculate output, send it, and get ready for new sample period.
+  /** Function to generate output, send it, and get ready for new sample period \see oml_filter_output */
   oml_filter_output output;
 
+  /** Function returning describing complex outputs (optional) \see oml_filter_meta */
   oml_filter_meta meta;
 
+  /** Instance data, \see xmalloc, xfree */
   void* instance_data;
+
+  /** Definition of the filter's output schema as an array of OmlFilterDef */
   OmlFilterDef* definition;
+
+  /** Index of the field of the MP processed by this filter */
   int index;
+  /** Type of the processed field */
   OmlValueT input_type;
 
+  /** Array of results where the filter is expected to write its ouput, allocated by the factory */
   OmlValue *result;
 
+  /** Filters are stored in a linked list for a given MP */
   struct _omlFilter* next;
 } OmlFilter;
 
-/*! Register a new type filter.
+/** Register a new filter type.
  *
- *  The filter type is created with the supplied create(), set(),
- *  input(), output() and meta() functions.  Its output conforms to
- *  the filter_def, if supplied.
+ *  The filter type is created with the supplied oml_filter_create(), oml_filter_set(),
+ *  oml_filter_input(), oml_filter_output() functions.  Its output conforms to
+ *  the filter_def, if supplied, or oml_filter_meta() otherwise.
  *
  *  If meta is NULL, the default meta function is used for instances
  *  of this filter, which inspects the filter_def to provide the
@@ -137,22 +159,17 @@ typedef struct _omlFilter {
  *  If the set parameter is NULL, then a default no-op set function is
  *  supplied for instances of this filter type.
  *
- *  \param filter_name A string describing this type of filter, for use in create_filter().
- *  \param create The create function for this filter, which should initialize instance data.
- *  \param set The set function for this filter, which allows parameter setting.
- *  \param input The input function for this filter which adds new input samples to be filtered.
- *  \param output The output function for this filter, which puts a filtered result in the result vector.
- *  \param meta The meta output function for this filter, which is used to define the database schema for this filter.
- *  \param filter_def The output spec for this filter (name and type of each element of the output n-tuple).
+ *  \param filter_name string describing this type of filter, for use in create_filter()
+ *  \param create oml_filter_create() function which should initialize instance data
+ *  \param set oml_filter_set() function which allows parameter setting (can be NULL)
+ *  \param input oml_filter_input() function which adds new input samples to be filtered
+ *  \param output oml_filter_output() function which puts a filtered result in the result vector
+ *  \param meta oml_filter_meta() output function which is used to define the output schema (can be NULL is filter_def is not)
+ *  \param filter_def output spec (name and type of each element of the output n-tuple; can be NULL if meta is not)
+ *  \see oml_filter_create, oml_filter_set, oml_filter_input, oml_filter_output, oml_filter_meta, OmlFilterDef
  */
 int
-omlf_register_filter(const char* filter_name,
-             oml_filter_create create,
-             oml_filter_set set,
-             oml_filter_input input,
-             oml_filter_output output,
-             oml_filter_meta meta,
-             OmlFilterDef* filter_def);
+omlf_register_filter(const char* filter_name, oml_filter_create create, oml_filter_set set, oml_filter_input input, oml_filter_output output, oml_filter_meta meta, OmlFilterDef* filter_def);
 
 #ifdef __cplusplus
 }
