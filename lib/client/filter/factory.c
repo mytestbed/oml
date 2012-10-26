@@ -76,7 +76,7 @@ create_filter_result_vector (OmlFilterDef* def, OmlValueT type, int count)
   OmlValue* result = (OmlValue*)malloc(count * sizeof(OmlValue));
 
   if (!result) {
-    logerror ("Failed to allocate memory for filter result vector.\n");
+    logerror ("Failed to allocate memory for filter result vector\n");
     return NULL;
   }
 
@@ -84,12 +84,10 @@ create_filter_result_vector (OmlFilterDef* def, OmlValueT type, int count)
 
   int i = 0;
   for (i = 0; i < count; i++) {
-    result[i].type = def[i].type;
-
-    if (result[i].type == OML_INPUT_VALUE)
-      result[i].type = type;
-
-    oml_value_reset(&result[i]);
+    if (def[i].type == OML_INPUT_VALUE)
+      oml_value_set_type(&result[i], type);
+    else
+      oml_value_set_type(&result[i], def[i].type);
   }
 
   return result;

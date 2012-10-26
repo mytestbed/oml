@@ -157,6 +157,47 @@ vector_values_check (OmlValue* values, OmlValueU* expected, OmlValueT type, int 
   return 1;
 }
 
+char *vector_values_stringify(OmlValue *v, int n)
+{
+  static char str[256];
+  int i = 0, used = 0;
+
+  do {
+    if (i>0) {
+      strncat(str, " ", sizeof(str) - used);
+      used = strlen(str);
+    }
+    oml_value_to_s(&v[i], &str[used], sizeof(str) - used);
+    used = strlen(str);
+  } while (++i<n && used < sizeof(str));
+
+  return str;
+}
+
+char *vector_values_ut_stringify(OmlValueU* values, OmlValueT type, int n)
+{
+  OmlValue v;
+  static char str[256];
+  int i = 0, used = 0;
+
+  oml_value_init(&v);
+
+  do {
+    if (i>0) {
+      strncat(str, " ", sizeof(str) - used);
+      used = strlen(str);
+    }
+    oml_value_set(&v, &values[i], type);
+    oml_value_to_s(&v, &str[used], sizeof(str) - used);
+    used = strlen(str);
+  } while (++i<n && used < sizeof(str));
+
+
+  oml_value_reset(&v);
+  return str;
+}
+
+
 typedef struct _omlTestWriter
 {
   oml_writer_meta meta;
@@ -217,7 +258,13 @@ run_filter_test (TestData* test_data, OmlFilter* f)
 
       fail_unless (w.count == output->length);
       fail_unless (vector_type_check (w.values, output->type, output->length));
-      fail_unless (vector_values_check (w.values, output->vector, output->type, output->length));
+      fail_unless (vector_values_check (w.values, output->vector, output->type, output->length),
+          "Output mismatch in test vector %d [%s] for filter '%s': expected [%s] but got [%s]",
+          i,
+          vector_values_ut_stringify(input->vector, input->type, input->length),
+          f->name,
+          vector_values_ut_stringify(output->vector, output->type, output->length),
+          vector_values_stringify(w.values, w.count));
     }
 
   oml_value_reset(&v);

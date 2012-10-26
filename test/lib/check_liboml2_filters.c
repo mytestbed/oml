@@ -74,11 +74,11 @@ START_TEST (test_filter_create)
   OmlFilterDef* def = NULL;
 
   // TBD:  turn this into a loop with a check for every different type of filter.
-  f = create_filter ("avg", "inst", OML_INT32_VALUE, 2);
+  f = create_filter ("avg", "avginst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for averaging filter");
 
-  fail_unless (strcmp (f->name, "inst") == 0, "Filter name is incorrect (%s), should be \"inst\"", f->name);
+  fail_unless (strcmp (f->name, "avginst") == 0, "Filter name is incorrect (%s), should be \"avginst\"", f->name);
   fail_unless (f->output_count == 3, "Filter output width is incorrect (%d), should be 3: avg, min, max", f->output_count);
   fail_if (f->set == NULL, "Filter set function is NULL");
   fail_if (f->input == NULL, "Filter input function is NULL");
@@ -116,7 +116,7 @@ START_TEST (test_filter_avg_create)
   OmlFilter* f = NULL;
   AvgInstanceData* data = NULL;
 
-  f = create_filter ("avg", "inst", OML_INT32_VALUE, 2);
+  f = create_filter ("avg", "avginst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for `avg' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
@@ -144,7 +144,7 @@ START_TEST (test_filter_avg_output)
   OmlFilter* f = NULL;
   AvgInstanceData* instdata = NULL;
 
-  f = create_filter ("avg", "inst", OML_INT32_VALUE, 2);
+  f = create_filter ("avg", "avginst", OML_INT32_VALUE, 2);
 
   instdata = (AvgInstanceData*)f->instance_data;
 
@@ -185,7 +185,7 @@ START_TEST (test_filter_first_create)
   OmlFilter* f = NULL;
   FirstInstanceData* data = NULL;
 
-  f = create_filter ("first", "inst", OML_INT32_VALUE, 2);
+  f = create_filter ("first", "firstinst", OML_INT32_VALUE, 2);
   fail_if (f == NULL, "Filter creation failed for `first' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
 
@@ -214,7 +214,7 @@ START_TEST (test_filter_hist_create)
   OmlFilter* f = NULL;
   HistInstanceData* data = NULL;
 
-  f = create_filter ("histogram", "inst", OML_INT32_VALUE, 2);
+  f = create_filter ("histogram", "histograminst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for `histogram' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
@@ -246,7 +246,7 @@ START_TEST(test_filter_stddev_create)
   OmlFilter* f = NULL;
   StddevInstanceData* data = NULL;
 
-  f = create_filter ("stddev", "inst", OML_INT32_VALUE, 2);
+  f = create_filter ("stddev", "stddevinst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for `histogram' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
@@ -280,7 +280,7 @@ stddev_1_data (void)
 START_TEST (test_filter_stddev_0)
 {
   TestData* test_data = stddev_0_data ();
-  OmlFilter* f = create_filter ("stddev", "inst", OML_INT32_VALUE, 2);
+  OmlFilter* f = create_filter ("stddev", "stddevinst", OML_INT32_VALUE, 2);
   fail_if (f == NULL);
   StddevInstanceData* instance_data = (StddevInstanceData*)f->instance_data;
   fail_if (instance_data == NULL);
@@ -293,7 +293,7 @@ END_TEST
 START_TEST (test_filter_stddev_1)
 {
   TestData* test_data = stddev_1_data ();
-  OmlFilter* f = create_filter ("stddev", "inst", OML_INT32_VALUE, 2);
+  OmlFilter* f = create_filter ("stddev", "stddevinst", OML_INT32_VALUE, 2);
   fail_if (f == NULL);
   StddevInstanceData* instance_data = (StddevInstanceData*)f->instance_data;
   fail_if (instance_data == NULL);
@@ -314,7 +314,7 @@ START_TEST (test_filter_sum_create)
   OmlFilter* f = NULL;
   SumInstanceData* data = NULL;
 
-  f = create_filter ("sum", "inst", OML_INT32_VALUE, 2);
+  f = create_filter ("sum", "suminst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for `sum' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
@@ -339,7 +339,7 @@ START_TEST (test_filter_sum_output)
   OmlFilter* f = NULL;
   SumInstanceData* instdata = NULL;
 
-  f = create_filter ("sum", "inst", OML_INT32_VALUE, 2);
+  f = create_filter ("sum", "suminst", OML_INT32_VALUE, 2);
 
   instdata = (SumInstanceData*)f->instance_data;
 
@@ -379,7 +379,7 @@ START_TEST (test_filter_delta_create)
   OmlFilter* f = NULL;
   DeltaInstanceData* data = NULL;
 
-  f = create_filter ("delta", "inst", OML_INT32_VALUE, 2);
+  f = create_filter ("delta", "deltainst", OML_INT32_VALUE, 2);
 
   fail_if (f == NULL, "Filter creation failed for `delta' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
@@ -405,7 +405,7 @@ START_TEST (test_filter_delta_output)
   OmlFilter* f = NULL;
   DeltaInstanceData* instdata = NULL;
 
-  f = create_filter ("delta", "inst", OML_INT32_VALUE, 2);
+  f = create_filter ("delta", "deltainst", OML_INT32_VALUE, 2);
 
   instdata = (DeltaInstanceData*)f->instance_data;
 
