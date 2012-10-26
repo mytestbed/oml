@@ -34,6 +34,8 @@
 #include "oml_value.h"
 #include "filter/delta_filter.h"
 
+#define FILTER_NAME  "delta"
+
 typedef struct _omlDeltaFilterInstanceData InstanceData;
 
 static int
@@ -48,7 +50,7 @@ omlf_delta_new(
   OmlValue* result
 ) {
   if (! omlc_is_numeric_type (type)) {
-    logerror ("Can only handle numeric parameters\n");
+    logerror ("%s filter: Can only handle numeric parameters\n", FILTER_NAME);
     return NULL;
   }
 
@@ -61,8 +63,9 @@ omlf_delta_new(
     self->result = result;
 
   } else {
-    logerror ("Could not allocate %d bytes for delta filter instance data\n",
-    sizeof(InstanceData));
+    logerror ("%s filter: Could not allocate %d bytes for instance data\n",
+        FILTER_NAME,
+        sizeof(InstanceData));
     return NULL;
   }
 
@@ -79,7 +82,7 @@ omlf_register_filter_delta (void)
       { NULL, 0 }
     };
 
-  omlf_register_filter ("delta",
+  omlf_register_filter (FILTER_NAME,
             omlf_delta_new,
             NULL,
             sample,

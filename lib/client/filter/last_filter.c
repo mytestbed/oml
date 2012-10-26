@@ -32,6 +32,8 @@
 #include "oml_value.h"
 #include "filter/last_filter.h"
 
+#define FILTER_NAME "last"
+
 typedef struct _omlLastFilterInstanceData InstanceData;
 
 static int
@@ -56,8 +58,9 @@ omlf_last_new(
       omlc_set_const_string(*oml_value_get_value(&self->result[0]), "");
 
   } else {
-    logerror ("Could not allocate %d bytes for last filter instance data\n",
-    sizeof(InstanceData));
+    logerror ("%s filter: Could not allocate %d bytes for instance data\n",
+        FILTER_NAME,
+        sizeof(InstanceData));
     return NULL;
   }
 
@@ -73,7 +76,7 @@ omlf_register_filter_last (void)
       { NULL, 0 }
     };
 
-  omlf_register_filter ("last",
+  omlf_register_filter (FILTER_NAME,
             omlf_last_new,
             NULL,
             sample,
@@ -92,7 +95,8 @@ sample(
   OmlValueT type = oml_value_get_type(value);;
 
   if (type != self->result[0].type) {
-    logerror ("Different type from initial definition\n");
+    logwarn ("%s filter: Discarding sample type (%s) different from initial definition (%s)\n",
+        FILTER_NAME, oml_type_to_s(type), oml_type_to_s(self->result[0].type));
     return 0;
   }
   /* Overwrite previously stored value */

@@ -32,6 +32,8 @@
 #include "oml_value.h"
 #include "filter/first_filter.h"
 
+#define FILTER_NAME "first"
+
 typedef struct _omlFirstFilterInstanceData InstanceData;
 
 static int
@@ -60,8 +62,9 @@ omlf_first_new(
     if (type == OML_STRING_VALUE)
       omlc_set_string(*oml_value_get_value(&self->result[0]), "");
   } else {
-    logerror ("Could not allocate %d bytes for first filter instance data\n",
-       sizeof(InstanceData));
+    logerror ("%s filter: Could not allocate %d bytes for instance data\n",
+        FILTER_NAME,
+        sizeof(InstanceData));
     return NULL;
   }
 
@@ -77,7 +80,7 @@ omlf_register_filter_first (void)
       { NULL, 0 }
     };
 
-  omlf_register_filter ("first",
+  omlf_register_filter (FILTER_NAME,
             omlf_first_new,
             NULL,
             sample,
@@ -96,7 +99,8 @@ sample(
   OmlValueT type = oml_value_get_type(value);
 
   if (type != self->result[0].type) {
-    logerror ("Different type from initial definition\n");
+    logwarn ("%s filter: Discarding sample type (%s) different from initial definition (%s)\n",
+        FILTER_NAME, oml_type_to_s(type), oml_type_to_s(self->result[0].type));
     return 0;
   }
   if (self->is_first) {

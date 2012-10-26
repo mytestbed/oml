@@ -33,6 +33,8 @@
 #include "oml_value.h"
 #include "filter/histogram_filter.h"
 
+#define FILTER_NAME "histogram"
+
 typedef struct _omlHistFilterInstanceData InstanceData;
 
 static int
@@ -51,19 +53,27 @@ omlf_histogram_new(
   OmlValueT type,
   OmlValue* result
 ) {
-  if (! (type == OML_LONG_VALUE || type == OML_DOUBLE_VALUE)) {
-    logerror("Can only handle number parameters\n");
+  if (! omlc_is_numeric_type (type)) {
+    logerror ("%s filter: Can only handle numeric parameters\n", FILTER_NAME);
     return NULL;
   }
 
   InstanceData* self = (InstanceData *)xmalloc(sizeof(InstanceData));
-  memset(self, 0, sizeof(InstanceData));
 
-  self->sample_sum = 0;
-  self->sample_count = 0;
-  self->sample_min = HUGE;
-  self->sample_max = -1 * HUGE;
-  self->result = result;
+  if(self) {
+    memset(self, 0, sizeof(InstanceData));
+
+    self->sample_sum = 0;
+    self->sample_count = 0;
+    self->sample_min = HUGE;
+    self->sample_max = -1 * HUGE;
+    self->result = result;
+  } else {
+    logerror ("%s filter: Could not allocate %d bytes for instance data\n",
+        FILTER_NAME,
+        sizeof(InstanceData));
+    return NULL;
+  }
 
   return self;
 }
@@ -79,7 +89,7 @@ omlf_register_filter_histogram (void)
       { NULL, 0 }
     };
 
-  omlf_register_filter ("histogram",
+  omlf_register_filter (FILTER_NAME,
             omlf_histogram_new,
             NULL,
             sample,

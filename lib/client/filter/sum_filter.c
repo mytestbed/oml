@@ -33,6 +33,8 @@
 #include "oml_value.h"
 #include "sum_filter.h"
 
+#define FILTER_NAME "sum"
+
 typedef struct _omlSumFilterInstanceData InstanceData;
 
 static int
@@ -45,7 +47,7 @@ void*
 omlf_sum_new(OmlValueT type, OmlValue* result)
 {
   if (! omlc_is_numeric_type (type)) {
-    logerror ("Can only handle numeric parameters\n");
+    logerror ("%s filter: Can only handle numeric parameters\n", FILTER_NAME);
     return NULL;
   }
 
@@ -57,8 +59,9 @@ omlf_sum_new(OmlValueT type, OmlValue* result)
     self->sample_sum = 0.;
     self->result = result;
   } else {
-    logerror ("Could not allocate %d bytes for sum filter instance data\n",
-          sizeof(InstanceData));
+    logerror ("%s filter: Could not allocate %d bytes for instance data\n",
+        FILTER_NAME,
+        sizeof(InstanceData));
     return NULL;
   }
 
@@ -74,7 +77,7 @@ omlf_register_filter_sum (void)
       { NULL, 0 }
     };
 
-  omlf_register_filter ("sum",
+  omlf_register_filter (FILTER_NAME,
                         omlf_sum_new,
                         NULL,
                         sample,

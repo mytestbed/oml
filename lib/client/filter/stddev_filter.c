@@ -52,6 +52,8 @@
 #include "oml_value.h"
 #include "stddev_filter.h"
 
+#define FILTER_NAME "stddev"
+
 typedef struct _omlStddevFilterInstanceData InstanceData;
 
 static int
@@ -66,7 +68,7 @@ omlf_stddev_new(
   OmlValue* result
   ) {
   if (! omlc_is_numeric_type (type)) {
-    logerror("Can only handle numeric parameters\n");
+    logerror ("%s filter: Can only handle numeric parameters\n", FILTER_NAME);
     return NULL;
   }
 
@@ -82,8 +84,9 @@ omlf_stddev_new(
 
     return self;
   } else {
-    logerror("Could not allocate %d bytes for stddev filter instance data\n",
-           sizeof(InstanceData));
+    logerror ("%s filter: Could not allocate %d bytes for instance data\n",
+        FILTER_NAME,
+        sizeof(InstanceData));
     return NULL;
   }
 }
@@ -98,7 +101,7 @@ omlf_register_filter_stddev (void)
       { NULL, 0 }
     };
 
-  omlf_register_filter ("stddev",
+  omlf_register_filter (FILTER_NAME,
                         omlf_stddev_new,
                         NULL,
                         input,

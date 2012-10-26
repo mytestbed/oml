@@ -34,6 +34,8 @@
 #include "oml_value.h"
 #include "average_filter.h"
 
+#define FILTER_NAME  "avg"
+
 typedef struct _omlAvgFilterInstanceData InstanceData;
 
 static int
@@ -46,7 +48,7 @@ void*
 omlf_average_new(OmlValueT type, OmlValue* result)
 {
   if (! omlc_is_numeric_type (type)) {
-    logerror ("Can only handle numeric parameters\n");
+    logerror ("%s filter: Can only handle numeric parameters\n", FILTER_NAME);
     return NULL;
   }
 
@@ -62,8 +64,9 @@ omlf_average_new(OmlValueT type, OmlValue* result)
     self->result = result;
     return self;
   } else {
-    logerror ("Could not allocate %d bytes for avg filter instance data\n",
-          sizeof(InstanceData));
+    logerror ("%s filter: Could not allocate %d bytes for instance data\n",
+        FILTER_NAME,
+        sizeof(InstanceData));
     return NULL;
   }
 }
@@ -79,7 +82,7 @@ omlf_register_filter_average (void)
       { NULL, 0 }
     };
 
-  omlf_register_filter ("avg",
+  omlf_register_filter (FILTER_NAME,
                         omlf_average_new,
                         NULL,
                         sample,
