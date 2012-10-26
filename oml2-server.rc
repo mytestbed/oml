@@ -1,7 +1,7 @@
 #!/bin/bash
 
 daemon_name=oml2-server
-pidfile=/var/run/$daemon_name.pid
+pidfile=/run/$daemon_name.pid
 
 . /etc/rc.conf
 . /etc/rc.d/functions
