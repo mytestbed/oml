@@ -24,10 +24,10 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <log.h>
-#include <mem.h>
-#include <mstring.h>
-#include <oml_value.h>
+#include "log.h"
+#include "mem.h"
+#include "mstring.h"
+#include "oml_value.h"
 #include "schema.h"
 #include "oml_util.h"
 

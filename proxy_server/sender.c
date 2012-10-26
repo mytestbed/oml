@@ -32,9 +32,9 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-//#include <ocomm/o_socket.h>
-#include <log.h>
-#include <mem.h>
+//#include "ocomm/o_socket.h"
+#include "log.h"
+#include "mem.h"
 #include "session.h"
 #include "client.h"
 

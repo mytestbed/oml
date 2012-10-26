@@ -29,9 +29,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include <log.h>
-#include <oml2/omlc.h>
-#include <oml2/oml_out_stream.h>
+#include "oml2/omlc.h"
+#include "oml2/oml_out_stream.h"
+#include "log.h"
 #include "client.h"
 
 

@@ -24,20 +24,20 @@
   \brief Implements a writer which sends results over the network
 */
 
-#include <log.h>
-#include <ocomm/o_socket.h>
 #include <stdlib.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "oml2/omlc.h"
-#include "client.h"
 #include "oml2/oml_writer.h"
 #include "oml2/oml_filter.h"
-#include <marshal.h>
-#include <mbuf.h>
+#include "ocomm/o_socket.h"
+#include "log.h"
+#include "client.h"
+#include "marshal.h"
+#include "mbuf.h"
 #include "buffered_writer.h"
-#include <assert.h>
+#include "assert.h"
 
 #define DEF_PROTOCOL "tcp"
 #define DEF_PORT 3003

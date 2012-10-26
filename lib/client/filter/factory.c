@@ -26,7 +26,8 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <log.h>
+
+#include "log.h"
 #include "mem.h"
 #include "filter/factory.h"
 

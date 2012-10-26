@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <mem.h>
+#include "mem.h"
 #include "table_descr.h"
 
 TableDescr*

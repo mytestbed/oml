@@ -23,7 +23,7 @@
 
 /** Main oml2-server functions */
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,18 +35,18 @@
 #include <signal.h>
 #include <errno.h>
 
-#include <oml2/oml_writer.h>
-#include <log.h>
-#include <mem.h>
-#include <ocomm/o_socket.h>
-#include <ocomm/o_eventloop.h>
-
+#include "oml2/oml_writer.h"
+#include "ocomm/o_socket.h"
+#include "ocomm/o_eventloop.h"
+#include "log.h"
+#include "mem.h"
 #include "oml_util.h"
 #include "version.h"
 #include "hook.h"
 #include "client_handler.h"
 #include "database.h"
 #include "sqlite_adapter.h"
+
 #if HAVE_LIBPQ
 #include <libpq-fe.h>
 #include "psql_adapter.h"

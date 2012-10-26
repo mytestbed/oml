@@ -23,10 +23,6 @@
 /*!\file socket.c
   \brief This file contains a thin layer over sockets.
 */
-
-#include "ocomm/o_socket.h"
-#include "ocomm/o_eventloop.h"
-
 #include <sys/timeb.h>
 #include <sys/stat.h>
 #include <netdb.h>
@@ -43,9 +39,9 @@
 #include <string.h>
 #include <stdio.h>
 
-//#include <expat.h>
-
 #include "ocomm/o_log.h"
+#include "ocomm/o_socket.h"
+#include "ocomm/o_eventloop.h"
 
 #ifndef TRUE
 # define TRUE 1

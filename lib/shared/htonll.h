@@ -24,7 +24,7 @@
 #define HTONLL_H__
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 #include <arpa/inet.h>
 

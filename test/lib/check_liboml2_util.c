@@ -21,6 +21,7 @@
  *
  */
 #include <check.h>
+
 #include "oml_util.h"
 
 #define N_URI_TEST 5

@@ -30,16 +30,16 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "database.h"
-#include "htonll.h"
 #include "log.h"
 #include "mem.h"
 #include "mstring.h"
-#include "oml_util.h"
+#include "htonll.h"
 #include "oml_value.h"
+#include "oml_util.h"
 #include "schema.h"
-#include "sqlite_adapter.h"
+#include "database.h"
 #include "table_descr.h"
+#include "sqlite_adapter.h"
 
 char *sqlite_database_dir = NULL;
 

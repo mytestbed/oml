@@ -23,7 +23,7 @@
 #ifndef MARSHAL_H_
 #define MARSHAL_H_
 
-#include <oml2/omlc.h>
+#include "oml2/omlc.h"
 #include "mbuf.h"
 
 typedef enum _omPktType

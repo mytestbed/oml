@@ -24,9 +24,10 @@
 #define MESSAGE_H__
 
 #include <stdint.h>
-#include <schema.h>
-#include <oml2/omlc.h>
-#include <mbuf.h>
+
+#include "oml2/omlc.h"
+#include "schema.h"
+#include "mbuf.h"
 
 enum MessageType {
   MSG_BINARY,

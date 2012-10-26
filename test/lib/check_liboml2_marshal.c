@@ -30,11 +30,10 @@
 #include <check.h>
 
 #include "oml2/omlc.h"
-#include "marshal.h"
-#include "oml_value.h"
 #include "htonll.h"
+#include "oml_value.h"
+#include "marshal.h"
 #include "check_util.h"
-#include "ocomm/o_log.h"
 
 #define FIRST_VALPTR(mbuf) (mbuf->base + 5)
 

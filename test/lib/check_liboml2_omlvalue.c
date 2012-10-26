@@ -25,8 +25,8 @@
 #include <inttypes.h>
 
 #include "oml2/omlc.h"
-#include "oml_value.h"
 #include "mem.h"
+#include "oml_value.h"
 
 START_TEST (test_stringU)
 {

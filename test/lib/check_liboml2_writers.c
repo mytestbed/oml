@@ -25,8 +25,8 @@
 #include <stdint.h>
 #include <math.h>
 #include <check.h>
-#include <mbuf.h>
 
+#include "mbuf.h"
 #include "client.h"
 #include "oml_util.h"
 

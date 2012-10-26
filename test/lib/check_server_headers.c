@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <check.h>
-#include <headers.h>
-#include <text.h>
-#include <binary.h>
+
+#include "headers.h"
+#include "text.h"
+#include "binary.h"
 #include "oml_util.h"
 
 /*

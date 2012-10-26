@@ -21,13 +21,13 @@
  *
  */
 
-#include <log.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 
-#include <oml2/oml_filter.h>
-#include <oml2/omlc.h>
+#include "oml2/oml_filter.h"
+#include "oml2/omlc.h"
+#include "log.h"
 #include "client.h"
 
 /**

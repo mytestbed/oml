@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 #include <check.h>
+
 #include "check_server_suites.h"
 
 int

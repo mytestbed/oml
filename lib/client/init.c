@@ -22,10 +22,8 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
-#include <log.h>
-#include <mstring.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -35,12 +33,14 @@
 #include <sys/time.h>
 #include <time.h>
 
-#include <oml_value.h>
-#include <mem.h>
-#include <validate.h>
-#include <oml2/omlc.h>
-#include <oml2/oml_filter.h>
-#include <oml2/oml_writer.h>
+#include "oml2/omlc.h"
+#include "oml2/oml_filter.h"
+#include "oml2/oml_writer.h"
+#include "log.h"
+#include "mem.h"
+#include "mstring.h"
+#include "oml_value.h"
+#include "validate.h"
 #include "filter/factory.h"
 #include "oml_util.h"
 #include "client.h"

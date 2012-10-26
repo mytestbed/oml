@@ -22,7 +22,8 @@
  */
 #include <stdlib.h>
 #include <string.h>
-#include <mem.h>
+
+#include "mem.h"
 #include "cbuf.h"
 
 #define CBUFFER_DEFAULT_SIZE 1024

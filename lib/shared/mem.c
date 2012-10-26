@@ -31,6 +31,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <inttypes.h>
+
 #include "mem.h"
 #include "log.h"
 

@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <sys/stat.h>
+
 #include "ocomm/o_log.h"
 
 START_TEST (test_log_rate)

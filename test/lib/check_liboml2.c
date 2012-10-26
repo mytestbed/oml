@@ -22,6 +22,7 @@
  */
 #include <stdlib.h>
 #include <check.h>
+
 #include "check_liboml2_suites.h"
 #include "ocomm/o_log.h"
 

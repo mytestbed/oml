@@ -31,6 +31,7 @@
 #include <string.h>
 #include <errno.h>
 #include <libxml/tree.h>
+
 #include "filter/factory.h"
 #include "client.h"
 #include "oml_value.h"

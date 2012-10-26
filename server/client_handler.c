@@ -30,19 +30,18 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include <ocomm/o_socket.h>
-#include <ocomm/o_eventloop.h>
-#include <oml2/oml_writer.h>
-
-#include <log.h>
-#include <mem.h>
-#include <marshal.h>
-#include <mbuf.h>
-#include <oml_value.h>
-#include <validate.h>
-#include "client_handler.h"
-#include "schema.h"
+#include "oml2/oml_writer.h"
+#include "ocomm/o_socket.h"
+#include "ocomm/o_eventloop.h"
+#include "log.h"
+#include "mem.h"
+#include "mbuf.h"
+#include "oml_value.h"
 #include "oml_util.h"
+#include "validate.h"
+#include "marshal.h"
+#include "schema.h"
+#include "client_handler.h"
 
 #define DEF_TABLE_COUNT 10
 

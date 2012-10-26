@@ -21,10 +21,11 @@
  *
  */
 #include <arpa/inet.h>
-#include <oml2/omlc.h>
-#include <mbuf.h>
-#include <marshal.h>
-#include <oml_value.h>
+
+#include "oml2/omlc.h"
+#include "oml_value.h"
+#include "mbuf.h"
+#include "marshal.h"
 #include "schema.h"
 #include "message.h"
 

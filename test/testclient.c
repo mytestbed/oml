@@ -63,8 +63,8 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "oml_value.h"
 #include "oml2/omlc.h"
+#include "oml_value.h"
 
 #define MAX_WORD 256
 #define MAX_SAMPLES 10000

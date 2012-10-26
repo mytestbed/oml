@@ -7,7 +7,7 @@
 #include <limits.h>
 #include <popt.h>
 
-#include <oml2/omlc.h>
+#include "oml2/omlc.h"
 
 static int longblob = 0;
 static int fixed_size = 0;

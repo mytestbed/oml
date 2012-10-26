@@ -20,9 +20,9 @@
  * THE SOFTWARE.
  *
  */
-#include <mbuf.h>
-#include <marshal.h>
-#include <oml_value.h>
+#include "mbuf.h"
+#include "marshal.h"
+#include "oml_value.h"
 #include "schema.h"
 #include "message.h"
 

@@ -27,8 +27,8 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include <client.h>
-#include <ocomm/o_log.h>
+#include "ocomm/o_log.h"
+#include "client.h"
 
 enum TestType {
   TT_SERVER,

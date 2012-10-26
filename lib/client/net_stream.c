@@ -31,15 +31,14 @@
 #include <sys/socket.h>
 #include <signal.h>
 
-#include <mem.h>
-#include <log.h>
-#include "oml_util.h"
-
-#include <ocomm/o_log.h>
-#include <ocomm/o_socket.h>
 #include "oml2/omlc.h"
-#include "client.h"
 #include "oml2/oml_out_stream.h"
+#include "ocomm/o_log.h"
+#include "ocomm/o_socket.h"
+#include "mem.h"
+#include "log.h"
+#include "oml_util.h"
+#include "client.h"
 
 #define REATTEMP_INTERVAL 10    //! Seconds to wait before attempting to reach server again
 

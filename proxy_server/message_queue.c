@@ -21,9 +21,10 @@
  *
  */
 #include <assert.h>
-#include <message.h>
-#include <cbuf.h>
-#include <mem.h>
+
+#include "mem.h"
+#include "cbuf.h"
+#include "message.h"
 #include "message_queue.h"
 
 struct msg_queue*

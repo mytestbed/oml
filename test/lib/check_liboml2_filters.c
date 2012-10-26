@@ -24,6 +24,7 @@
 #include <string.h>
 #include <math.h>
 #include <check.h>
+
 #include "oml2/omlc.h"
 #include "filter/factory.h"
 #include "filter/average_filter.h"

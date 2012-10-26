@@ -22,11 +22,11 @@
  */
 #include <stdlib.h>
 #include <string.h>
-#include <log.h>
-#include <mem.h>
-#include <cbuf.h>
-#include <mbuf.h>
 
+#include "log.h"
+#include "mem.h"
+#include "mbuf.h"
+#include "cbuf.h"
 #include "client.h"
 #include "message_queue.h"
 

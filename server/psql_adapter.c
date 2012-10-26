@@ -7,11 +7,11 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 
-#include "oml_util.h"
-#include "oml_value.h"
+#include "log.h"
 #include "mem.h"
 #include "mstring.h"
-#include "log.h"
+#include "oml_value.h"
+#include "oml_util.h"
 #include "database.h"
 #include "psql_adapter.h"
 

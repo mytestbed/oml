@@ -24,7 +24,7 @@
 #ifndef UTIL_H__
 #define UTIL_H__
 
-#include <oml2/omlc.h>
+#include "oml2/omlc.h"
 
 #define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
 

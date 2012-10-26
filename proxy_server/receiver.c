@@ -22,17 +22,15 @@
  */
 #include <string.h>
 
-#include <log.h>
-#include <mem.h>
-#include <mbuf.h>
-#include <headers.h>
-#include <message.h>
-#include <text.h>
-#include <binary.h>
-
+#include "log.h"
+#include "mem.h"
+#include "mbuf.h"
+#include "headers.h"
+#include "message.h"
+#include "text.h"
+#include "binary.h"
 #include "message_queue.h"
 #include "client.h"
-
 
 /**
  * @brief Read a line from mbuf.

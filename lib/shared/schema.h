@@ -24,8 +24,8 @@
 #ifndef SCHEMA_H__
 #define SCHEMA_H__
 
-#include <oml2/omlc.h>
-#include <mstring.h>
+#include "oml2/omlc.h"
+#include "mstring.h"
 
 struct schema_field
 {

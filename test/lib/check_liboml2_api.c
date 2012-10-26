@@ -22,8 +22,9 @@
  */
 #include <string.h>
 #include <check.h>
-#include <validate.h>
-#include <oml2/omlc.h>
+
+#include "oml2/omlc.h"
+#include "validate.h"
 #include "client.h"
 
 #define LENGTH(a) (sizeof(a)/sizeof(a[0]))

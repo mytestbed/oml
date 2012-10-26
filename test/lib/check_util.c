@@ -24,10 +24,11 @@
 #include <string.h>
 #include <math.h>
 #include <check.h>
-#include "check_util.h"
+
 #include "oml2/omlc.h"
-#include "oml2/oml_writer.h"
 #include "oml_value.h"
+#include "oml2/oml_writer.h"
+#include "check_util.h"
 
 
 OmlValueU*

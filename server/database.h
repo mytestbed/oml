@@ -23,7 +23,7 @@
 #ifndef DATABASE_H_
 #define DATABASE_H_
 
-#include <oml2/omlc.h>
+#include "oml2/omlc.h"
 #include "table_descr.h"
 #include "schema.h"
 

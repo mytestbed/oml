@@ -30,12 +30,11 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include <log.h>
-#include <oml2/omlc.h>
-#include <oml2/oml_filter.h>
-#include <oml2/oml_writer.h>
-#include <oml_value.h>
-
+#include "oml2/omlc.h"
+#include "oml2/oml_filter.h"
+#include "oml2/oml_writer.h"
+#include "log.h"
+#include "oml_value.h"
 #include "client.h"
 #include "buffered_writer.h"
 

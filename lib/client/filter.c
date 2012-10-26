@@ -24,7 +24,6 @@
   \brief Implements OML's client side filter engine
 */
 
-#include <log.h>
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -32,14 +31,13 @@
 #include <sys/time.h>
 #include <time.h>
 #include <pthread.h>
-#define _XOPEN_SOURCE 500     /* Or: #define _BSD_SOURCE */
+#define _XOPEN_SOURCE 500     /* Or: #define _BSD_SOURCE; for useconds_t to be defined */
 #include <unistd.h>
-
-#define useconds_t unsigned long
 
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
 #include "oml2/oml_writer.h"
+#include "log.h"
 #include "client.h"
 
 static void* thread_start(void* handle);

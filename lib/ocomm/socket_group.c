@@ -23,13 +23,12 @@
 /*!\file socket.c
   \brief This file contains a thin layer over sockets.
 */
+#include <string.h>
+#include <stdlib.h>
 
 #include "ocomm/o_socket.h"
 #include "ocomm/o_socket_group.h"
 #include "ocomm/o_log.h"
-
-#include <string.h>
-#include <stdlib.h>
 
 #if 0 // FIXME:  Not used?
 static o_socket_sendto sendto;

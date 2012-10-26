@@ -23,8 +23,8 @@
 #ifndef TEXT_H__
 #define TEXT_H__
 
-#include <oml2/omlc.h>
-#include <mbuf.h>
+#include "oml2/omlc.h"
+#include "mbuf.h"
 #include "schema.h"
 #include "message.h"
 

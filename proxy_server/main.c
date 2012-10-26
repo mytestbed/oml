@@ -21,7 +21,7 @@
  *
  */
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 #include <stdlib.h>
 #include <string.h>
@@ -30,11 +30,10 @@
 #include <signal.h>
 #include <popt.h>
 
-#include <log.h>
-#include <mstring.h>
-#include <ocomm/o_socket.h>
-#include <ocomm/o_eventloop.h>
-
+#include "ocomm/o_socket.h"
+#include "ocomm/o_eventloop.h"
+#include "log.h"
+#include "mstring.h"
 #include "version.h"
 #include "session.h"
 #include "client.h"

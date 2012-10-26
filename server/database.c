@@ -23,22 +23,23 @@
 //! Implements the interface to a local database
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
-#include <log.h>
 #include <assert.h>
 
+#include "log.h"
 #include "oml_util.h"
 #include "oml_value.h"
 #include "mem.h"
 #include "database.h"
 #include "hook.h"
 #include "sqlite_adapter.h"
+
 #if HAVE_LIBPQ
 #include <libpq-fe.h>
 #include "psql_adapter.h"
