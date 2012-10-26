@@ -147,13 +147,11 @@ output (
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
 
-  if (self->sample_count > 0) {
-    omlc_set_double(*oml_value_get_value(&self->result[1]), 1.0 * self->s / (self->sample_count - 1));
-    omlc_set_double(*oml_value_get_value(&self->result[0]), sqrt (omlc_get_double(*oml_value_get_value(&self->result[1]))));
-  } else {
-    omlc_set_double(*oml_value_get_value(&self->result[0]), 0);
-    omlc_set_double(*oml_value_get_value(&self->result[1]), 0);
-  }
+  if (self->sample_count <= 0)
+    return 1;
+
+  omlc_set_double(*oml_value_get_value(&self->result[1]), 1.0 * self->s / (self->sample_count - 1));
+  omlc_set_double(*oml_value_get_value(&self->result[0]), sqrt (omlc_get_double(*oml_value_get_value(&self->result[1]))));
 
   writer->out (writer, self->result, f->output_count);
   return 0;

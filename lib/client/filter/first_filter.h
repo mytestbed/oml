@@ -24,9 +24,14 @@
 #define FIRST_FILTER_H__
 
 struct _omlFirstFilterInstanceData {
-  int is_first;         /* set to true if no value has been stored */
+  /** Array to store the current output data for writing */
+  OmlValue*     result;
 
-  OmlValue* result;
+  /** Number of samples received during the current sampling period */
+  unsigned int  sample_count;
+
+  /** True if no value has been stored for this sampling window yet */
+  int           is_first;
 };
 
 #endif // FIRST_FILTER_H__

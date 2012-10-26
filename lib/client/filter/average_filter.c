@@ -57,7 +57,7 @@ omlf_average_new(OmlValueT type, OmlValue* result)
   if (self) {
     memset(self, 0, sizeof(InstanceData));
 
-    self->sample_sum = 0;
+    self->sample_sum = 0.;
     self->sample_count = 0;
     self->sample_min = HUGE;
     self->sample_max = -1 * HUGE;
@@ -115,22 +115,19 @@ process(OmlFilter* f, OmlWriter* writer)
 {
   InstanceData* self = (InstanceData*)f->instance_data;
 
-  if (self->sample_count > 0) {
-    omlc_set_double(*oml_value_get_value(&self->result[0]), 1.0 * self->sample_sum / self->sample_count);
-    omlc_set_double(*oml_value_get_value(&self->result[1]), self->sample_min);
-    omlc_set_double(*oml_value_get_value(&self->result[2]), self->sample_max);
-  } else {
-    omlc_set_double(*oml_value_get_value(&self->result[0]), 0);
-    omlc_set_double(*oml_value_get_value(&self->result[1]), 0);
-    omlc_set_double(*oml_value_get_value(&self->result[2]), 0);
-  }
+  if (self->sample_count <= 0)
+    return 1;
+
+  omlc_set_double(*oml_value_get_value(&self->result[0]), 1.0 * self->sample_sum / self->sample_count);
+  omlc_set_double(*oml_value_get_value(&self->result[1]), self->sample_min);
+  omlc_set_double(*oml_value_get_value(&self->result[2]), self->sample_max);
 
   writer->out(writer, self->result, f->output_count);
 
   self->sample_max = -1 * HUGE;
   self->sample_min = HUGE;
   self->sample_sum = 0;
-  self->sample_count = 0;
+  self->sample_count = 0.;
 
   return 0;
 }

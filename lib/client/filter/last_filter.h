@@ -24,7 +24,11 @@
 #define LAST_FILTER_H__
 
 struct _omlLastFilterInstanceData {
-  OmlValue* result;
+  /** Array to store the current output data for writing */
+  OmlValue*     result;
+
+  /** Number of samples received during the current sampling period */
+  unsigned int  sample_count;
 };
 
 #endif // LAST_FILTER_H__

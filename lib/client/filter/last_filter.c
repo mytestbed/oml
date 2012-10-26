@@ -52,10 +52,7 @@ omlf_last_new(
     memset(self, 0, sizeof(InstanceData));
 
     self->result = result;
-    self->result[0].type = type;  // FIXME:  Is this needed?
-
-    if (type == OML_STRING_VALUE)
-      omlc_set_const_string(*oml_value_get_value(&self->result[0]), "");
+    self->sample_count = 0;
 
   } else {
     logerror ("%s filter: Could not allocate %d bytes for instance data\n",
@@ -99,6 +96,7 @@ sample(
         FILTER_NAME, oml_type_to_s(type), oml_type_to_s(self->result[0].type));
     return 0;
   }
+  self->sample_count++;
   /* Overwrite previously stored value */
   return oml_value_set(&self->result[0], v, type);
 }
@@ -110,10 +108,13 @@ process(
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
 
+  if (self->sample_count <= 0)
+    return 1;
+
   writer->out(writer, self->result, f->output_count);
-  oml_value_reset(&self->result[0]);
-  if (self->result[0].type == OML_STRING_VALUE)
-    omlc_set_const_string (*oml_value_get_value(&self->result[0]), "");
+
+  self->sample_count = 0;
+
   return 0;
 }
 

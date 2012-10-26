@@ -57,6 +57,7 @@ omlf_sum_new(OmlValueT type, OmlValue* result)
     memset(self, 0, sizeof(InstanceData));
 
     self->sample_sum = 0.;
+    self->sample_count = 0;
     self->result = result;
   } else {
     logerror ("%s filter: Could not allocate %d bytes for instance data\n",
@@ -98,6 +99,7 @@ sample(OmlFilter* f, OmlValue* value)
   val = oml_value_to_double (value);
 
   self->sample_sum += val;
+  self->sample_count++;
 
   return 0;
 }
@@ -107,10 +109,14 @@ process(OmlFilter* f, OmlWriter* writer)
 {
   InstanceData* self = (InstanceData*)f->instance_data;
 
+  if (self->sample_count <= 0)
+    return 1;
+
   omlc_set_double(*oml_value_get_value(&self->result[0]), self->sample_sum);
   writer->out(writer, self->result, f->output_count);
 
   self->sample_sum = 0.;
+  self->sample_count = 0;
 
   return 0;
 }

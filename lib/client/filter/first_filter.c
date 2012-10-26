@@ -56,11 +56,9 @@ omlf_first_new(
     memset(self, 0, sizeof(InstanceData));
 
     self->is_first = 1;
+    self->sample_count = 0;
     self->result = result;
-    oml_value_set_type(&self->result[0], type);
 
-    if (type == OML_STRING_VALUE)
-      omlc_set_string(*oml_value_get_value(&self->result[0]), "");
   } else {
     logerror ("%s filter: Could not allocate %d bytes for instance data\n",
         FILTER_NAME,
@@ -103,10 +101,12 @@ sample(
         FILTER_NAME, oml_type_to_s(type), oml_type_to_s(self->result[0].type));
     return 0;
   }
+  self->sample_count++;
   if (self->is_first) {
     self->is_first = 0;
     return oml_value_set(&self->result[0], v, type);
   }
+
   return 0;
 }
 
@@ -117,12 +117,13 @@ process(
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
 
+  if (self->sample_count <= 0)
+    return 1;
+
   writer->out(writer, self->result, f->output_count);
 
   self->is_first = 1;
-  oml_value_reset(&self->result[0]);
-  if (self->result[0].type == OML_STRING_VALUE)
-    omlc_set_const_string(*oml_value_get_value(&self->result[0]), "");
+  self->sample_count = 0;
 
   return 0;
 }

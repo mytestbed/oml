@@ -25,16 +25,20 @@
 
 #include <oml2/omlc.h>
 
-struct _omlAvgFilterInstanceData
-{
-    // Keep the sum and sample count to calculate average
-    double  sample_sum;
-    int     sample_count;
+struct _omlAvgFilterInstanceData {
+  /** Array to store the current output data for writing */
+  OmlValue*     result;
 
-    double  sample_min;
-    double  sample_max;
+  /** Number of samples received during the current sampling period */
+  unsigned int  sample_count;
 
-    OmlValue* result;
+  /** Sum of the samples of the current sampling period */
+  double        sample_sum;
+
+  /** Minimal sample value seen during the current sampling period */
+  double        sample_min;
+  /** Maximal sample value seen during the current sampling period */
+  double        sample_max;
 };
 
 #endif /* AVERAGE_FILTER_H__ */

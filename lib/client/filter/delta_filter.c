@@ -58,8 +58,9 @@ omlf_delta_new(
   if (self) {
     memset(self, 0, sizeof(InstanceData));
 
-    self->previous = 0;
-    self->current = 0;
+    self->previous = 0.;
+    self->current = 0.;
+    self->sample_count = 0;
     self->result = result;
 
   } else {
@@ -104,6 +105,8 @@ sample(
 
   val = oml_value_to_double (value);
   self->current = val;
+  self->sample_count++;
+
   return 0;
 }
 
@@ -114,12 +117,16 @@ process(
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
 
+  if (self->sample_count <= 0)
+    return 1;
+
   omlc_set_double(*oml_value_get_value(&self->result[0]), (self->current - self->previous));
   omlc_set_double(*oml_value_get_value(&self->result[1]), self->current);
   writer->out(writer, self->result, f->output_count);
 
   self->previous = self->current;
   self->current = 0;
+    self->sample_count = 0;
 
   return 0;
 }

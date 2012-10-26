@@ -25,11 +25,16 @@
 
 struct _omlStddevFilterInstanceData
 {
-    double m;
-    double s;
-    double sample_count;
+  /** Array to store the current output data for writing */
+  OmlValue*     result;
 
-    OmlValue* result;
+  /** Number of samples received during the current sampling period */
+  unsigned int  sample_count;
+
+  /** M_0 = x_0; M_k = M_{k-1} + (x_k -M_{k-1}) / k */
+  double        m;
+  /** S_0 = 0; S_k = S_{k-1} + (x_k -M_{k-1}) * (x_k -M_k) */
+  double        s;
 };
 
 #endif // STDDEV_FILTER_H__

@@ -62,7 +62,7 @@ typedef int (*oml_filter_input)(
 /*! Called to request the current filter output. This is most likely
  * some function over the samples received since the last call.
  *
- * Return 0 on success, -1 otherwise
+ * Return 0 on success, 1 if no sample was output, or -1 otherwise
  */
 typedef int (*oml_filter_output)(
   struct _omlFilter* filter,

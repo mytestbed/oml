@@ -27,10 +27,14 @@
 
 struct _omlSumFilterInstanceData
 {
-    // Keep the sum and sample count to calculate average
-    double  sample_sum;
+  /** Array to store the current output data for writing */
+  OmlValue*     result;
 
-    OmlValue* result;
+  /** Number of samples received during the current sampling period */
+  unsigned int  sample_count;
+
+  /** Sum of the samples of the current sampling period */
+  double        sample_sum;
 };
 
 #endif /* SUM_FILTER_H__ */

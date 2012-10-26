@@ -24,10 +24,17 @@
 #define DELTA_FILTER_H__
 
 struct _omlDeltaFilterInstanceData {
-  double previous;
-  double current;
+  /** Array to store the current output data for writing */
+  OmlValue*     result;
 
-  OmlValue* result;
+  /** Number of samples received during the current sampling period */
+  unsigned int  sample_count;
+
+  /** Sample value at the end of the previous sample period */
+  double        previous;
+
+  /** Current sample value */
+  double        current;
 };
 
 #endif // DELTA_FILTER_H__
