@@ -63,5 +63,5 @@ STDDEV = $(srcdir)/stddev.py
 
 dist_check_SCRIPTS=$(STDDEV)
 
-stddev_0.c stddev_1.c:	Makefile
+stddev_0.c stddev_1.c:	Makefile $(STDDEV)
 	$(STDDEV)

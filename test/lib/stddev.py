@@ -15,7 +15,7 @@ def type_strings(t):
     if t == float:
         return ("double", "OML_DOUBLE_VALUE")
     elif t == int:
-        return ("long", "OML_LONG_VALUE")
+        return ("uint32_t", "OML_INT32_VALUE")
     else:
         return ("int", "OML_BAD_VALUE")
 
@@ -112,7 +112,9 @@ def main():
         av = []
         t['outputs'] = []
         for v in t['inputs']:
-            av = av + v
+            # This tests for cumulative stddev, but we want per-window
+            #av = av + v
+            av = v
             (s, v) = stddev(av)
             t['outputs'].append([s, v])
 

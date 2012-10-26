@@ -248,7 +248,7 @@ START_TEST(test_filter_stddev_create)
 
   f = create_filter ("stddev", "stddevinst", OML_INT32_VALUE, 2);
 
-  fail_if (f == NULL, "Filter creation failed for `histogram' filter");
+  fail_if (f == NULL, "Filter creation failed for `stddev' filter");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");
 
   fail_unless (f->index == 2);

@@ -153,6 +153,10 @@ output (
   omlc_set_double(*oml_value_get_value(&self->result[1]), 1.0 * self->s / (self->sample_count - 1));
   omlc_set_double(*oml_value_get_value(&self->result[0]), sqrt (omlc_get_double(*oml_value_get_value(&self->result[1]))));
 
+  self->m = 0;
+  self->s = 0;
+  self->sample_count = 0;
+
   writer->out (writer, self->result, f->output_count);
   return 0;
 }
