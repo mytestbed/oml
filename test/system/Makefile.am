@@ -1,14 +1,16 @@
 
-TESTS_ENVIRONMENT = top_builddir=$(top_builddir) POSTGRES=$(POSTGRES) TIMEOUT=$(TIMEOUT)
+TESTS_ENVIRONMENT = top_builddir=$(top_builddir) POSTGRES=$(POSTGRES) TIMEOUT=$(TIMEOUT) VERSION=$(VERSION)
 TESTS = run.sh run-long.sh
 if HAVE_LIBPQ
 if HAVE_POSTGRES
 TESTS += runpg.sh runpg-long.sh
 endif #HAVE_POSTGRES
 endif #HAVE_LIBPQ
-EXTRA_DIST = run.sh run-long.sh runpg.sh runpg-long.sh fromsq3.sh bin2hex.rb diff.sh
+EXTRA_DIST = run.sh run-long.sh runpg.sh runpg-long.sh
 
 check_PROGRAMS = blobgen
+
+CLEANFILES = memstats.csv
 
 blobgen_SOURCES = blobgen.c
 
@@ -21,7 +23,5 @@ blobgen_LDADD = \
 	$(top_builddir)/lib/client/liboml2.la \
 	-lpopt
 
-CLEANFILES=*.hex *.bin *.sq3 *.log
-
 clean-local:
-	rm -rf short*/ long*/
+	rm -rf sq3*/ pg*/

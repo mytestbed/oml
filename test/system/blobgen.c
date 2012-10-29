@@ -122,10 +122,10 @@ run (void)
 
   fprintf (stderr, "Writing blobs:");
   for (i = 0; samples != 0; i++, samples--) {
-    snprintf (s, sizeof(s)-1, "sample-%04d\n",i);
+    snprintf (s, sizeof(s)-1, "sample-%04d\n", i);
     blob = randgen (&blob_length);
     blob_to_file (i + 1, blob, blob_length);
-    fprintf (stderr, " %04d (%ld B)", i, blob_length);
+    fprintf (stderr, " %d (%dB)", i, blob_length);
     omlc_set_string (v[0], s);
     omlc_set_int32 (v[1], i);
     omlc_set_blob (v[2], blob, blob_length);

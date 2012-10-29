@@ -377,7 +377,7 @@ AC_CONFIG_FILES([Makefile
 		 test/ruby/Makefile
 		 test/server/Makefile
 		 test/server/issue610.rb
-		 test/system/blob/Makefile
+		 test/system/Makefile
 		 ])
 AC_CONFIG_COMMANDS([issue610-exec], [chmod a+x test/server/issue610.rb])
 dnl Copy source files for the  in VPATH so setup.py is happy
