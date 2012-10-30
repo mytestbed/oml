@@ -37,8 +37,8 @@
 static void
 omlc_ms_process(OmlMStream* ms);
 
-/**
- * \brief DEPRECATED
+/** DEPRECATED
+ * \see omlc_inject
  */
 void
 omlc_process(OmlMP *mp, OmlValueU *values)
@@ -47,14 +47,18 @@ omlc_process(OmlMP *mp, OmlValueU *values)
   omlc_inject(mp, values);
 }
 
-/**
- * \brief Called when a measure has to be treated
- * \param mp the measurement point in the application
- * \param values the new values to analyse
- * \return
+/** Called when new sample has to be treated.
+ *
+ * Traverse the list of MSs attached to this MP and, for each MS, the list of
+ * filters to apply to the sample. Input the relevant field of the MP to each
+ * filter, the call omlc_ms_process() to determine whether a new sample has to
+ * be output on that MS.
+ *
+ * \param mp pointer to OmlMP into which the new sample is being injected
+ * \param values an array of OmlValueU to be processed, typed according to mp->param_defs[].param_types
+ * \see omlc_ms_process
  */
-void
-omlc_inject(OmlMP *mp, OmlValueU *values)
+void omlc_inject(OmlMP *mp, OmlValueU *values)
 {
   OmlMStream* ms;
   OmlValue v;
@@ -64,7 +68,10 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
 
   oml_value_init(&v);
 
-  if (mp_lock(mp) == -1) return;
+  if (mp_lock(mp) == -1) {
+    logwarn("Cannot lock MP '%s' for injection\n", mp->name);
+    return;
+  }
   ms = mp->streams;
   while (ms) {
     OmlFilter* f = ms->filters;
@@ -82,12 +89,17 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
   oml_value_reset(&v);
 }
 
-/**
- * \brief Called when the particular MStream has been filled.
- * \param ms the oml stream to process
+/** Called when the particular MS has been filled.
+ *
+ * Determine whether a new sample must be issued (in per-sample reporting), and
+ * ask the filters to generate it if need be.
+ *
+ * A lock for the MP containing that MS must be held before calling this function.
+ *
+ * \param ms pointer to the OmlMStream to process
+ * \see filter_process
  */
-static void
-omlc_ms_process(OmlMStream *ms)
+static void omlc_ms_process(OmlMStream *ms)
 {
   if (ms == NULL) return;
 

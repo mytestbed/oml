@@ -89,14 +89,18 @@ thread_start(
 }
 
 
-/**
- * \fn int filter_process( OmlMStream* ms )
- * \brief Run filters on all queues in MP.
- * \param ms the stream to filterise
- * \return 0 if success, -1 if not.
+/** Run filters associated to an MS.
+ *
+ * Get the writer associated to the MS, and generate and write initial metadata
+ * (seqno and time). Then, instruct all the filters, in sequence, to write
+ * there filtered sample to this writer before finalising the write.
+ *
+ * \param ms MS to generate output for
+ * \return 0 if success, -1 otherwise
+ *
+ * \see OmlWriter, oml_writer_row_start, oml_writer_out, oml_writer_row_end
  */
-int
-filter_process(OmlMStream* ms)
+int filter_process(OmlMStream* ms)
 {
   if (ms == NULL || omlc_instance == NULL)
     {
@@ -124,9 +128,7 @@ filter_process(OmlMStream* ms)
   writer->row_start(writer, ms, now);
   OmlFilter* f = ms->firstFilter;
   for (; f != NULL; f = f->next)
-    {
-      f->output(f, writer);
-    }
+    f->output(f, writer);
   writer->row_end(writer, ms);
   ms->sample_size = 0;
   //  oml_unlock(&writer->lock, "filter");

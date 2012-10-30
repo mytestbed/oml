@@ -171,19 +171,19 @@ row_cols(
   return cnt == value_count;
 }
 
-/**
- * \brief before sending datastore information about the time and the stream
- * \param writer the netwriter to send data
- * \param ms the stream to store the measruement from
- * \param now a timestamp that represensent the current time
+/** Prepare a new marshalled message with sequence and time information in the writer's Mbuffer.
+ *
+ * This acquires a lock on the BufferedWriter (bw_get_write_buf(..., exclusive=1)).
+ *
+ * \param writer pointer to OmlWriter to write the data out on
+ * \param ms pointer to OmlMStream outputting the data
+ * \param now current timestamp
  * \return 1
+ * \see BufferedWriter, bw_get_write_buf, marshal_init, marshal_measurements
+ * \see gettimeofday(3)
  */
-int
-row_start(
-  OmlWriter* writer,
-  OmlMStream* ms,
-  double now
-) {
+int row_start(OmlWriter* writer, OmlMStream* ms, double now)
+{
   OmlBinProtoWriter* self = (OmlBinProtoWriter*)writer;
   assert(self->bufferedWriter != NULL);
 
@@ -196,17 +196,16 @@ row_start(
   return 1;
 }
 
-/**
- * \brief send the data after finalysing the data structure
- * \param writer the net writer that send the measurements
- * \param ms the stream of measurmenent
+/** Finalise the marshalled message and output it on the writer.
+ *
+ * This releases the lock on the BufferedWriter.
+ *
+ * \param writer pointer to OmlWriter to write the data out on
+ * \param ms pointer to OmlMStream outputting the data
  * \return 1
+ * \see BufferedWriter,bw_unlock_buf, marshal_finalize
  */
-int
-row_end(
-  OmlWriter* writer,
-  OmlMStream* ms
-) {
+int row_end(OmlWriter* writer, OmlMStream* ms) {
   (void)ms;
   OmlBinProtoWriter* self = (OmlBinProtoWriter*)writer;
   MBuffer* mbuf;
