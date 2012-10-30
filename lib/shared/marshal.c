@@ -153,10 +153,9 @@ find_sync (unsigned char* buf, int len)
   int i;
 
   for (i = 1; i < len; i++)
-  {
       if (buf[i] == SYNC_BYTE && buf[i-1] == SYNC_BYTE)
         return &buf[i-1];
-    }
+
   return NULL;
 }
 
@@ -348,7 +347,6 @@ inline int
 marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 {
   switch (val_type) {
-    /* Treat OML_LONG_VALUE separately because size differs between 32-bit/64-bit */
   case OML_LONG_VALUE: {
     long v = oml_value_clamp_long (val->longValue);
     uint32_t uv = (uint32_t)v;
@@ -358,13 +356,13 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     buf[0] = LONG_T;
     memcpy(&buf[1], &nv, sizeof (nv));
 
+    logdebug("Marshalling long %ld\n", nv);
     int result = mbuf_write (mbuf, buf, LENGTH (buf));
-    if (result == -1)
-      {
-        logerror("Failed to marshal OML_LONG_VALUE (mbuf_write())\n");
-        mbuf_reset_write (mbuf);
-        return 0;
-      }
+    if (result == -1) {
+      logerror("Failed to marshal OML_LONG_VALUE (mbuf_write())\n");
+      mbuf_reset_write (mbuf);
+      return 0;
+    }
     break;
   }
   case OML_INT32_VALUE:
@@ -391,6 +389,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
         p_nv = (uint8_t*)&nv64;
       }
 
+    logdebug("Marshalling %s\n", oml_type_to_s(val_type));
     buf[0] = oml_type_map[val_type];
     memcpy(&buf[1], p_nv, oml_size_map[val_type]);
 
@@ -422,6 +421,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 
    memcpy(&buf[1], &nmant, sizeof (nmant));
 
+   logdebug("Marshalling double %f\n", v);
    int result = mbuf_write (mbuf, buf, LENGTH (buf));
 
    if (result == -1)
@@ -480,6 +480,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
    size_t n_length = htonl (length);
    memcpy (&buf[1], &n_length, 4);
 
+   logdebug("Marshalling blob of size %d.\n", length);
    result = mbuf_write (mbuf, buf, sizeof (buf));
 
    if (result == -1) {
@@ -589,7 +590,8 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
   }
 
   if (! (header_str[0] == SYNC_BYTE && header_str[1] == SYNC_BYTE)) {
-    logerror("Cannot find sync bytes in binary stream, out of sync\n");
+    logdebug("Cannot find sync bytes in binary stream, out of sync; first 3 bytes: %#0x %#0x %#0x\n",
+        header_str[0], header_str[1], header_str[2]);
     return 0;
   }
 
@@ -617,7 +619,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
     header->length = (int)ntohl (nv32);
   } else {
     logwarn ("Unknown packet type %d\n", (int)header->type);
-    return -1;
+    return 0;
   }
 
   int extra = mbuf_remaining (mbuf) - header->length;
@@ -684,9 +686,14 @@ unmarshal_values(
   MBuffer*  mbuf,
   OmlBinaryHeader* header,
   OmlValue*    values,
-  int          max_value_count 
+  int          max_value_count
 ) {
   int value_count = header->values;
+
+  if (0 == value_count) {
+    logwarn("No value to unmarshall\n");
+    return -102;
+  }
 
   if (value_count > max_value_count) {
     logwarn("Measurement packet contained %d too many values for internal storage (max %d, actual %d); skipping packet\n",
