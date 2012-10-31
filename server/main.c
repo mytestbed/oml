@@ -149,7 +149,7 @@ static void sighandler(int signum)
     eventloop_stop(signum);
     break;
   case SIGUSR1:
-    xmemreport();
+    xmemreport(O_LOG_INFO);
     break;
   default:
     logwarn("Received unhandled signal %d\n", signum);
@@ -338,7 +338,7 @@ int main(int argc, char **argv)
 
   hook_cleanup();
 
-  xmemreport();
+  xmemreport(O_LOG_INFO);
 
   return 0;
 }

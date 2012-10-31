@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+#include "log.h"
+
 void *xmalloc (size_t size);
 void *xcalloc (size_t count, size_t size);
 void *xrealloc (void *ptr, size_t size);
@@ -14,7 +16,7 @@ void xfree (void *ptr);
 size_t xmembytes();
 size_t xmemnew();
 size_t xmemfreed();
-void xmemreport (void);
+void xmemreport (int loglevel);
 
 #endif /* MEM_H__ */
 

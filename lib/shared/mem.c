@@ -58,8 +58,11 @@ size_t xmemnew() { return xnew; }
 /** Report the cumulated freed memory tracked by x*() functions */
 size_t xmemfreed() { return xfreed; }
 
-/** Log a summary of the dynamically allocated memory tracked by x*() functions */
-void xmemreport (void)
+/** Log a summary of the dynamically allocated memory tracked by x*() functions
+ *
+ * \param loglevel log level at which the message should be issued
+ * */
+void xmemreport (int loglevel)
 {
   size_t xbytes_h = xbytes;
   char *units = "bytes";
@@ -72,7 +75,7 @@ void xmemreport (void)
     xbytes_h >>= 10;
   }
 
-  loginfo ("%"PRIuMAX" %s currently allocated [%"
+  o_log(loglevel, "%"PRIuMAX" %s currently allocated [%"
              PRIuMAX" allocated overall, %"
              PRIuMAX" freed, %"
              PRIuMAX" current]\n",
