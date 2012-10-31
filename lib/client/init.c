@@ -422,6 +422,9 @@ omlc_close(void)
   for (; w != NULL; w = w->next) {
     if (w->close != NULL) w->close(w);
   }
+
+  xmemreport(O_LOG_DEBUG);
+
   return 0;
 }
 
