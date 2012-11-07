@@ -90,15 +90,15 @@ struct poptOption options[] = {
   { "pg-host", '\0', POPT_ARG_STRING, &pg_host, 0, "PostgreSQL server host to connect to", DEFAULT_PG_HOST },
   { "pg-port", '\0', POPT_ARG_STRING, &pg_port, 0, "PostgreSQL server port to connect to", DEFAULT_PG_PORT },
   { "pg-user", '\0', POPT_ARG_STRING, &pg_user, 0, "PostgreSQL user to connect as", DEFAULT_PG_USER },
-  { "pg-pass", '\0', POPT_ARG_STRING, &pg_pass, 0, "Password of the PostgreSQL user", DEFAULT_PG_PASS },
-  { "pg-connect", '\0', POPT_ARG_STRING, &pg_conninfo, 0, "PostgreSQL connection info string", "\"" DEFAULT_PG_CONNINFO "\""},
+  { "pg-pass", '\0', POPT_ARG_STRING, &pg_pass, 'p', "Password of the PostgreSQL user", DEFAULT_PG_PASS },
+  { "pg-connect", '\0', POPT_ARG_STRING, &pg_conninfo, 'c', "PostgreSQL connection info string", "\"" DEFAULT_PG_CONNINFO "\""},
 #endif
   { "user", '\0', POPT_ARG_STRING, &uidstr, 0, "Change server's user id", "UID" },
   { "group", '\0', POPT_ARG_STRING, &gidstr, 0, "Change server's group id", "GID" },
   { "event-hook", 'H', POPT_ARG_STRING, &hook, 0, "Path to an event hook taking input on stdin", "HOOK" },
   { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level", "{1 .. 4}"  },
   { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0, "File to log to", DEFAULT_LOG_FILE },
-  { "version", 'v', 0, 0, 'v', "Print version information and exit", NULL },
+  { "version", 'v', POPT_ARG_NONE, NULL, 'v', "Print version information and exit", NULL },
   { NULL, 0, 0, NULL, 0, NULL, NULL }
 };
 
@@ -256,10 +256,11 @@ static void on_connect(Socket* new_sock, void* handle)
   logdebug("%s: New client connected\n", client->name);
 }
 
-int main(int argc, const char **argv)
+int main(int argc, char **argv)
 {
-  int c;
-  poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
+  int c, i;
+
+  poptContext optCon = poptGetContext(NULL, argc, (const char**) argv, options, 0);
 
   while ((c = poptGetNextOpt(optCon)) >= 0) {
     switch (c) {
@@ -270,6 +271,37 @@ int main(int argc, const char **argv)
       return 0;
     }
   }
+
+#ifdef HAVE_LIBPQ
+  /* Cleanup command line to avoid showing credentials in ps(1) output, amongst
+   * others.
+   *
+   * XXX: This is a poor man's security measure, as this creates a race
+   * condition where, prior to doing the following, the credentials are still
+   * visible to everybody.
+   */
+  if (pg_pass || pg_conninfo) {
+    for(c=1; c<argc; c++) {
+      i = -1;
+
+      if(pg_pass && !strncmp(argv[c],"--pg-pass", 9))
+        i = 9; /* Offset to look for '=' */
+
+      if(pg_conninfo && !strncmp(argv[c],"--pg-connect", 12))
+        i = 12;
+
+      if (i >= 0) {
+        if (argv[c][i++] != '=') {
+          c++;
+          i = 0;
+        }
+        if (c<argc)
+          for (i; i< strlen(argv[c]); i++)
+            argv[c][i] = 'X';
+      }
+    }
+  }
+#endif /* HAVE_LIBPQ */
 
   logging_setup (logfile_name, log_level);
 
