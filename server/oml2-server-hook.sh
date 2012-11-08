@@ -39,6 +39,7 @@ function log ()
 # running tho oml2-server by running 'iinit' to create ~/.irods/.irodsA on its
 # behalf for iput to work
 IPUT=iput
+SQLITE3=sqlite3
 PGDUMP=pg_dump
 
 echo "OML HOOK READY"
@@ -50,8 +51,10 @@ while read COMMAND ARGUMENTS; do
 		"DBCLOSED")
 			case "${ARGUMENTS}" in
 				file:*)
-					DBFILE=${ARGUMENTS/file:/}
-					log "SQLite3 DB ${DBFILE} closed, pushing to iRODS"
+					DBNAME=${ARGUMENTS/file:/}
+					DBFILE=${DBNAME}.`date +%Y-%m-%d_%H:%M:%S%z`.sqlite.sql
+					log "SQLite3 DB ${DBNAME} closed, dumping as ${DBFILE} and pushing to iRODS"
+					${SQLITE3} ${DBNAME} .dump > ${DBFILE}
 					${IPUT} ${DBFILE}
 					;;
 				postgresql://*)
