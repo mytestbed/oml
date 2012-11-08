@@ -133,20 +133,36 @@ create_filter(
   return f;
 }
 
-/** Destroy a filter and free its memory
- * @param[in] f The filter to destroy
- * @returns 0 on success, -1 if filter pointer was NULL
+/** Destroy a filter and free its memory.
+ *
+ * This function is designed so it can be used in a while loop to clean up the
+ * entire linked list:
+ *
+ *   while( (f=destroy_ms(f)) );
+ *
+ * \param f pointer to the filter to destroy
+ * \returns f->next (can be NULL)
  */
-int destroy_filter(OmlFilter* f) {
-  if (f) {
-    if(f->result)
-      xfree(f->result);
-    if(f->instance_data)
-      xfree(f->instance_data);
-    xfree(f);
-  } else
-    return -1;
-  return 0;
+OmlFilter *destroy_filter(OmlFilter* f) {
+  OmlFilter *next;
+  int i;
+  if (!f)
+    return NULL;
+
+  logdebug("Destroying filter %s at %p\n", f->name, f);
+
+  next = f->next;
+
+  if(f->result) {
+    for (i=0; i < f->output_count; i++)
+      oml_value_reset(&f->result[i]);
+    xfree(f->result);
+  }
+  if(f->instance_data)
+    xfree(f->instance_data);
+  xfree(f);
+
+  return next;
 }
 
 static int

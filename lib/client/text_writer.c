@@ -81,7 +81,7 @@ text_writer_new(OmlOutStream* out_stream)
 {
   assert(out_stream != NULL);
 
-  OmlTextWriter* self = (OmlTextWriter *)malloc(sizeof(OmlTextWriter));
+  OmlTextWriter* self = (OmlTextWriter *)xmalloc(sizeof(OmlTextWriter));
   memset(self, 0, sizeof(OmlTextWriter));
   //pthread_mutex_init(&self->lock, NULL);
 
@@ -237,20 +237,33 @@ row_end(OmlWriter* writer, OmlMStream* ms)
   return res == 0;
 }
 
-/**
- * \brief Called to close the file
- * \param writer the file writer to close the socket in
- * \return 0
+/** Close the text writer and free data structures.
+ *
+ * This function is designed so it can be used in a while loop to clean up the
+ * entire linked list:
+ *
+ *   while( (w=w->close(w)) );
+ *
+ * \param writer pointer to the writer to close
+ * \return w->next (can be null)
  */
 static int
 close(OmlWriter* writer)
 {
+  OmlWriter *next;
+
+  if(!writer)
+    return NULL;
+
   OmlTextWriter *self = (OmlTextWriter*) writer;
+
+  next = self->next;
 
   // Blocks until the buffered writer drains
   bw_close (self->bufferedWriter);
+  xfree(self);
 
-  return 0;
+  return next;
 }
 
 

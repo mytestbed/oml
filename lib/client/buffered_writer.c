@@ -75,6 +75,7 @@ typedef struct {
 
 static BufferChain* getNextWriteChain(BufferedWriter* self, BufferChain* current);
 static BufferChain* createBufferChain(BufferedWriter* self);
+static int destroyBufferChain(BufferedWriter* self);
 static void* threadStart(void* handle);
 static int processChain(BufferedWriter* self, BufferChain* chain);
 static void oml_lock_persistent(BufferedWriter* self);
@@ -94,7 +95,7 @@ bw_create(
   long  queueCapacity,    /* size of queue before dropping stuff */
   long  chunkSize
 ) {
-  BufferedWriter* self = (BufferedWriter*)malloc(sizeof(BufferedWriter));
+  BufferedWriter* self = (BufferedWriter*)xmalloc(sizeof(BufferedWriter));
   if (self ==NULL) return NULL;
   memset(self, 0, sizeof(BufferedWriter));
 
@@ -131,16 +132,16 @@ bw_create(
   return (BufferedWriterHdl)self;
 }
 
-/**
- * \fn buffSocket_destroy(BufferedWriter* self)
- * \brief Destroy or free all allocated resources
- * \param instance Instance handle;
+/** Close an output stream and destroy the objects.
+ *
+ * \param instance handle (i.e., pointer) to a BufferedWriter
  */
-void
-bw_close(
-  BufferedWriterHdl instance
-) {
-  BufferedWriter* self = (BufferedWriter*)instance;
+void bw_close(BufferedWriterHdl instance) {
+  BufferedWriter *next, *self = (BufferedWriter*)instance;
+
+  if(!self)
+    return;
+
   if (oml_lock (&self->lock, "bw_close")) return;
   self->active = 0;
 
@@ -149,21 +150,26 @@ bw_close(
   pthread_cond_signal (&self->semaphore);
   oml_unlock (&self->lock, "bw_close");
   //  pthread_cond_destroy(&self->semaphore, NULL);
-  int result = pthread_join (self->readerThread, NULL);
-  if (result != 0) {
-    switch (result) {
-    case EINVAL:
-      logerror ("Buffered queue reader thread is not joinable\n");
-      break;
-    case EDEADLK:
-      logerror ("Buffered queue reader thread shutdown deadlock, or self-join\n");
-      break;
-    case ESRCH:
-      logerror ("Buffered queue reader thread shutdown failed:  could not find the thread\n");
-      break;
-    }
+  switch (pthread_join (self->readerThread, NULL)) {
+  case 0:
+    loginfo ("Buffered queue reader thread finished OK...\n");
+    break;
+  case EINVAL:
+    logerror ("Buffered queue reader thread is not joinable\n");
+    break;
+  case EDEADLK:
+    logerror ("Buffered queue reader thread shutdown deadlock, or self-join\n");
+    break;
+  case ESRCH:
+    logerror ("Buffered queue reader thread shutdown failed: could not find the thread\n");
+    break;
+  default:
+    logerror ("Buffered queue reader thread shutdown failed with an unknown error\n");
+    break;
   }
-  loginfo ("Buffered queue reader thread finished OK...\n");
+
+  destroyBufferChain(self);
+  xfree(self);
 }
 
 /**
@@ -327,8 +333,11 @@ createBufferChain(
   MBuffer* buf = mbuf_create2(self->chainLength, (size_t)(0.1 * self->chainLength));
   if (buf == NULL) return NULL;
 
-  BufferChain* chain = (BufferChain*)malloc(sizeof(BufferChain));
-  if (chain == NULL) return NULL;
+  BufferChain* chain = (BufferChain*)xmalloc(sizeof(BufferChain));
+  if (chain == NULL) {
+    mbuf_destroy(buf);
+    return NULL;
+  }
   memset(chain, 0, sizeof(BufferChain));
 
   // set state
@@ -344,6 +353,31 @@ createBufferChain(
   o_log (O_LOG_DEBUG, "Created new buffer chain of size %d with %d remaining.\n",
         self->chainLength, self->chainsAvailable);
   return chain;
+}
+
+
+/** Destroy the Buffer chain of a BufferedWriter
+ *
+ * \param self pointer to the BufferedWriter
+ * \return 0 on success, or a negative number otherwise
+ */
+int
+destroyBufferChain(BufferedWriter* self) {
+  BufferChain *chain, *start;
+
+  if (!self)
+    return -1;
+
+  /* BufferChain is a circular buffer */
+  start = self->firstChain;
+  while( (chain = self->firstChain) && chain!=start) {
+    logdebug("Destroying BufferChain at %p\n", chain);
+    self->firstChain = chain->next;
+    mbuf_destroy(chain->mbuf);
+    xfree(chain);
+  }
+
+  return 0;
 }
 
 
@@ -392,13 +426,13 @@ processChain(
   MBuffer* meta = self->meta_buf;
 
   while (size > sent) {
-    long cnt = self->writeFunc(self->writeFuncHdl, (void*)(buf + sent), size - sent, 
+    long cnt = self->writeFunc(self->writeFuncHdl, (void*)(buf + sent), size - sent,
                                meta->rdptr, meta->fill);
     if (cnt > 0) {
       sent += cnt;
     } else {
       /* ERROR: Sleep a bit and try again */
-      /* To be on the safe side, we rewind to the beginning of the 
+      /* To be on the safe side, we rewind to the beginning of the
        * chain and try to resend everything - this is especially important
        * if the underlying stream needs to reopen and resync.
        */

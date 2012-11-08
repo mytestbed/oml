@@ -92,11 +92,10 @@ mbuf_create2 (size_t buffer_length, size_t min_resize)
   mbuf->min_resize = min_resize > 0 ? min_resize : DEF_MIN_BUF_RESIZE;
   mbuf->base = xmalloc (mbuf->length);
 
-  if (mbuf->base == NULL)
-    {
-      xfree (mbuf);
-      return NULL;
-    }
+  if (mbuf->base == NULL) {
+    xfree (mbuf);
+    return NULL;
+  }
 
   mbuf->rdptr = mbuf->base;
   mbuf->wrptr = mbuf->base;
@@ -120,6 +119,11 @@ mbuf_create2 (size_t buffer_length, size_t min_resize)
 void
 mbuf_destroy (MBuffer* mbuf)
 {
+  if(!mbuf)
+    return;
+
+  logdebug("Destroying MBuffer %p\n", mbuf);
+
   xfree (mbuf->base);
   xfree (mbuf);
 }

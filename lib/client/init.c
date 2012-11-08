@@ -268,46 +268,47 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   return 0;
 }
 
-/**
- * @brief Register a measurement point. Needs to be called for every measurment point AFTER +omlc_init+ and before a final +omlc_start+.
- * @param  mp_name the name of the measurement point
- * @param mp_def the definition of the set of measurements in this measurement point
- * @return a new measurement point
+/** Register a measurement point.
+ *
+ * Needs to be called for every measurment point AFTER omlc_init and before a
+ * final omlc_start.
+ *
+ * \param  mp_name the name of the measurement point
+ * \param mp_def the definition of the set of measurements in this measurement point
+ * \return a new measurement point
  */
-OmlMP*
-omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
+OmlMP* omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 {
   if (omlc_instance == NULL) return NULL;
-  if (!validate_name (mp_name))
-    {
-      logerror("Found illegal MP name '%s'.  MP will not be created\n", mp_name);
-      return NULL;
-    }
+  if (!validate_name (mp_name)) {
+    logerror("Found illegal MP name '%s'.  MP will not be created\n", mp_name);
+    return NULL;
+  }
 
-  OmlMP* mp = (OmlMP*)malloc(sizeof(OmlMP));
+  OmlMP* mp = (OmlMP*)xmalloc(sizeof(OmlMP));
   memset(mp, 0, sizeof(OmlMP));
 
   mp->name = mp_name;
   mp->param_defs = mp_def;
   int pc = 0;
   OmlMPDef* dp = mp_def;
-  while (dp != NULL && dp->name != NULL)
-    {
-      if (dp->param_types == OML_LONG_VALUE)
-        {
-          logwarn("MP '%s', field '%s': OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead; "
-              "values outside of [INT_MIN, INT_MAX] will be clamped\n",
-              mp->name, dp->name);
-        }
-      if (!validate_name (dp->name)) {
-        logerror ("Found illegal field name '%s' in MP '%s'.  MP will not be created\n",
-                  dp->name, mp_name);
-        free (mp);
-        return NULL;
-      }
-      pc++;
-      dp++;
+  while (dp != NULL && dp->name != NULL) {
+    if (dp->param_types == OML_LONG_VALUE) {
+      logwarn("MP '%s', field '%s': OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead; "
+          "values outside of [INT_MIN, INT_MAX] will be clamped\n",
+          mp->name, dp->name);
     }
+
+    if (!validate_name (dp->name)) {
+      logerror ("Found illegal field name '%s' in MP '%s'.  MP will not be created\n",
+          dp->name, mp_name);
+      xfree (mp);
+      return NULL;
+    }
+
+    pc++;
+    dp++;
+  }
   mp->param_count = pc;
   mp->active = 1;  // True if there is an attached MS.
   mp->next = omlc_instance->mpoints;
@@ -316,11 +317,43 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
   return mp;
 }
 
+/** Destroy MP
+ *
+ * This function is designed so it can be used in a while loop to clean up the
+ * entire linked list:
+ *
+ *   while( (mp=destroy_mp(mp)) );
+ *
+ * \param mp pointer to the OmlMP to free
+ * \return mp->next (can be NULL)
+ */
+OmlMP *destroy_mp(OmlMP *mp)
+{
+  OmlMP *next;
+  OmlMStream *ms;
+
+  if(!mp)
+    return NULL;
+
+  logdebug("Destroying MP %s at %p\n", mp->name, mp);
+
+  next = mp->next;
+
+  if (!mp_lock(mp)) {
+    mp->active = 0;
+    ms = mp->streams;
+    while( (ms=destroy_ms(ms)) );
+    mp_unlock(mp);
+  }
+
+  return next;
+}
+
 /**
  * @brief Finalizes inital configurations and get ready for consecutive +omlc_process+ calls
  * @return 0 if successful, <0 otherwise
  */
-int
+  int
 omlc_start()
 {
   if (omlc_instance == NULL) return -1;
@@ -357,22 +390,22 @@ omlc_start()
  * @brief Close the oml process
  * @param signum the signal number
  */
-static void
+  static void
 termination_handler(int signum)
 {
   // SIGPIPE is handled by disabling the writer that caused it.
   if (signum != SIGPIPE)
-    {
-      logdebug("Closing OML (%d)\n", signum);
-      omlc_close();
-      exit(-1 * signum);
-    }
+  {
+    logdebug("Closing OML (%d)\n", signum);
+    omlc_close();
+    exit(-1 * signum);
+  }
 }
 
 /**
  * @brief start the signal handler
  */
-static void
+  static void
 install_close_handler(void)
 {
   struct sigaction new_action, old_action;
@@ -399,29 +432,22 @@ install_close_handler(void)
     sigaction (SIGPIPE, &new_action, NULL);
 }
 
-/**
- * @brief Finalizes all open connections. Any futher calls to +omlc_process+ are being ignored
- * @return -1 if fails
+/** Finalizes all open connections. Any futher calls to +omlc_process+ are
+ * being ignored
+ *
+ * \return -1 if fails
  */
-int
-omlc_close(void)
+int omlc_close(void)
 {
+
   if (omlc_instance == NULL) return -1;
 
   OmlWriter* w = omlc_instance->first_writer;
   OmlMP* mp = omlc_instance->mpoints;
   omlc_instance = NULL;
 
-  for (; mp != NULL; mp = mp->next) {
-    if (!mp_lock(mp)) {
-      mp->active = 0;
-      mp_unlock(mp);
-    }
-  }
-
-  for (; w != NULL; w = w->next) {
-    if (w->close != NULL) w->close(w);
-  }
+  while( (mp = destroy_mp(mp)) );
+  while( (w =  w->close(w)) );
 
   xmemreport(O_LOG_DEBUG);
 
@@ -781,15 +807,14 @@ find_mstream (const char *name)
   return ms;
 }
 
-/**
- * @brief Create a new stream of measurement samples from the inputs
+/** Create a new stream of measurement samples from the inputs
  * to a given MP.
  *
- * @param sample_interval the sample interval for the filter
- * @param sample_thres the threshold for the filter
- * @param mp the measurement point
- * @param writer the destination for the stream output samples
- * @return the new measurement stream, or NULL if an error occurred.
+ * \param sample_interval the sample interval for the filter
+ * \param sample_thres the threshold for the filter
+ * \param mp the measurement point
+ * \param writer the destination for the stream output samples
+ * \return the new measurement stream, or NULL if an error occurred.
  */
 OmlMStream*
 create_mstream (const char *name,
@@ -800,7 +825,13 @@ create_mstream (const char *name,
 {
   if (!mp || !writer)
     return NULL;
-  OmlMStream* ms = (OmlMStream*)malloc(sizeof(OmlMStream));
+
+  OmlMStream* ms = (OmlMStream*)xmalloc(sizeof(OmlMStream));
+  if(!ms) {
+    logerror("Cannot allocate memory for MS %s\n", name);
+    return NULL;
+  }
+
   MString *namestr = mstring_create();
   char *stream_name = NULL;
   memset(ms, 0, sizeof(OmlMStream));
@@ -827,7 +858,7 @@ create_mstream (const char *name,
               ? " Choose another name in the <stream name=\"...\"> attribute."
               : " Consider using the <stream name=\"...\"> attribute.");
 
-    free (ms);
+    destroy_ms (ms);
     mstring_delete (namestr);
     return NULL;
   }
@@ -848,6 +879,36 @@ create_mstream (const char *name,
     ms->sample_thres = sample_thres;
   }
   return ms;
+}
+
+/** Destroy a Measurement Stream, and deep free allocated memory (filters.
+ *
+ * This function is designed so it can be used in a while loop to clean up the
+ * entire linked list:
+ *
+ *   while( (ms=destroy_ms(ms)) );
+ *
+ * \param ms pointer to the OmlMStream to free
+ * \return ms->next (can be NULL)
+ */
+OmlMStream *destroy_ms(OmlMStream *ms)
+{
+  OmlMStream *next;
+  OmlFilter *ft;
+
+  if(!ms)
+    return NULL;
+
+  logdebug("Destroying MS %s at %p\n", ms->table_name, ms);
+
+  next = ms->next;
+  ft = ms->filters;
+
+  while( (ft = destroy_filter(ft)) );
+
+  xfree(ms);
+
+  return next;
 }
 /**
  *
@@ -872,14 +933,10 @@ default_configuration(void)
 
   OmlMP* mp = omlc_instance->mpoints;
   while (mp != NULL) {
-    OmlMStream* ms = create_mstream (NULL, mp, writer, sample_interval, sample_count );
-    if (ms) {
-      mp->streams = ms;
-      ms->mp = mp;
-      create_default_filters(mp, ms);
-      if (sample_interval > 0)
-        filter_engine_start(ms);
-    }
+    mp->streams = create_mstream (NULL, mp, writer, sample_interval, sample_count );
+    create_default_filters(mp, mp->streams);
+    if (sample_interval > 0)
+      filter_engine_start(mp->streams);
     mp = mp->next;
   }
   return 0;
@@ -892,6 +949,9 @@ default_configuration(void)
 void
 create_default_filters(OmlMP *mp, OmlMStream *ms)
 {
+  if(!mp || !ms)
+    return;
+
   int param_count = mp->param_count;
 
   int j;
@@ -987,7 +1047,7 @@ write_schema(OmlMStream *ms, int index)
   char s[DEFAULT_SCHEMA_LENGTH];
   const size_t bufsize = sizeof (s) / sizeof (s[0]);
   size_t schema_size = DEFAULT_SCHEMA_LENGTH;
-  char* schema = (char*)malloc (schema_size * sizeof (char));
+  char* schema;
   size_t count = 0;
   size_t n = 0;
   OmlWriter* writer = ms->writer;
@@ -995,12 +1055,11 @@ write_schema(OmlMStream *ms, int index)
   ms->index = index;
   n = snprintf(s, bufsize, "schema: %d %s ", ms->index, ms->table_name);
 
-  if (n >= bufsize)
-    {
-      logerror("Schema generation failed because the following table name was too long: %s\n", ms->table_name);
-      free (schema);
-      return -1;
-    }
+  if (n >= bufsize) {
+    logerror("Schema generation failed because the following table name was too long: %s\n", ms->table_name);
+    return -1;
+  }
+  schema = (char*)xmalloc (schema_size * sizeof (char));
 
   strncpy (schema, s, n + 1);
   count += n;
@@ -1021,22 +1080,20 @@ write_schema(OmlMStream *ms, int index)
           n = snprintf(s, bufsize, "%s_%s:%s ", prefix, name, type_s);
         }
 
-        if (n >= bufsize)
-          {
+        if (n >= bufsize) {
             logerror("One of the schema entries for table %s was too long:\n\t%s\t%s\n",
                    prefix, type_s);
-            free (schema);
+            xfree (schema);
             return -1;
-          }
+        }
 
-        if (count + n >= schema_size)
-          {
+        if (count + n >= schema_size) {
             schema_size += DEFAULT_SCHEMA_LENGTH;
-            char* new = (char*)malloc (schema_size * sizeof (char));
+            char* new = (char*)xmalloc (schema_size * sizeof (char));
             strncpy (new, schema, count);
-            free (schema);
+            xfree (schema);
             schema = new;
-          }
+        }
         strncpy (&schema[count], s, n + 1);
         count += n;
       } else {
@@ -1047,7 +1104,7 @@ write_schema(OmlMStream *ms, int index)
     }
   }
   writer->meta(writer, schema);
-  free (schema);
+  xfree (schema);
   return 0;
 }
 
@@ -1126,7 +1183,7 @@ setup_features (const char * const features)
   }
 }
 
-/* 
+/*
  * Generate default file name to use when no output parameters are given.
  *
  * @param app_ame	the name of the application

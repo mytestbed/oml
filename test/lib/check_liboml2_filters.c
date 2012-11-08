@@ -101,7 +101,7 @@ START_TEST (test_filter_create)
   fail_unless (f->index == 2);
   fail_unless (f->input_type == OML_INT32_VALUE);
 
-  fail_unless (destroy_filter(f) == 0);
+  fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
 
@@ -133,7 +133,7 @@ START_TEST (test_filter_avg_create)
   fail_unless (data->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, data->sample_min);
   fail_unless (data->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, data->sample_max);
 
-  fail_unless (destroy_filter(f) == 0);
+  fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
 
@@ -171,7 +171,7 @@ START_TEST (test_filter_avg_output)
   fail_unless (instdata->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, instdata->sample_min);
   fail_unless (instdata->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, instdata->sample_max);
 
-  fail_unless (destroy_filter(f) == 0);
+  fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
 /********************************************************************************/
@@ -198,7 +198,7 @@ START_TEST (test_filter_first_create)
   // Sample count and accumulator should be 0; min and max should be v. -ve and v. +ve respectively.
   fail_unless (data->is_first == 1);
 
-  fail_unless (destroy_filter(f) == 0);
+  fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
 
@@ -231,7 +231,7 @@ START_TEST (test_filter_hist_create)
   fail_unless (data->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, data->sample_min);
   fail_unless (data->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, data->sample_max);
 
-  fail_unless (destroy_filter(f) == 0);
+  fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
 
@@ -261,7 +261,7 @@ START_TEST(test_filter_stddev_create)
   fail_unless (data->s == 0);
   fail_unless (data->sample_count == 0);
 
-  fail_unless (destroy_filter(f) == 0);
+  fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
 
@@ -328,7 +328,7 @@ START_TEST (test_filter_sum_create)
   // Sample count should be 0.
   fail_unless (data->sample_sum == 0);
 
-  fail_unless (destroy_filter(f) == 0);
+  fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
 
@@ -364,7 +364,7 @@ START_TEST (test_filter_sum_output)
 
   run_filter_test (data, f);
 
-  fail_unless (destroy_filter(f) == 0);
+  fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
 
@@ -394,7 +394,7 @@ START_TEST (test_filter_delta_create)
   fail_unless (data->previous == 0);
   fail_unless (data->current == 0);
 
-  fail_unless (destroy_filter(f) == 0);
+  fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
 
@@ -430,7 +430,7 @@ START_TEST (test_filter_delta_output)
 
   run_filter_test (data, f);
 
-  fail_unless (destroy_filter(f) == 0);
+  fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
 

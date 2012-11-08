@@ -44,9 +44,7 @@ create_filter(
     int         index
 );
 
-int destroy_filter(
-    OmlFilter* f
-);
+OmlFilter *destroy_filter(OmlFilter* f);
 
 #endif /* OML_FILTER_FACTORY_H_ */
 

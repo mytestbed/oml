@@ -78,14 +78,17 @@ typedef int
   int        values_count    //! size of above array
 );
 
-/*! Called to close the writer.
+/** Called to close the writer and free its allocated objects.
  *
- * Return 0 on success, -1 otherwise
+ * This function is designed so it can be used in a while loop to clean up the
+ * entire linked list:
+ *
+ *   while( (w=w->close(w)) );
+ *
+ * \param writer pointer to the writer to close and destroy
+ * \return a pointer to the next writer in the list (writer->next, which can be NULL)
  */
-typedef int
-(*oml_writer_close)(
-  struct _omlWriter* writer //! pointer to writer instance
-);
+typedef struct _omlWriter* (*oml_writer_close)(struct _omlWriter* writer);
 
 /**
  * \struct

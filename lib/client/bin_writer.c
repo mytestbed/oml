@@ -81,7 +81,7 @@ static int header_done(OmlWriter* writer);
 static int row_start(OmlWriter* writer, OmlMStream* ms, double now);
 static int row_cols(OmlWriter* writer, OmlValue* values, int value_count);
 static int row_end(OmlWriter* writer, OmlMStream* ms);
-static int close(OmlWriter* writer);
+static OmlWriter *close(OmlWriter* writer);
 
 
 
@@ -97,7 +97,7 @@ bin_writer_new(
 ) {
   assert(out_stream != NULL);
 
-  OmlBinProtoWriter* self = (OmlBinProtoWriter *)malloc(sizeof(OmlBinProtoWriter));
+  OmlBinProtoWriter* self = (OmlBinProtoWriter *)xmalloc(sizeof(OmlBinProtoWriter));
   memset(self, 0, sizeof(OmlBinProtoWriter));
 
   self->bufferedWriter = bw_create(out_stream->write, out_stream, omlc_instance->max_queue, 0);
@@ -222,15 +222,32 @@ int row_end(OmlWriter* writer, OmlMStream* ms) {
   return 1;
 }
 
-static int
-close(OmlWriter* writer)
+/** Close the binary writer and free data structures.
+ *
+ * This function is designed so it can be used in a while loop to clean up the
+ * entire linked list:
+ *
+ *   while( (w=w->close(w)) );
+ *
+ * \param writer pointer to the writer to close
+ * \return w->next (can be null)
+ */
+static OmlWriter *close(OmlWriter* writer)
 {
+  OmlWriter *next;
+
+  if(!writer)
+    return NULL;
+
   OmlBinProtoWriter *self = (OmlBinProtoWriter*) writer;
+
+  next = self->next;
 
   // Blocks until the buffered writer drains
   bw_close (self->bufferedWriter);
+  xfree(self);
 
-  return 1;
+  return next;
 }
 
 

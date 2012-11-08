@@ -77,14 +77,11 @@ OmlMStream *find_mstream_in_mp (const char *name, OmlMP *mp);
 
 MString *mp_fields_summary (OmlMP *mp);
 
-OmlMStream*
-create_mstream(
-    const char * name,
-    OmlMP*     mp,
-    OmlWriter* writer,
-    double     sample_interval,
-    int        sample_thres
-);
+/* MPs are created by omlc_add_mp() */
+OmlMP *destroy_mp(OmlMP *mp);
+
+OmlMStream *create_mstream( const char * name, OmlMP* mp, OmlWriter* writer, double sample_interval, int sample_thres);
+OmlMStream *destroy_ms(OmlMStream *ms);
 
 void
 create_default_filters(
