@@ -92,19 +92,25 @@ rm -rf %{buildroot}
 #/usr/share/oml2/oml4r/oml4r-wlanconfig.rb
 #/usr/share/oml2/oml4r/oml4r-simple-example.rb
 #/usr/share/oml2/oml4r/oml4r-%{version}.dirty.gem
-%doc /usr/share/man/man1/oml2_scaffold.1.gz
 %doc /usr/share/man/man1/oml2-scaffold.1.gz
+%doc /usr/share/man/man1/oml2_scaffold.1.gz
 %doc /usr/share/man/man3/liboml2.3.gz
-%doc /usr/share/man/man3/oml_inject_MPNAME.3.gz
 %doc /usr/share/man/man3/omlc_add_mp.3.gz
 %doc /usr/share/man/man3/omlc_close.3.gz
+%doc /usr/share/man/man3/omlc_copy_blob.3.gz
+%doc /usr/share/man/man3/omlc_copy_string.3.gz
 %doc /usr/share/man/man3/omlc_init.3.gz
 %doc /usr/share/man/man3/omlc_inject.3.gz
-%doc /usr/share/man/man3/omlc_set_const_string.3.gz
+%doc /usr/share/man/man3/omlc_reset_blob.3.gz
+%doc /usr/share/man/man3/omlc_reset_string.3.gz
+%doc /usr/share/man/man3/omlc_set_blob.3.gz
 %doc /usr/share/man/man3/omlc_set_double.3.gz
-%doc /usr/share/man/man3/omlc_set_int32.3.gz
 %doc /usr/share/man/man3/omlc_set_int64.3.gz
 %doc /usr/share/man/man3/omlc_set_string.3.gz
-%doc /usr/share/man/man3/omlc_set_uint32.3.gz
+%doc /usr/share/man/man3/omlc_set_string_copy.3.gz
 %doc /usr/share/man/man3/omlc_set_uint64.3.gz
 %doc /usr/share/man/man3/omlc_start.3.gz
+%doc /usr/share/man/man3/omlc_zero.3.gz
+%doc /usr/share/man/man3/omlc_zero_array.3.gz
+%doc /usr/share/man/man3/oml_inject_MPNAME.3.gz
+%doc /usr/share/man/man3/OmlValueU.3.gz
