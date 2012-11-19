@@ -4,25 +4,25 @@ ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 info_TEXINFOS = oml-user-manual.texinfo
 
 DATE=`date "+%Y-%m-%d"`
-MAN1_FILES= \
-	oml2-server.txt \
-	oml2-proxy-server.txt \
-	liboml2.txt \
-	oml2-scaffold.txt
-
-MAN3_FILES= \
-	omlc_init.txt \
-	omlc_add_mp.txt \
-	omlc_start.txt \
-	omlc_inject.txt \
-	omlc_close.txt \
-	OmlValueU.txt
+ALL_MAN_FILES= \
+	liboml2.1.txt \
+	oml2-server.1.txt \
+	oml2-proxy-server.1.txt \
+	oml2-scaffold.1.txt \
+	liboml2.3.txt \
+	omlc_init.3.txt \
+	omlc_add_mp.3.txt \
+	omlc_start.3.txt \
+	omlc_inject.3.txt \
+	omlc_close.3.txt \
+	OmlValueU.3.txt \
+	liboml2.conf.5.txt
 
 OMLVALUE3_LINKS= \
 	omlc_zero.3 \
 	omlc_zero_array.3 \
 	omlc_set_int32.33 \
-	omlc_set_uint32.33 \
+	omlc_set_uint32.3 \
 	omlc_set_int64.3 \
 	omlc_set_uint64.3 \
 	omlc_set_double.3 \
@@ -34,23 +34,14 @@ OMLVALUE3_LINKS= \
 	omlc_copy_blob.3 \
 	omlc_reset_blob.3
 
-MAN5_FILES= \
-	liboml2.conf.txt
-
-REGULAR_MAN_FILES = $(MAN1_FILES) $(MAN3_FILES) $(MAN5_FILES)
-ALL_MAN_FILES = $(REGULAR_MAN_FILES) \
-		liboml2-api.txt
-
-html_docs = $(REGULAR_MAN_FILES:.txt=.html) liboml2-api.html
+html_docs = $(ALL_MAN_FILES:.txt=.html)
 
 EXTRA_DIST=$(ALL_MAN_FILES) \
 	   bugs.txt \
 	   manual.txt \
 	   doxygen.am Doxyfile
-CLEANFILES=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
-	liboml2.3 \
-	oml2_scaffold.1 \
 	$(OMLVALUE3_LINKS) \
+	oml2_scaffold.1 \
 	oml_inject_MPNAME.3 \
 	$(html_docs)
 
@@ -71,28 +62,12 @@ endif
 A2X_ARGS = --destination-dir=. -f manpage $(ASCIIDOC_ARGS) --attribute='date=$(DATE)'
 
 if HAVE_A2X
-man_MANS = $(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
-	liboml2.3 \
+man_MANS = $(ALL_MAN_FILES:.txt=) \
 	$(OMLVALUE3_LINKS) \
-	oml_inject_MPNAME.3 \
-	oml2_scaffold.1
+	oml2_scaffold.1 \
+	oml_inject_MPNAME.3
 
-$(MAN1_FILES:.txt=.1):  %.1: %.txt bugs.txt manual.txt
-	$(A2X) $(A2X_ARGS) $<
-	export XMLOUT=`echo $< | sed s/.txt$$/.xml/`; \
-	       test -f $${XMLOUT} && rm $${XMLOUT} || true
-
-liboml2.3: liboml2-api.txt bugs.txt manual.txt
-	$(A2X) $(A2X_ARGS) $<
-	export XMLOUT=`echo $< | sed s/.txt$$/.xml/`; \
-	       test -f $${XMLOUT} && rm $${XMLOUT} || true
-
-$(MAN3_FILES:.txt=.3):  %.3: %.txt bugs.txt manual.txt
-	$(A2X) $(A2X_ARGS) $<
-	export XMLOUT=`echo $< | sed s/.txt$$/.xml/`; \
-	       test -f $${XMLOUT} && rm $${XMLOUT} || true
-
-$(MAN5_FILES:.txt=.5):  %.5: %.txt bugs.txt manual.txt
+$(ALL_MAN_FILES:.txt=):  %: %.txt bugs.txt manual.txt
 	$(A2X) $(A2X_ARGS) $<
 	export XMLOUT=`echo $< | sed s/.txt$$/.xml/`; \
 	       test -f $${XMLOUT} && rm $${XMLOUT} || true
@@ -106,14 +81,13 @@ $(OMLVALUE3_LINKS):
 oml_inject_MPNAME.3:
 	echo ".so man3/liboml2.3" > $@
 #  - oml2_scaffold (renamed to oml2-scaffold)
-oml2_scaffold.1:	oml2-scaffold.txt
+oml2_scaffold.1:
 	echo ".so man1/oml2-scaffold.1" > $@
 
-EXTRA_DIST+=$(MAN1_FILES:.txt=.1) $(MAN3_FILES:.txt=.3) $(MAN5_FILES:.txt=.5) \
-	liboml2.3 \
+EXTRA_DIST+=$(ALL_MAN_FILES:.txt=)  \
 	$(OMLVALUE3_LINKS) \
-	oml_inject_MPNAME.3 \
-	oml2_scaffold.1
+	oml2_scaffold.1 \
+	oml_inject_MPNAME.3
 
 else #!HAVE_A2X
 	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
