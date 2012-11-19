@@ -616,7 +616,7 @@ socket_sendto(
             self->name, strerror(errno));
       return 0;
     } else {
-      o_log(O_LOG_ERROR, "socket:%s: Sending to multicast channel failed: %s\n",
+      o_log(O_LOG_ERROR, "socket(%s): Sending data failed: %s\n",
             self->name, strerror(errno));
     }
     return -1;

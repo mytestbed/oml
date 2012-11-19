@@ -328,7 +328,11 @@ module OML4R
     end
 
     def self._create(key, domain, url)
-      #oml_opts = {:domain => 'image_load', :node_id => 'n1', :app_name => 'img_load'}
+      out = _connect(url)
+      @@channels[key] = self.new(url, domain, out)
+    end
+    
+    def self._connect(url)
       if url.start_with? 'file:'
 	proto, fname = url.split(':')
 	out = (fname == '-' ? $stdout : File.open(fname, "w+"))
@@ -340,8 +344,7 @@ module OML4R
       else
 	raise "OML4R: Unknown transport in server url '#{url}'"
       end
-      #$stderr.puts "Created channel for '#{key}'"
-      @@channels[key] = self.new(url, domain, out)
+      out
     end
 
     def self.[](name = :default, domain = :default)
@@ -371,9 +374,6 @@ module OML4R
 	klass.__print_meta__(appName)
       end
 
-      # add empty line to separate header form MP channel
-      @@channels.values.each { |c| c.send "\n" }
-
       MPBase.__useOML__()
     end
 
@@ -393,7 +393,7 @@ module OML4R
 	line << "#{d[:name]}:#{d[:type]}"
       end
       msg = line.join(' ')
-      send msg
+      @header << msg
       @index
     end
 
@@ -416,23 +416,26 @@ module OML4R
       @url = url
       @out = out_channel
       @index = 0
+      @header = []
+      @header_sent = false      
       @queue = Queue.new
       start_runner
     end
 
 
     def send_protocol_header(nodeID, appName, startTime)
-      @queue.push "protocol: #{PROTOCOL}"
+      @header << "protocol: #{PROTOCOL}"
       d = (@domain == :default) ? @@default_domain : @domain
       raise "Missing domain name" unless d
-      @queue.push "experiment-id: #{d}"
-      @queue.push "start_time: #{startTime.tv_sec}"
-      @queue.push "sender-id: #{nodeID}"
-      @queue.push "app-name: #{appName}"
-      @queue.push "content: text"
+      @header << "experiment-id: #{d}"
+      @header << "start_time: #{startTime.tv_sec}"
+      @header << "sender-id: #{nodeID}"
+      @header << "app-name: #{appName}"
+      @header << "content: text"
     end
 
     def start_runner
+      header_sent = false
       @runner = Thread.new do
 	active = true
 	begin
@@ -450,15 +453,51 @@ module OML4R
 	      msg = ma.join("\n")
 	    end
 	    #$stderr.puts ">>>>>>#{@domain}: <#{msg}>"
-	    @out.puts msg unless msg.nil?
-	    @out.flush
+            unless msg.nil?
+              _send msg 
+            end
 	  end
+          puts ">> CLOSE"
 	  @out.close
 	  @out = nil
 	rescue Exception => ex
-	  msg = "Exception while sending message to channel '#{@url}' (#{ex})"
+          msg = "Exception while sending message to channel '#{@url}' (#{ex.class})"
 	  Object.const_defined?(:MObject) ? MObject.warn(:oml4r, msg) : $stderr.puts("INFO	#{msg}")
 	end
+        info "Channel #{url} closed"
+      end
+    end
+    
+    def info(msg)
+      Object.const_defined?(:MObject) ? MObject.warn(:oml4r, msg) : $stderr.puts("INFO        #{msg}")
+    end
+    
+    def _send(msg)
+      begin
+        unless @header_sent
+          h = "#{@header.join("\n")}\n\n"
+          puts "'#{h}'"
+          @out.puts h
+          @header_sent = true
+        end
+        @out.puts msg 
+        @out.flush
+
+      rescue Errno::EPIPE
+        # Trying to reconnect
+        info "Trying to reconnect to '#{@url}'"
+        loop do 
+          sleep 5
+          begin
+            @out = self.class._connect(@url)
+            @header_sent = false
+            info "Reconnected to '#{@url}'"            
+            return _send(msg)
+          rescue Errno::ECONNREFUSED => ex
+            info "Exception while reconnect '#{@url}' (#{ex.class})"
+          end
+          #Errno::ECONNREFUSED
+        end
       end
     end
 
