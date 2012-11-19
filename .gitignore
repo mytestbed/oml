@@ -51,3 +51,6 @@ build-aux
 !build-aux/gen-authors.sh
 .version
 p-*
+doc/mainpage.md
+doc/install.md
+doc/example.md

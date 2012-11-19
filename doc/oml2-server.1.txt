@@ -130,7 +130,7 @@ ifdef::have_pg[]
 You can create this user in PostgreSQL as follows.
 +
 --------------------------
-  createuser  --no-createdb --pwprompt --no-createrole --no-superuser --no-replication oml
+  createuser -U postgres --pwprompt --no-superuser --createdb --no-createrole --no-replication oml
 --------------------------
 +
 Doing so will ask you to enter and confirm the password for this

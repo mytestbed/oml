@@ -34,16 +34,44 @@ OMLVALUE3_LINKS= \
 	omlc_copy_blob.3 \
 	omlc_reset_blob.3
 
+# Doxygen is a bit braindamages and doesn't seem to be able to either
+# * parse file with no extension as something else than C
+# * include and parse contents from another file
+# On the plus side, this gives us an opportunity to do some search/replace
+# and avoid poluting the human-readable source files while providing nice
+# Doxygen links.
+# Note: doxygen.am has been modified so @DX_DOCDIR@/@PACKAGE@.tag depends on $(DX_EXTRA_DOC)
+DX_EXTRA_DOC = mainpage.md install.md example.md
+define README-mdfy
+	sed -e '1s/$$/\t{$1}/' \
+		-e 's^\([^/]\)README^\1[README](@ref index)^g' \
+		-e 's^INSTALL^[&](@ref install)^g' \
+		-e 's^example/liboml2/README^[&](@ref example)^' \
+		-e 's/OML4R/[&](@ref oml4rdoc)/g' \
+		-e 's/OML4Py/[&](@ref oml4pydoc)/g' \
+		-e '/^    /!s^\(\(lib\)\?[Oo]ml[-.a-zA-Z1-9]\+\)(\([0-9]\))^[&](http://oml.mytestbed.net/doc/oml/$(VERSION)/\1.\3.html)^g'
+endef
+mainpage.md: $(top_srcdir)/README
+	$(call README-mdfy,#mainpage) $< > $@
+install.md: $(top_srcdir)/INSTALL
+	$(call README-mdfy,#install) $< > $@
+example.md: $(top_srcdir)/example/liboml2/README
+	$(call README-mdfy,#example) $< > $@
+
 html_docs = $(ALL_MAN_FILES:.txt=.html)
 
 EXTRA_DIST=$(ALL_MAN_FILES) \
 	   bugs.txt \
 	   manual.txt \
 	   doxygen.am Doxyfile
+CLEANFILES=$(ALL_MAN_FILES:.txt=) \
+	liboml2.3 \
+	oml2_scaffold.1 \
 	$(OMLVALUE3_LINKS) \
 	oml2_scaffold.1 \
 	oml_inject_MPNAME.3 \
-	$(html_docs)
+	$(html_docs) \
+	$(DX_EXTRA_DOC)
 
 MOSTLYCLEANFILES=$(DX_CLEANFILES)
 

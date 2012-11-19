@@ -1,52 +1,44 @@
-===========
-OML4PY
-===========
+OML4Py: Native OML Implementation in Python			{#oml4pydoc}
+===========================================
 
 This is a Python module for the OML measurement library based on the OML text
-protocol: http://mytestbed.net/projects/oml/wiki/Description_of_Text_protocol
+protocol [1].
 
 Installation
--------------
+------------
 
-Install using pip::
+Install using pip [2] ::
 
-    pip install oml4py
+    $ pip install oml4py
 
 or download the package and run::
 
-    python setup.py install
+    $ python setup.py install
 
 
 Usage
--------------
+-----
 
 This module provides the OMLBase class, which contains the following methods:
 
 * init
-
 * start
-
 * addmp
-
 * inject
-
 * close
 
 
 To use OML in a python project, import the OMLBase class::
 
-   from oml4py import OMLBase
+    from oml4py import OMLBase
 
 Start by initializing an OMLBase object. The init method takes up to four
 arguments:
 
-*  the name of the application,
-
-*  the name of the experiment,
-
-*  the name of the node,
-
-*  and the OML server URI in the form ``tcp:hostname:port``
+* the name of the application,
+* the name of the experiment,
+* the name of the node,
+* and the OML server URI in the form ``tcp:hostname:port``
 
 
 For example::
@@ -78,8 +70,44 @@ When you have a measurement point to send to OML, store them in a list.
 Then pass the name of the measurement point and list of values to inject,
 as follows::
 
-   x.inject("fft", [259888, 15, -38])
+    x.inject("fft", [259888, 15, -38])
 
 At the end of your program, call close to gracefully close the database::
 
-   x.close()
+    x.close()
+
+
+[0]: "Description of the OML Text Protocol" http://oml.mytestbed.net/projects/oml/wiki/Description_of_Text_protocol
+[1]: "oml4py: Python Package Index" http://pypi.python.org/pypi/oml4py/
+
+Authors
+-------
+
+OML4Py was contributed by Fraida Fund, from NYU-Poly.
+
+License
+-------
+
+Copyright 2012 NYU-Poly, Fraida Fund  
+Copyright 2012 National ICT Australia (NICTA), Australia
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+[1]: http://oml.mytestbed.net/projects/oml/wiki/Description_of_Text_protocol
+[2]: http://pypi.python.org/pypi/oml4py/
