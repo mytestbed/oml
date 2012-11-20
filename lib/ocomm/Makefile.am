@@ -18,6 +18,4 @@ libocomm_la_SOURCES = \
 
 libocomm_la_LIBADD = $(PTHREAD_LIBS)
 
-# To quote the APR build scripts:
-#    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiosyncrasy"
-libocomm_la_LDFLAGS = -version-info $(OML_VER_MINOR_LT):$(OML_VER_PATCH_LT):$(OML_VER_MINOR_LT)
+libocomm_la_LDFLAGS = -version-info $(LIBOCOMM_LT_VER) -release $(VERSION)

@@ -166,8 +166,13 @@ if !GITISTAG
 	mv $(PKG_RPM_SPEC) $(PKG_RPM_SPEC).orig
 	cat $(PKG_RPM_SPEC).orig | \
 		$(SED) -e "s/^%define version.*/%define version	$(OML_ALT_VER)/" \
-			-e "s/^%define libmax.*/%define libmax $(OML_VER_MINOR_LT)/" \
-			-e "s/^%define libpatch.*/%define libpatch $(OML_VER_PATCH_LT)/" \
+		-e "s/^%define pkgver.*/%define pkgver $(VERSION)/" \
+		-e "s/^%define liboml2cur.*/%define liboml2cur $(LIBOML2_LT_VER_CUR)/" \
+		-e "s/^%define liboml2rev.*/%define liboml2rev $(LIBOML2_LT_VER_REV)/" \
+		-e "s/^%define liboml2age.*/%define liboml2age $(LIBOML2_LT_VER_AGE)/" \
+		-e "s/^%define libocommcur.*/%define libocommcur $(LIBOCOMM_LT_VER_CUR)/" \
+		-e "s/^%define libocommrev.*/%define libocommrev $(LIBOCOMM_LT_VER_REV)/" \
+		-e "s/^%define libocommage.*/%define libocommage $(LIBOCOMM_LT_VER_AGE)/" \
 		> $(PKG_RPM_SPEC)
 	rm $(PKG_RPM_SPEC).orig
 endif

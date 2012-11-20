@@ -50,9 +50,16 @@ AC_C_BIGENDIAN
 # Checks for libraries.
 missing_libs=""
 
-AC_SUBST([OML_VER_MINOR_LT], [`echo "$PACKAGE_VERSION" | awk -F. '{print $2}'`])
-AC_SUBST([OML_VER_PATCH_LT], [`echo "$PACKAGE_VERSION" | awk -F. '{print $3$4}' | sed -ne 's/[[^0-9]]*\([[0-9]]*\)[[^0-9]].*/\1/p'`])
 AC_SUBST([OML_ALT_VER], [`echo "$PACKAGE_VERSION" | sed s/-/./g`])
+
+AC_SUBST([LIBOML2_LT_VER_CUR], [9])
+AC_SUBST([LIBOML2_LT_VER_REV], [0])
+AC_SUBST([LIBOML2_LT_VER_AGE], [0])
+AC_SUBST([LIBOML2_LT_VER], [9]) dnl cur[:rev[:age]]
+AC_SUBST([LIBOCOMM_LT_VER_CUR], [1])
+AC_SUBST([LIBOCOMM_LT_VER_REV], [0])
+AC_SUBST([LIBOCOMM_LT_VER_AGE], [0])
+AC_SUBST([LIBOCOMM_LT_VER], [1])
 
 AC_SUBST([pkglocalstatedir], [${localstatedir}/${PACKAGE}])
 

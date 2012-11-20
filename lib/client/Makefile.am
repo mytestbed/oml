@@ -53,6 +53,4 @@ liboml2_la_LIBADD = \
 	$(top_builddir)/lib/shared/libshared.la \
 	$(XML2_LIBS) $(PTHREAD_LIBS) $(M_LIBS)
 
-# To quote the APR build scripts:
-#    "Yes, ${minor}:${patch}:${minor} is correct due to libtool idiosyncrasy"
-liboml2_la_LDFLAGS = -version-info $(OML_VER_MINOR_LT):$(OML_VER_PATCH_LT):$(OML_VER_MINOR_LT)
+liboml2_la_LDFLAGS = -version-info $(LIBOML2_LT_VER) -release $(VERSION)
