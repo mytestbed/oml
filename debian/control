@@ -9,7 +9,7 @@ Package: oml2-server
 Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
-Depends: ${misc:Depends}, libc6, libsqlite3-0, libpq5, libpopt0, libocomm0 (= ${Source-Version}), adduser
+Depends: ${misc:Depends}, libc6, libsqlite3-0, libpq5, libpopt0, libocomm1 (= ${Source-Version}), adduser
 Description: OML measurement server
  The OML server accepts connections from client applications and
  stores measurements that they transmit in a database.  Currently the
@@ -20,7 +20,7 @@ Package: oml2-proxy-server
 Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
-Depends: ${misc:Depends}, libc6, libpopt0, libocomm0 (= ${Source-Version})
+Depends: ${misc:Depends}, libc6, libpopt0, libocomm1 (= ${Source-Version})
 Description: OML proxy server
  The OML proxy server acts as a buffer for measurements.  It accepts
  connections from OML client applications and then stores them in
@@ -44,19 +44,19 @@ Section: libdevel
 Architecture: any
 Replaces: liboml-dev
 Breaks: liboml-dev (<< 2.4), oml-server (<< 2.4)
-Depends: liboml2-0 (= ${Source-Version}), libocomm-dev (= ${Source-Version}), ruby (>=1.8.7)
+Depends: liboml2-9 (= ${Source-Version}), libocomm-dev (= ${Source-Version}), ruby (>=1.8.7)
 Description: OML measurement library headers
  Development headers for developing applications that make
  measurements using liboml2, the client library for the OML
  measurement framework.  Also provides the oml2_scaffold program
  for generating skeleton OML application code.
 
-Package: liboml2-0
+Package: liboml2-9
 Section: libs
 Architecture: any
 Replaces: liboml
 Breaks: liboml (<< 2.4)
-Depends: libc6, libocomm0, libxml2, ${misc:Depends}
+Depends: libc6, libocomm1, libxml2, ${misc:Depends}
 Description: OML: The Orbit Measurement Library
  This library allows application writers to define customizable
  measurement points in their applications to record measurements
@@ -68,11 +68,11 @@ Section: libdevel
 Architecture: any
 Replaces: liboml-dev
 Breaks: liboml-dev (<< 2.4)
-Depends: libocomm0 (= ${Source-Version})
+Depends: libocomm1 (= ${Source-Version})
 Description: OML measurement library headers
  Development headers for developing applications that use libocomm.
 
-Package: libocomm0
+Package: libocomm1
 Section: libs
 Architecture: any
 Replaces: liboml

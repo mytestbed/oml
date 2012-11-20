@@ -58,14 +58,14 @@ install: build
 	mkdir -p $(CURDIR)/debian/oml2-server/usr/share/oml2-server
 	mkdir -p $(CURDIR)/debian/oml2-proxy-server/usr/bin
 	mkdir -p $(CURDIR)/debian/oml2-proxycon/usr/bin
-	mkdir -p $(CURDIR)/debian/liboml2-0/usr/lib
-	mkdir -p $(CURDIR)/debian/liboml2-0/usr/share/liboml2
+	mkdir -p $(CURDIR)/debian/liboml2-9/usr/lib
+	mkdir -p $(CURDIR)/debian/liboml2-9/usr/share/liboml2
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/include
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/lib
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/bin
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/share/liboml2-dev
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/share/man/man1
-	mkdir -p $(CURDIR)/debian/libocomm0/usr/lib
+	mkdir -p $(CURDIR)/debian/libocomm1/usr/lib
 	mkdir -p $(CURDIR)/debian/libocomm-dev/usr/lib
 	mkdir -p $(CURDIR)/debian/libocomm-dev/usr/include
 
@@ -88,16 +88,16 @@ install: build
 	mv $(CURDIR)/debian/tmp/usr/share/oml2/liboml2/ $(CURDIR)/debian/liboml2-dev/usr/share/liboml2-dev/
 	mv $(CURDIR)/debian/tmp/usr/share/man/man1/oml2?scaffold.1 $(CURDIR)/debian/liboml2-dev/usr/share/man/man1/
 
-	# Build the liboml2 package
-	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so.* $(CURDIR)/debian/liboml2-0/usr/lib/
-	mv $(CURDIR)/debian/tmp/usr/share/oml2/liboml2-conf/ $(CURDIR)/debian/liboml2-0/usr/share/liboml2/
+	# Build the liboml2-9 package
+	mv $(CURDIR)/debian/tmp/usr/lib/liboml2*.so.* $(CURDIR)/debian/liboml2-9/usr/lib/
+	mv $(CURDIR)/debian/tmp/usr/share/oml2/liboml2-conf/ $(CURDIR)/debian/liboml2-9/usr/share/liboml2/
 
-	# Build the libocomm0-dev package
+	# Build the libocomm-dev package
 	mv $(CURDIR)/debian/tmp/usr/include/ocomm $(CURDIR)/debian/libocomm-dev/usr/include/
 	mv $(CURDIR)/debian/tmp/usr/lib/libocomm.so $(CURDIR)/debian/libocomm-dev/usr/lib/
 
-	# Build the libocomm package
-	mv $(CURDIR)/debian/tmp/usr/lib/libocomm.so.* $(CURDIR)/debian/libocomm0/usr/lib/
+	# Build the libocomm1 package
+	mv $(CURDIR)/debian/tmp/usr/lib/libocomm*.so.* $(CURDIR)/debian/libocomm1/usr/lib/
 
 
 # Build architecture-independent files here.
