@@ -1,9 +1,13 @@
 %define name            oml2
-%define version         2.8.0
+%define version         2.9.0
+%define pkgver         2.9.0
 %define redmineid	709
-%define libmin		0
-%define libmax		8
-%define libpatch	0
+%define liboml2cur	9
+%define liboml2rev	0
+%define liboml2age	0
+%define libocommcur	1
+%define libocommrev	0
+%define libocommage	0
 
 # RPM 4.7 on our Jenkins instance does not seem to do this by default.
 %define __spec_install_post /usr/lib/rpm/brp-compress
@@ -59,12 +63,12 @@ rm -rf %{buildroot}
 /usr/bin/oml2-server
 /usr/lib/libocomm.a
 /usr/lib/libocomm.la
-/usr/lib/libocomm.so.%{libmin}
-/usr/lib/libocomm.so.%{libmin}.%{libmax}.%{libpatch}
+/usr/lib/libocomm-%{pkgver}.so.%{libocommcur}
+/usr/lib/libocomm-%{pkgver}.so.%{libocommcur}.%{libocommrev}.%{libocommage}
 /usr/lib/liboml2.a
 /usr/lib/liboml2.la
-/usr/lib/liboml2.so.%{libmin}
-/usr/lib/liboml2.so.%{libmin}.%{libmax}.%{libpatch}
+/usr/lib/liboml2-%{pkgver}.so.%{liboml2cur}
+/usr/lib/liboml2-%{pkgver}.so.%{liboml2cur}.%{liboml2rev}.%{liboml2age}
 /usr/share/oml2/oml2-server-hook.sh
 /usr/share/info/oml-user-manual.info.gz
 %doc /usr/share/man/man1/liboml2.1.gz
@@ -108,6 +112,7 @@ rm -rf %{buildroot}
 %doc /usr/share/man/man3/omlc_set_int64.3.gz
 %doc /usr/share/man/man3/omlc_set_string.3.gz
 %doc /usr/share/man/man3/omlc_set_string_copy.3.gz
+%doc /usr/share/man/man3/omlc_set_uint32.3.gz
 %doc /usr/share/man/man3/omlc_set_uint64.3.gz
 %doc /usr/share/man/man3/omlc_start.3.gz
 %doc /usr/share/man/man3/omlc_zero.3.gz
