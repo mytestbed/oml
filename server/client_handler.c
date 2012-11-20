@@ -301,14 +301,13 @@ process_schema(ClientHandler* self, char* value)
 #define MAX_PROTOCOL_VERSION OML_PROTOCOL_VERSION
 #define MIN_PROTOCOL_VERSION 1
 
-/**
- * \brief Process a singel key/value pair contained in the header
- * \param self the client handler
- * \param key the key
- * \param value the value
+/** Process a single key/value pair contained in the header.
+ * \functions process_meta
+ * \param self ClientHandler
+ * \param key key
+ * \param value value
  */
-  static void
-process_meta(ClientHandler* self, char* key, char* value)
+static void process_meta(ClientHandler* self, char* key, char* value)
 {
   chomp (value);
   logdebug("%s: Meta '%s:%s'\n", self->name, key, value);
@@ -333,6 +332,65 @@ process_meta(ClientHandler* self, char* key, char* value)
           self->name);
       self->state = C_PROTOCOL_ERROR;
     } else {
+
+      /** \page timestamps OML timestamping
+       *
+       * OML provides a timestamping mechanism based on each reporting node's
+       * time (`oml_ts_client`). Each server remaps the MSs they receive to an
+       * experiment-wide timebase (`oml_ts_server`) which allows some time
+       * comparisons to be made between measurements from different machines.
+       * This mechanism however does not remove the need for a good time
+       * synchronisation between the involved experimental nodes.
+       *
+       * Upon connection, the clients send headers to the server as key--value
+       * pairs. One of the keys is the `start-time` (or `start_time`) which
+       * indicates the client timestamp at which their messages has been
+       * generated (`oml_ts_client` of the samples, $start_\mathrm{client}$ in
+       * the following). This gives the server an indication about the time
+       * difference between its local clock (reading $cur_\mathrm{server}$, and
+       * each of the clients'.
+       *
+       * To allow for some sort of time comparison between samples from
+       * different clients, the server maintains a separate timestamp
+       * (`oml_ts_server`) to which it remaps all client timestamps, based on
+       * this difference. When the client connects, the server calculates:
+       *
+       *   $\delta = (start_\mathrm{client} - cur_\mathrm{server})$
+       *
+       * and stores it in the per-client data structure.  For each packet from
+       * the client, it takes the client's timestamp ts_client and calculates
+       * ts_server as:
+       *
+       *   $ts_\mathrm{server} = ts_\mathrm{client} + \delta$
+       *
+       * When the first client for a yet unknown experimental domain connects,
+       * the server also uses its timestamps to create a reference start time
+       * for the samples belonging to that domain, with an arbitrary offset of
+       * -100s to account for badly synchronise clients and avoid negative
+       *  timestamps.
+       *
+       *   $start_\mathrm{server} = ts_\mathrm{client} - 100$
+       *
+       * This server start date is stored in the database (in the
+       * `_experiment_metadata` table) to enable experiment restarting.
+       *
+       * The key observation is that the exact reference datum on the client
+       * and server doesn't matter; all that matters is that the server knows
+       * exactly what the client's date is (the client tells the server in its
+       * headers when it connects).  Then the client specifies measurement
+       * packet timestamps relative to the datum.  In our case the datum is
+       * tv_sec + 1e-6 * tv_usec, where tv_sec and tv_usec are the
+       * corresponding members of the struct timeval that gettimeofday(2) fills
+       * out.
+       *
+       * For this scheme to provide accurate time measurements, the clocks of
+       * the client and server must be synchronized to the same reference --
+       * hopefully NTP gets us there, although there have been times on norbit
+       * and winlab when nodes had the wrong timezone set.  The precision of
+       * the time measurements is then governed by the precision of
+       * gettimeofday(2).  I would be surpised if it was particularly precise.
+       */
+
       long start_time = atol(value);
       if (self->database->start_time == 0) {
         // seed it with a time in the past
