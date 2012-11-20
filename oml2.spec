@@ -1,6 +1,6 @@
 %define name            oml2
 %define version         2.9.0
-%define pkgver         2.9.0
+%define pkgver          2.9.0
 %define redmineid	709
 %define liboml2cur	9
 %define liboml2rev	0
@@ -47,11 +47,12 @@ This package contains necessary header files for liboml2 development.
 %setup -q
 
 %build
-./configure --prefix /usr --enable-doc --disable-doxygen-doc --localstatedir=/var/lib
+./configure --prefix /usr --enable-doc --disable-doxygen-doc --without-python --localstatedir=/var/lib
 make %{?_smp_mflags}
 
 %install
 make DESTDIR=%{buildroot} install-strip
+rm -f %{buildroot}/usr/share/info/dir
 
 %clean
 rm -rf %{buildroot}
@@ -76,7 +77,6 @@ rm -rf %{buildroot}
 %doc /usr/share/man/man1/oml2-server.1.gz
 %doc /usr/share/man/man5
 %dir /var/lib/oml2
-%exclude /usr/share/info/dir
 
 %files devel
 /usr/lib/liboml2.so
@@ -92,7 +92,6 @@ rm -rf %{buildroot}
 /usr/share/oml2/liboml2-conf/config.xml
 /usr/share/oml2/liboml2-conf/config_two_streams.xml
 /usr/share/oml2/liboml2-conf/config_text_stream.xml
-/usr/share/oml2/oml2-server-hook.sh
 #/usr/share/oml2/oml4r/oml4r-wlanconfig.rb
 #/usr/share/oml2/oml4r/oml4r-simple-example.rb
 #/usr/share/oml2/oml4r/oml4r-%{version}.dirty.gem
@@ -109,6 +108,7 @@ rm -rf %{buildroot}
 %doc /usr/share/man/man3/omlc_reset_string.3.gz
 %doc /usr/share/man/man3/omlc_set_blob.3.gz
 %doc /usr/share/man/man3/omlc_set_double.3.gz
+%doc /usr/share/man/man3/omlc_set_int32.3.gz
 %doc /usr/share/man/man3/omlc_set_int64.3.gz
 %doc /usr/share/man/man3/omlc_set_string.3.gz
 %doc /usr/share/man/man3/omlc_set_string_copy.3.gz
