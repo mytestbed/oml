@@ -1,3 +1,9 @@
+oml2 (2.9.0rc-mytestbed1) precise; urgency=low
+
+  * New upstream release candidate 2.9.0rc
+
+ -- Olivier Mehani <omehani@localhost.localdomain>  Fri, 23 Nov 2012 19:57:27 +1100
+
 oml2 (2.8.1-ubuntu1) precise; urgency=low
 
   * New upstream patch release 2.8.1 
