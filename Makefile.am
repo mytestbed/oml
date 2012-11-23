@@ -6,18 +6,20 @@ EXTRA_DIST = m4/gnulib-cache.m4 \
 	     $(top_srcdir)/.version \
 	     $(top_srcdir)/build-aux/gen-authors.sh \
 	     m4/ax_compare_version.m4 \
-	     m4/ax_git_search_treeish.m4 \
 	     m4/ax_prog_doxygen.m4 \
 	     m4/ax_prog_python_version.m4 \
 	     m4/ax_prog_ruby_version.m4 \
-	     m4/ax_with_prog.m4
+	     m4/ax_with_prog.m4 \
+	     m4/oml_check_macosx.m4 \
+	     m4/oml_distribution_is.m4 \
+	     m4/oml_git_search_treeish.m4
 
 BUILT_SOURCES = $(top_srcdir)/.version
 $(top_srcdir)/.version:
 	echo $(VERSION) > $@-t && mv $@-t $@
 dist-hook:
 	echo $(VERSION) > $(distdir)/.tarball-version
-	if test -d .git; then 							\
+	if test -d .git; then							\
 		$(top_srcdir)/build-aux/gen-authors.sh > $(distdir)/AUTHORS;	\
 	fi
 
@@ -44,7 +46,7 @@ PKG_AND_OUT_DIR=$(PKG_AND_BUILD_DIR)/$(PKG_AND_BASE_NAME)
 PKG_PACKAGES+=pkg-and
 PKG_CLEANFILES+=$(PKG_AND_BUILD_DIR)
 
-$(PKG_AND_BUILD_DIR): 
+$(PKG_AND_BUILD_DIR):
 	rm -rf $(PKG_AND_BUILD_DIR)
 	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/client/filter
 	mkdir -p $(PKG_AND_OUT_DIR)/external/liboml2/lib/client/oml2
@@ -89,7 +91,7 @@ PKG_ARCH_BUILD=$(PKG_ARCH_BUILD_DIR)/PKGBUILD
 PKG_PACKAGES+=pkg-arch
 PKG_CLEANFILES+=$(PKG_ARCH_BUILD_DIR)
 
-MAKEPKG_FLAGS=-fc
+MAKEPKG_FLAGS=-fc $(MAKEPKG_FLAGS_ADD)
 
 $(PKG_ARCH_BUILD):
 	rm -rf $(PKG_ARCH_BUILD_DIR)
@@ -127,7 +129,7 @@ PKG_DEB_RULES=$(PKG_DEB_BUILD_DIR)/$(distdir)/debian/rules
 PKG_PACKAGES+=pkg-deb
 PKG_CLEANFILES+= $(PKG_DEB_BUILD_DIR)
 
-DPKG_BUILDPACKAGE_FLAGS=-us -uc -d
+DPKG_BUILDPACKAGE_FLAGS=-us -uc $(DPKG_BUILDPACKAGE_FLAGS_ADD)
 
 $(PKG_DEB_RULES): dist-gzip
 	rm -rf $(PKG_DEB_BUILD_DIR)
@@ -135,10 +137,13 @@ $(PKG_DEB_RULES): dist-gzip
 	test -e $(PKG_DEB_ORIG_SRC) || $(LN_S) ../$(distdir).tar.gz $(PKG_DEB_ORIG_SRC)
 	$(MAKE) distdir=$(PKG_DEB_BUILD_DIR)/$(distdir)/ distdir
 	$(GIT) archive $(GITDEBREF) | $(am__untar) -C $(PKG_DEB_BUILD_DIR)/$(distdir)/
+if !IS_DEBIAN
 	mv $(PKG_DEB_RULES) $(PKG_DEB_RULES).orig
 	cat $(PKG_DEB_RULES).orig | \
 		$(SED) -e "s/dh_shlibdeps/#&/" \
 		> $(PKG_DEB_RULES)
+	rm $(PKG_DEB_RULES).orig
+endif
 if !GITISTAG
 	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(DCH) -v $(VERSION)-1 "Development build (`$(GIT) describe` on branch `$(GIT) describe --contains --all HEAD`), not for general distribution; changes since $(GITTAG) follow"
 	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(GIT) log --pretty='%s' $(GITTAG)..HEAD | while read LINE; do $(DCH) -a "$${LINE}"; done
@@ -156,7 +161,7 @@ PKG_RPM_BUILD_DIR=p-rpm
 PKG_PACKAGES+=pkg-rpm
 PKG_CLEANFILES+=$(PKG_RPM_BUILD_DIR)
 
-RPMBUILD_FLAGS=-bb --clean --nodeps
+RPMBUILD_FLAGS=-bb --clean $(RPMBUILD_FLAGS_ADD)
 
 $(PKG_RPM_SPEC):
 	rm -rf $(PKG_RPM_BUILD_DIR)

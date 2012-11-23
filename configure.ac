@@ -157,7 +157,7 @@ AC_ARG_ENABLE([packaging],
 							  [],
 							  [enable_android=yes])
 			    AS_IF([test "x$enable_android" == "xyes"],
-				   AX_GIT_SEARCH_TREEISH([Android],
+				   OML_GIT_SEARCH_TREEISH([Android],
 							 [gitandref],
 							 [android/$gittag,
 							  staging/android/$gittag,
@@ -172,7 +172,12 @@ AC_ARG_ENABLE([packaging],
 
 			     AX_WITH_PROG([MAKEPKG],[makepkg])
 			     AS_IF([test "x$MAKEPKG" != "x"],[
-				    AX_GIT_SEARCH_TREEISH([ArchLinux],
+				    OML_DISTRIBUTION_IS([ArchLinux],
+							[/etc/arch-release],
+							[isarch], 
+							[],
+							[AC_SUBST([MAKEPKG_FLAGS_ADD],[--nodeps])])
+				    OML_GIT_SEARCH_TREEISH([ArchLinux],
 							  [gitarchref],
 							  [archlinux/$gittag,
 							   staging/archlinux/$gittag,
@@ -187,7 +192,12 @@ AC_ARG_ENABLE([packaging],
 			     AX_WITH_PROG([DPKG_BUILDPACKAGE],[dpkg-buildpackage])
 			     AX_WITH_PROG([DCH],[dch])
 			     AS_IF([test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"],[
-				    AX_GIT_SEARCH_TREEISH([Debian],
+				    OML_DISTRIBUTION_IS([Debian-based],
+							[/etc/debian_version],
+							[isdebian], 
+							[],
+							[AC_SUBST([DPKG_BUILDPACKAGE_FLAGS_ADD],[-d])])
+				    OML_GIT_SEARCH_TREEISH([Debian],
 							  [gitdebref],
 							  [debian/$gittag,
 							   staging/debian/$gittag,
@@ -201,7 +211,12 @@ AC_ARG_ENABLE([packaging],
 				   ])
 			     AX_WITH_PROG([RPMBUILD],[rpmbuild])
 			     AS_IF([test "x$RPMBUILD" != "x"], [
-				    AX_GIT_SEARCH_TREEISH([RPM],
+				    OML_DISTRIBUTION_IS([RedHat-based],
+							[/etc/redhat-release],
+							[isredhat], 
+							[],
+							[AC_SUBST([RPMBUILD_FLAGS_ADD],[--nodeps])])
+				    OML_GIT_SEARCH_TREEISH([RPM],
 							  [gitrpmref],
 							  [rpm/$gittag,
 							   staging/rpm/$gittag,
@@ -234,6 +249,9 @@ AM_CONDITIONAL([BUILD_ANDROID], [test "x$enable_android" == "xyes"])
 AM_CONDITIONAL([BUILD_ARCH], [test "x$MAKEPKG" != "x"])
 AM_CONDITIONAL([BUILD_DEBIAN], [test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"])
 AM_CONDITIONAL([BUILD_RPM], [test "x$RPMBUILD" != "x"])
+AM_CONDITIONAL([IS_ARCH], [test "x$isarch" != "x"])
+AM_CONDITIONAL([IS_DEBIAN], [test "x$isdebian" != "x"])
+AM_CONDITIONAL([IS_REDHAT], [test "x$isredhat" != "x"])
 
 AX_WITH_PROG([PYTHON],[python])
 AX_PROG_PYTHON_VERSION([2.7],
