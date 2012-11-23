@@ -66,7 +66,7 @@ type, duplicating the stored data in a dynamically allocated memory
 buffer.
 
 For an example of how these macros should be used, refer
-to linkoml:omlc_inject[3] and linkoml:liboml2[3,api].
+to linkoml:omlc_inject[3] and linkoml:liboml2[3].
 
 RETURN VALUE
 ------------
@@ -87,7 +87,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-linkoml:liboml2[3,api], linkoml:omlc_inject[3]
+linkoml:liboml2[3], linkoml:omlc_inject[3]
 
 include::manual.txt[]
 

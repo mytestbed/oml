@@ -75,7 +75,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3], linkoml:liboml2.conf[5]
 
 include::manual.txt[]
 

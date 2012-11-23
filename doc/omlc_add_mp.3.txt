@@ -44,7 +44,7 @@ The 'MP' must be given a name (the 'name' parameter, "myMP" in this
 example), which is used to identify the source 'MP' in the measurement
 output (either to the linkoml:oml2-server[1] or a file). The name of each
 field of the tuple is the first element of the 'OmlMPDef' object, the
-type is the second. The available types are described in linkoml:liboml2[3,api].
+type is the second. The available types are described in linkoml:liboml2[3].
 
 This tuple of (name, type) pairs constitutes a declaration of what
 type of data will be injected into the 'MP', and what the data means.
@@ -54,7 +54,7 @@ work and how *liboml2* outputs measurements, see linkoml:liboml2.conf[5].
 
 *omlc_add_mp*() can only be called after linkoml:omlc_init[3] has been
 called, and cannot be called once linkoml:omlc_start[3] has been called.
-See linkoml:liboml2[3,api] for more details on the phases of an OML-enabled
+See linkoml:liboml2[3] for more details on the phases of an OML-enabled
 application.
 
 RETURN VALUE
@@ -82,7 +82,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:liboml2.conf[5]
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3], linkoml:liboml2.conf[5]
 
 linkoml:omlc_init[3], linkoml:omlc_start[3], linkoml:omlc_inject[3]
 

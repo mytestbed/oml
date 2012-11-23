@@ -23,7 +23,7 @@ OML-enabled application.
 This man page documents the command-line user configuration of
 OML-enabled applications.  Application writers who want to learn how
 to write an application using the *liboml2* API should consult
-linkoml:liboml2[3,api].  OML also supports an external configuration file,
+linkoml:liboml2[3].  OML also supports an external configuration file,
 documented in linkoml:liboml2.conf[5].
 
 When an OML application starts up, it passes the command line
@@ -75,7 +75,7 @@ if the argument is 1, then numeric elements are filtered using the
 For more information on OML filters and how they are configured, see
 the documentation for the configuration file format,
 linkoml:liboml2.conf[5]. For more information on measurement points and how
-they are defined, see linkoml:liboml2[3,api] and linkoml:omlc_add_mp[3].
+they are defined, see linkoml:liboml2[3] and linkoml:omlc_add_mp[3].
 
 MEASUREMENT OUTPUT AND SCHEMAS
 ------------------------------
@@ -375,7 +375,7 @@ SEE ALSO
 Manual Pages
 ~~~~~~~~~~~~
 linkoml:oml2-server[1], linkoml:oml2-proxy-server[1],
-linkoml:liboml2[3,api], linkoml:omlc_add_mp[3], linkoml:liboml2.conf[5]
+linkoml:liboml2[3], linkoml:omlc_add_mp[3], linkoml:liboml2.conf[5]
 
 include::manual.txt[]
 

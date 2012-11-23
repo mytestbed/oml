@@ -23,7 +23,7 @@ OML-enabled application.
 This man page documents the format of the configuration file that
 *liboml2* uses to configure itself at runtime.  Application writers
 who want to learn how to write an application using the *liboml2* API
-should consult linkoml:liboml2[3,api].  OML also supports simpler but less
+should consult linkoml:liboml2[3].  OML also supports simpler but less
 powerful configuration via the command line, for testing and
 debugging.  It is documented in linkoml:liboml2[1].
 
@@ -537,7 +537,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api], linkoml:omlc_add_mp[3]
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3], linkoml:omlc_add_mp[3]
 
 include::manual.txt[]
 

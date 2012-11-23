@@ -122,7 +122,7 @@ SEE ALSO
 --------
 Manual Pages
 ~~~~~~~~~~~~
-linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3,api]
+linkoml:oml2-server[1], linkoml:liboml2[1], linkoml:liboml2[3]
 
 include::manual.txt[]
 
