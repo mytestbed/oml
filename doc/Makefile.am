@@ -58,11 +58,26 @@ install.md: $(top_srcdir)/INSTALL
 example.md: $(top_srcdir)/example/liboml2/README
 	$(call README-mdfy,#example) $< > $@
 
-html_docs = $(ALL_MAN_FILES:.txt=.html)
+html_docs = $(ALL_MAN_FILES:.txt=.html) index.html
+
+index.txt: index.tpl.txt
+	cat $< > $@
+	echo -e "Manpages\n--------" >> $@
+	for MANPAGE in $(ALL_MAN_FILES:.txt=); do \
+		echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/* link:\1.\2.html[\1(\2)]/' >> $@; \
+		if [ "$${MANPAGE}" = "OmlValueU.3" ]; then \
+			for MANPAGE in $(OMLVALUE3_LINKS); do \
+				echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/** link:OmlValueU.3.html[\1(\2)]/' >> $@; \
+			done; \
+		fi; \
+	done
+	echo -e "\nOther\n-----" >> $@
+	echo "* link:doxygen[Doxygen documentation]" >> $@
 
 EXTRA_DIST=$(ALL_MAN_FILES) \
 	   bugs.txt \
 	   manual.txt \
+	   index.tpl.txt \
 	   doxygen.am Doxyfile
 CLEANFILES=$(ALL_MAN_FILES:.txt=) \
 	liboml2.3 \
@@ -70,6 +85,7 @@ CLEANFILES=$(ALL_MAN_FILES:.txt=) \
 	$(OMLVALUE3_LINKS) \
 	oml2_scaffold.1 \
 	oml_inject_MPNAME.3 \
+	index.txt \
 	$(html_docs) \
 	$(DX_EXTRA_DOC)
 
@@ -124,6 +140,8 @@ endif #HAVE_A2X
 if HAVE_ASCIIDOC
 SUFFIXES = .html
 .txt.html:
+	$(ASCIIDOC) $(ASCIIDOC_ARGS) -o $@ $<
+index.html: index.txt
 	$(ASCIIDOC) $(ASCIIDOC_ARGS) -o $@ $<
 
 all: html
