@@ -8,29 +8,13 @@ liboml2 - OML2 client library
 SYNOPSIS
 --------
 [verse]
-*#include <stdint.h>*
 *#include <oml2/omlc.h>*
 [verse]
 'int'    *omlc_init*('const char' \*appname, 'int' \*pargc, 'const char' \*\*argv, 'o_log_fn' log_fn); +
 'OmlMP'* *omlc_add_mp*('const char' \*name, 'OmlMPDef' \*definition); +
 'int'    *omlc_start*('void'); +
-'void'   *omlc_inject*('OmlMP' \*mp, 'OmlValueU' \*values); +
+'void'   *omlc_inject*('OmlMP' \*mp, linkoml:OmlValueU[3] \*values); +
 'int'    *omlc_close*('void'); +
-[verse]
-'void'   *omlc_zero*('OmlValueU' value); +
-'void'   *omlc_zero_array*('OmlValueU' varray[], 'unsigned int' n); +
-'void'   *omlc_set_int32*('OmlValueU' value, 'int32_t' int32val); +
-'void'   *omlc_set_uint32*('OmlValueU' value, 'uint32_t' uint32val); +
-'void'   *omlc_set_int64*('OmlValueU' value, 'int64_t' int64val); +
-'void'   *omlc_set_uint64*('OmlValueU' value, 'uint64_t' uint64val); +
-'void'   *omlc_set_double*('OmlValueU' value, 'double' doubleval); +
-'void'   *omlc_set_string*('OmlValueU' value, 'char*' stringval); +
-'void'   *omlc_set_string_copy*('OmlValueU' value, 'char*' stringval); +
-'void'   *omlc_set_blob*('OmlValueU' value, 'char*' stringval, 'size_t' len); +
-'void'   *omlc_copy_string*('OmlValueU' dst, 'OmlValueU' src); +
-'void'   *omlc_copy_blob*('OmlValueU' dst, 'OmlValueU' src); +
-'void'   *omlc_reset_string*('OmlValueU' var); +
-'void'   *omlc_reset_blob*('OmlValueU' var); +
 [verse]
 'inline void' *oml_inject_MPNAME*('OmlMP*' mp, ...); +
 
@@ -39,24 +23,24 @@ DESCRIPTION
 -----------
 
 *liboml2* is the client library for OML2.  It provides an API for
-application writers to collect measurements from their applications
-via user-defined 'Measurement Points' (MPs).  It also provides a
-flexible filtering and collection mechanism that allows application
-users to customize how measurements are processed and stored by an
-OML-enabled application.
+application writers to collect measurements from their applications via
+user-defined 'Measurement Points' (MPs).  It also provides a flexible
+filtering and collection mechanism that allows application users to
+customize how measurements are processed and stored by an OML-enabled
+application.
 
-This man page summarizes the API.  Each function in the API also has
-its own detailed man page.  To learn how to configure an
-application that uses the API from the command line, see
-linkoml:liboml2[1].  To learn about the external configuration file that
-*liboml2* can use, see linkoml:liboml2.conf[5].
+This man page summarizes the API.  Each function in the API also has its
+own detailed man page.  To learn how to configure an application that
+uses the API from the command line, see linkoml:liboml2[1].  To learn
+about the external configuration file that *liboml2* can use, see
+linkoml:liboml2.conf[5].
 
-A programmer who wants to use *liboml2* to perform measurements in
-their application must first decide what to measure. OML lets the
-programmer first define 'MPs' and then inject measurement tuples into
-them. The core of the library then performs filtering on the injected
-measurements and, at predefined times, emits the filtered samples to
-either a local file or a measurement server (see linkoml:oml2-server[1]).
+A programmer who wants to use *liboml2* to perform measurements in their
+application must first decide what to measure. OML lets the programmer
+first define 'MPs' and then inject measurement tuples into them. The
+core of the library then performs filtering on the injected measurements
+and, at predefined times, emits the filtered samples to either a local
+file or a measurement server (see linkoml:oml2-server[1]).
 
 A program using OML can therefore be divided into two stages:
 
@@ -68,21 +52,21 @@ Second, the filters are constructed and enabled by calling
 linkoml:omlc_start[3]. Measurement can proceed, with as many calls to
 linkoml:omlc_inject[3] as required. For convenience,
 linkoml:oml2-scaffold[1] generates helper functions
-(*oml_inject_MPNAME*) which take care of preparing the data and
-passing it to linkoml:omlc_inject[3].
+(*oml_inject_MPNAME*) which take care of preparing the data and passing
+it to linkoml:omlc_inject[3].
 
-It is also best to call linkoml:omlc_close[3] to shut down the measurement
-library cleanly once measurement tasks are completed, such as when the
-application is terminating.
+It is also best to call linkoml:omlc_close[3] to shut down the
+measurement library cleanly once measurement tasks are completed, such
+as when the application is terminating.
 
 Initialization
 ~~~~~~~~~~~~~~
 When the application starts up, the programmer should make a call to
-linkoml:omlc_init[3] to initialize *liboml2*.  The function accepts a name
-for the application itself, together with the executable's command
-line arguments (the C *main*() function's *argc* and *argv*
-parameters), and a fourth argument which is not widely used and can
-safely be set to NULL:
+linkoml:omlc_init[3] to initialize *liboml2*.  The function accepts a
+name for the application itself, together with the executable's command
+line arguments (the C *main*() function's *argc* and *argv* parameters),
+and a fourth argument which is not widely used and can safely be set to
+NULL:
 
 ----
 #include <oml2/omlc.h>
@@ -101,14 +85,14 @@ int main(int argc, const char **argv)
 }
 ----
 
-The linkoml:omlc_init[3] function gathers configuration information from the
-command line arguments, the environment, and possibly an external
+The linkoml:omlc_init[3] function gathers configuration information from
+the command line arguments, the environment, and possibly an external
 configuration file, and sets internal configuration options of the
 library.  It removes any command line options that it recognizes, so
 that the application itself does not get confused when it tries to
 interpret the command line.  All OML options start with the prefix
-'--oml-'.  An application should call linkoml:omlc_init[3] _before_ running
-its own command line option parser.
+'--oml-'.  An application should call linkoml:omlc_init[3] _before_
+running its own command line option parser.
 
 After initializing the library, the programmer must define the
 application's 'MPs'.  Each 'MP' is defined as a typed tuple.  OML
@@ -134,8 +118,8 @@ the 'MP' that it represents.  The second member is its type.  The name
 appears in the schema for the local file storage, and as part of the
 database column name for the database created by linkoml:oml2-server[1].
 
-To register the 'MP' definition with *liboml2*, the programmer must
-call linkoml:omlc_add_mp[3]:
+To register the 'MP' definition with *liboml2*, the programmer must call
+linkoml:omlc_add_mp[3]:
 
 ----
 OmlMP* mp = omlc_add_mp ("packet_info", mp_def);
@@ -146,9 +130,9 @@ if (mp == NULL) {
 }
 ----
 
-This function returns a handle to the internal 'MP' object, which
-should be used in subsequent calls to linkoml:omlc_inject[3], and
-should be treated as opaque.
+This function returns a handle to the internal 'MP' object, which should
+be used in subsequent calls to linkoml:omlc_inject[3], and should be
+treated as opaque.
 
 Measurement
 ~~~~~~~~~~~
@@ -167,7 +151,9 @@ measurements, and inject there results into the OML reporting path.
 Using injection helpers
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-This is the recommended method as it is easiest and much less error-prone.
+This is the recommended method as it is easiest and much less
+error-prone. It is also more future-proof as it shields the application
+from low-level API changes.
 
 The linkoml:oml2-scaffold[1] tool can generate helper injection
 functions as part of the OML header ('--oml'). Their prototype is  of
@@ -175,18 +161,21 @@ the form *oml_inject_MPNAME*('OmlMP*' mp, ...), where *MPNAME* is the
 name of the 'MP' that is passed as *mp*. The remaining arguments are
 C-typed variables constituting the sample to be injected in the 'MP'.
 
-These helpers provide C-compiler type-checking and proper memory management.
+These helpers provide C-compiler type-checking and proper memory
+management.
 
+[[manual-inject,]]
 Implementing injection code manually
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The linkoml:omlc_inject[3] function accepts an 'MP' handle and a vector
-of 'OmlValueU' objects. These values MUST always be initialised first
-with linkoml:omlc_zero[3] or linkoml:omlc_zero_array[3]*. The programmer
-should first load up the vector with new values to be measured using the
-*omlc_set_** macros, and then call linkoml:omlc_inject[3]. If string or
-blobs were affected to some of the 'OmlValueU's, these have to be reset
-with linkoml:omlc_reset_string[3] or linkoml:omlc_reset_blob[3]so any
+of linkoml:OmlValueU[3] objects. These values MUST always be initialised
+first with linkoml:omlc_zero[3] or linkoml:omlc_zero_array[3]. The
+programmer should first load up the vector with new values to be
+measured using the *omlc_set_** macros, and then call
+linkoml:omlc_inject[3]. If string or blobs were affected to some of the
+linkoml:OmlValueU[3], these have to be reset with
+linkoml:omlc_reset_string[3] or linkoml:omlc_reset_blob[3] so any
 allocated memory is properly cleared. For instance, here is how a
 measurement injection might look for the 'MP' definition above:
 
@@ -212,7 +201,7 @@ char *protocol;
 {
    OmlValueU values[5];
 
-   OmlValueU values[5];
+   omlc_zero_array(values, 5);
 
    omlc_set_uint32 (values[0], source_id);
    omlc_set_uint32 (values[1], destination_id);
@@ -226,8 +215,8 @@ char *protocol;
 }
 ----
 
-The vector must be loaded with values in the same order as the
-original definition of the fields of the 'MP' in the call to
+The vector must be loaded with values in the same order as the original
+definition of the fields of the 'MP' in the call to
 linkoml:omlc_add_mp[3]. The call to linkoml:omlc_inject[3] can be
 repeated as many times as the program wants to make measurements for a
 given 'MP'.
@@ -235,36 +224,46 @@ given 'MP'.
 OML Types
 +++++++++
 
-OML defines the following types:
+OML uses an opaque data structure, linkoml:OmlValueU[3] to store
+arbitrary data types. This structure can contain chunks of allocated
+memory and should therefore be properly initialised before use (with the
+linkoml:omlc_zero[3] and linkoml:omlc_zero_array[3] functions.
 
-* OML_INT32_VALUE
-* OML_UINT32_VALUE
-* OML_INT64_VALUE
-* OML_UINT64_VALUE
-* OML_DOUBLE_VALUE
-* OML_STRING_VALUE
+OML defines the following types and setters:
 
-Each of the first four integral types maps to an underlying equivalent
-type from the C standard header *stdint.h*.  These types should be
-used in calls to the *omlc_set_** macros.  They are:
+* OML_INT32_VALUE (linkoml:omlc_set_int32[3])
+* OML_UINT32_VALUE (linkoml:omlc_set_uint32[3])
+* OML_INT64_VALUE (linkoml:omlc_set_int64[3])
+* OML_UINT64_VALUE (linkoml:omlc_set_uint64[3])
+* OML_DOUBLE_VALUE (linkoml:omlc_set_double[3])
+* OML_STRING_VALUE (linkoml:omlc_set_string[3], linkoml:omlc_reset_string[3])
+* OML_BLOB_VALUE (linkoml:omlc_set_blob[3], linkoml:omlc_reset_blob[3])
+
+Each of the first four integer types maps to an underlying equivalent
+type from the C standard header linkman:stdint.h[0].  These types should
+be used in calls to the *omlc_set_** macros.  They are:
 
 * 'int32_t'
 * 'uint32_t'
 * 'int64_t'
 * 'uint64_t'
 
-The OML_DOUBLE_VALUE type maps to an underlying C double.  The C value
-is a compound type, and currently just conveys the pointer to the
-caller's object into the *liboml2* library, but the library generally
-copies the string into its own memory, so the programmer shouldn't have to
-worry about memory management across the API boundary.
+The OML_DOUBLE_VALUE type maps to an underlying C double.
+
+The OML_STRING_VALUE maps to a nil-terminated C string. Memory will be
+dynamically allocated (or reused) when a value of this type is set to an
+linkoml:OmlValueU[3].
+
+The OML_BLOB_VALUE maps to an arbitrary block of binary data, of a given
+size. It is handled in a way similar to OML_STRING_VALUE, save for the
+nil-termination and automatic size calculation.
 
 *liboml2* currently also defines an OML_LONG_VALUE that maps to a C
 'long' type, but this type is deprecated because it can change size
 between 32-bit and 64-bit platforms. It will be removed from the API
-when OML3 is released. The library internally clamps OML_LONG_VALUE
-'MP' fields to the most positive and negative values that will fit in
-an 'int32_t' object before sending them to the linkoml:oml2-server[1] or a
+when OML3 is released. The library internally clamps OML_LONG_VALUE 'MP'
+fields to the most positive and negative values that will fit in an
+'int32_t' object before sending them to the linkoml:oml2-server[1] or a
 local measurement file. OML_LONG_VALUE should not be used in new
 applications.
 
@@ -273,12 +272,13 @@ Building
 Applications using *liboml2* must include the '-loml2' flag on the
 linker command line to link against the client library.
 
+[[example]]
 EXAMPLE
 -------
 
-The following is a fully-functional example application that counts
-from 1 to 1000 and outputs the value of the counter as an unsigned
-integer, a string, and a double at each step:
+The following is a fully-functional example application that counts from
+1 to 1000 and outputs the value of the counter as an unsigned integer, a
+string, and a double at each step:
 
 --------
 #include <stdio.h>
@@ -316,6 +316,8 @@ int main (int argc, const char **argv)
     double count_real = (double)i;
     OmlValueU values[3];
 
+    omlc_zero_array(values, 3);
+
     snprintf(count_str, sizeof(count_str), "%d", i);
 
     omlc_set_uint32 (values[0], count);
@@ -323,7 +325,10 @@ int main (int argc, const char **argv)
     omlc_set_double (values[2], count_real);
 
     omlc_inject (mp, values);
+
+    omlc_reset_string(values[1]);
   }
+
 
   omlc_close();
 
@@ -370,8 +375,41 @@ content: text
 ...
 --------
 
-An easy way to create more complicated applications is to
-use linkoml:oml2-scaffold[1].
+An easy way to create more complicated applications is to use
+linkoml:oml2-scaffold[1].
+
+PORTING PRE-2.9 APPLICATIONS
+----------------------------
+
+In between OML 2.8 and 2.9, a heavy refactoring of the lower layers
+happened to better track the memory used, and reduce memory leaks.
+Unfortunately, this change could not be hidden from the higher layers,
+as the API was extended with the introduction of initialisers
+destructors for linkoml:OmlValueU[3] variables, with proper management
+of dynamic memory allocation.
+
+The shared library's version has been bumped from 0.8.1 to 9.0.0, so old
+binaries could still work properly (on distributions supporting multiple
+library versions, such as Debian). However, this means these old
+binaries will not benefit from the new features of OML 2.9 onwards.
+
+Porting pre-2.9 instrumentations to OML 2.9 is however relatively easy.
+Whenever linkoml:OmlValueU[3], or arrays thereof, are declared, they
+MUST be properly initialised prior to any use. Not doing so might result
+in cryptic segmentation faults, or weird ghostly data being collected.
+Refer to <<manual-inject,Implementing injection code manually>> and the
+<<example,example>> above to see where calls to linkoml:omlc_zero[3] (or
+linkoml:omlc_zero_array[3]), and linkoml:omlc_reset_string[3] and
+linkoml:omlc_reset_blob[3] should be added to your code.
+
+Additionally, omlc_set_const_string() is deprecated, as it didn't have
+much significance. The string is now always duplicated into separate
+storage to ensure integrity regardless of how the instrumented
+application manipulates its original copy after injection.
+
+All new instrumentation should however avoid using
+linkoml:omlc_inject[3] directly, and rely on the code generation
+capabilities of linkoml:oml2-scaffold[1] instead.
 
 BUGS
 ----

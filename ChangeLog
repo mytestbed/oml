@@ -8,7 +8,7 @@
 		       when the last client has disconnected)
 	* oml2-scaffold: Load the right appfile (#750)
 	* OML4R: OML4R Gem pushed to RubyGems
-	  	 Examples updated
+		 Examples updated
 		 Support for sending measurement to different streams
 		 Make parameters constistent with liboml and command line (#751)
 

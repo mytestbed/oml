@@ -2,7 +2,7 @@ OML4R: Native OML Implementation in Ruby			{#oml4rdoc}
 ========================================
 
 This is a simple client library for OML which does not use liboml2 and its
-filters, but connects directly to the server using the text protocol [0].
+filters, but connects directly to the server using the text protocol [oml-text].
 User can use this library to create ruby applications which can send
 measurement to the OML collection server. A simple example on how to use
 this library is attached at the end of this file. Another example can be
@@ -11,7 +11,7 @@ found in the file oml4r-example.rb
 Installation
 ------------
 
-OML4R is available from RubyGems [1].
+OML4R is available from RubyGems [oml4r-rubygem].
 
     $ gem install oml4r
 
@@ -68,5 +68,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-[1]: http://oml.mytestbed.net/projects/oml/wiki/Description_of_Text_protocol
-[2]: https://rubygems.org/gems/oml4r
+[oml-text]: http://oml.mytestbed.net/projects/oml/wiki/Description_of_Text_protocol
+[oml4r-rubygem]: https://rubygems.org/gems/oml4r/

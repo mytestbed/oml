@@ -2,12 +2,13 @@ OML4Py: Native OML Implementation in Python			{#oml4pydoc}
 ===========================================
 
 This is a Python module for the OML measurement library based on the OML text
-protocol [1].
+protocol [oml-text].
+
 
 Installation
 ------------
 
-Install using pip [2] ::
+Install using pip [oml4py-pypi]::
 
     $ pip install oml4py
 
@@ -20,13 +21,11 @@ Usage
 -----
 
 This module provides the OMLBase class, which contains the following methods:
-
 * init
 * start
 * addmp
 * inject
 * close
-
 
 To use OML in a python project, import the OMLBase class::
 
@@ -34,7 +33,6 @@ To use OML in a python project, import the OMLBase class::
 
 Start by initializing an OMLBase object. The init method takes up to four
 arguments:
-
 * the name of the application,
 * the name of the experiment,
 * the name of the node,
@@ -52,7 +50,6 @@ If you skip any of the others, they may be defined by environment variables
 defined and they are not passed in explicitly, then the application will
 run with OML disabled, and the measurements that would have been sent
 to OML will be printed on stdout instead.
-
 
 Next, add one or more measurement points. Pass the name of the measurement
 point and a schema string to the start method. The schema string should
@@ -77,18 +74,17 @@ At the end of your program, call close to gracefully close the database::
     x.close()
 
 
-[0]: "Description of the OML Text Protocol" http://oml.mytestbed.net/projects/oml/wiki/Description_of_Text_protocol
-[1]: "oml4py: Python Package Index" http://pypi.python.org/pypi/oml4py/
-
 Authors
 -------
 
 OML4Py was contributed by Fraida Fund, from NYU-Poly.
 
+
 License
 -------
 
-Copyright 2012 NYU-Poly, Fraida Fund  
+Copyright 2012 NYU-Poly, Fraida Fund
+
 Copyright 2012 National ICT Australia (NICTA), Australia
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -109,5 +105,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-[1]: http://oml.mytestbed.net/projects/oml/wiki/Description_of_Text_protocol
-[2]: http://pypi.python.org/pypi/oml4py/
+[oml-text]: http://oml.mytestbed.net/projects/oml/wiki/Description_of_Text_protocol
+[oml4py-pypi]: http://pypi.python.org/pypi/oml4py/

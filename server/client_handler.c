@@ -301,8 +301,8 @@ process_schema(ClientHandler* self, char* value)
 #define MAX_PROTOCOL_VERSION OML_PROTOCOL_VERSION
 #define MIN_PROTOCOL_VERSION 1
 
-/** Process a single key/value pair contained in the header.
- * \functions process_meta
+/** \privatesection Process a single key/value pair contained in the header.
+ *
  * \param self ClientHandler
  * \param key key
  * \param value value
@@ -333,7 +333,7 @@ static void process_meta(ClientHandler* self, char* key, char* value)
       self->state = C_PROTOCOL_ERROR;
     } else {
 
-      /** \page timestamps OML timestamping
+      /** \publicsection \page timestamps OML timestamping
        *
        * OML provides a timestamping mechanism based on each reporting node's
        * time (`oml_ts_client`). Each server remaps the MSs they receive to an
@@ -345,9 +345,9 @@ static void process_meta(ClientHandler* self, char* key, char* value)
        * Upon connection, the clients send headers to the server as key--value
        * pairs. One of the keys is the `start-time` (or `start_time`) which
        * indicates the client timestamp at which their messages has been
-       * generated (`oml_ts_client` of the samples, $start_\mathrm{client}$ in
+       * generated (`oml_ts_client` of the samples, \f$start_\mathrm{client}\f$ in
        * the following). This gives the server an indication about the time
-       * difference between its local clock (reading $cur_\mathrm{server}$, and
+       * difference between its local clock (reading \f$cur_\mathrm{server}\f$, and
        * each of the clients'.
        *
        * To allow for some sort of time comparison between samples from
@@ -355,13 +355,13 @@ static void process_meta(ClientHandler* self, char* key, char* value)
        * (`oml_ts_server`) to which it remaps all client timestamps, based on
        * this difference. When the client connects, the server calculates:
        *
-       *   $\delta = (start_\mathrm{client} - cur_\mathrm{server})$
+       *   \f$\delta = (start_\mathrm{client} - cur_\mathrm{server})\f$
        *
        * and stores it in the per-client data structure.  For each packet from
        * the client, it takes the client's timestamp ts_client and calculates
        * ts_server as:
        *
-       *   $ts_\mathrm{server} = ts_\mathrm{client} + \delta$
+       *   \f$ts_\mathrm{server} = ts_\mathrm{client} + \delta\f$
        *
        * When the first client for a yet unknown experimental domain connects,
        * the server also uses its timestamps to create a reference start time
@@ -369,7 +369,7 @@ static void process_meta(ClientHandler* self, char* key, char* value)
        * -100s to account for badly synchronise clients and avoid negative
        *  timestamps.
        *
-       *   $start_\mathrm{server} = ts_\mathrm{client} - 100$
+       *   \f$start_\mathrm{server} = ts_\mathrm{client} - 100\f$
        *
        * This server start date is stored in the database (in the
        * `_experiment_metadata` table) to enable experiment restarting.
@@ -388,7 +388,7 @@ static void process_meta(ClientHandler* self, char* key, char* value)
        * hopefully NTP gets us there, although there have been times on norbit
        * and winlab when nodes had the wrong timezone set.  The precision of
        * the time measurements is then governed by the precision of
-       * gettimeofday(2).  I would be surpised if it was particularly precise.
+       * gettimeofday(2).
        */
 
       long start_time = atol(value);

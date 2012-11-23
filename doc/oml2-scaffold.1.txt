@@ -274,6 +274,9 @@ This field will record floating point data in C 'double' format.
 *:string*::
 This field will record string data.
 
+*:blob*::
+This field will record binary data.
+
 The integer types ':int32', ':uint32' ':int64', and ':uint64' are
 implemented in the application as the corresponding types from
 *stdint.h*, namely 'int32_t', 'uint32_t', 'int64_t', and 'uint64_t'

@@ -1,10 +1,8 @@
 OML: The O? Measurement Library
 ===============================
 
-[TOC]
-
 OML is an instrumentation tool that allows application writers to define
-customizable measurement points inside new or per-existing applications.
+customisable measurement points inside new or per-existing applications.
 Experimenters running the applications can then direct the *measurement streams*
 (MS) from these *measurement points* (MP) to storage in a remote measurement
 database.
@@ -154,12 +152,40 @@ oml2-scaffold(1). Based on an concise description of the desired measurement
 points, this helper generates the relevant header files and appropriate
 functions to inject measurement samples into a measurement stream.
 
-See the example, and its documentation in example/liboml2/README.
+Essentially, instrumenting an applications therefore consists in writing the
+application description. A template for this file can be generated for
+application APPNAME with
 
-Some native implementations of the text mode are available:
-* Python: OML4Py;
-* Ruby: OML4R.
+    $ oml2-scaffold --app APPNAME
 
+After adjusting this template to contain the desired schemas for the various MPs
+of the application, a header containing helper functions is then generated with
+
+    $ oml2-scaffold --oml APPNAME.rb
+
+This creates file `APPNAME_oml.h` which can be directly included in the
+application source to provide the oml_inject_MPNAME(3) helpers.
+
+If writing an application from scratch, a template main() function and
+popt(3)-based option parsing code can also be generated with the `--main` and
+`--opts` options.
+
+It is not recommended to manually change the `APPNAME_oml.h` nor
+`APPNAME_popt.h` as they are automatically generated. It is best to include
+rules for the build system to generate them dynamically as part of the build
+(`BUILT_SOURCES`, in the Automake linguo). As a matter of fact, oml2-scaffold(1)
+can also generate a rudimentary Makefile which, based on APPNAME.rb and
+APPNAME.c, can generate all other necessary files, and build the application.
+This is done with the `--make` option.
+
+See the example, and its documentation in example/liboml2/README, as well as the
+oml2-scaffold(1) and oml_inject_MPNAME(3) manpages for more details.
+
+Some native implementations of the text mode are also available. Though they are
+built from this same source tree, it might be easier to install them directly
+from the language-specific module repositories.
+* Python: OML4Py [oml4py];
+* Ruby: OML4R [oml4r];
 
 Using the Proxy Server
 ----------------------
@@ -174,7 +200,7 @@ instructions on its standard input to change states: `OMLPROXY-PAUSE`,
 
 Its most important command line arguments allow to specify the collection
 server's address (`-a ADDR` or `--dstaddress=ADDR`) and port (`-p PORT` or
-`--dstpor=PORT`).
+`--dstport=PORT`).
 
 Some more details are available at [oml-proxy].
 
@@ -186,6 +212,22 @@ External contributions are most welcome. Be they in the form of bug reports or
 feature request on the tracker [oml-tracker]. You can also register to the
 mailing list [oml-ml], where you should direct all your questions, comments or
 contributions. The archives can be consulted at [oml-ml-archives].
+
+The official source tree is stored in a Git repository [oml-git]. It can be
+cloned without restrictions. To re-integrate patches (fixing bugs or introducing
+new features), the best way is to make the Git clone containing the changes
+public, and submit a pull request.
+
+    $ git request-pull origin/release/2.x http://url/of/repo \
+        # Assuming you started working from origin/release/2.x
+
+Patches formatted by Git are also a good way to do so.
+
+    $ git format-patch origin/release/2.x..HEAD \
+        # Assuming you started working from origin/release/2.x
+
+In either cases requests and patches should be sent to the mailing list
+[oml-ml], or a ticket  created about them in the issue tracker [oml-tracker].
 
 
 Installing from Distribution Packages
@@ -259,6 +301,9 @@ THE SOFTWARE.
 [oml-tracker]: http://oml.mytestbed.net/projects/oml/issues
 [oml-ml]: mailto:oml-user@lists.nicta.com.au
 [oml-ml-archives]: http://oml.mytestbed.net/tab/show/oml
+[oml-git]: git://git.mytestbed.net/oml.git
+[oml4py]: http://pypi.python.org/pypi/oml4py/
+[oml4r]: https://rubygems.org/gems/oml4r/
 [aur]: https://aur.archlinux.org/
 [aur-yaourt]: https://aur.archlinux.org/packages/yaourt/
 [aur-oml2]: https://aur.archlinux.org/packages/oml2/

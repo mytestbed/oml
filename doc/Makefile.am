@@ -21,7 +21,7 @@ ALL_MAN_FILES= \
 OMLVALUE3_LINKS= \
 	omlc_zero.3 \
 	omlc_zero_array.3 \
-	omlc_set_int32.33 \
+	omlc_set_int32.3 \
 	omlc_set_uint32.3 \
 	omlc_set_int64.3 \
 	omlc_set_uint64.3 \
