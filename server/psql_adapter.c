@@ -72,8 +72,6 @@ psql_backend_setup ()
 {
   MString *str, *conninfo;
 
-  logwarn ("PostgreSQL backend is still experimental\n");
-
   loginfo ("psql: Sending experiment data to PostgreSQL server %s:%s as user '%s'\n",
            pg_host, pg_port, pg_user);
 

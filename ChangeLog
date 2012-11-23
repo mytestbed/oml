@@ -1,3 +1,39 @@
+2012-11-23  Olivier Mehani  <olivier.mehani@nicta.com.au>
+	* OML: Version 2.9.0rc
+	* liboml2: Bump to library version 9.0.0 (1.0.0 for OComm)
+		Heavy work on memory leak issues (#647, #516)
+		Changes in the OmlValueU API
+			Old applications should be ported by using omlc_zero(3)
+			or omlc_zero_array(3) after declaring OmlValueUs, and
+			properly omlc_reset_string(3) and omlc_reset_blob(3)
+			when needed. All the API is documented in OmlValueU(3),
+			but should not be used directly with new application.
+			see OmlValue(3) for more details on porting pre-2.9
+			instrumentations.
+		Instrumentation workflow MUST now use oml2-scaffold(1) and
+			oml_inject_MPNAME(3).
+		Old binaries will still work with the old library which can be
+			installed in parallel
+		Re-insteate OML's functionality of being able to
+			delegate logging to the application (#832)
+		Throttle logging when too many messages (#827)
+		More informative and regular log messages (#222)
+		Plenty of bugfixes
+	* UI changes: Introduce --oml-domain and --oml-collect instead of
+		(resp.) --oml-exp-id and --oml-server, which are still valid
+		(#860, #726)
+	* Documentation: #891, #771
+			 Update manpages
+			 Document some parts of the code with Doxygen
+			 A README file!
+	* Bindings: New OML4Py Python module contributed by Fraida Fund from
+		NYU-Poly (#595)
+		    OML4R now supports reconnection
+	* Supported architectures: Basic Android port thanks to François Hoguet
+		from UTC (#512)
+	* Supported backends: PostgreSQL is officially supported (#874, #859,
+		#825, #824, #755)
+
 2012-06-25  Olivier Mehani <olivier.mehani@nicta.com.au>
 	* OML: Version 2.8.0
 	* Bugfixes: Builds on Mac OS X without special arguments (#749)
