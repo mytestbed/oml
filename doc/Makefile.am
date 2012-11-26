@@ -49,7 +49,7 @@ define README-mdfy
 		-e 's^example/liboml2/README^[&](@ref example)^' \
 		-e 's/OML4R/[&](@ref oml4rdoc)/g' \
 		-e 's/OML4Py/[&](@ref oml4pydoc)/g' \
-		-e '/^    /!s^\(\(lib\)\?[Oo]ml[-.a-zA-Z1-9]\+\)(\([0-9]\))^[&](http://oml.mytestbed.net/doc/oml/$(VERSION)/\1.\3.html)^g'
+		-e '/^    /!s^\(\(lib\)\?[Oo]ml[-.a-zA-Z1-9]\+\)(\([0-9]\))^[&](http://oml.mytestbed.net/doc/oml/$(OML_BASE_VER)/\1.\3.html)^g'
 endef
 mainpage.md: $(top_srcdir)/README
 	$(call README-mdfy,#mainpage) $< > $@

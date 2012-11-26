@@ -1,17 +1,25 @@
 OML: The O? Measurement Library: Installation Instructions
 ==========================================================
 
-[TOC]
+This guide documentates building OML from a source tarball or Git clone,
+as well as the generation of an Android tree suitable for use with
+CyanogenMod.  Please refer to file README for instructions on using
+using these programs.
 
-This guide documentates building OML from a source tarball or Git clone, as well
-as the generation of an Android tree suitable for use with CyanogenMod.  Please
-refer to file README for instructions on using using these programs.
 
 For users
 ---------
 
 If you just want to use OML, you probably downloaded this package as a
-tarball. The standard UNIX `./configure && make` method works for this
+tarball. You'll however need some additional software packages (popt,
+sqlite3, libxml2, postgresql), and their development headers. They
+should be available from your distribution, e.g., for Debian,
+
+    $ sudo apt-get install libxml2-dev libpopt-dev libsqlite3-dev \
+        pkg-config libxml2-utils
+    $ sudo apt-get install libpq-dev # Optional, for PostgreSQL support
+
+Then, the standard UNIX `./configure && make` method works for this
 package. Here's what to do:
 
     $ tar xvfz oml2-2.x.x.tar.gz
@@ -22,38 +30,27 @@ package. Here's what to do:
 
     $ ./configure [possible options]
     $ make
-    $ make install			# As super user, or use sudo(1)
+    $ sudo make install
 
-The most useful option to `configure` is the `--prefix` option, which allows
-installation in a non-standard location. The default is `/usr/local`. If
-you just use the default, the liboml2 library will be installed in
-`/usr/local/lib`, and you should be able to link your programs against it
-with a simple `-loml2` on the command line to the linker. The server,
-proxy server, and oml2-scaffold will be installed in `/usr/local/bin`, and
-should be in your standard `PATH`.
+The most useful option to `configure` is the `--prefix` option, which
+allows installation in a non-standard location. The default is
+`/usr/local`. If you just use the default, the liboml2 library will be
+installed in `/usr/local/lib`, and you should be able to link your
+programs against it with a simple `-loml2` on the command line to the
+linker. The server, proxy server, and oml2-scaffold will be installed in
+`/usr/local/bin`, and should be in your standard `PATH`.
 
 To install OML in your home directory, use:
 
     $ ./configure --prefix=${HOME}/usr	# For example
     $ make
-    $ make install
+    $ sudo make install
 
-Then you will probably need to add ${HOME}/usr/lib to your `LD_LIBRARY_PATH`
-environment variable. To run the server, add `${HOME}/usr/bin` to your `PATH`
-environment variable
+Then you will probably need to add ${HOME}/usr/lib to your
+`LD_LIBRARY_PATH` environment variable. To run the server, add
+`${HOME}/usr/bin` to your `PATH` environment variable
 
-By default the documentation will be built. The documentation is written
-in Asciidoc markup language, so you'll need Asciidoc installed (`apt-get
-install asciidoc` on Debian/Ubuntu). Code documentation based on Doxygen
-markup is also generated. To disable building the documentation, use the
-`--disable-doc` option to the configure script. To only disable Doxygen
-documentation, use the `--disable-doxygen-doc` option.
-
-    $ ./configure --without-doc
-    $ make				# This now doesn't builds the docs
-    $ make install			# As super user, or use sudo(1)
-
-The last command will install the man pages. Starting points in the
+The last command will also install the man pages. Starting points in the
 documentation are:
 
     $ man 1 liboml2
@@ -73,26 +70,40 @@ sources from the OML git repository at
     $ git clone git://mytestbed.net/oml.git
 
 In that case, in order to build the package you first need to generate
-the `configure` script and Makefiles. To do this you need the Autotools
-installed: Autoconf, Automake, and Libtool. If you use a Linux
-distribution, these should all be available via your system's package
-manager.
+the `configure` script and Makefiles. To do this, in addition to the
+dependencies listed in the first section, you also need the Autotools
+installed: Autoconf, Automake, Libtool as well as Gnulib. If you use a
+Linux distribution, these should all be available via your system's
+package manager. For example on Debian-ish systems:
+
+    $ sudo apt-get install autoconf automake libtool gnulib
+    $ sudo apt-get install asciidoc texinfo \
+        docbook-xml docbook-xsl xsltproc # Optional, for building documentation
 
 Once you have installed the Autotools you should be able to generate all
-the necessary configuration and Makefiles by doing this:
+the necessary configuration and Makefiles by using the `autogen.sh` script.
 
-    $ cd oml2
+    $ cd oml
     $ ./autogen.sh
 
 At this point you should be ready to run
 
-    $ ./configure && make && make install
+    $ ./configure && make && sudo make install
 
 as above.
 
+By default the documentation will be built. The documentation is written
+in Asciidoc markup language, so you'll need Asciidoc installed (`apt-get
+install asciidoc` on Debian/Ubuntu). Code documentation based on Doxygen
+markup is also generated. To disable building the documentation, use the
+`--disable-doc` option to the configure script. To only disable Doxygen
+documentation, use the `--disable-doxygen-doc` option.
+
+    $ ./configure --without-doc
+
 If you want to run the test suite you will also need to install the
-CHECK package (a unit testing framework) [1].  It's also available as a
-Debian package in the standard Debian and Ubuntu repositories:
+CHECK package (a unit testing framework) [check].  It's also available
+as a Debian package in the standard Debian and Ubuntu repositories:
 
     $ apt-get install check
 
@@ -104,15 +115,14 @@ should still build and install correctly. To run the test suite, use the
 
 If you prefer to keep your executables, object files, and other
 generated files in a separate tree, Automake supports a parallel build
-using GNU Make's `VPATH` feature. For instance, to build in a subdirectory
-called 'build', do the following:
+using GNU Make's `VPATH` feature. For instance, to build in a
+subdirectory called 'build', do the following:
 
-    $ cd oml2
-    $ mkdir build
-    $ cd build
+    $ mkdir _build
+    $ cd _build
     $ ../configure [possible options]
     $ make
-    $ make install							# As super user, or use sudo(1)
+    $ sudo make install
 
 All the files generated by `configure` and `make` will be put under the
 build directory. Automake recognizes that `configure` was run in a
@@ -123,7 +133,6 @@ Finally, if you want to restore the tree to a clean state, without the
 generated Makefile, Makefile.in, and copied Autoconf/Automake/Libtool
 files, do this:
 
-    $ cd oml2
     $ ./autoclean.sh
 
 Once you do this, you'll have to follow the above procedure again to get
@@ -142,10 +151,11 @@ generate this set of source files by running the following commands.
     $ make pkg-and
 
 This will create an archive named p-android/oml2-2.x.x-android.tar.gz.
-Alternatively, you can find this archive at [2]. That fileset contains
-both the OML and libpopt source, as well as a README.oml2 file
-documenting the build process in more details. Please refer to it.
+Alternatively, you can find this archive at [oml-files]. That fileset
+contains both the OML and libpopt source, as well as a README.oml2 file
+documenting the build process in more details. Please refer to it for
+further information on that matter.
 
 
-[0]: http://check.sourceforge.net
-[1]: http://oml.mytestbed.net/projects/oml/files
+[check]: http://check.sourceforge.net
+[oml-files]: http://oml.mytestbed.net/projects/oml/files

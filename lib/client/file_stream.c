@@ -176,7 +176,7 @@ file_stream_write_flush(
  *
  * \param hdl the +OmlOutStream+
  * \param buffered if 0, unbuffered operation is used, otherwise buffered operation is
- * \parame return 0 on success, -1 on failure (+hdl+ was NULL)
+ * \return 0 on success, -1 on failure (+hdl+ was NULL)
  */
 int file_stream_set_buffered(
     OmlOutStream* hdl,
@@ -200,7 +200,7 @@ int file_stream_set_buffered(
  * Returns 0 if fflush(3) is used after each write, 1 otherwise.
  *
  * \param hdl the +OmlOutStream+
- * \parame return 0 if unbuffered, 1 if buffered, -1 on failure (+hdl+ was NULL)
+ * \return 0 if unbuffered, 1 if buffered, -1 on failure (+hdl+ was NULL)
  */
 int file_stream_get_buffered(
     OmlOutStream* hdl

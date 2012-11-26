@@ -345,19 +345,21 @@ static void process_meta(ClientHandler* self, char* key, char* value)
        * Upon connection, the clients send headers to the server as key--value
        * pairs. One of the keys is the `start-time` (or `start_time`) which
        * indicates the client timestamp at which their messages has been
-       * generated (`oml_ts_client` of the samples, \f$start_\mathrm{client}\f$ in
-       * the following). This gives the server an indication about the time
-       * difference between its local clock (reading \f$cur_\mathrm{server}\f$, and
-       * each of the clients'.
+       * generated (`oml_ts_client` of the sample, \f$start_\mathrm{client}\f$
+       * in the following). This gives the server an indication about the time
+       * difference between its local clock (reading
+       * \f$cur_\mathrm{server}\f$), and each of the clients'.
        *
        * To allow for some sort of time comparison between samples from
        * different clients, the server maintains a separate timestamp
        * (`oml_ts_server`) to which it remaps all client timestamps, based on
-       * this difference. When the client connects, the server calculates:
+       * this difference.
+       *
+       * When the client connects, the server calculates:
        *
        *   \f$\delta = (start_\mathrm{client} - cur_\mathrm{server})\f$
        *
-       * and stores it in the per-client data structure.  For each packet from
+       * and stores it in the per-client data structure. For each packet from
        * the client, it takes the client's timestamp ts_client and calculates
        * ts_server as:
        *
@@ -366,29 +368,26 @@ static void process_meta(ClientHandler* self, char* key, char* value)
        * When the first client for a yet unknown experimental domain connects,
        * the server also uses its timestamps to create a reference start time
        * for the samples belonging to that domain, with an arbitrary offset of
-       * -100s to account for badly synchronise clients and avoid negative
+       * -100s to account for badly synchronised clients and avoid negative
        *  timestamps.
        *
-       *   \f$start_\mathrm{server} = ts_\mathrm{client} - 100\f$
+       *   \f$start_\mathrm{server} = start_\mathrm{client} - 100\f$
        *
        * This server start date is stored in the database (in the
        * `_experiment_metadata` table) to enable experiment restarting.
        *
        * The key observation is that the exact reference datum on the client
        * and server doesn't matter; all that matters is that the server knows
-       * exactly what the client's date is (the client tells the server in its
-       * headers when it connects).  Then the client specifies measurement
-       * packet timestamps relative to the datum.  In our case the datum is
-       * tv_sec + 1e-6 * tv_usec, where tv_sec and tv_usec are the
-       * corresponding members of the struct timeval that gettimeofday(2) fills
-       * out.
+       * what the client's date is (the client tells the server in its headers
+       * when it connects).  Then the client specifies measurement packet
+       * timestamps relative to the datum.  In our case the datum is tv_sec +
+       * 1e-6 * tv_usec, where tv_sec and tv_usec are the corresponding members
+       * of the struct timeval that gettimeofday(2) fills out.
        *
        * For this scheme to provide accurate time measurements, the clocks of
-       * the client and server must be synchronized to the same reference --
-       * hopefully NTP gets us there, although there have been times on norbit
-       * and winlab when nodes had the wrong timezone set.  The precision of
-       * the time measurements is then governed by the precision of
-       * gettimeofday(2).
+       * the client and server must be synchronized to the same reference (and
+       * timezone). The precision of the time measurements is then governed by
+       * the precision of gettimeofday(2).
        */
 
       long start_time = atol(value);

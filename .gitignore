@@ -36,6 +36,15 @@ ar-lib
 compile
 doc/oml-user-manual.info
 doc/texinfo.tex
+doc/mainpage.md
+doc/install.md
+doc/example.md
+doc/index.txt
+doc/*.1
+doc/*.3
+doc/*.5
+doc/*.html
+doc/doxygen/
 m4/*
 !m4/ax_check_postgres_db.m4
 !m4/ax_compare_version.m4
@@ -52,6 +61,3 @@ build-aux
 !build-aux/gen-authors.sh
 .version
 p-*
-doc/mainpage.md
-doc/install.md
-doc/example.md

@@ -26,10 +26,10 @@ DESCRIPTION
 application writers to collect measurements from their applications via
 user-defined 'Measurement Points' (MPs).  It also provides a flexible
 filtering and collection mechanism that allows application users to
-customize how measurements are processed and stored by an OML-enabled
+customise how measurements are processed and stored by an OML-enabled
 application.
 
-This man page summarizes the API.  Each function in the API also has its
+This man page summarises the API.  Each function in the API also has its
 own detailed man page.  To learn how to configure an application that
 uses the API from the command line, see linkoml:liboml2[1].  To learn
 about the external configuration file that *liboml2* can use, see
@@ -44,8 +44,8 @@ file or a measurement server (see linkoml:oml2-server[1]).
 
 A program using OML can therefore be divided into two stages:
 
-Initialization::
-First the library is initialized and measurement points are defined.
+Initialisation::
+First the library is initialised and measurement points are defined.
 
 Measurement::
 Second, the filters are constructed and enabled by calling
@@ -59,10 +59,10 @@ It is also best to call linkoml:omlc_close[3] to shut down the
 measurement library cleanly once measurement tasks are completed, such
 as when the application is terminating.
 
-Initialization
+Initialisation
 ~~~~~~~~~~~~~~
 When the application starts up, the programmer should make a call to
-linkoml:omlc_init[3] to initialize *liboml2*.  The function accepts a
+linkoml:omlc_init[3] to initialise *liboml2*.  The function accepts a
 name for the application itself, together with the executable's command
 line arguments (the C *main*() function's *argc* and *argv* parameters),
 and a fourth argument which is not widely used and can safely be set to
@@ -75,7 +75,7 @@ int main(int argc, const char **argv)
 {
   int result = omlc_init ("MyOmlClient", &argc, argv, NULL);
   if (result == -1) {
-    fprintf (stderr, "Could not initialize OML\n");
+    fprintf (stderr, "Could not initialise OML\n");
     exit (1);
   }
 
@@ -88,13 +88,13 @@ int main(int argc, const char **argv)
 The linkoml:omlc_init[3] function gathers configuration information from
 the command line arguments, the environment, and possibly an external
 configuration file, and sets internal configuration options of the
-library.  It removes any command line options that it recognizes, so
+library.  It removes any command line options that it recognises, so
 that the application itself does not get confused when it tries to
 interpret the command line.  All OML options start with the prefix
 '--oml-'.  An application should call linkoml:omlc_init[3] _before_
 running its own command line option parser.
 
-After initializing the library, the programmer must define the
+After initialising the library, the programmer must define the
 application's 'MPs'.  Each 'MP' is defined as a typed tuple.  OML
 supports basic integer types, a double-precision floating point type,
 and a string type.  Future versions will support blobs, network
@@ -402,14 +402,16 @@ Refer to <<manual-inject,Implementing injection code manually>> and the
 linkoml:omlc_zero_array[3]), and linkoml:omlc_reset_string[3] and
 linkoml:omlc_reset_blob[3] should be added to your code.
 
-Additionally, omlc_set_const_string() is deprecated, as it didn't have
+Additionally, omlc_set_const_string() is deprecated, as it did not have
 much significance. The string is now always duplicated into separate
 storage to ensure integrity regardless of how the instrumented
-application manipulates its original copy after injection.
+application manipulates its original data after injection.
 
-All new instrumentation should however avoid using
+All new instrumentations should however avoid using
 linkoml:omlc_inject[3] directly, and rely on the code generation
-capabilities of linkoml:oml2-scaffold[1] instead.
+capabilities of linkoml:oml2-scaffold[1] instead. It is also recommended
+that these changes be taken as an opportunity to port old applications
+to linkoml:oml2-scaffold[1] too.
 
 BUGS
 ----

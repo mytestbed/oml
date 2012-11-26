@@ -7,16 +7,16 @@ DESCRIPTION
 -----------
 
 OML is an instrumentation tool that allows application writers to define
-customizable measurement points inside new or per-existing applications.
+customisable measurement points inside new or pre-existing applications.
 Experimenters running the applications can then direct the measurement
-streams (MS) from these measurement points (MP) to storage in a remote
-measurement database.
+streams (MS) from these measurement points (MP) to remote collection
+points, for storage in measurement databases.
 
 The OML reporting chain consists in several elements:
 
 * the reporting library (C, Ruby or Python),
 * the collection server,
-* the optionnal proxy, for disconnected experiments.
+* the optional proxy, for disconnected experiments.
 
 DOCUMENTATION
 -------------

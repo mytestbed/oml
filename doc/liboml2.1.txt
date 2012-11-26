@@ -166,7 +166,7 @@ table's name (e.g., 'mymp_2', 'mymp_3',... for stream 'mymp'). It
 makes 9 attempts at renaming the table before failing. Indeed, it
 would be unwise for experiments that use a large number of instances
 of the same application with different filter configuration to not
-explicitely name each of them. This can be done through the use of a
+explicitly name each of them. This can be done through the use of a
 configuration file, with these 'rename' attribute of the relevant 'mp'
 element, see linkoml:liboml2.conf[5].
 
@@ -184,7 +184,7 @@ OML OPTIONS
 --oml-exp-id domain::
 Set the OML client's experimental domain to 'domain'.  This is used by
 the linkoml:oml2-server[1] to group measurements from different clients
-that logically belong to the same gropu.  Multiple applications running
+that logically belong to the same group.  Multiple applications running
 on different machines can contribute measurements to the same
 experiment.  If '--oml-domain' is not given, an error is written to the
 log file and measurement collection will not occur (although the
@@ -197,7 +197,7 @@ Write measurements to file 'filename', in a human readable text format.
 This is an exact equivalent to '--oml-collect file:filename', see below.
 Only one of '--oml-collect' (or '--oml-server') or'--oml-file' can be
 specified at a time. This command line option is obsolescent, and
-'--oml-collect' with the *file* scheme should be prefered.
+'--oml-collect' with the *file* scheme should be preferred.
 
 --oml-collect uri::
 --oml-server uri::
@@ -258,7 +258,7 @@ information recorded is controlled by '--oml-log-level'.
 
 --oml-log-level n::
 Record logging information at a level of detail given by 'n', which
-should be an integer from 0 to 4.  The defaul level of logging is 0,
+should be an integer from 0 to 4.  The default level of logging is 0,
 which prints 'ERROR', 'WARNING', and 'INFO' messages.  Levels 1 to 4
 add gradually larger amounts of debug logging ('DEBUG', 'DEBUG2',
 'DEBUG3', 'DEBUG4').  It is possible to set 'n' to -1 for only 'ERROR'

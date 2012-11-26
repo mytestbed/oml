@@ -283,7 +283,7 @@ implemented in the application as the corresponding types from
 respectively.
 
 The 'defMetric' command also recognizes the type ':long', which
-corresponds to the C 'long' type. However, this type is depcrecated
+corresponds to the C 'long' type. However, this type is deprecated
 because 'long' changes size between 32-bit and 64-bit platforms. New
 programs should use one of ':int32' or ':int64' instead.  See the *OML
 TYPES* section of the linkoml:liboml2[3] man page for more information.
@@ -411,7 +411,7 @@ NOTES
 -----
 This program used to be called 'oml2_scaffold' (with an underscore).
 It was renamed to be more consistent with the other OML binaries,
-which use the prefix 'oml2-' (with a hypen).  The installation process
+which use the prefix 'oml2-' (with a hyphen).  The installation process
 installs a link from 'oml2_scaffold' to 'oml2-scaffold' so as not to
 break old scripts, but users should use the new name for new scripts,
 and should try to migrate their old scripts to use the new name over
