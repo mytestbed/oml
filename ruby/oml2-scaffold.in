@@ -843,10 +843,12 @@ class MeasurementPoint
       i = i + 1
     end
     stream.puts "\n  omlc_inject(mp, v);\n\n"
+    i = 0
     @ms.each do |m|
       if m.type == :string || m.type == "string" || m.type == :blob || m.type == "blob"
 	stream.puts "  omlc_reset_#{sets[m.type]}(v[#{i}]);"
       end
+      i = i + 1
     end
     stream.puts "}\n\n"
   end
