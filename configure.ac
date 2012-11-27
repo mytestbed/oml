@@ -161,13 +161,10 @@ AC_ARG_ENABLE([packaging],
 				   OML_GIT_SEARCH_TREEISH([Android],
 							 [gitandref],
 							 [android/$gittag,
-							  staging/android/$gittag,
 							  origin/android/$gittag,
 							  android/$gitbranch,
-							  staging/android/$gitbranch,
 							  origin/android/$gitbranch,
-							  android/master,
-							  staging/android/master],
+							  android/master],
 							  [origin/android/master])
 				   )
 
@@ -175,19 +172,16 @@ AC_ARG_ENABLE([packaging],
 			     AS_IF([test "x$MAKEPKG" != "x"],[
 				    OML_DISTRIBUTION_IS([ArchLinux],
 							[/etc/arch-release],
-							[isarch], 
+							[isarch],
 							[],
 							[AC_SUBST([MAKEPKG_FLAGS_ADD],[--nodeps])])
 				    OML_GIT_SEARCH_TREEISH([ArchLinux],
 							  [gitarchref],
 							  [archlinux/$gittag,
-							   staging/archlinux/$gittag,
 							   origin/archlinux/$gittag,
 							   archlinux/$gitbranch,
-							   staging/archlinux/$gitbranch,
 							   origin/archlinux/$gitbranch,
-							   archlinux/master,
-							   staging/archlinux/master],
+							   archlinux/master],
 							   [origin/archlinux/master])
 				   ])
 			     AX_WITH_PROG([DPKG_BUILDPACKAGE],[dpkg-buildpackage])
@@ -195,38 +189,32 @@ AC_ARG_ENABLE([packaging],
 			     AS_IF([test "x$DPKG_BUILDPACKAGE" != "x" -a "x$DCH" != "x"],[
 				    OML_DISTRIBUTION_IS([Debian-based],
 							[/etc/debian_version],
-							[isdebian], 
+							[isdebian],
 							[],
 							[AC_SUBST([DPKG_BUILDPACKAGE_FLAGS_ADD],[-d])])
 				    OML_GIT_SEARCH_TREEISH([Debian],
 							  [gitdebref],
 							  [debian/$gittag,
-							   staging/debian/$gittag,
 							   origin/debian/$gittag,
 							   debian/$gitbranch,
-							   staging/debian/$gitbranch,
 							   origin/debian/$gitbranch,
-							   debian/master,
-							   staging/debian/master],
+							   debian/master],
 							   [origin/debian/master])
 				   ])
 			     AX_WITH_PROG([RPMBUILD],[rpmbuild])
 			     AS_IF([test "x$RPMBUILD" != "x"], [
 				    OML_DISTRIBUTION_IS([RedHat-based],
 							[/etc/redhat-release],
-							[isredhat], 
+							[isredhat],
 							[],
 							[AC_SUBST([RPMBUILD_FLAGS_ADD],[--nodeps])])
 				    OML_GIT_SEARCH_TREEISH([RPM],
 							  [gitrpmref],
 							  [rpm/$gittag,
-							   staging/rpm/$gittag,
 							   origin/rpm/$gittag,
 							   rpm/$gitbranch,
-							   staging/rpm/$gitbranch,
 							   origin/rpm/$gitbranch,
-							   rpm/master,
-							   staging/rpm/master],
+							   rpm/master],
 							   [origin/rpm/master])
 				   ])
 			    ],

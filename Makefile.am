@@ -98,17 +98,17 @@ $(PKG_ARCH_BUILD):
 	mkdir -p $(PKG_ARCH_BUILD_DIR)/tmp
 	$(MAKE) distdir=$(PKG_ARCH_BUILD_DIR)/tmp/$(PKG_ARCH_BASE_NAME) distdir
 	$(GIT) archive $(GITARCHREF) | $(am__untar) -C $(PKG_ARCH_BUILD_DIR)
-# Releases should have a valid PKGBUILD and know where to get the tarball
+# Releases should already know where to get the tarball
 if !GITISTAG
 	cd $(PKG_ARCH_BUILD_DIR)/tmp/; \
 		tardir=$(PKG_ARCH_BASE_NAME) && $(am__tar) | \
 		GZIP=$(GZIP_ENV) gzip -c >../$(PKG_ARCH_BASE_NAME).tar.gz
+endif
 	cat $(PKG_ARCH_BUILD).proto | \
 		$(SED) -e "/<GIT/,/GIT>/d" | \
 		$(SED) -e "/!GIT.*/d" -e "s/^pkgver.*=.*/pkgver=$(OML_ALT_VER)/" \
 		> $(PKG_ARCH_BUILD)
 	cd $(PKG_ARCH_BUILD_DIR); $(MAKEPKG) -p PKGBUILD -g >> PKGBUILD
-endif
 	cat $(PKG_ARCH_BUILD).proto | \
 		$(SED) -e "/<!GIT/,/!GIT>/d" -e "/GIT.*/d" \
 		> $(PKG_ARCH_BUILD)-git

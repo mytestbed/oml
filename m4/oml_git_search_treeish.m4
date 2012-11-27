@@ -17,10 +17,16 @@ AC_DEFUN([OML_GIT_SEARCH_TREEISH],[
 	 m4_pushdef([VALUE_IF_NOT_FOUND],[$4])
 
 	 AC_MSG_CHECKING([for matching DESCRIPTION treeish])
-	 m4_foreach([TREEISH], [LIST],[
-		    AS_IF([test "x$VARIABLE" = "x" &&
-			   $GIT rev-list --max-count=0 TREEISH -- 2>/dev/null],
-		    [VARIABLE="TREEISH"])])
+	 m4_foreach([TREEISH], [LIST], [
+		 AS_IF([test "x$VARIABLE" = "x"], [
+			 TAG=`$GIT tag --list TREEISH* 2>/dev/null | sort | tail -n 1`
+			 BRANCH=`$GIT BRANCH --list TREEISH* 2>/dev/null | sort | tail -n 1`
+			 AS_IF([test "x$TAG" != "x"],
+				 [VARIABLE=$TAG],
+				 [test "x$BRANCH" != "x"],
+				 [VARIABLE=$BRANCH],
+				 [VARIABLE=""]
+			      )])])
 	 AS_IF([test "x$VARIABLE" = "x"], [VARIABLE="VALUE_IF_NOT_FOUND"])
 	 AC_MSG_RESULT([$VARIABLE])
 
