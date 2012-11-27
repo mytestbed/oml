@@ -439,7 +439,11 @@ class AppDefinition
  */
 
 #ifndef #{template(:app_name).upcase}_OML_H
-#  define #{template(:app_name).upcase}_OML_H
+#define #{template(:app_name).upcase}_OML_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Get size_t and NULL from <stddef.h>.  */
 #include <stddef.h>
@@ -471,7 +475,12 @@ oml_register_mps()
 #{template(:oml_helpers)}
 
 #endif /* OML_FROM_MAIN */
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* #{template(:app_name).upcase}_OML_H */
 |
   end
 
@@ -482,7 +491,11 @@ oml_register_mps()
  */
 
 #ifndef #{template(:app_name).upcase}_OPTS_H
-#  define #{template(:app_name).upcase}_OPTS_H
+#define #{template(:app_name).upcase}_OPTS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct {
 #{template(:options_t)}
@@ -507,9 +520,13 @@ struct poptOption options[] = {
   { NULL, 0, 0, NULL, 0 }
 };
 
+#endif /* USE_OPTS */
+
+#ifdef __cplusplus
+}
 #endif
 
-#endif
+#endif /* #{template(:app_name).upcase}_OPTS_H */
 |
   end
 
