@@ -34,7 +34,46 @@ OMLVALUE3_LINKS= \
 	omlc_copy_blob.3 \
 	omlc_reset_blob.3
 
-# Doxygen is a bit braindamages and doesn't seem to be able to either
+# How to publish documentation
+USER= # If set, should contain a trailing @
+WWWHOST=mytestbed.net
+HTDOCS=/var/www/redmine/doc/oml/$(OML_BASE_VER)
+
+# This rule will fail, purposefully, if some documentation cannot be generated
+publish: publish-man publish-doxygen
+
+index.txt: index.tpl.txt
+	cat $< > $@
+	echo -e "Manpages\n--------" >> $@
+	for MANPAGE in $(ALL_MAN_FILES:.txt=); do \
+		echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/* link:\1.\2.html[\1(\2)]/' >> $@; \
+		if [ "$${MANPAGE}" = "OmlValueU.3" ]; then \
+			for MANPAGE in $(OMLVALUE3_LINKS); do \
+				echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/** link:OmlValueU.3.html[\1(\2)]/' >> $@; \
+			done; \
+		fi; \
+	done
+	echo -e "\nOther\n-----" >> $@
+	echo "* link:doxygen/[Doxygen documentation]" >> $@
+
+EXTRA_DIST=$(ALL_MAN_FILES) \
+	   bugs.txt \
+	   manual.txt \
+	   index.tpl.txt \
+	   doxygen.am Doxyfile
+CLEANFILES=$(ALL_MAN_FILES:.txt=) \
+	liboml2.3 \
+	oml2_scaffold.1 \
+	$(OMLVALUE3_LINKS) \
+	oml2_scaffold.1 \
+	oml_inject_MPNAME.3
+
+MOSTLYCLEANFILES=$(DX_CLEANFILES)
+
+if ENABLE_DOC
+include doxygen.am
+
+# Doxygen is a bit braindamaged and doesn't seem to be able to either
 # * parse file with no extension as something else than C
 # * include and parse contents from another file
 # On the plus side, this gives us an opportunity to do some search/replace
@@ -42,6 +81,7 @@ OMLVALUE3_LINKS= \
 # Doxygen links.
 # Note: doxygen.am has been modified so @DX_DOCDIR@/@PACKAGE@.tag depends on $(DX_EXTRA_DOC)
 DX_EXTRA_DOC = mainpage.md install.md example.md
+CLEANFILES += $(DX_EXTRA_DOC)
 define README-mdfy
 	sed -e '1s/$$/\t{$1}/' \
 		-e 's^\([^/]\)README^\1[README](@ref index)^g' \
@@ -58,44 +98,13 @@ install.md: $(top_srcdir)/INSTALL
 example.md: $(top_srcdir)/example/liboml2/README
 	$(call README-mdfy,#example) $< > $@
 
-html_docs = $(ALL_MAN_FILES:.txt=.html) index.html
-
-index.txt: index.tpl.txt
-	cat $< > $@
-	echo -e "Manpages\n--------" >> $@
-	for MANPAGE in $(ALL_MAN_FILES:.txt=); do \
-		echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/* link:\1.\2.html[\1(\2)]/' >> $@; \
-		if [ "$${MANPAGE}" = "OmlValueU.3" ]; then \
-			for MANPAGE in $(OMLVALUE3_LINKS); do \
-				echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/** link:OmlValueU.3.html[\1(\2)]/' >> $@; \
-			done; \
-		fi; \
-	done
-	echo -e "\nOther\n-----" >> $@
-	echo "* link:doxygen[Doxygen documentation]" >> $@
-
-EXTRA_DIST=$(ALL_MAN_FILES) \
-	   bugs.txt \
-	   manual.txt \
-	   index.tpl.txt \
-	   doxygen.am Doxyfile
-CLEANFILES=$(ALL_MAN_FILES:.txt=) \
-	liboml2.3 \
-	oml2_scaffold.1 \
-	$(OMLVALUE3_LINKS) \
-	oml2_scaffold.1 \
-	oml_inject_MPNAME.3 \
-	index.txt \
-	$(html_docs) \
-	$(DX_EXTRA_DOC)
-
-MOSTLYCLEANFILES=$(DX_CLEANFILES)
-
-if ENABLE_DOC
-include doxygen.am
+publish-doxygen: @DX_DOCDIR@/@PACKAGE@.tag
+	ssh $(USER)$(WWWHOST) mkdir -p $(HTDOCS)/
+	scp -r  @DX_DOCDIR@/html/ $(USER)$(WWWHOST):$(HTDOCS)/doxygen/
 
 if DX_COND_doc
 all: doxygen-doc
+
 endif
 
 ASCIIDOC_ARGS = --attribute='badges' --attribute='icons'
@@ -138,16 +147,23 @@ else #!HAVE_A2X
 endif #HAVE_A2X
 
 if HAVE_ASCIIDOC
+html_docs = $(ALL_MAN_FILES:.txt=.html) index.html
+
+CLEANFILES += index.txt \
+	      $(html_docs)
+
 SUFFIXES = .html
 .txt.html:
 	$(ASCIIDOC) $(ASCIIDOC_ARGS) -o $@ $<
 index.html: index.txt
 	$(ASCIIDOC) $(ASCIIDOC_ARGS) -o $@ $<
 
-all: html
-html:	$(html_docs)
+all: $(html_docs)
 
-.PHONY: html
+publish-man: $(html_docs)
+	ssh $(USER)$(WWWHOST) mkdir -p $(HTDOCS)/
+	scp $(html_docs) oml_logo.png $(USER)$(WWWHOST):$(HTDOCS)/
+
 else #!HAVE_ASCIIDOC
 	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
 endif #HAVE_ASCIIDOC
