@@ -11,6 +11,10 @@
 
 # RPM 4.7 on our Jenkins instance does not seem to do this by default.
 %define __spec_install_post /usr/lib/rpm/brp-compress
+# Avoid error message related to missing debug files:
+# Processing files: oml2-debuginfo-2.9.0rpmtest-1.1.x86_64
+# error: Could not open %files file /home/abuild/rpmbuild/BUILD/oml2-2.9.0rpmtest/debugfiles.list: No such file or directory
+%define debug_package %{nil}
 
 BuildRoot:              %{_tmppath}/%{name}-%{version}-build
 Summary:                OML: The Orbit Measurement Library
