@@ -154,6 +154,8 @@ pkg-deb: $(PKG_DEB_BUILD_DIR)/$(distdir)/debian/rules
 endif #BUILD_DEBIAN
 
 if BUILD_RPM
+
+
 PKG_RPM_BASE_NAME=$(PACKAGE)-$(OML_ALT_VER)
 PKG_RPM_SPEC=$(PKG_RPM_BUILD_DIR)/SPECS/$(PACKAGE).spec
 PKG_RPM_BUILD_DIR=p-rpm
@@ -166,10 +168,18 @@ RPMBUILD_FLAGS=-bb --clean $(RPMBUILD_FLAGS_ADD)
 $(PKG_RPM_SPEC):
 	rm -rf $(PKG_RPM_BUILD_DIR)
 	mkdir -p $(PKG_RPM_BUILD_DIR)/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-	$(MAKE) distdir=$(PKG_RPM_BUILD_DIR)/BUILD/$(PKG_RPM_BASE_NAME) distdir
 	$(GIT) archive $(GITRPMREF) | $(am__untar) -C $(PKG_RPM_BUILD_DIR)/SPECS/
+if GITISTAG
 # Releases should have a valid specfile and know where to get the tarball
-if !GITISTAG
+#
+# Extract all defines from a SPECFILE, and reformat them into VAR=VALUE, to be
+# evaluated by the shell. Then, replace %{VAR} with ${VAR} in the Source entries
+# of the SPECFILE, and let the shell substitute these variables with their newly
+# assigned values.
+	URL=$$(eval "`sed -n "s/%define\s\+\(\S\+\)\s\+\(\S\+\)$$/\1=\2/p;/Source[0-9]*:/{s/Source[0-9]*:\s*/echo /;s/%/\$$/g;p}" $(PKG_RPM_SPEC)`"); \
+		wget -q $${URL} -O $(PKG_RPM_BUILD_DIR)/SOURCES/`basename $${URL}`
+else
+	$(MAKE) distdir=$(PKG_RPM_BUILD_DIR)/BUILD/$(PKG_RPM_BASE_NAME) distdir
 	cd $(PKG_RPM_BUILD_DIR)/BUILD/; \
 		tardir=$(PKG_RPM_BASE_NAME) && $(am__tar) | \
 		GZIP=$(GZIP_ENV) gzip -c >../SOURCES/$(PKG_RPM_BASE_NAME).tar.gz
