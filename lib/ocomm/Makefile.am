@@ -18,4 +18,4 @@ libocomm_la_SOURCES = \
 
 libocomm_la_LIBADD = $(PTHREAD_LIBS)
 
-libocomm_la_LDFLAGS = -version-info $(LIBOCOMM_LT_VER) -release $(VERSION)
+libocomm_la_LDFLAGS = -version-info $(LIBOCOMM_LT_VER)

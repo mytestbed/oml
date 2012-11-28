@@ -53,4 +53,4 @@ liboml2_la_LIBADD = \
 	$(top_builddir)/lib/shared/libshared.la \
 	$(XML2_LIBS) $(PTHREAD_LIBS) $(M_LIBS)
 
-liboml2_la_LDFLAGS = -version-info $(LIBOML2_LT_VER) -release $(VERSION)
+liboml2_la_LDFLAGS = -version-info $(LIBOML2_LT_VER)
