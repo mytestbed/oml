@@ -377,7 +377,7 @@ class AppDefinition
   def write_oml_register(s)
     @mps.each do |mp|
       n = mp.name
-      s.puts "  g_oml_mps->#{n} = omlc_add_mp(\"#{n}\", oml_#{n}_def);"
+      s.puts "  g_oml_mps_#{@name}->#{n} = omlc_add_mp(\"#{n}\", oml_#{n}_def);"
     end
   end
 
@@ -455,15 +455,16 @@ typedef struct {
 } oml_mps_t;
 
 
-#ifndef OML_FROM_MAIN
+#ifdef OML_FROM_MAIN
+/*
+ * Only declare storage once, usually from the main
+ * source, where OML_FROM_MAIN is defined
+ */
 
-extern oml_mps_t* g_oml_mps;
-
-#else
 #{template(:oml_decl)}
 
 static oml_mps_t g_oml_mps_storage;
-oml_mps_t* g_oml_mps = &g_oml_mps_storage;
+oml_mps_t* g_oml_mps_#{@name} = &g_oml_mps_storage;
 
 static void
 oml_register_mps()
@@ -474,7 +475,20 @@ oml_register_mps()
 
 #{template(:oml_helpers)}
 
+#else
+/*
+ * Not included from the main source,
+ * only declare the global pointer to the MPs
+ */
+
+extern oml_mps_t* g_oml_mps_#{@name};
+
 #endif /* OML_FROM_MAIN */
+
+/* Compatibility with old applications */
+#ifndef g_oml_mps
+# define g_oml_mps	g_oml_mps_#{@name}
+#endif
 
 #ifdef __cplusplus
 }
@@ -653,7 +667,7 @@ main(
   omlc_start();
 
   // Do some work
-  run(g_opts, g_oml_mps);
+  run(g_opts, g_oml_mps_#{@name});
 
   return(0);
 }

@@ -56,7 +56,7 @@ main(
   omlc_start();
 
   // Do some work
-  run(g_opts, g_oml_mps);
+  run(g_opts, g_oml_mps_generator);
 
   return(0);
 }
