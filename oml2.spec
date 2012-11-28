@@ -64,12 +64,12 @@ rm -rf %{buildroot}
 /usr/bin/oml2-server
 /usr/lib/libocomm.a
 /usr/lib/libocomm.la
-/usr/lib/libocomm-%{pkgver}.so.%{libocommcur}
-/usr/lib/libocomm-%{pkgver}.so.%{libocommcur}.%{libocommrev}.%{libocommage}
+/usr/lib/libocomm.so.%{libocommcur}
+/usr/lib/libocomm.so.%{libocommcur}.%{libocommrev}.%{libocommage}
 /usr/lib/liboml2.a
 /usr/lib/liboml2.la
-/usr/lib/liboml2-%{pkgver}.so.%{liboml2cur}
-/usr/lib/liboml2-%{pkgver}.so.%{liboml2cur}.%{liboml2rev}.%{liboml2age}
+/usr/lib/liboml2.so.%{liboml2cur}
+/usr/lib/liboml2.so.%{liboml2cur}.%{liboml2rev}.%{liboml2age}
 /usr/share/oml2/oml2-server-hook.sh
 /usr/share/info/oml-user-manual.info.gz
 %doc /usr/share/man/man1/liboml2.1.gz
