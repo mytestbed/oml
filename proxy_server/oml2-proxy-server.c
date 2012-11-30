@@ -30,13 +30,15 @@
 #include <signal.h>
 #include <popt.h>
 
+#include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
 #include "ocomm/o_eventloop.h"
-#include "log.h"
 #include "mstring.h"
-#include "version.h"
 #include "session.h"
-#include "client.h"
+#include "proxy_client.h"
+
+#define V_STRING  "OML2 Proxy Server V%s\n"
+#define COPYRIGHT "Copyright 2007-2012 NICTA\n"
 
 #define DEF_PORT 3003
 #define DEF_PORT_STR "3003"

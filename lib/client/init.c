@@ -36,7 +36,7 @@
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
 #include "oml2/oml_writer.h"
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "mem.h"
 #include "mstring.h"
 #include "oml_value.h"
@@ -44,9 +44,11 @@
 #include "filter/factory.h"
 #include "oml_util.h"
 #include "client.h"
-#include "version.h"
+
+#define OMLC_COPYRIGHT "Copyright 2007-2012, NICTA"
 
 OmlClient* omlc_instance = NULL;
+
 
 #define DEF_LOG_LEVEL = O_LOG_INFO;
 

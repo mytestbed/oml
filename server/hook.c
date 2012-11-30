@@ -28,7 +28,7 @@
 #include <sys/select.h>
 #include <signal.h>
 
-#include "log.h"
+#include "ocomm/o_log.h"
 
 #define HOOK_C_
 #include "hook.h"

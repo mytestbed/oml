@@ -10,16 +10,15 @@ bin_PROGRAMS = oml2-proxy-server
 dist_bin_SCRIPTS = oml2-proxycon
 
 oml2_proxy_server_SOURCES = \
-	main.c \
+	oml2-proxy-server.c \
 	receiver.c \
 	sender.c \
 	session.c \
 	session.h \
-	client.c \
-	client.h \
+	proxy_client.c \
+	proxy_client.h \
 	message_queue.c \
-	message_queue.h \
-	version.h
+	message_queue.h
 
 
 oml2_proxy_server_LDADD = \

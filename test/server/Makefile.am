@@ -14,8 +14,8 @@ check_PROGRAMS = msgloop check_server
 msgloop_SOURCES = \
 	msgloop.c \
 	$(top_srcdir)/proxy_server/receiver.c \
-	$(top_srcdir)/proxy_server/client.c \
-	$(top_srcdir)/proxy_server/client.h \
+	$(top_srcdir)/proxy_server/proxy_client.c \
+	$(top_srcdir)/proxy_server/proxy_client.h \
 	$(top_srcdir)/proxy_server/message_queue.c \
 	$(top_srcdir)/proxy_server/message_queue.h \
 	$(top_srcdir)/lib/client/oml2/omlc.h \

@@ -30,7 +30,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "mem.h"
 #include "mstring.h"
 #include "htonll.h"

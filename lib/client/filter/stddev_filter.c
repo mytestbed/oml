@@ -49,7 +49,7 @@
 
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "oml_value.h"
 #include "stddev_filter.h"
 

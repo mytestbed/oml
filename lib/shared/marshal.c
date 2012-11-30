@@ -36,9 +36,9 @@
 #include <assert.h>
 
 #include "oml2/omlc.h"
+#include "ocomm/o_log.h"
 #include "htonll.h"
 #include "mem.h"
-#include "log.h"
 #include "mbuf.h"
 #include "oml_value.h"
 #include "marshal.h"

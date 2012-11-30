@@ -37,7 +37,7 @@
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
 #include "oml2/oml_writer.h"
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "client.h"
 
 static void* thread_start(void* handle);

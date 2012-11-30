@@ -10,7 +10,7 @@ AM_CPPFLAGS = \
 bin_PROGRAMS = oml2-server
 
 oml2_server_SOURCES = \
-	main.c \
+	oml2-server.c \
 	client_handler.c \
 	client_handler.h \
 	database.c \
@@ -20,8 +20,7 @@ oml2_server_SOURCES = \
 	sqlite_adapter.c \
 	sqlite_adapter.h \
 	table_descr.c \
-	table_descr.h \
-	version.h
+	table_descr.h
 
 sharedir = $(datadir)/$(PACKAGE)
 dist_share_DATA = oml2-server-hook.sh

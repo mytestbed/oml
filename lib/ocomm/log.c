@@ -261,6 +261,54 @@ o_log_simplified(int level, const char* format, ...)
   va_end(va);
 }
 
+/** Convenience function logging at level O_LOG_ERROR.
+ *
+ * \param fmt format string
+ * \param ... format string arguments
+ */
+void logerror (const char *fmt, ...) {
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_ERROR, fmt, va);
+  va_end (va);
+}
+
+/** Convenience function logging at level O_LOG_WARN.
+ *
+ * \param fmt format string
+ * \param ... format string arguments
+ */
+void logwarn (const char *fmt, ...) {
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_WARN, fmt, va);
+  va_end (va);
+}
+
+/** Convenience function logging at level O_LOG_INFO.
+ *
+ * \param fmt format string
+ * \param ... format string arguments
+ */
+void loginfo (const char *fmt, ...) {
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_INFO, fmt, va);
+  va_end (va);
+}
+
+/** Convenience function logging at level O_LOG_DEBUG.
+ *
+ * \param fmt format string
+ * \param ... format string arguments
+ */
+void logdebug (const char *fmt, ...) {
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_DEBUG, fmt, va);
+  va_end (va);
+}
+
 /*
  Local Variables:
  mode: C

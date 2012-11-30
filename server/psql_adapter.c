@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "mem.h"
 #include "mstring.h"
 #include "oml_value.h"

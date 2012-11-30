@@ -20,8 +20,6 @@ libshared_la_SOURCES = \
 	mem.h \
 	oml_value.c \
 	oml_value.h \
-	log.c \
-	log.h \
 	validate.c \
 	validate.h \
 	schema.c \

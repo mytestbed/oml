@@ -32,7 +32,7 @@
 #include <sys/time.h>
 #include <assert.h>
 
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "oml_util.h"
 #include "oml_value.h"
 #include "mem.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2012 National ICT Australia (NICTA), Australia
+ * Copyright 2010-2012 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,19 +20,25 @@
  * THE SOFTWARE.
  *
  */
-#ifndef VERSION_H
-#define VERSION_H
 
-#define PROTOCOL_MAJOR 1
-#define PROTOCOL_MINOR 0
+#include <stdlib.h>
+#include <check.h>
 
-#define V_STRING \
-"OML2 Proxy Server V%s\n"
+#include "check_libshared_suites.h"
 
-#define COPYRIGHT \
-"Copyright 2007-2012 NICTA\n"
+int
+main (void)
+{
+  int number_failed = 0;
 
-#endif /*VERSION_H_*/
+  SRunner *sr = srunner_create (headers_suite ());
+  //  srunner_add_suite (sr, database_suite ()); /* For example ... */
+
+  srunner_run_all (sr, CK_NORMAL);
+  number_failed += srunner_ntests_failed (sr);
+  srunner_free (sr);
+  return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
 
 /*
  Local Variables:

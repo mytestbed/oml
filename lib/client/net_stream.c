@@ -36,7 +36,6 @@
 #include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
 #include "mem.h"
-#include "log.h"
 #include "oml_util.h"
 #include "client.h"
 

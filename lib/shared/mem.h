@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#include "log.h"
+#include "ocomm/o_log.h"
 
 void *xmalloc (size_t size);
 void *xcalloc (size_t count, size_t size);

@@ -29,7 +29,6 @@ liboml2_la_SOURCES = \
 	buffered_writer.c \
 	buffered_writer.h \
 	parse_config.c \
-	version.h \
 	filter/factory.c \
 	filter/factory.h \
 	filter/first_filter.c \

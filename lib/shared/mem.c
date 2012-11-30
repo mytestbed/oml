@@ -32,8 +32,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#include "ocomm/o_log.h"
 #include "mem.h"
-#include "log.h"
 
 static size_t xbytes = 0;
 static size_t xnew = 0;

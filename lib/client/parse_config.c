@@ -24,14 +24,14 @@
   \brief Implements the parsing of the configuration file.
 */
 
-#include <log.h>
-#include <mstring.h>
-#include <mem.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <libxml/tree.h>
 
+#include "ocomm/o_log.h"
+#include "mstring.h"
+#include "mem.h"
 #include "filter/factory.h"
 #include "client.h"
 #include "oml_value.h"

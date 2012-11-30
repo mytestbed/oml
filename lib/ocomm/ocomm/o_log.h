@@ -114,6 +114,12 @@ o_set_log_level(int level);
 
 void o_set_simplified_logging (void);
 
+
+void logerror (const char *fmt, ...);
+void logwarn (const char *fmt, ...);
+void loginfo (const char *fmt, ...);
+void logdebug (const char *fmt, ...);
+
 #ifdef __cplusplus
 }
 #endif

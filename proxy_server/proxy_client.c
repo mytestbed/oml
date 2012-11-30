@@ -23,11 +23,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "mem.h"
 #include "mbuf.h"
 #include "cbuf.h"
-#include "client.h"
+#include "proxy_client.h"
 #include "message_queue.h"
 
 static int

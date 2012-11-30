@@ -28,7 +28,7 @@
 #include <errno.h>
 
 #include "ocomm/o_log.h"
-#include "client.h"
+#include "proxy_client.h"
 
 enum TestType {
   TT_SERVER,

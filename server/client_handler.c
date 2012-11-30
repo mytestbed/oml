@@ -31,9 +31,9 @@
 #include <assert.h>
 
 #include "oml2/oml_writer.h"
+#include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
 #include "ocomm/o_eventloop.h"
-#include "log.h"
 #include "mem.h"
 #include "mbuf.h"
 #include "oml_value.h"

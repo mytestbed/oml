@@ -34,7 +34,6 @@
 #include "oml2/omlc.h"
 #include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
-#include "log.h"
 
 #include "client.h"
 #include "buffered_writer.h"

@@ -33,10 +33,10 @@
 #include <netinet/in.h>
 
 //#include "ocomm/o_socket.h"
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "mem.h"
 #include "session.h"
-#include "client.h"
+#include "proxy_client.h"
 
 extern int sigpipe_flag;
 

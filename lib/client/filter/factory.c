@@ -27,7 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "mem.h"
 #include "filter/factory.h"
 

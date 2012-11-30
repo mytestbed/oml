@@ -21,7 +21,7 @@
  *
  */
 #include "session.h"
-#include "client.h"
+#include "proxy_client.h"
 
 void
 session_add_client (Session *session, Client *client)

@@ -31,7 +31,7 @@
 
 #include "oml2/omlc.h"
 #include "oml2/oml_out_stream.h"
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "client.h"
 
 

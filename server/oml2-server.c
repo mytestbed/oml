@@ -36,16 +36,19 @@
 #include <errno.h>
 
 #include "oml2/oml_writer.h"
+#include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
 #include "ocomm/o_eventloop.h"
-#include "log.h"
 #include "mem.h"
 #include "oml_util.h"
-#include "version.h"
 #include "hook.h"
 #include "client_handler.h"
 #include "database.h"
 #include "sqlite_adapter.h"
+
+#define V_STRING  "OML2 Server V%s\n"
+
+#define COPYRIGHT "Copyright 2007-2012 NICTA\n"
 
 #if HAVE_LIBPQ
 #include <libpq-fe.h>

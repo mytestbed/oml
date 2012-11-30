@@ -22,7 +22,7 @@
  */
 #include <string.h>
 
-#include "log.h"
+#include "ocomm/o_log.h"
 #include "mem.h"
 #include "mbuf.h"
 #include "headers.h"
@@ -30,7 +30,7 @@
 #include "text.h"
 #include "binary.h"
 #include "message_queue.h"
-#include "client.h"
+#include "proxy_client.h"
 
 /**
  * @brief Read a line from mbuf.
