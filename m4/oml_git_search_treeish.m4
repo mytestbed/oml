@@ -18,9 +18,10 @@ AC_DEFUN([OML_GIT_SEARCH_TREEISH],[
 
 	 AC_MSG_CHECKING([for matching DESCRIPTION treeish])
 	 m4_foreach([TREEISH], [LIST], [
+		 treeish=`echo $TREEISH | sed 's^\(remotes\|origin\)/^^g'`
 		 AS_IF([test "x$VARIABLE" = "x"], [
-			 TAG=`$GIT tag --list TREEISH* 2>/dev/null | sort | tail -n 1`
-			 BRANCH=`$GIT BRANCH --list TREEISH* 2>/dev/null | sort | tail -n 1`
+			 TAG=`$GIT tag --list ${treeish}* 2>/dev/null | sort | tail -n 1`
+			 BRANCH=`$GIT BRANCH --list ${treeish}* 2>/dev/null | sort | tail -n 1`
 			 AS_IF([test "x$TAG" != "x"],
 				 [VARIABLE=$TAG],
 				 [test "x$BRANCH" != "x"],
