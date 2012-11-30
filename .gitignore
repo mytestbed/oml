@@ -61,3 +61,15 @@ build-aux
 !build-aux/gen-authors.sh
 .version
 p-*
+proxy_server/oml2-proxy-server
+server/oml2-server
+ruby/oml2-scaffold
+python/oml4py/PKG-INFO
+python/oml4py/dist/
+ruby/oml4r/lib/oml4r.rb
+python/oml4py/oml4py.py
+python/oml4py/setup.py
+test/lib/stddev_0.c
+test/lib/stddev_1.c
+test/server/issue610.rb
+test/testclient
