@@ -2,8 +2,9 @@ oml2 (2.9.0rc-mytestbed2) precise; urgency=low
 
   * Packaging does not depend on autotools as the scripts are already present
     in the dist tarball.
+  * Add liboml2 metapackage depending on the latest liboml2-X package.
 
- -- Olivier Mehani <olivier.mehani@nicta.com.au>  Fri, 07 Dec 2012 16:47:21 +1100
+ -- Olivier Mehani <olivier.mehani@nicta.com.au>  Fri, 07 Dec 2012 17:17:42 +1100
 
 oml2 (2.9.0rc-mytestbed1) precise; urgency=low
 

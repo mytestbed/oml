@@ -44,12 +44,26 @@ Section: libdevel
 Architecture: any
 Replaces: liboml-dev
 Breaks: liboml-dev (<< 2.4), oml-server (<< 2.4)
-Depends: liboml2-9 (= ${Source-Version}), libocomm-dev (= ${Source-Version}), ruby (>=1.8.7)
+Depends: liboml2 (= ${Source-Version}), libocomm-dev (= ${Source-Version}), ruby (>=1.8.7)
 Description: OML measurement library headers
  Development headers for developing applications that make
  measurements using liboml2, the client library for the OML
- measurement framework.  Also provides the oml2_scaffold program
+ measurement framework.  Also provides the oml2-scaffold program
  for generating skeleton OML application code.
+
+Package: liboml2
+Section: libs
+Architecture: any
+Replaces: liboml
+Breaks: liboml (<< 2.4)
+Depends: liboml2-9
+Description: OML: The Orbit Measurement Library (metapackage)
+ This metapackage pulls in the latest stable version of liboml2.
+ .
+ This library allows application writers to define customizable
+ measurement points in their applications to record measurements
+ either to file, or to an OML server over the network (see the
+ oml2-server package).
 
 Package: liboml2-9
 Section: libs
