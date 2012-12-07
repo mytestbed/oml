@@ -2,7 +2,9 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = gnulib lib server proxy_server python ruby doc example test
 
-EXTRA_DIST = m4/gnulib-cache.m4 \
+EXTRA_DIST = autogen.sh \
+	     autoclean.sh \
+	     m4/gnulib-cache.m4 \
 	     $(top_srcdir)/.version \
 	     $(top_srcdir)/build-aux/gen-authors.sh \
 	     m4/ax_compare_version.m4 \
