@@ -22,14 +22,14 @@ License:                MIT
 URL:                    http://oml.mytestbed.net
 Name:                   %{name}
 Version:                %{version}
-Release:                1
+Release:                2
 Source:			http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{version}.tar.gz
 Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Prefix:                 /usr
 Group:                  System/Libraries
 Conflicts:              liboml liboml-dev oml-server
 Requires:		libxml2 popt sqlite
-BuildRequires:          make libxml2-devel popt-devel sqlite-devel texinfo asciidoc
+BuildRequires:          asciidoc gnulib make libxml2-devel popt-devel sqlite-devel texinfo
 
 %description
 This library allows application writers to define customizable
@@ -40,9 +40,9 @@ The package also contains the OML server, proxy server and
 proxy server control script.
 
 %package devel
-Summary: 	liboml2 development headers
-Group: 		System/Libraries
-Provides: 	oml2-devel
+Summary:	liboml2 development headers
+Group:		System/Libraries
+Provides:	oml2-devel
 
 %description devel
 This package contains necessary header files for liboml2 development.
@@ -96,9 +96,6 @@ rm -rf %{buildroot}
 /usr/share/oml2/liboml2-conf/config.xml
 /usr/share/oml2/liboml2-conf/config_two_streams.xml
 /usr/share/oml2/liboml2-conf/config_text_stream.xml
-#/usr/share/oml2/oml4r/oml4r-wlanconfig.rb
-#/usr/share/oml2/oml4r/oml4r-simple-example.rb
-#/usr/share/oml2/oml4r/oml4r-%{version}.dirty.gem
 %doc /usr/share/man/man1/oml2-scaffold.1.gz
 %doc /usr/share/man/man1/oml2_scaffold.1.gz
 %doc /usr/share/man/man3/liboml2.3.gz
