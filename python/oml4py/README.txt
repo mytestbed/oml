@@ -1,4 +1,4 @@
-OML4Py: Native OML Implementation in Python			{#oml4pydoc}
+OML4Py: Native OML Implementation in Python
 ===========================================
 
 This is a Python module for the OML measurement library based on the OML text
@@ -21,10 +21,15 @@ Usage
 -----
 
 This module provides the OMLBase class, which contains the following methods:
+
 * init
+
 * start
+
 * addmp
+
 * inject
+
 * close
 
 To use OML in a python project, import the OMLBase class::
@@ -33,9 +38,13 @@ To use OML in a python project, import the OMLBase class::
 
 Start by initializing an OMLBase object. The init method takes up to four
 arguments:
+
 * the name of the application,
+
 * the name of the experiment,
+
 * the name of the node,
+
 * and the OML server URI in the form ``tcp:hostname:port``
 
 

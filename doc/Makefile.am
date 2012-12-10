@@ -97,6 +97,8 @@ install.md: $(top_srcdir)/INSTALL
 	$(call README-mdfy,#install) $< > $@
 example.md: $(top_srcdir)/example/liboml2/README
 	$(call README-mdfy,#example) $< > $@
+oml4pydoc.md: $(top_srcdir)/python/oml4py/README.txt
+	$(call README-mdfy,#oml4pydoc) $< > $@
 
 publish-doxygen: @DX_DOCDIR@/@PACKAGE@.tag
 	ssh $(USER)$(WWWHOST) mkdir -p $(HTDOCS)/
