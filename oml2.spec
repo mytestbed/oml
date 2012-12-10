@@ -1,7 +1,7 @@
 %define name		oml2
-%define version		2.9.0rc
+%define version		2.9.0
 %define pkgver		%{version}
-%define redmineid	767
+%define redmineid	792
 %define liboml2cur	9
 %define liboml2rev	0
 %define liboml2age	0
@@ -22,7 +22,7 @@ License:                MIT
 URL:                    http://oml.mytestbed.net
 Name:                   %{name}
 Version:                %{version}
-Release:                2
+Release:                1
 Source:			http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{version}.tar.gz
 Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Prefix:                 /usr
