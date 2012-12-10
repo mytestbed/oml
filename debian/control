@@ -54,9 +54,7 @@ Description: OML measurement library headers
 Package: liboml2
 Section: libs
 Architecture: any
-Replaces: liboml
-Breaks: liboml (<< 2.4)
-Depends: liboml2-9
+Depends: liboml2-9 (= ${Source-Version})
 Description: OML: The Orbit Measurement Library (metapackage)
  This metapackage pulls in the latest stable version of liboml2.
  .
@@ -82,9 +80,19 @@ Section: libdevel
 Architecture: any
 Replaces: liboml-dev
 Breaks: liboml-dev (<< 2.4)
-Depends: libocomm1 (= ${Source-Version})
+Depends: libocomm (= ${Source-Version})
 Description: OML measurement library headers
  Development headers for developing applications that use libocomm.
+
+Package: libocomm
+Section: libs
+Architecture: any
+Depends: libocomm1 (= ${Source-Version})
+Description: OComm:  Orbit Communications Library (metapackage)
+ This metapackage pulls in the latest stable version of libocomm.
+ .
+ This library provides a poll-based event loop and a set of functions
+ for doing event-based socket communication.
 
 Package: libocomm1
 Section: libs
