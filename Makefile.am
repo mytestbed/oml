@@ -25,6 +25,11 @@ dist-hook:
 		$(top_srcdir)/build-aux/gen-authors.sh > $(distdir)/AUTHORS;	\
 	fi
 
+if ENABLE_DOC
+doc-publish:
+	$(MAKE) -C doc/ publish
+endif
+
 if BUILD_OML4PY_EGG
 oml4py-egg oml4py-push:
 	$(MAKE) -C python/ $@

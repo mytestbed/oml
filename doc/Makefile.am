@@ -102,6 +102,7 @@ oml4pydoc.md: $(top_srcdir)/python/oml4py/README.txt
 
 publish-doxygen: @DX_DOCDIR@/@PACKAGE@.tag
 	ssh $(USER)$(WWWHOST) mkdir -p $(HTDOCS)/
+	ssh $(USER)$(WWWHOST) rm -rf $(HTDOCS)/doxygen/
 	scp -r  @DX_DOCDIR@/html/ $(USER)$(WWWHOST):$(HTDOCS)/doxygen/
 
 if DX_COND_doc
