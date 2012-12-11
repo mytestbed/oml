@@ -137,7 +137,7 @@ AC_ARG_ENABLE([packaging],
 			     AC_MSG_RESULT([$gitbranch])
 
 			     AC_MSG_CHECKING([current Git tag])
-			     gittag=`${GIT} describe --exact-match 2>/dev/null`
+			     gittag=`${GIT} describe --exact-match --match v\* 2>/dev/null`
 			     AS_IF([ test "x" != "x$gittag"],
 				   [
 				    AC_MSG_RESULT([$gittag])
