@@ -28,8 +28,15 @@ Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Prefix:                 /usr
 Group:                  System/Libraries
 Conflicts:              liboml liboml-dev oml-server
-Requires:		libxml2 popt sqlite
-BuildRequires:          asciidoc make libxml2-devel popt-devel sqlite-devel texinfo
+Requires:		libxml2
+Requires:		popt
+Requires:		sqlite
+BuildRequires:		asciidoc
+BuildRequires:		make
+BuildRequires:		libxml2-devel
+BuildRequires:		popt-devel
+BuildRequires:		sqlite-devel
+BuildRequires:		texinfo
 
 %description
 This library allows application writers to define customizable
