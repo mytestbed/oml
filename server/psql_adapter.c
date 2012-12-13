@@ -569,7 +569,7 @@ psql_get_table_list (Database *database, int *num_tables)
 
   for (i = 0; i < rows; i++) {
     char *val = PQgetvalue (res, i, 0);
-    logdebug("psql:%s: Found table '%s'", database->name, val);
+    logdebug("psql:%s: Found table '%s'\n", database->name, val);
     MString *str = mstring_create ();
     TableDescr *t = NULL;
 
