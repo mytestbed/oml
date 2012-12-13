@@ -30,6 +30,7 @@
 # its output (= measurements), and finally pass them to OML4R, which will in 
 # turn either store them in a local file or forward them to the OML Server.
 #
+require "rubygems"
 require "oml4r"
 
 APPNAME = "wlanconfig"

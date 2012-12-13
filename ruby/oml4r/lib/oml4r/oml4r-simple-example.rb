@@ -26,6 +26,7 @@
 #
 # A very simple straightforward example of OML4R.
 #
+require 'rubygems'
 require 'oml4r'
 
 # Define your own Measurement Points
