@@ -159,7 +159,7 @@ module OML4R
 	cna = @@channels[klass] || []
 	$stderr.puts "DEBUG	'#{cna.inspect}', '#{klass}'" if OML4R.loglevel > 0
 	ca = cna.collect do |cname, domain|
-	  # return it in an array as we need to add the channel specific index  
+	  # return it in an array as we need to add the channel specific index
 	  [Channel[cname.to_sym, domain.to_sym]]
 	end
 	$stderr.puts "DEBUG	Using channels '#{ca.inspect}" if OML4R.loglevel > 0
@@ -230,7 +230,7 @@ module OML4R
     #if opts[:id]
     #  raise 'OML4R: :id is not a valid option. Do you mean :nodeID?'
     #end
-    nodeID = ENV['OML_NAME'] || opts[:nodeID]  ||  opts[:id] || ENV['OML_ID'] 
+    nodeID = ENV['OML_NAME'] || opts[:nodeID]  ||  opts[:id] || ENV['OML_ID']
     #
     # XXX: Same again; also, this is the responsibility of the developer, not the user
     #if opts[:app]
@@ -256,8 +256,8 @@ module OML4R
     op.on("--oml-id id", "Name to identify this app instance [#{nodeID || 'undefined'}]") { |name| nodeID = name }
     op.on("--oml-domain domain", "Name of experimental domain [#{domain || 'undefined'}] *EXPERIMENTAL*") { |name| domain = name }
     op.on("--oml-collect uri", "URI of server to send measurements to") { |u|  omlCollectUri = u }
-    op.on("--oml-log-level l", "Log level used (info: 0 .. debug: 1)") { |l| OML4R.loglevel = l.to_i; puts "-> #{OML4R.loglevel}" }    
-    op.on("--oml-noop", "Do not collect measurements") { noop = true }    
+    op.on("--oml-log-level l", "Log level used (info: 0 .. debug: 1)") { |l| OML4R.loglevel = l.to_i }
+    op.on("--oml-noop", "Do not collect measurements") { noop = true }
     op.on("--oml-exp-id domain", "Obsolescent equivalent to --oml-domain domain") { |name|
       domain = name
       $stderr.puts "WARN	Option --oml-exp-id is getting deprecated; please use '--oml-domain #{domain}' instead"
@@ -299,7 +299,7 @@ module OML4R
 
   #
   # Close the OML collection. This will block until all outstanding data have been sent out.
-  # 
+  #
   def self.close()
     Channel.close_all
   end
@@ -331,7 +331,7 @@ module OML4R
       out = _connect(url)
       @@channels[key] = self.new(url, domain, out)
     end
-    
+
     def self._connect(url)
       if url.start_with? 'file:'
 	proto, fname = url.split(':')
@@ -417,7 +417,7 @@ module OML4R
       @out = out_channel
       @index = 0
       @header = []
-      @header_sent = false      
+      @header_sent = false
       @queue = Queue.new
       start_runner
     end
@@ -448,16 +448,15 @@ module OML4R
 		msg = @queue.pop
 		if (active = !msg.nil?)
 		  ma << msg
-		end 
+		end
 	      end
 	      msg = ma.join("\n")
 	    end
 	    #$stderr.puts ">>>>>>#{@domain}: <#{msg}>"
             unless msg.nil?
-              _send msg 
+              _send msg
             end
 	  end
-          puts ">> CLOSE"
 	  @out.close
 	  @out = nil
 	rescue Exception => ex
@@ -467,31 +466,31 @@ module OML4R
         info "Channel #{url} closed"
       end
     end
-    
+
     def info(msg)
       Object.const_defined?(:MObject) ? MObject.warn(:oml4r, msg) : $stderr.puts("INFO        #{msg}")
     end
-    
+
     def _send(msg)
       begin
         unless @header_sent
           h = "#{@header.join("\n")}\n\n"
-          puts "'#{h}'"
+	  $stderr.puts "DEBUG	'#{h}'" if OML4R.loglevel > 3
           @out.puts h
           @header_sent = true
         end
-        @out.puts msg 
+        @out.puts msg
         @out.flush
 
       rescue Errno::EPIPE
         # Trying to reconnect
         info "Trying to reconnect to '#{@url}'"
-        loop do 
+        loop do
           sleep 5
           begin
             @out = self.class._connect(@url)
             @header_sent = false
-            info "Reconnected to '#{@url}'"            
+            info "Reconnected to '#{@url}'"
             return _send(msg)
           rescue Errno::ECONNREFUSED => ex
             info "Exception while reconnect '#{@url}' (#{ex.class})"
