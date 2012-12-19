@@ -24,6 +24,8 @@ Name:                   %{name}
 Version:                %{version}
 Release:                1
 Source:			http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{version}.tar.gz
+Source1:		init.d-oml2-server
+Source2:		oml2-server.service
 Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Prefix:                 /usr
 Group:                  System/Libraries
@@ -63,6 +65,10 @@ make %{?_smp_mflags}
 
 %install
 make DESTDIR=%{buildroot} install-strip
+mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
+cp $RPM_SOURCE_DIR/init.d-oml2-server $RPM_BUILD_ROOT/etc/rc.d/init.d/oml2-server
+mkdir -p $RPM_BUILD_ROOT/usr/lib/systemd/system
+cp $RPM_SOURCE_DIR/oml2-server.service $RPM_BUILD_ROOT/usr/lib/systemd/system
 rm -f %{buildroot}/usr/share/info/dir
 
 %clean
@@ -106,6 +112,8 @@ exit 0
 %doc %{_mandir}/man1/oml2-server.1.gz
 %doc %{_mandir}/man5
 %dir /var/lib/oml2
+%attr(0755,root,root) /etc/rc.d/init.d/oml2-server
+/usr/lib/systemd/system/oml2-server.service
 
 %files devel
 %{_libdir}/liboml2.so

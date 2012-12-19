@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# oml2-server    Startup script for the OML2 measurements collection server
+# Largely inspired on Collectd's contrib script for Fedora
+# chkconfig: - 86 15
+# description: oml2-server is a measurements collection server for OML2
+# processname: oml2-server
+
+# Source function library.
+. /etc/init.d/functions
+
+RETVAL=0
+ARGS="--logfile=/var/log/oml2-server.log --backend sqlite --data-dir=/var/lib/oml2"
+prog="oml2-server"
+CONFIG=/etc/oml2-server.conf
+
+if [ -r /etc/default/$prog ]; then
+	. /etc/default/$prog
+fi
+
+start () {
+	echo -n $"Starting $prog: "
+	if [ -r "$CONFIG" ]
+	then
+		daemon /usr/bin/oml2-server $ARGS
+		RETVAL=$?
+		echo
+		[ $RETVAL -eq 0 ] && touch /var/lock/subsys/$prog
+	fi
+}
+stop () {
+	echo -n $"Stopping $prog: "
+	killproc $prog
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/$prog
+}
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+	status $prog
+	;;
+  restart|reload)
+	stop
+	start
+	;;
+  condrestart)
+	[ -f /var/lock/subsys/$prog ] && stop && start || :
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|reload|condrestart}"
+	exit 1
+esac
+
+exit $?
+
+# vim:syntax=sh
