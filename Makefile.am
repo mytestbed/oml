@@ -175,7 +175,7 @@ RPMBUILD_FLAGS=-bb --clean $(RPMBUILD_FLAGS_ADD)
 $(PKG_RPM_SPEC):
 	rm -rf $(PKG_RPM_BUILD_DIR)
 	mkdir -p $(PKG_RPM_BUILD_DIR)/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-	$(GIT) archive $(GITRPMREF) | $(am__untar) -C $(PKG_RPM_BUILD_DIR)/SPECS/
+	$(GIT) archive $(GITRPMREF) | $(am__untar) -C $(PKG_RPM_BUILD_DIR)
 if GITISTAG
 # Releases should have a valid specfile and know where to get the tarball
 #
