@@ -22,7 +22,7 @@ Type=simple
 # to override.
 #
 # See oml2-server(1) for details.
-ExecStart=/usr/bin/oml2-server -l 3003 --logfile=/var/log/oml2-server.log --user=oml2 --group=oml2 -d 1
+ExecStart=/usr/bin/oml2-server -l 3003 --logfile=/var/log/oml2-server.log --user=oml2 --group=oml2
 
 # Add the following to the ExecStart line to enable and configure the PostgreSQL
 # backend
