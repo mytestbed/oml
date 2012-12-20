@@ -52,6 +52,7 @@ proxy server control script.
 Summary:	liboml2 development headers
 Group:		System/Libraries
 Provides:	oml2-devel
+Requires:	ruby
 
 %description devel
 This package contains necessary header files for liboml2 development.
