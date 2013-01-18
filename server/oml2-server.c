@@ -152,7 +152,7 @@ static void sighandler(int signum)
     eventloop_stop(signum);
     break;
   case SIGUSR1:
-    xmemreport(O_LOG_INFO);
+    eventloop_report(O_LOG_INFO);
     break;
   default:
     logwarn("Received unhandled signal %d\n", signum);

@@ -21,7 +21,7 @@
  *
  */
 /** Implements an event loop dispatching callbacks
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -715,6 +715,18 @@ eventloop_now(void)
 {
   return now - start;
 }
+
+/** Log a summary of resource usage
+ *
+ * \param loglevel log level at which the message should be issued
+ * \see xmemsummary
+ */
+void eventloop_report (int loglevel)
+{
+  o_log(loglevel, "Open file descriptors: %d/%d\n", self.size, self.length);
+  o_log(loglevel, "Memory usage: %s\n", xmemsummary());
+}
+
 
 
 /*
