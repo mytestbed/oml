@@ -11,4 +11,4 @@ noinst_PROGRAMS = testclient
 
 testclient_SOURCES = testclient.c
 
-testclient_LDADD = $(top_builddir)/lib/client/liboml2.la
+testclient_LDADD = $(top_builddir)/lib/client/liboml2.la $(top_builddir)/lib/ocomm/libocomm.la
