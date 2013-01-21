@@ -158,9 +158,9 @@ eventloop_init()
 {
   memset(&self, 0, sizeof(EventLoop));
 
-  self.fds = NULL; // (struct pollfd **)malloc(length * sizeof(struct pollfd*));
-  self.channels = NULL; //(Channel **)malloc(length * sizeof(Channel*));
-  self.timers = NULL; // (TimerInt **)malloc(length * sizeof(TimerInt*));
+  self.fds = NULL; // (struct pollfd **)xmalloc(length * sizeof(struct pollfd*));
+  self.channels = NULL; //(Channel **)xmalloc(length * sizeof(Channel*));
+  self.timers = NULL; // (TimerInt **)xmalloc(length * sizeof(TimerInt*));
   //  self.timer_size = 0;
 
   self.size = 0;
@@ -491,7 +491,7 @@ channel_new(
   o_el_state_socket_callback status_cbk,
   void* handle
 ) {
-  Channel* ch = (Channel *)malloc(sizeof(Channel));
+  Channel* ch = (Channel *)xmalloc(sizeof(Channel));
   memset(ch, 0, sizeof(Channel));
 
   ch->is_active = 1; /* Anywhere else should use eventloop_socket_activate() */
@@ -675,7 +675,7 @@ eventloop_socket_remove(
       }
     }
   }
-  free(ch);
+  xfree(ch);
   self.fds_dirty = 1;
 }
 
@@ -721,7 +721,7 @@ eventloop_every(
   o_el_timer_callback callback,
   void* handle
 ) {
-  TimerInt* t = (TimerInt *)malloc(sizeof(TimerInt));
+  TimerInt* t = (TimerInt *)xmalloc(sizeof(TimerInt));
   memset(t, 0, sizeof(TimerInt));
 
   t->name = t->nameBuf;
