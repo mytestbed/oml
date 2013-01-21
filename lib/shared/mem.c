@@ -29,6 +29,7 @@
  * block. The first size_t element is used to store the actual size of the
  * xchunk (sizeof(size_t)+SIZE).
  */
+#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <inttypes.h>
@@ -59,12 +60,15 @@ size_t xmemnew() { return xnew; }
 /** Report the cumulated freed memory tracked by x*() functions */
 size_t xmemfreed() { return xfreed; }
 
-/** Log a summary of the dynamically allocated memory tracked by x*() functions
+/** Create a summary of the dynamically allocated memory tracked by x*() functions
  *
- * \param loglevel log level at which the message should be issued
+ * \return a pointer to a statically allocated, nul-terminated, string containing the summary
+ * \see xmemreport
  * */
-void xmemreport (int loglevel)
+char *xmemsummary ()
 {
+  static char summary[1024];
+
   size_t xbytes_h = xbytes;
   char *units = "bytes";
   if (xbytes_h > 10*(1<<10)) {
@@ -76,12 +80,24 @@ void xmemreport (int loglevel)
     xbytes_h >>= 10;
   }
 
-  o_log(loglevel, "%"PRIuMAX" %s currently allocated [%"
+  snprintf(summary, 1024, "%"PRIuMAX" %s currently allocated [%"
              PRIuMAX" allocated overall, %"
              PRIuMAX" freed, %"
-             PRIuMAX" current]\n",
+             PRIuMAX" current]",
              (uintmax_t)xbytes_h, units,
              (uintmax_t)xnew, (uintmax_t)xfreed, (uintmax_t)xbytes);
+  summary[1023] = '\0';
+
+  return summary;
+}
+/** Log a summary of the dynamically allocated memory tracked by x*() functions
+ *
+ * \param loglevel log level at which the message should be issued
+ * \see xmemsummary
+ * */
+void xmemreport (int loglevel)
+{
+  o_log(loglevel, "%s\n", xmemsummary());
 }
 
 #define xreturn(ptr, size, str)                                         \

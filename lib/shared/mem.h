@@ -17,6 +17,7 @@ void xfree (void *ptr);
 size_t xmembytes();
 size_t xmemnew();
 size_t xmemfreed();
+char *xmemsummary ();
 void xmemreport (int loglevel);
 
 #endif /* MEM_H__ */
