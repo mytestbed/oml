@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2012 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@
 #include "proxy_client.h"
 
 #define V_STRING  "OML2 Proxy Server V%s\n"
-#define COPYRIGHT "Copyright 2007-2012 NICTA\n"
+#define COPYRIGHT "Copyright 2007-2013 NICTA\n"
 
 #define DEF_PORT 3003
 #define DEF_PORT_STR "3003"

@@ -1,5 +1,5 @@
 #
-# Copyright 2009-2012 National ICT Australia (NICTA), Australia
+# Copyright 2009-2013 National ICT Australia (NICTA), Australia
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +42,7 @@ module OML4R
 
   VERSION = "@OML_ALT_VER@"
   VERSION_STRING = "OML4R Client V#{VERSION}"
-  COPYRIGHT = "Copyright 2009-2012, NICTA"
+  COPYRIGHT = "Copyright 2009-2013, NICTA"
   DEF_SERVER_PORT = 3003
 
   PROTOCOL = 3

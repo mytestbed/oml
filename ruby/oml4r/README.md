@@ -48,7 +48,7 @@ See examples files oml4r-simple-example.rb and oml4r-wlanconfig.rb.
 License
 -------
 
-Copyright 2009-2012 National ICT Australia (NICTA), Australia
+Copyright 2009-2013 National ICT Australia (NICTA), Australia
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

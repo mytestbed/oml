@@ -1,6 +1,6 @@
 #!/bin/env python
 #
-# Copyright (c) 2012 NICTA, Olivier Mehani
+# Copyright (c) 2012-2013 NICTA, Olivier Mehani
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

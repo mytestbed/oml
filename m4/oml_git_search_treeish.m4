@@ -1,5 +1,5 @@
 dnl OML_GIT_SEARCH_TREEISH(DESCRIPTION, VARIABLE, COMMA-SEPARATED-LIST, [VALUE_IF_NOT_FOUND])
-dnl Copyright (C) 2012 NICTA, Olivier Mehani; under the terms of the GPL2 or later.
+dnl Copyright (C) 2012-2013 NICTA, Olivier Mehani; under the terms of the GPL2 or later.
 dnl Search for the first existing branch of the COMMA-SEPARATED-LIST and return it in VAR, or
 dnl set it to VALUE_IF_NOT_FOUND if nono existed e.g.,
 dnl  OML_GIT_SEARCH_TREEISH([ArchLinux], [gitarchref],
@@ -9,7 +9,7 @@ dnl			     ],
 dnl			    [origin/archlinux/master])
 dnl XXX: This macro is a bit fragile and requires COMMA-SEPARATED-LIST not to
 dnl start with a newline.
-AC_COPYRIGHT([Copyright (C) 2012 NICTA, Olivier Mehani.])
+AC_COPYRIGHT([Copyright (C) 2012-2013 NICTA, Olivier Mehani.])
 AC_DEFUN([OML_GIT_SEARCH_TREEISH],[
 	 m4_pushdef([DESCRIPTION],[$1])
 	 m4_pushdef([VARIABLE],[$2])

@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 #
-# Copyright 2009-2012 National ICT Australia (NICTA), Australia
+# Copyright 2009-2013 National ICT Australia (NICTA), Australia
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
 PROG = 'oml2-scaffold'
 VERSION = "@VERSION@"
 VERSION_STRING = "#{PROG} V#{VERSION}"
-COPYRIGHT = "Copyright 2009-2012, NICTA"
+COPYRIGHT = "Copyright 2009-2013, NICTA"
 
 require 'stringio'
 require 'optparse'

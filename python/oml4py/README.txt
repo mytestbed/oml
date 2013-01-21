@@ -94,7 +94,7 @@ License
 
 Copyright 2012 NYU-Poly, Fraida Fund
 
-Copyright 2012 National ICT Australia (NICTA), Australia
+Copyright 2012-2013 National ICT Australia (NICTA), Australia
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
