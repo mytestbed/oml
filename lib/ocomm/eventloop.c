@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <time.h>
 
 #include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
@@ -114,7 +115,7 @@ typedef struct _eventLoop {
   /** Linked list of registered channels */
   Channel* channels;
 
-  /** Linked list egistered timers */
+  /** Linked list registered timers */
   TimerInt* timers;
 
   //! Number of used timers
@@ -138,12 +139,17 @@ typedef struct _eventLoop {
   /** Stopping condition for the event loop */
   int stopping;
 
+  /** Time (in seconds) when the EventLoop was started \see time */
+  time_t start;
+  /** Current time [s] (updated whenever poll() returns \see time*/
+  time_t now;
+  /** Last time [s] idle sockets were reaped \see time */
+  time_t last_reaped;
+
 } EventLoop;
 
 /** Global EventLoop object */
 static EventLoop self;
-static time_t now = -1;
-static time_t start = -1;
 
 
 void
@@ -160,6 +166,8 @@ eventloop_init()
   self.size = 0;
   self.length = 0;
 
+  /* Just to be sure we initialise everything */
+  self.start = self.now = -1;
 }
 
 /** Update the number of currently active Channels
@@ -216,7 +224,7 @@ static void terminate_fds(void)
       o_log(O_LOG_DEBUG3, "EventLoop: Releasing listening channel %s\n", ch->name);
       eventloop_socket_release((SockEvtSource*)ch);
     } else {  
-      o_log(O_LOG_DEBUG3, "Eventloop: Shutting down %s\n", ch->name);
+      o_log(O_LOG_DEBUG3, "EventLoop: Shutting down %s\n", ch->name);
       socket_shutdown(ch->socket);
       ch->is_shutting_down = 1;
     }
@@ -236,8 +244,25 @@ do_read_callback (Channel *ch, void *buffer, int buf_size)
 static void
 do_status_callback (Channel *ch, SocketStatus status, int error)
 {
-  if (ch->status_cbk && !ch->is_removable)
+  if (ch->status_cbk && !ch->is_removable) {
     ch->status_cbk ((SockEvtSource*)ch, status, error, ch->handle);
+  } else if (!ch->status_cbk) {
+    /* If no callback is registered, do some default cleanup */
+    switch(status) {
+    case SOCKET_WRITEABLE:
+      break;
+    case SOCKET_CONN_CLOSED:
+    case SOCKET_CONN_REFUSED:
+    case SOCKET_DROPPED:
+      o_log(O_LOG_DEBUG, "EventLoop: Closing socket '%s' due to status %d\n", ch->name, status);
+      eventloop_socket_release(ch->socket);
+      break;
+    case SOCKET_UNKNOWN:
+    default:
+      o_log(O_LOG_WARN, "EventLoop: Unexpected status on socket '%s': %d\n", ch->name, status);
+      break;
+    }
+  }
 }
 
 static void
@@ -270,39 +295,39 @@ eventloop_run()
 {
   int i;
   self.stopping = 0;
-  start = now = time(NULL);
+  self.start = self.now = time(NULL);
   while (!self.stopping || self.size>0) {
     // Check for active timers
     int timeout = -1;
     TimerInt* t = self.timers;
     while (t != NULL) {
       if (t->is_active) {
-        int delta = 1000 * (t->due_time - now);
+        int delta = 1000 * (t->due_time - self.now);
         if (delta < 0) delta = 0; // overdue
         if (delta < timeout || timeout < 0) timeout = delta;
       }
       t = t->next;
     }
     if (timeout != -1)
-      o_log(O_LOG_DEBUG3, "Eventloop: Timeout = %d\n", timeout);
+      o_log(O_LOG_DEBUG3, "EventLoop: Timeout = %d\n", timeout);
 
     if (self.fds_dirty)
       if (update_fds()<1 && timeout < 0) /* No FD nor timeout */
         continue;
-    o_log(O_LOG_DEBUG4, "Eventloop: About to poll() on %d FDs with a timeout of %ds\n", self.size, timeout);
+    o_log(O_LOG_DEBUG4, "EventLoop: About to poll() on %d FDs with a timeout of %ds\n", self.size, timeout);
     /* for(i=0; i < self.size; i++) {
-      o_log(O_LOG_DEBUG4, "Eventloop: FD %d->%s\n", self.fds[i].fd, self.fds_channels[i]->name);
+      o_log(O_LOG_DEBUG4, "EventLoop: FD %d->%s\n", self.fds[i].fd, self.fds_channels[i]->name);
     } */
 
     int count = poll(self.fds, self.size, timeout);
-    now = time(NULL);
+    self.now = time(NULL);
 
     if (count < 1) {
-      o_log(O_LOG_DEBUG4, "Eventloop: Timeout\n");
+      o_log(O_LOG_DEBUG4, "EventLoop: Timeout\n");
     } else {
     // Check sockets
       i = 0;
-      o_log(O_LOG_DEBUG4, "Eventloop: Got events\n");
+      o_log(O_LOG_DEBUG4, "EventLoop: Got events\n");
       for (; i < self.size; i++) {
         Channel* ch = self.fds_channels[i];
         if (self.fds[i].revents & POLLERR) {
@@ -320,18 +345,15 @@ eventloop_run()
               if (!ch->status_cbk) {
                 o_log(O_LOG_ERROR, "EventLoop: While reading from socket '%s': (%d) %s\n",
                       ch->name, errno, strerror(errno));
-                socket_close(ch->socket);
               }
             }
-            ch->is_active = 0;
-            self.fds_dirty = 1;
+            eventloop_socket_activate((SockEvtSource*)ch, 0);
             do_status_callback (ch, status, errno);
           } else {
             o_log(O_LOG_ERROR, "EventLoop: Expected error on socket '%s' but read '%s'\n", ch->name, buf);
           }
         } else if (self.fds[i].revents & POLLHUP) {
-          ch->is_active = 0;
-          self.fds_dirty = 1;
+          eventloop_socket_activate((SockEvtSource*)ch, 0);
 
           /* Client closed the connection, but there might still be bytes
              for us to read from our end of the connection. */
@@ -345,7 +367,7 @@ eventloop_run()
               len = recv(fd, buf, 512, 0);
             }
             if (len > 0) {
-              o_log(O_LOG_DEBUG3, "Eventloop: Received last %i bytes\n", len);
+              o_log(O_LOG_DEBUG3, "EventLoop: Received last %i bytes\n", len);
               do_read_callback (ch, buf, len);
             }
           } while (len > 0);
@@ -363,25 +385,21 @@ eventloop_run()
               len = recv(fd, buf, 512, 0);
             }
             if (len > 0) {
-              o_log(O_LOG_DEBUG3, "Eventloop: Received %i bytes\n", len);
+              o_log(O_LOG_DEBUG3, "EventLoop: Received %i bytes\n", len);
               do_read_callback (ch, buf, len);
             } else if (len == 0 && ch->socket != NULL) {  // skip stdin
               // closed down
-              ch->is_active = 0;
-              self.fds_dirty = 1;
-              // expect the callback to handle socket close
+              eventloop_socket_activate((SockEvtSource*)ch, 0);
               do_status_callback (ch, SOCKET_CONN_CLOSED, 0);
-              if (!ch->status_cbk)
-                socket_close(ch->socket);
             } else if (len < 0) {
               if (errno == ENOTSOCK) {
                 o_log(O_LOG_ERROR,
-                      "Eventloop: Monitored socket '%s' is now invalid; "
+                      "EventLoop: Monitored socket '%s' is now invalid; "
                       "removing from monitored set\n",
                       ch->name);
                 eventloop_socket_remove ((SockEvtSource*)ch);
               } else {
-                o_log(O_LOG_ERROR, "Eventloop: Unrecognized read error not handled (errno=%d)\n",
+                o_log(O_LOG_ERROR, "EventLoop: Unrecognized read error not handled (errno=%d)\n",
                       errno);
               }
             }
@@ -396,13 +414,9 @@ eventloop_run()
         if (self.fds[i].revents & POLLOUT)
           do_status_callback(ch, SOCKET_WRITEABLE, 0);
         if (self.fds[i].revents & POLLNVAL) {
-          o_log(O_LOG_DEBUG3, "POLLNVAL\n");
-
-          ch->is_active = 0;
-          self.fds_dirty = 1;
+          o_log(O_LOG_WARN, "EventLoop: socket '%s' invalid, deactivating...\n", ch->name);
+          eventloop_socket_activate((SockEvtSource*)ch, 0);
           do_status_callback(ch, SOCKET_DROPPED, 0);
-          if (!ch->status_cbk)
-            o_log(O_LOG_WARN, "EventLoop: Deactivated socket '%s'\n", ch->name);
         }
       }
       for (i = 0; i < self.size; i++) {
@@ -416,15 +430,15 @@ eventloop_run()
       TimerInt* t = self.timers;
       while (t != NULL) {
         if (t->is_active) {
-          if (t->due_time <= now) {
+          if (t->due_time <= self.now) {
             // fires
-            o_log(O_LOG_DEBUG2, "Eventloop: Timer '%s' fired\n", t->name);
+            o_log(O_LOG_DEBUG2, "EventLoop: Timer '%s' fired\n", t->name);
             if (t->callback) t->callback((TimerEvtSource*)t, t->handle);
 
             if (t->is_periodic) {
-              while ((t->due_time += t->period) < now) {
+              while ((t->due_time += t->period) < self.now) {
                 // should really only happen during debugging
-                o_log(O_LOG_WARN, "Eventloop: Skipped timer period for '%s'\n",
+                o_log(O_LOG_WARN, "EventLoop: Skipped timer period for '%s'\n",
                       t->name);
               }
             } else {
@@ -448,7 +462,7 @@ void eventloop_stop(int reason)
     self.stopping = reason;
     terminate_fds();
   } else {
-    o_log(O_LOG_WARN, "Eventloop: Tried to stop with no reason, defaulting to 1");
+    o_log(O_LOG_WARN, "EventLoop: Tried to stop with no reason, defaulting to 1");
     self.stopping = 1;
   }
 }
@@ -480,7 +494,7 @@ channel_new(
   Channel* ch = (Channel *)malloc(sizeof(Channel));
   memset(ch, 0, sizeof(Channel));
 
-  ch->is_active = 1;
+  ch->is_active = 1; /* Anywhere else should use eventloop_socket_activate() */
   ch->is_shutting_down = 0;
   ch->is_removable = 0;
 
@@ -612,7 +626,11 @@ eventloop_on_out_channel(
   return (SockEvtSource*)ch;
 }
 
-/*! Set activit flag of 'source' according to boolean 'flag'.
+/** Mark socket event source (channel) as active or not, and trigger FD update
+ * if need be.
+ *
+ * \param source SockEvtSource to (de)activate
+ * \param flag 0 to deactivate, anything else to activate (use 1)
  */
 void
 eventloop_socket_activate(
@@ -626,10 +644,13 @@ eventloop_socket_activate(
   }
 }
 
-/** Remove event source from monitoring of the EventLoop.
+/** Actually remove event source from monitoring of the EventLoop.
  *
- * \see EventLoop
- * \see self
+ * The EventLoop calls this function on its own when sockets have been released
+ * using eventloop_socket_release(). You probably want to use that one instead.
+ *
+ * \param source SockEvtSource to remove and free
+ * \see eventloop_socket_release
  */
 void
 eventloop_socket_remove(
@@ -676,12 +697,23 @@ void
 eventloop_socket_release(SockEvtSource* source)
 {
   Channel *ch = (Channel*)source;
-  ch->is_active = 0;
+  eventloop_socket_activate(source, 0);
   ch->is_removable = 1;
   ch->handle = NULL;
 }
 
-
+/** Register a new periodic timer to the event loop
+ *
+ * \param name name of this object, used for debugging
+ * \param period period [s] of the timer
+ * \param callback function called when the state of the timer expires
+ * \param handle pointer to opaque data passed to callback functions
+ * \return a pointer to the newly-created Timer
+ *
+ * \see EventLoop
+ * \see self
+ * \see poll(3)
+ */
 TimerEvtSource*
 eventloop_every(
   char* name,
@@ -706,14 +738,6 @@ eventloop_every(
   self.timers = t;
 
   return (TimerEvtSource*)t;
-}
-
-/*! Return the current time */
-time_t
-eventloop_now(void)
-
-{
-  return now - start;
 }
 
 /** Log a summary of resource usage

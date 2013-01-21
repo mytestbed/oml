@@ -30,7 +30,8 @@
 #define O_EVENTLOOP_H
 
 #include <time.h>
-#include <ocomm/o_socket.h>
+
+#include "ocomm/o_socket.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,8 +80,20 @@ typedef enum _SockStatus {
   SOCKET_UNKNOWN
 } SocketStatus;
 
-/*! Defines the signature of a socket related callback function
- *  from the eventloop. This informs us of any state changes.
+/** Socket related callback function from the eventloop. This informs us of any
+ * state changes.
+ *
+ * If defined, this callback should release and free both application data,
+ * pointed by handle, and the socket, in source->socket, on termination
+ * conditions.
+ *
+ * By default (no callback), source->socket is closed on SOCKET_CONN_CLOSED,
+ * SOCKET_CONN_REFUSED, SOCKET_DROPPED and SOCKET_IDLE.
+ *
+ * \param source SockEvtSource from which the event originated
+ * \param status SocketStatus new status for the socket
+ * \param error errno related to that status
+ * \param handle pointer to application-supplied data
  */
 typedef void (*o_el_state_socket_callback)(SockEvtSource* source,
                        SocketStatus status,
@@ -183,11 +196,6 @@ eventloop_every(
   o_el_timer_callback callback,
   void* handle
 );
-
-/*! Return the current time */
-time_t
-eventloop_now(void);
-
 
 void
 timer_stop(
