@@ -43,6 +43,9 @@
 #define DEF_FDS_LENGTH 10
 #define MAX_READ_BUFFER_SIZE 512
 
+/** Default time, in second, after which an idle socket is cleaned up */
+#define DEF_SOCKET_TIMEOUT 60
+
 /** An instance of a SockEvtSource with callbacks.
  *
  * Channel is directly usable as part of a linked list.
@@ -77,6 +80,9 @@ typedef struct _channel {
   struct _channel* next;
 
   char nameBuf[64];
+
+  /** Last time [s] this channel was active */
+  time_t last_activity;
 } Channel;
 
 /** An instance of a TimerEvtSource with callbacks.
@@ -167,7 +173,7 @@ eventloop_init()
   self.length = 0;
 
   /* Just to be sure we initialise everything */
-  self.start = self.now = -1;
+  self.start = self.now = self.last_reaped = -1;
 }
 
 /** Update the number of currently active Channels
@@ -254,6 +260,7 @@ do_status_callback (Channel *ch, SocketStatus status, int error)
     case SOCKET_CONN_CLOSED:
     case SOCKET_CONN_REFUSED:
     case SOCKET_DROPPED:
+    case SOCKET_IDLE:
       o_log(O_LOG_DEBUG, "EventLoop: Closing socket '%s' due to status %d\n", ch->name, status);
       eventloop_socket_release(ch->socket);
       break;
@@ -295,7 +302,7 @@ eventloop_run()
 {
   int i;
   self.stopping = 0;
-  self.start = self.now = time(NULL);
+  self.start = self.now = self.last_reaped = time(NULL);
   while (!self.stopping || self.size>0) {
     // Check for active timers
     int timeout = -1;
@@ -384,6 +391,7 @@ eventloop_run()
               // socket
               len = recv(fd, buf, 512, 0);
             }
+            ch->last_activity = self.now;
             if (len > 0) {
               o_log(O_LOG_DEBUG3, "EventLoop: Received %i bytes\n", len);
               do_read_callback (ch, buf, len);
@@ -411,12 +419,25 @@ eventloop_run()
            * We flushed the buffers, mark it as removable */
           eventloop_socket_release((SockEvtSource*)ch);
         }
-        if (self.fds[i].revents & POLLOUT)
+
+        if (self.fds[i].revents & POLLOUT) {
           do_status_callback(ch, SOCKET_WRITEABLE, 0);
+          if (0 != ch->last_activity) {
+            /* If we track the activity of this socket */
+            ch->last_activity = self.now;
+          }
+        }
+
         if (self.fds[i].revents & POLLNVAL) {
           o_log(O_LOG_WARN, "EventLoop: socket '%s' invalid, deactivating...\n", ch->name);
           eventloop_socket_activate((SockEvtSource*)ch, 0);
           do_status_callback(ch, SOCKET_DROPPED, 0);
+        }
+
+        if (ch->last_activity != 0 &&
+            self.now - ch->last_activity > DEF_SOCKET_TIMEOUT) {
+            o_log(O_LOG_DEBUG2, "EventLoop: Socket '%s' idle for %ds, reaping...\n", ch->name, self.now - ch->last_activity);
+          do_status_callback(ch, SOCKET_IDLE, 0);
         }
       }
       for (i = 0; i < self.size; i++) {
@@ -508,6 +529,7 @@ channel_new(
   ch->handle = handle;
 
   ch->next = self.channels;
+  ch->last_activity = 0;
   self.channels = ch;
   self.fds_dirty = 1;
 
@@ -562,6 +584,7 @@ eventloop_on_read_in_channel(
   ch = eventloop_on_in_fd(socket->name, socket->get_sockfd(socket),
               data_cbk, NULL, status_cbk, handle);
   ch->socket = socket;
+  ch->last_activity = self.now;
   return (SockEvtSource*)ch;
 }
 

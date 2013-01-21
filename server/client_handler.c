@@ -788,23 +788,21 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
     case SOCKET_WRITEABLE:
       break;
     case SOCKET_CONN_CLOSED:
-      {
-        /* Client closed the connection */
-        loginfo("%s: Client '%s' closed connection\n", source->name, self->name);
-        ClientHandler* self = (ClientHandler*)handle;
-        socket_close (source->socket);
-        client_handler_free (self);
-        break;
-      }
-    case SOCKET_CONN_REFUSED:
-      logdebug ("%s: Unhandled condition CONN_REFUSED on socket\n", source->name);
+      /* Client closed the connection */
+      loginfo("%s: Client '%s' closed connection\n", source->name, self->name);
+      client_handler_free (self);
       break;
-    case SOCKET_DROPPED:
-      logdebug ("%s: Unhandled condition DROPPED on socket\n", source->name);
+    case SOCKET_IDLE:
+      /* Server dropped idle connection */
+      loginfo("%s: Client '%s' dropped due to idleness\n", source->name, self->name);
+      client_handler_free (self);
       break;
     case SOCKET_UNKNOWN:
+    case SOCKET_CONN_REFUSED:
+    case SOCKET_DROPPED:
     default:
-      logdebug ("Unhandled condition UNKNOWN on socket\n", source->name);
+      logwarn ("%s: Client '%s' received unhandled condition %s (%d)\n", source->name,
+          self->name, socket_status_string (status), status);
       break;
     }
 }

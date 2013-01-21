@@ -660,8 +660,9 @@ static const char* SocketStatus_names [] =
     "SOCKET_WRITEABLE",
     "SOCKET_CONN_CLOSED",
     "SOCKET_CONN_REFUSED",
-    "SOCKET_DROPPED",  //! Socket monitoring dropped by eventloop
-    "SOCKET_UNKNOWN"
+    "SOCKET_DROPPED", /* Monitoring socket dropped by eventloop */
+    "SOCKET_IDLE",    /* Receiving socket dropped as it was idle */
+    "SOCKET_UNKNOWN",
   };
 
 const char*
