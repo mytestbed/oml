@@ -45,13 +45,23 @@ static size_t xfreed = 0;
  * \param bytes size of the new xchunk
  * \see xmembytes, xmemnew, xmemreport
  */
-static void xcount_new   (size_t bytes) { xbytes += bytes; xnew   += bytes; }
+static void xcount_new   (size_t bytes) {
+#if OML_MEM_DEBUG
+  o_log(O_LOG_DEBUG4, "Allocated %dB of memory\n", bytes);
+#endif
+  xbytes += bytes; xnew   += bytes;
+}
 
 /** Take into account freed memory.
  * \param bytes size of the freed xchunk
  * \see xmembytes, xmemfreed, xmemreport
  */
-static void xcount_freed (size_t bytes) { xbytes -= bytes; xfreed += bytes; }
+static void xcount_freed (size_t bytes) {
+#if OML_MEM_DEBUG
+  o_log(O_LOG_DEBUG4, "Freed %dB of memory\n", bytes);
+#endif
+  xbytes -= bytes; xfreed += bytes;
+}
 
 /** Report the current memory allocation tracked by x*() functions */
 size_t xmembytes() { return xbytes; }
