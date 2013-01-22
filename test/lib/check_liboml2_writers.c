@@ -21,6 +21,7 @@
  *
  */
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
@@ -82,24 +83,26 @@ START_TEST (test_fw_create_buffered)
   /* The OmlFileOutStream is buffered by default */
   fail_unless(file_stream_get_buffered(os));
 
-  fail_unless(os->write(NULL, buf, 0, NULL, 0)==-1); 
+  fail_unless(os->write(NULL, (uint8_t*)buf, 0, NULL, 0)==-1);
 
   /* Buffered operation */
-  fail_unless(os->write(os, buf, sizeof(buf), NULL, 0)==sizeof(buf)); 
+  fail_unless(os->write(os, (uint8_t*)buf, sizeof(buf), NULL, 0)==sizeof(buf));
 
   f = fopen(FN, "r");
   /* Nothing should be read at this time */
-  fail_unless((len=fread(buf2, sizeof(char), sizeof(buf2), f))==0, "Read %d bytes from " FN ", expected %d", len, 0);
+  len = fread(buf2, sizeof(char), sizeof(buf2), f);
+  fail_unless(len==0, "Read %d bytes from " FN ", expected %d", len, 0);
   fclose(f);
 
   /* Unuffered operation */
   file_stream_set_buffered(os, 0);
   fail_if(file_stream_get_buffered(os));
-  fail_unless(os->write(os, buf, sizeof(buf), NULL, 0)==sizeof(buf)); 
+  fail_unless(os->write(os, (uint8_t*)buf, sizeof(buf), NULL, 0)==sizeof(buf));
 
   f = fopen(FN, "r");
   /* Nothing should be read at this time */
-  fail_unless((len=fread(buf2, sizeof(char), sizeof(buf2), f))==2*sizeof(buf), "Read %d bytes from " FN ", expected %d", len, 2*sizeof(buf)-2);
+  len=fread(buf2, sizeof(char), sizeof(buf2), f);
+  fail_unless(len==2*sizeof(buf), "Read %d bytes from " FN ", expected %d", len, 2*sizeof(buf)-2);
   fclose(f);
 
   /* Final check */

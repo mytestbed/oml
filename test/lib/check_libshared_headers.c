@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <check.h>
+#include <arpa/inet.h>
 
 #include "headers.h"
 #include "text.h"
 #include "binary.h"
 #include "oml_util.h"
+#include "oml_value.h"
 
 /*
  * Used by:  test_tag_from_string
@@ -190,6 +192,7 @@ START_TEST (test_bin_read)
   struct oml_message msg;
   struct schema *schema = schema_from_meta (meta);
   OmlValue values [3];
+  int result;
 
   oml_value_array_init(values, 3);
 
@@ -201,7 +204,9 @@ START_TEST (test_bin_read)
 
   mbuf_write (mbuf, buf, sizeof (buf));
 
-  int result = bin_read_msg_start (&msg, mbuf);
+  result = bin_read_msg_start (&msg, mbuf);
+
+  fail_unless(result > 0, "Unable to start reading binary message");
 
   fprintf (stderr, "---\n");
   fprintf (stderr, "STRM: %d\n", msg.stream);

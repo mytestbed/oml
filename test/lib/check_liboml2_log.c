@@ -38,19 +38,19 @@ START_TEST (test_log_rate)
   o_set_log_file (logfile);
 
   for (i=0;i<(1<<16);i++) {
-    o_log_simplified(O_LOG_ERROR, "Unlimited\n");
-    o_log_simplified(O_LOG_ERROR, "Unlimited\n");
-    o_log_simplified(O_LOG_ERROR, "Unlimited\n");
+    o_log(O_LOG_ERROR, "Unlimited\n");
+    o_log(O_LOG_ERROR, "Unlimited\n");
+    o_log(O_LOG_ERROR, "Unlimited\n");
   }
 
   for (i=0;i<(1<<4);i++) {
     usleep(500000);
-    o_log_simplified(O_LOG_ERROR, "1/2 second\n");
+    o_log(O_LOG_ERROR, "1/2 second\n");
   }
 
   for (i=0;i<(1<<2);i++) {
     usleep(2000000);
-    o_log_simplified(O_LOG_ERROR, "2 seconds\n");
+    o_log(O_LOG_ERROR, "2 seconds\n");
   }
   
   /* Roughly test that the log is not gigantic (>10k).

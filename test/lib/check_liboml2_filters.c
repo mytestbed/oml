@@ -207,6 +207,7 @@ END_TEST
 /********************************************************************************/
 
 
+# if 0
 START_TEST (test_filter_hist_create)
 {
   /*
@@ -234,6 +235,7 @@ START_TEST (test_filter_hist_create)
   fail_unless (destroy_filter(f) == NULL);
 }
 END_TEST
+#endif
 
 /********************************************************************************/
 /*                          STDDEV FILTER TESTS                                 */
@@ -338,11 +340,8 @@ START_TEST (test_filter_sum_output)
    * Create a sum filter and check that it works properly
    */
   OmlFilter* f = NULL;
-  SumInstanceData* instdata = NULL;
 
   f = create_filter ("sum", "suminst", OML_INT32_VALUE, 2);
-
-  instdata = (SumInstanceData*)f->instance_data;
 
   int32_t input [] = { 1, -2, 3, 4, 5, 6 };
   double output [] = { 17. };
@@ -404,11 +403,8 @@ START_TEST (test_filter_delta_output)
    * Create a delta filter and check that it works properly
    */
   OmlFilter* f = NULL;
-  DeltaInstanceData* instdata = NULL;
 
   f = create_filter ("delta", "deltainst", OML_INT32_VALUE, 2);
-
-  instdata = (DeltaInstanceData*)f->instance_data;
 
   int32_t input [] = { 1, -2, 3, 4, 5, 6 };
   double output [] = { 6., 6. };

@@ -970,7 +970,7 @@ START_TEST (test_marshal_full)
   long l = d32;
   char s[] = "I am both a string AND a blob... Go figure.";
   void *b = (void*)s, *p;
-  int len = strlen(s), count=0, i;
+  int len = strlen(s), count=0;
   uint8_t *msg, offset;
 
   o_set_log_level(O_LOG_DEBUG2);
@@ -1148,7 +1148,7 @@ START_TEST (test_marshal_full)
       "s length not set properly; got %d instead of %d at offset %d",
       msg[offset], len, offset);
   offset++;
-  fail_if(strncmp(&msg[offset], s, len),
+  fail_if(strncmp((char *)&msg[offset], s, len),
       "s mismatch");
   offset+=len;
 
@@ -1170,7 +1170,7 @@ START_TEST (test_marshal_full)
       "b length not set properly; got %d instead of %" PRIu32 " at offset %d",
       ntohl(*(uint32_t*)p), len, offset);
   offset+=sizeof(uint32_t);
-  fail_if(strncmp(&msg[offset], s, len),
+  fail_if(strncmp((char *)&msg[offset], s, len),
       "b mismatch");
   offset+=len;
 
@@ -1204,11 +1204,13 @@ START_TEST (test_marshal_full)
       "Timestamp not set properly; got =%f instead of 3",
       h.timestamp);
 
-  fail_unless((count=unmarshal_values(mbuf, &h, NULL, 0)) == -h.values,
+  count = unmarshal_values(mbuf, &h, NULL, 0);
+  fail_unless(count == -h.values,
       "unmarshal_values() with no storage did not report the right needed space; %d instead of %d",
       count, -h.values);
   va = malloc(h.values*sizeof(OmlValue));
-  fail_unless((count=unmarshal_values(mbuf, &h, va, h.values)) == h.values,
+  count=unmarshal_values(mbuf, &h, va, h.values);
+  fail_unless(count == h.values,
       "unmarshal_values() did not return the expected success value; %d instead of %d",
       count, h.values);
   offset = 0;

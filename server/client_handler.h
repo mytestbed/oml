@@ -65,6 +65,7 @@ typedef struct _clientHandler {
 } ClientHandler;
 
 ClientHandler* client_handler_new (Socket* new_sock);
+void client_handler_free (ClientHandler* self);
 
 #endif /*CLIENT_HANDLER_H_*/
 

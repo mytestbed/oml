@@ -23,12 +23,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
 
 #include "ocomm/o_log.h"
 #include "proxy_client.h"
+
+/* From proxy_server/oml2-proxy-server.c */
+void proxy_message_loop (const char *client_id, Client *client, void *buf, size_t size);
 
 enum TestType {
   TT_SERVER,
@@ -76,10 +80,8 @@ read_message (char **line, size_t *size, size_t *length_out, int *seqno_out)
   int count = 0;
   int result = 0;
   char header[HEADER_LENGTH+1] = {0};
-  char *buf;
 
   bzero (*line, *size);
-
 
   do {
     result = read (0, header + count, HEADER_LENGTH - count);
@@ -156,7 +158,7 @@ main (int argc, char **argv)
     if (strcmp (argv[0], "--proxy") == 0) {
       test = TT_PROXY;
     } else if (strcmp (argv[0], "--server") == 0) {
-      test == TT_SERVER;
+      test = TT_SERVER;
     }
   }
 
@@ -171,7 +173,6 @@ main (int argc, char **argv)
 
   fprintf (stderr, "Processing messages:");
   do {
-    int i;
     int seqno = 0;
     size_t msg_length = 0;
     result = read_message (&line, &length, &msg_length, &seqno);

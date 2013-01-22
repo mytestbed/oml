@@ -182,8 +182,7 @@ client_handler_new(Socket* new_sock)
   return self;
 }
 
-  void
-client_handler_free (ClientHandler* self)
+void client_handler_free (ClientHandler* self)
 {
   if (self->event)
     eventloop_socket_release (self->event);

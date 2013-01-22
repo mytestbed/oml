@@ -99,13 +99,13 @@ END_TEST
 
 START_TEST (test_mbuf_resize_contents)
 {
+  unsigned int i = 0;
+  int result = 0;
   uint8_t s[8192];
   MBuffer* mbuf = mbuf_create ();
-  int result = 0;
   size_t length_1 = mbuf_length (mbuf);
 
   memset (s, 0, sizeof (s));
-  unsigned int i = 0;
   for (i = 0; i < length_1; i++)
 	{
 	  s[i] = 'A' + (i % 16);
@@ -113,7 +113,7 @@ START_TEST (test_mbuf_resize_contents)
 
   memcpy (mbuf->base, s, length_1);
   result = mbuf_resize (mbuf, length_1 / 2);
-
+  fail_unless(result == 0, "Error when testing mbuf_resize");
 }
 END_TEST
 

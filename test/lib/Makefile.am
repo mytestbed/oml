@@ -4,6 +4,11 @@ if HAVE_CHECK
 TESTS = check_liboml2 check_libshared
 check_PROGRAMS = check_liboml2 check_libshared
 
+AM_CPPFLAGS = \
+	-I  $(top_srcdir)/lib/client \
+	-I  $(top_srcdir)/lib/ocomm \
+	-I  $(top_srcdir)/lib/shared
+
 check_liboml2_SOURCES = \
 	check_util.c \
 	check_util.h \
@@ -41,11 +46,6 @@ check_libshared_LDADD = $(CHECK_LIBS) $(M_LIBS) \
 	$(top_builddir)/lib/ocomm/libocomm.la
 
 endif
-
-AM_CPPFLAGS = \
-	-I  $(top_srcdir)/lib/client \
-	-I  $(top_srcdir)/lib/ocomm \
-	-I  $(top_srcdir)/lib/shared
 
 BUILT_SOURCES = \
 	stddev_0.c \
