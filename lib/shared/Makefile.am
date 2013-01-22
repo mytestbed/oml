@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/lib/shared \
 	-I $(top_srcdir)/lib/client \
-	-I $(top_srcdir)/lib/ocomm
+	-I $(top_srcdir)/lib/ocomm # Needed for logging functions, see #972
 
 noinst_LTLIBRARIES = libshared.la
 

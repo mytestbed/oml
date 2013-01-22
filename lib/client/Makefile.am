@@ -1,5 +1,11 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
+AM_CPPFLAGS = \
+	-I $(top_srcdir)/lib/client \
+	-I $(top_srcdir)/lib/ocomm \
+	-I $(top_srcdir)/lib/shared \
+	$(XML2_CFLAGS)
+
 oml2incdir = $(includedir)/oml2
 
 oml2inc_HEADERS = \
@@ -7,12 +13,6 @@ oml2inc_HEADERS = \
 	oml2/oml_filter.h \
 	oml2/oml_writer.h \
 	oml2/oml_out_stream.h
-
-AM_CPPFLAGS = \
-	-I $(top_srcdir)/lib/client \
-	-I $(top_srcdir)/lib/ocomm \
-	-I $(top_srcdir)/lib/shared \
-	$(XML2_CFLAGS)
 
 lib_LTLIBRARIES = liboml2.la
 

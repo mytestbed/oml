@@ -1,5 +1,9 @@
 ACLOCAL_AMFLAGS = -I ../../m4
 
+AM_CPPFLAGS = \
+	-I $(top_srcdir)/lib/ocomm \
+	-I $(top_srcdir)/lib/shared
+
 ocommincdir = $(includedir)/ocomm
 
 ocomminc_HEADERS = \
