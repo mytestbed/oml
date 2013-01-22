@@ -20,11 +20,18 @@
  * THE SOFTWARE.
  *
  */
-/*! \file o_eventloop.h
-  \brief Header file central eventloop
-  \author Max Ott (max@winlab.rutgers.edu)
+/** Prototypes and interfaces for the OComm EventLoop
+ * \author Max Ott (max@winlab.rutgers.edu)
+ *
+ * XXX: Names 'SockEvtSource' and 'Channel' would make more sense it they were
+ * swapped, or something like 'ChannelEvtSource' and 'ChannelInt', to match the
+ * Timer*'s regularity. Also, note SockEvtSources and Channels are used for STDIN.
+ *
+ * \see eventloop_init, eventloop_run, eventloop_stop
+ * \eventloop_on_stdin, eventloop_on_monitor_in_channel, eventloop_on_read_in_channel, eventloop_on_out_channel
+ * \see o_el_timer_callback, o_el_read_socket_callback, o_el_monitor_socket_callback, o_el_state_socket_callback, o_el_timer_callback
+ * \see poll(3)
  */
-
 
 #ifndef O_EVENTLOOP_H
 #define O_EVENTLOOP_H
@@ -37,19 +44,16 @@
 extern "C" {
 #endif
 
-/** Timer-based event source base class for the EventLoop.
- */
+/** Timer-based event source base class for the EventLoop. */
 typedef struct _TimerEvtSource {
-
   /** Name of the source, used for debugging */
   char* name;
 
 } TimerEvtSource;
 
-/** Socket-based event source base class for the EventLoop.
- */
-typedef struct _sockEvtSource {
 
+/** Socket-based event source base class for the EventLoop. */
+typedef struct _sockEvtSource {
   /** Name of the source,  used for debugging */
   char* name;
 
@@ -58,31 +62,71 @@ typedef struct _sockEvtSource {
 
 } SockEvtSource;
 
-
-/*! Defines the signature of a socket related callback function
- *  from the eventloop. This reports data read from socket.
+/** Possible socket statuses after state change.
+ *
+ * Depends on poll(3) revents and additional condition during further
+ * processing (e.g., read from FD).
+ *
+ * \see o_el_state_socket_callback
+ * \see poll(3)
  */
-typedef void (*o_el_read_socket_callback)(SockEvtSource* source, void* handle,
-                     void* buffer, int buf_size);
+typedef enum _SockStatus {
+  /** POLLOUT */
+  SOCKET_WRITEABLE,
+  /** POLLHUP or POLLIN and no data read (for sockets only) */
+  SOCKET_CONN_CLOSED,
+  /** If relevant on POLLERR */
+  SOCKET_CONN_REFUSED,
+  /** POLLNVAL */
+  SOCKET_DROPPED,
+  /** No data was receveid for more than DEF_SOCKET_TIMEOUT s */
+  SOCKET_IDLE,
+  /** Unknown POLLERR */
+  SOCKET_UNKNOWN,
+
+} SocketStatus;
 
 
-/*! Defines the signature of a socket related callback function
- *  from the eventloop. This just informs us that the socket is readable.
+/** Timout callback prototype for timers.
+ *
+ * \param source TimerEvtSource which expired
+ * \param handle pointer to application-supplied data
+ */
+typedef void (*o_el_timer_callback)(TimerEvtSource* source, void* handle);
+
+
+/** Data-read callback prototype for sockets.
+ *
+ * The EventLoop takes care of recv(2)ing data from a socket ready to be read,
+ * then passes this data to this callback.
+ *
+ * Called on POLLIN, and POLLHUP before o_el_state_socket_callback if some data remains to
+ * be read.
+ *
+ * \param source SockEvtSource from which the event originated
+ * \param handle pointer to application-supplied data
+ * \param buffer pointer to a buffer containing the read data
+ * \param buf_size size of data in buffer
+ *
+ * \see o_el_state_socket_callback
+ * \see poll(3)
+ */
+typedef void (*o_el_read_socket_callback)(SockEvtSource* source, void* handle, void* buffer, int buf_size);
+
+/** Monitoring callback prototype for sockets.
+ *
+ * This callback is a fallback when no data-read callback. Listening sockets,
+ * for example, do not need to read any data, but need to be warned of incoming
+ * connections. This is the role of this callback.
+ *
+ * XXX: Couldn't this be wrapped to a default read callback?
+ *
+ * \param source SockEvtSource from which the event originated
+ * \param handle pointer to application-supplied data
  */
 typedef void (*o_el_monitor_socket_callback)(SockEvtSource* source, void* handle);
 
-
-typedef enum _SockStatus {
-  SOCKET_WRITEABLE,
-  SOCKET_CONN_CLOSED,
-  SOCKET_CONN_REFUSED,
-  SOCKET_DROPPED, /** Monitoring socket dropped by eventloop */
-  SOCKET_IDLE,    /** Receiving socket dropped as it was idle */
-  SOCKET_UNKNOWN,
-} SocketStatus;
-
-/** Socket related callback function from the eventloop. This informs us of any
- * state changes.
+/** State-changes callback prototype for sockets.
  *
  * If defined, this callback should release and free both application data,
  * pointed by handle, and the socket, in source->socket, on termination
@@ -95,113 +139,35 @@ typedef enum _SockStatus {
  * \param status SocketStatus new status for the socket
  * \param error errno related to that status
  * \param handle pointer to application-supplied data
- */
-typedef void (*o_el_state_socket_callback)(SockEvtSource* source,
-                       SocketStatus status,
-                       int error,
-                       void* handle);
-
-
-
-
-
-/*! Defines the signature of a socket related callback function
- *  from the eventloop.
- */
-typedef void (*o_el_timer_callback)(TimerEvtSource* source, void* handle);
-
-
-/*! Initialize eventloop
- */
-void
-eventloop_init(void);
-
-/*! Start eventloop. Will not return until eventloop_stop() is called.
- */
-int eventloop_run(void);
-/*! Stop the eventloop
- */
-void eventloop_stop(int);
-
-
-/*! Register a new input channel with the event loop.
- * Read from channel when data arrives and call
- * callback with read data.
- */
-SockEvtSource*
-eventloop_on_read_in_channel(
-  Socket* socket,
-  o_el_read_socket_callback data_callback,
-  o_el_state_socket_callback status_callback,
-  void* handle
-);
-
-/*! Register a new input channel with the event loop.
- * Call callback when channel is readable
- */
-SockEvtSource*
-eventloop_on_monitor_in_channel(
-  Socket* socket,
-  o_el_monitor_socket_callback data_callback,
-  o_el_state_socket_callback status_callback,
-  void* handle
-);
-
-/*! Register callback if 'socket' can be written to
  *
+ * XXX: This prototype is not very regular, with status and error appearing
+ * before handle, unlike, e.g., o_el_read_socket_callback.
+ *
+ * \see SocketStatus, o_el_read_socket_callback
+ * \see errno(3)
  */
-// FIXME: This function was (badly) commented out before; doesn't seem to be used?
-SockEvtSource*
-eventloop_on_out_channel(
-  Socket* socket,
-  o_el_state_socket_callback status_cbk,
-  void* handle
-);
+typedef void (*o_el_state_socket_callback)(SockEvtSource* source, SocketStatus status, int error, void* handle);
 
-/*! Register stdin with the event loop.
- */
-SockEvtSource*
-eventloop_on_stdin(
-  o_el_read_socket_callback callback,
-  void* handle
-);
+void eventloop_init(void);
+int eventloop_run(void);
+void eventloop_stop(int reason);
+void eventloop_report (int loglevel);
 
-/*! Set activit flag of 'source' according to boolean 'flag'.
- */
-void
-eventloop_socket_activate(
-  SockEvtSource* source,
-  int flag
-);
+TimerEvtSource* eventloop_every(char* name, int period, o_el_timer_callback callback, void* handle);
+void eventloop_timer_stop(TimerEvtSource* timer);
 
+/* These functions create new channels around either STDIN or an OComm socket,
+ * with various callbacks depending on their use */
+SockEvtSource* eventloop_on_stdin( o_el_read_socket_callback callback, void* handle);
+SockEvtSource* eventloop_on_monitor_in_channel(Socket* socket, o_el_monitor_socket_callback monitor_cbk, o_el_state_socket_callback status_cbk, void* handle);
+SockEvtSource* eventloop_on_read_in_channel(Socket* socket,o_el_read_socket_callback data_cbk, o_el_state_socket_callback status_cbk, void* handle);
+SockEvtSource* eventloop_on_out_channel( Socket* socket, o_el_state_socket_callback status_cbk, void* handle);
 
-/*! Remove 'source' from being monitored.
- */
-void
-eventloop_socket_remove(
-  SockEvtSource* source
-);
+/* XXX: Is "socket" the right term here? */
+void eventloop_socket_activate(SockEvtSource* source, int flag);
+void eventloop_socket_release(SockEvtSource* source);
+void eventloop_socket_remove(SockEvtSource* source);
 
-/*! Release 'source' -- this means it can be removed from monitoring
- *  when the event loop gets around to it.
- */
-void
-eventloop_socket_release(
-  SockEvtSource* source
-);
-
-TimerEvtSource*
-eventloop_every(
-  char* name,
-  int period,
-  o_el_timer_callback callback,
-  void* handle
-);
-
-void
-timer_stop(
-  TimerEvtSource* timer
-);
 
 const char*
 socket_status_string(
