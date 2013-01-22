@@ -20,9 +20,10 @@
  * THE SOFTWARE.
  *
  */
-/** The "x*()" functions: accountable memory allocation functions.
+/** \file mem.c
+ * The "x*()" functions: accountable memory allocation functions.
  *
- * To avoid confusion, these functions manipulate chunk of memory we call
+ * To avoid confusion, these functions manipulate chunks of memory we call
  * 'xchunks'. They are essentially normally malloc(3)'d memory, of length
  * sizeof(size_t)+SIZE, and start with an offset of size_t from the malloc(3)'d
  * block. The first size_t element is used to store the actual size of the
