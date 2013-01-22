@@ -35,6 +35,7 @@
 /** Declaration from internal "mem.h" */
 void *xmalloc (size_t size);
 void xfree (void *ptr);
+size_t xmalloc_usable_size(void *ptr);
 
 #ifdef __cplusplus
 extern "C" {

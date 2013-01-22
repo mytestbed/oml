@@ -8,6 +8,7 @@
 void *xmalloc (size_t size);
 void *xcalloc (size_t count, size_t size);
 void *xrealloc (void *ptr, size_t size);
+size_t xmalloc_usable_size(void *ptr);
 char *xstralloc (size_t len);
 void *xmemdupz (const void *data, size_t len);
 char *xstrndup (const char *str, size_t len);
