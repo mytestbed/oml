@@ -125,9 +125,12 @@ termination_handler(int signum)
   }
 }
 
-static int
-open_socket(OmlNetOutStream* self)
+static int open_socket(OmlNetOutStream* self)
 {
+  if(self->socket) {
+    socket_free(self->socket);
+    self->socket = NULL;
+  }
   if (strcmp(self->protocol, "tcp") == 0) {
     Socket* sock;
     if ((sock = socket_tcp_out_new("sock", (char*)self->host, self->port)) == NULL) {

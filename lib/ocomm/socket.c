@@ -171,21 +171,24 @@ initialize(
  * If the socket is still open, it will be closed.
  *
  * \param socket Socket to free
+ * \see socket_new, socket_close
  */
-void
-socket_free (
-  Socket* socket
-) {
+void socket_free (Socket* socket) {
   socket_close(socket);
   free (socket);
 }
 
-/** Create a new system socket and link it to the SocketInt object. */
-int
-s_socket(
-  SocketInt* self
-) {
-  // open a socket
+/** Open a new system socket and link it to the SocketInt object.
+ *
+ * Also, take care of closing old sockets if they were still there.
+ *
+ * \param self OComm socket to link the system socket to
+ * \return 1 on success, 0 otherwise
+ */
+static int s_socket(SocketInt* self) {
+  if(self->sockfd > 0) {
+    close(self->sockfd);
+  }
   if((self->sockfd = socket(PF_INET,
                 self->is_tcp ? SOCK_STREAM : SOCK_DGRAM, IPPROTO_IP)) < 0) {
     o_log (O_LOG_ERROR, "socket: Error creating socket: %s\n", strerror(errno));
@@ -203,17 +206,14 @@ s_socket(
  *
  * \param name name of the object, used for debugging
  * \param is_tcp  true if TCP, false for UDP XXX: This should be more generic
- * \return a pointer to the SocketInt object, cast as a Socket
+ * \return a pointer to the SocketInt object, cast as a Socket, with a newly opened system socket
+ * \see socket_free, socket_close
  */
-Socket*
-socket_new(
-  char* name,
-  int is_tcp
-) {
+Socket* socket_new(char* name, int is_tcp) {
   SocketInt* self = initialize(name);
   self->is_tcp = is_tcp;
   if (!s_socket(self)) {
-    free(self);
+    socket_free((Socket*)self);
     return NULL;
   }
   return (Socket*)self;
@@ -229,8 +229,7 @@ socket_new(
  * \param is_tcp true if TCP, false for UDP XXX: This should be more generic
  * \return a pointer to the SocketInt object, cast as a Socket
  */
-Socket*
-socket_in_new(
+Socket* socket_in_new(
   char* name,
   int port,
   int is_tcp
@@ -250,6 +249,7 @@ socket_in_new(
       sizeof(struct sockaddr_in)) < 0) {
     o_log(O_LOG_ERROR, "socket:%s: Error binding socket to interface: %s\n",
           name, strerror(errno));
+    socket_free((Socket*)self);
     return NULL;
   }
 
@@ -280,18 +280,20 @@ on_self_connected(
 }
 #endif
 
-/* Connect to remote addr.
- *  If addr is NULL, assume the servAddr is already populated
+/** Connect to remote addr.
+ *
+ * If addr is NULL, assume the servAddr is already populated, and ignore port.
+ *
+ * \param self OComm socket to use
+ * \param addr string representation of the address to connect to, can be NULL
+ * \param port port to connect to
+ * \return 1 on success, 0 on error
  */
-static int
-s_connect(
-  SocketInt* self,
-  char* addr,
-  int port
-) {
+static int s_connect(SocketInt* self, char* addr, int port) {
   if (addr != NULL) {
     struct hostent *server;
 
+    /* FIXME for #369: use getaddrinfo */
     server = gethostbyname(addr);
     if (server == NULL) {
       o_log(O_LOG_ERROR, "socket:%s: Unknown host %s\n", self->name, addr);
@@ -332,7 +334,7 @@ socket_tcp_out_new(
     return NULL;
 
   if (!s_connect(self, addr, port)) {
-    free(self);
+    socket_free((Socket*)self);
     return NULL;
   }
 
@@ -340,13 +342,13 @@ socket_tcp_out_new(
   return (Socket*)self;
 }
 
-/*! Attempt to reconnect.
+/** Attempt to reconnect an OComm Socket.
  *
+ * \param socket OComm socket
+ * \return 0 on failure, the new socket number otherwise
+ * \see s_connect
  */
-int
-socket_reconnect(
-  Socket* socket
-) {
+int socket_reconnect(Socket* socket) {
   SocketInt* self = (SocketInt*)socket;
 
   if (self == NULL) {
@@ -354,9 +356,8 @@ socket_reconnect(
     return 0;
   }
 
-  if (self->sockfd > 0) {
-    close(self->sockfd);
-    s_socket(self);
+  if (!s_socket(self)) {
+    return 0;
   }
   return s_connect(self, NULL, -1);
 }
@@ -517,6 +518,7 @@ socket_mc_out_new(
   if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) < 0) {
     o_log (O_LOG_ERROR, "socket:%s: Setting outgoing interface for socket\n\t%s",
        name, strerror(errno));
+    socket_free((Socket*)socket);
     return NULL;
   }
 
@@ -524,12 +526,14 @@ socket_mc_out_new(
         sizeof(unsigned char)) < 0) {
     o_log(O_LOG_ERROR, "socket:%s: While setting TTL parameter for multicast socket\n\t%s",
       name, strerror(errno));
+    socket_free((Socket*)socket);
     return NULL;
   }
   if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_LOOP,
          &one, sizeof(unsigned char)) < 0) {
     o_log(O_LOG_ERROR, "socket%s: While setting the loopback on multicast socket\n\t%s",
       name, strerror(errno));
+    socket_free((Socket*)socket);
     return NULL;
   }
 
