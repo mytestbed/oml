@@ -70,6 +70,7 @@ void die (const char *fmt, ...)
 
 static int listen_port = DEFAULT_PORT;
 static int log_level = O_LOG_INFO;
+static int socket_timeout = 60;
 static char* logfile_name = NULL;
 static char* uidstr = NULL;
 static char* gidstr = NULL;
@@ -99,6 +100,7 @@ struct poptOption options[] = {
   { "user", '\0', POPT_ARG_STRING, &uidstr, 0, "Change server's user id", "UID" },
   { "group", '\0', POPT_ARG_STRING, &gidstr, 0, "Change server's group id", "GID" },
   { "event-hook", 'H', POPT_ARG_STRING, &hook, 0, "Path to an event hook taking input on stdin", "HOOK" },
+  { "timeout", 't', POPT_ARG_INT, &socket_timeout, 0, "Timeout after which idle receiving sockets are cleaned up to avoid resource exhaustion", "60"  },
   { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level", "{1 .. 4}"  },
   { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0, "File to log to", DEFAULT_LOG_FILE },
   { "version", 'v', POPT_ARG_NONE, NULL, 'v', "Print version information and exit", NULL },
@@ -314,6 +316,7 @@ int main(int argc, char **argv)
   loginfo(COPYRIGHT);
 
   eventloop_init();
+  eventloop_set_socket_timeout(socket_timeout);
 
   Socket* server_sock;
   server_sock = socket_server_new("server", listen_port, on_connect, NULL);

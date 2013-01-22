@@ -10,6 +10,7 @@ SYNOPSIS
 [verse]
 *oml2-server* [-D dir | --data-dir=dir] [-H hook | --event-hook=hook] 
 	    [-l port | --listen=port] [--user=UID] [--group=GID]
+	    [-t idleto | --timeout=idleto]
 	    [-d loglevel | --debug-level=loglevel] [--logfile=file]
 ifdef::have_pg[]
 	    [-b db | --backend=db] [--pg-host=host] [--pg-port=port]
@@ -99,6 +100,14 @@ A simple example hook, *oml2-server-hook.sh*, is available in {pkgdatadir}.
 	an integer from 1 to 4 (1=ERROR, 2=WARNING, 3=INFO, 4=DEBUG).
 	The default log verbosity is 3, INFO.
 
+-t idleto::
+--timeout=idleto::
+	Set the time, in seconds, after which an idle (i.e., not
+	receiving data) client socket is reaped. This is useful to
+	preserve system resources in the case of long running
+	experiments, intermittent reporting or faulty reporting nodes or
+	network. Defaults to 60s.
+
 --logfile=file::
 	Output log messages to 'file' rather than 'stderr'.
 
@@ -121,7 +130,6 @@ ifdef::have_pg[]
 	5432).
 
 --pg-user=user::
-
 	Specify the PostgreSQL database user to use when the PostgreSQL
 	backend is selected.  The specified user must have the
 	PostgreSQL CREATEDB role so that it can create a new database

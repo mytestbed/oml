@@ -149,6 +149,7 @@ typedef void (*o_el_monitor_socket_callback)(SockEvtSource* source, void* handle
 typedef void (*o_el_state_socket_callback)(SockEvtSource* source, SocketStatus status, int error, void* handle);
 
 void eventloop_init(void);
+void eventloop_set_socket_timeout(unsigned int to);
 int eventloop_run(void);
 void eventloop_stop(int reason);
 void eventloop_report (int loglevel);

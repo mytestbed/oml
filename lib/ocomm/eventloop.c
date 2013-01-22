@@ -159,6 +159,10 @@ typedef struct _eventLoop {
   /** Allocated size of fds and fds_channels arrays */
   int length;
 
+  /** Timeout after which sockets are considered idle, and reaped
+   * \see DEF_SOCKET_TIMEOUT */
+  int socket_timeout;
+
   /** Stopping condition for the event loop */
   int stopping;
 
@@ -209,8 +213,20 @@ void eventloop_init()
   self.size = 0;
   self.length = 0;
 
+  eventloop_set_socket_timeout(DEF_SOCKET_TIMEOUT);
+
   /* Just to be sure we initialise everything */
   self.start = self.now = self.last_reaped = -1;
+}
+
+/** Set the timeout, in seconds, after which idle sockets are reaped.
+ *
+ * \param to timeout [s], 0 to disable
+ */
+void eventloop_set_socket_timeout(unsigned int to)
+{
+  o_log(O_LOG_DEBUG2, "EventLoop: Setting socket idleness timeout to %ds\n", to);
+  self.socket_timeout = to;
 }
 
 /** Run the global EventLoop until eventloop_stop() is called.
@@ -368,7 +384,8 @@ int eventloop_run()
         }
 
         if (ch->last_activity != 0 &&
-            self.now - ch->last_activity > DEF_SOCKET_TIMEOUT) {
+            self.socket_timeout > 0 &&
+            self.now - ch->last_activity > self.socket_timeout) {
             o_log(O_LOG_DEBUG2, "EventLoop: Socket '%s' idle for %ds, reaping...\n", ch->name, self.now - ch->last_activity);
           do_status_callback(ch, SOCKET_IDLE, 0);
         }
