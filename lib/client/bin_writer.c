@@ -75,13 +75,13 @@ typedef struct {
   OmlBinMsgType msgtype; /* Type of messages to generate */
 } OmlBinProtoWriter;
 
-static int write_meta(OmlWriter* writer, char* str);
-static int header_done(OmlWriter* writer);
+static int owb_meta(OmlWriter* writer, char* str);
+static int owb_header_done(OmlWriter* writer);
 
-static int row_start(OmlWriter* writer, OmlMStream* ms, double now);
-static int row_cols(OmlWriter* writer, OmlValue* values, int value_count);
-static int row_end(OmlWriter* writer, OmlMStream* ms);
-static OmlWriter *close(OmlWriter* writer);
+static int owb_row_start(OmlWriter* writer, OmlMStream* ms, double now);
+static int owb_row_cols(OmlWriter* writer, OmlValue* values, int value_count);
+static int owb_row_end(OmlWriter* writer, OmlMStream* ms);
+static OmlWriter *owb_close(OmlWriter* writer);
 
 
 
@@ -103,12 +103,12 @@ bin_writer_new(
   self->bufferedWriter = bw_create(out_stream->write, out_stream, omlc_instance->max_queue, 0);
   self->out_stream = out_stream;
 
-  self->meta = write_meta;
-  self->header_done = header_done;
-  self->row_start = row_start;
-  self->row_end = row_end;
-  self->out = row_cols;
-  self->close = close;
+  self->meta = owb_meta;
+  self->header_done = owb_header_done;
+  self->row_start = owb_row_start;
+  self->row_end = owb_row_end;
+  self->out = owb_row_cols;
+  self->close = owb_close;
 
   self->msgtype = OMB_DATA_P; // Short packets.
 
@@ -121,8 +121,7 @@ bin_writer_new(
  * \param str the string to send
  * \return 1 if the socket is not open, 0 if successful
  */
-static int
-write_meta(
+static int owb_meta(
   OmlWriter* writer,
   char* str
 ) {
@@ -142,11 +141,10 @@ write_meta(
  * \param writer the writer that write this information
  * \return
  */
-static int
-header_done(
+static int owb_header_done(
   OmlWriter* writer
 ) {
-  return (write_meta(writer, "content: binary") && write_meta(writer, ""));
+  return (owb_meta(writer, "content: binary") && owb_meta(writer, ""));
 }
 
 /**
@@ -157,8 +155,7 @@ header_done(
  * \param value_count size of above array
  * \return 0 if sucessful 1 otherwise
  */
-static int
-row_cols(
+static int owb_row_cols(
   OmlWriter* writer,
   OmlValue*  values,
   int        value_count
@@ -182,7 +179,7 @@ row_cols(
  * \see BufferedWriter, bw_get_write_buf, marshal_init, marshal_measurements
  * \see gettimeofday(3)
  */
-int row_start(OmlWriter* writer, OmlMStream* ms, double now)
+static int owb_row_start(OmlWriter* writer, OmlMStream* ms, double now)
 {
   OmlBinProtoWriter* self = (OmlBinProtoWriter*)writer;
   assert(self->bufferedWriter != NULL);
@@ -205,7 +202,7 @@ int row_start(OmlWriter* writer, OmlMStream* ms, double now)
  * \return 1
  * \see BufferedWriter,bw_unlock_buf, marshal_finalize
  */
-int row_end(OmlWriter* writer, OmlMStream* ms) {
+static int owb_row_end(OmlWriter* writer, OmlMStream* ms) {
   (void)ms;
   OmlBinProtoWriter* self = (OmlBinProtoWriter*)writer;
   MBuffer* mbuf;
@@ -232,7 +229,7 @@ int row_end(OmlWriter* writer, OmlMStream* ms) {
  * \param writer pointer to the writer to close
  * \return w->next (can be null)
  */
-static OmlWriter *close(OmlWriter* writer)
+static OmlWriter *owb_close(OmlWriter* writer)
 {
   OmlWriter *next;
 

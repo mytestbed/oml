@@ -64,6 +64,7 @@ int oml_value_copy(OmlValueU* value, OmlValueT type, OmlValue* to) __attribute__
 
 void oml_value_init(OmlValue* v);
 void oml_value_array_init(OmlValue* v, unsigned int n);
+void oml_value_set_type(OmlValue* v, OmlValueT type);
 
 int oml_value_reset(OmlValue* v);
 void oml_value_array_reset(OmlValue* v, unsigned int n);

@@ -165,7 +165,7 @@ typedef void (*sh_t) (int);
  *
  * \see sigaction(3)
  */
-static signal_install(sh_t handler)
+static void signal_install(sh_t handler)
 {
   struct sigaction sa;
 
@@ -197,8 +197,6 @@ static void signal_setup (void)
  */
 static void signal_cleanup (void)
 {
-  struct sigaction sa;
-
   logdebug("Restoring default signal handlers\n");
   signal_install((sh_t)SIG_DFL);
 }
@@ -299,7 +297,7 @@ int main(int argc, char **argv)
           i = 0;
         }
         if (c<argc)
-          for (i; i< strlen(argv[c]); i++)
+          for (;i<strlen(argv[c]); i++)
             argv[c][i] = 'X';
       }
     }

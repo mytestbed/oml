@@ -32,6 +32,7 @@
 
 #include "oml2/omlc.h"
 #include "ocomm/o_log.h"
+#include "mem.h"
 #include "oml_value.h"
 
 static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size);
@@ -286,7 +287,7 @@ static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size
   switch (type) {
   case OML_LONG_VALUE:
     logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
-    n += snprintf(buf, size, "%" PRId32, omlc_get_long(*value));
+    n += snprintf(buf, size, "%ld", omlc_get_long(*value));
     break;
   case OML_INT32_VALUE:  n += snprintf(buf, size, "%" PRId32, omlc_get_int32(*value));  break;
   case OML_UINT32_VALUE: n += snprintf(buf, size, "%" PRIu32, omlc_get_uint32(*value)); break;
@@ -296,8 +297,8 @@ static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size
   case OML_STRING_VALUE: n += snprintf(buf, size, "%s", omlc_get_string_ptr(*value)); break;
   case OML_BLOB_VALUE:
     strncpy (buf, "0x", size);
-    for (n = 2, i = 0; n < size, i < omlc_get_blob_length(*value); i++) /* n = 2 because of the 0x prefix */
-      n += sprintf(buf + n, "%02x", ((uint8_t*)(omlc_get_blob_ptr(*value) + i)));
+    for (n = 2, i = 0; n < size && i < omlc_get_blob_length(*value); i++) /* n = 2 because of the 0x prefix */
+      n += sprintf(buf + n, "%02x", *((uint8_t*)(omlc_get_blob_ptr(*value) + i)));
     if (n == size && i < omlc_get_blob_length(*value)) /* if there was more data than we could write */
       strncpy(buf+size-4, "...", 4);
     break;

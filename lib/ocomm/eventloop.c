@@ -36,6 +36,7 @@
 #include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
 #include "ocomm/o_eventloop.h"
+#include "mem.h"
 
 //! Initial expected number of socket event sources
 #define DEF_FDS_LENGTH 10

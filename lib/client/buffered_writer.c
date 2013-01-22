@@ -136,7 +136,7 @@ bw_create(
  * \param instance handle (i.e., pointer) to a BufferedWriter
  */
 void bw_close(BufferedWriterHdl instance) {
-  BufferedWriter *next, *self = (BufferedWriter*)instance;
+  BufferedWriter *self = (BufferedWriter*)instance;
 
   if(!self)
     return;

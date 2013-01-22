@@ -233,8 +233,8 @@ schema_check_metadata (struct schema_field *field)
   for (i = 0; i < LENGTH (metadata); i++) {
     if (!strcmp (metadata[i].name, field->name)) {
       if (metadata[i].type != field->type) {
-        char *expected = oml_type_to_s (metadata[i].type);
-        char *received = oml_type_to_s (field->type);
+        const char *expected = oml_type_to_s (metadata[i].type);
+        const char *received = oml_type_to_s (field->type);
         logerror ("Existing table metadata type mismatch (%s expected %s, got %s)\n",
                   metadata[i].name, expected, received);
         return -1;

@@ -222,17 +222,24 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
     }
   }
 
-  if (name == NULL)
+  if (name == NULL) {
     name = getenv("OML_NAME");
-  if (domain == NULL)
+  }
+  if (domain == NULL) {
     domain = getenv("OML_EXP_ID");
-  if (config_file == NULL)
+  }
+  if (config_file == NULL) {
     config_file = getenv("OML_CONFIG");
-  if (local_data_file == NULL && collection_uri == NULL)
-    if(!(collection_uri = getenv("OML_COLLECT")))
-      if (collection_uri = getenv("OML_SERVER"))
+  }
+  if (local_data_file == NULL && collection_uri == NULL) {
+    if(!(collection_uri = getenv("OML_COLLECT"))) {
+      if ((collection_uri = getenv("OML_SERVER"))) {
         logwarn("Enviromnent variable OML_SERVER is getting deprecated; please use 'OML_COLLECT=\"%s\"' instead\n",
             collection_uri);
+      }
+    }
+  }
+
   if(collection_uri == NULL) {
     collection_uri = default_uri(app_name, name, domain);
   }
@@ -1075,7 +1082,7 @@ write_schema(OmlMStream *ms, int index)
       char* name;
       OmlValueT type;
       if (filter->meta(filter, j, &name, &type) != -1) {
-        char *type_s = oml_type_to_s(type);
+        const char *type_s = oml_type_to_s(type);
         if (name == NULL) {
           n = snprintf(s, bufsize, "%s:%s ", prefix, type_s);
         } else {

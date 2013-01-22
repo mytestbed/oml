@@ -213,7 +213,7 @@ static int _o_vlog_ratelimited(FILE *stream, int level, time_t now, const char *
     } else if (nseen >0) {
       /* Give a final count of all the previously unreported similar messages before printing the new one */
       n += _o_vlog_metainformation(stream, last_time, last_level);
-      n += fprintf(logfile, "Last message repeated %d time%s\n", nseen, nseen>1?"s":"");
+      n += fprintf(logfile, "Last message repeated %" PRIu64 " time%s\n", nseen, nseen>1?"s":"");
     }
   }
 

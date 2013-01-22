@@ -27,8 +27,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "oml2/omlc.h"
 #include "ocomm/o_log.h"
 #include "mem.h"
+#include "oml_value.h"
 #include "filter/factory.h"
 
 typedef struct _filterType {

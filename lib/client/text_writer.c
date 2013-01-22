@@ -64,12 +64,12 @@ typedef struct {
 } OmlTextWriter;
 
 
-static int meta(OmlWriter* writer, char* str);
-static int header_done(OmlWriter* writer);
-static int row_start(OmlWriter* writer, OmlMStream* ms, double now);
-static int row_cols(OmlWriter* writer, OmlValue* values, int value_count);
-static int row_end(OmlWriter* writer, OmlMStream* ms);
-static int close(OmlWriter* writer);
+static int owt_meta(OmlWriter* writer, char* str);
+static int owt_header_done(OmlWriter* writer);
+static int owt_row_start(OmlWriter* writer, OmlMStream* ms, double now);
+static int owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count);
+static int owt_row_end(OmlWriter* writer, OmlMStream* ms);
+static OmlWriter* owt_close(OmlWriter* writer);
 
 /**
  * \brief Create a new +OmlWriter+
@@ -88,12 +88,12 @@ text_writer_new(OmlOutStream* out_stream)
   self->bufferedWriter = bw_create(out_stream->write, out_stream, omlc_instance->max_queue, 0);
   self->out_stream = out_stream;
 
-  self->meta = meta;
-  self->header_done = header_done;
-  self->row_start = row_start;
-  self->row_end = row_end;
-  self->out = row_cols;
-  self->close = close;
+  self->meta = owt_meta;
+  self->header_done = owt_header_done;
+  self->row_start = owt_row_start;
+  self->row_end = owt_row_end;
+  self->out = owt_row_cols;
+  self->close = owt_close;
 
 
   return (OmlWriter*)self;
@@ -104,8 +104,7 @@ text_writer_new(OmlOutStream* out_stream)
  * \param str the string to send
  * \return 1 if successful, 0 otherwise
  */
-static int
-meta(OmlWriter* writer, char* str)
+static int owt_meta(OmlWriter* writer, char* str)
 {
   OmlTextWriter* self = (OmlTextWriter*)writer;
   if (self->bufferedWriter == NULL) return 0;
@@ -124,10 +123,9 @@ meta(OmlWriter* writer, char* str)
  * \param writer the writer that write this information
  * \return 1 if successful, 0 otherwise
  */
-static int
-header_done(OmlWriter* writer)
+static int owt_header_done(OmlWriter* writer)
 {
-  return (meta(writer, "content: text") && meta(writer, ""));
+  return (owt_meta(writer, "content: text") && owt_meta(writer, ""));
 }
 
 
@@ -138,8 +136,7 @@ header_done(OmlWriter* writer)
  * \param value_count size of above array
  * \return 1 if successful, 0 otherwise
  */
-static int
-row_cols(OmlWriter* writer, OmlValue* values, int value_count)
+static int owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
 {
   OmlTextWriter* self = (OmlTextWriter*)writer;
   MBuffer* mbuf;
@@ -192,8 +189,7 @@ row_cols(OmlWriter* writer, OmlValue* values, int value_count)
  * \param now a timestamp that represensent the current time
  * \return 1 if succesfull, 0 otherwise
  */
-int
-row_start(OmlWriter* writer, OmlMStream* ms, double now)
+static int owt_row_start(OmlWriter* writer, OmlMStream* ms, double now)
 {
   OmlTextWriter* self = (OmlTextWriter*)writer;
   assert(self->bufferedWriter != NULL);
@@ -217,8 +213,7 @@ row_start(OmlWriter* writer, OmlMStream* ms, double now)
  * \param ms the stream of measurmenent
  * \return 1 if successful, 0 otherwise
  */
-int
-row_end(OmlWriter* writer, OmlMStream* ms)
+static int owt_row_end(OmlWriter* writer, OmlMStream* ms)
 {
   (void)ms;
   OmlTextWriter* self = (OmlTextWriter*)writer;
@@ -247,8 +242,7 @@ row_end(OmlWriter* writer, OmlMStream* ms)
  * \param writer pointer to the writer to close
  * \return w->next (can be null)
  */
-static int
-close(OmlWriter* writer)
+static OmlWriter* owt_close(OmlWriter* writer)
 {
   OmlWriter *next;
 

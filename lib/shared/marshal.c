@@ -311,11 +311,10 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
  * \return 1 on success, or -1 otherwise (marshalling should then restart from marshal_init())
  * \see marshal_init, marshal_measurements, marshal_value, marshal_finalize, mbuf_repack_message, mbuf_repack_message2, mbuf_resize
  */
-int
-marshal_values(MBuffer* mbuf, OmlValue* values, int value_count)
+int marshal_values(MBuffer* mbuf, OmlValue* values, int value_count)
 {
   OmlValue* val = values;
-  int i, ret;
+  int i;
 
   for (i = 0; i < value_count; i++, val++) {
     if(!marshal_value(mbuf, oml_value_get_type(val), oml_value_get_value(val)))
