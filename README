@@ -253,11 +253,11 @@ for a few distributions are already available.
 
 ### Debian and Ubuntu
 
-An archive is maintained at MyTestbed.Net, with package for the latest
-Debian and Ubuntu distributions. You can add it to your
+An archive is maintained on the OpenSuSE Build System, with packages for the
+latest Debian and Ubuntu distributions. You can add it to your
 `/etc/apt/sources.list` as
 
-    deb http://pkg.mytestbed.net/ubuntu precise/
+    deb http://download.opensuse.org/repositories/home:/cdwertmann:/oml/xUbuntu_12.10/ ./
 
 then run
 
@@ -280,7 +280,7 @@ version can be obtained from [aur-oml2-git].
 
 ### RPM-based (CentOS, Fedora)
 
-RPM packages are built on the OpenSuSE platform. They are available
+RPM packages are also built on the OpenSuSE platform. They are available
 there [opensuse-oml], as well as the instructions to install them on
 your system.
 
