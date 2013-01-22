@@ -645,42 +645,6 @@ socket_get_addr(
 }
 **/
 
-/**
-typedef enum _SockStatus {
-  SOCKET_WRITEABLE,
-  SOCKET_CONN_CLOSED,
-  SOCKET_CONN_REFUSED,
-  SOCKET_DROPPED,  //! Socket monitoring dropped by eventloop
-  SOCKET_UNKNOWN
-} SocketStatus;
-**/
-
-static const char* SocketStatus_names [] =
-  {
-    "SOCKET_WRITEABLE",
-    "SOCKET_CONN_CLOSED",
-    "SOCKET_CONN_REFUSED",
-    "SOCKET_DROPPED", /* Monitoring socket dropped by eventloop */
-    "SOCKET_IDLE",    /* Receiving socket dropped as it was idle */
-    "SOCKET_UNKNOWN",
-  };
-
-const char*
-socket_status_string(
-  SocketStatus status
- ) {
-  size_t length = sizeof (SocketStatus_names) / sizeof (SocketStatus_names[0]);
-
-  if (status < length)
-    {
-      return SocketStatus_names[status];
-    }
-  else
-    {
-      return "SOCKET_UNKNOWN";
-    }
-}
-
 /*
  Local Variables:
  mode: C

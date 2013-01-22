@@ -52,6 +52,21 @@
 /** Default time, in second, after which an idle socket is cleaned up */
 #define DEF_SOCKET_TIMEOUT 60
 
+/* A quick hace to avoid having to repeat too much */
+#define case_string(val)  case val: { return #val; break; }
+const char* socket_status_string(SocketStatus status)
+{
+  switch(status) {
+    case_string(SOCKET_UNKNOWN);
+    case_string(SOCKET_WRITEABLE);
+    case_string(SOCKET_CONN_CLOSED);
+    case_string(SOCKET_CONN_REFUSED);
+    case_string(SOCKET_DROPPED);
+    case_string(SOCKET_IDLE);
+  default:
+    return "Unknown SocketStatus";
+  }
+}
 
 /** Instance of a TimerEvtSource with callbacks.
  *

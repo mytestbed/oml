@@ -67,10 +67,14 @@ typedef struct _sockEvtSource {
  * Depends on poll(3) revents and additional condition during further
  * processing (e.g., read from FD).
  *
- * \see o_el_state_socket_callback
+ * XXX: Make sure to update socket_status_string when adding values here.
+ *
+ * \see o_el_state_socket_callback, socket_status_string
  * \see poll(3)
  */
 typedef enum _SockStatus {
+  /** Unknown POLLERR */
+  SOCKET_UNKNOWN = -1,
   /** POLLOUT */
   SOCKET_WRITEABLE,
   /** POLLHUP or POLLIN and no data read (for sockets only) */
@@ -81,11 +85,9 @@ typedef enum _SockStatus {
   SOCKET_DROPPED,
   /** No data was receveid for more than DEF_SOCKET_TIMEOUT s */
   SOCKET_IDLE,
-  /** Unknown POLLERR */
-  SOCKET_UNKNOWN,
-
 } SocketStatus;
 
+const char* socket_status_string(SocketStatus status);
 
 /** Timout callback prototype for timers.
  *
@@ -168,12 +170,6 @@ SockEvtSource* eventloop_on_out_channel( Socket* socket, o_el_state_socket_callb
 void eventloop_socket_activate(SockEvtSource* source, int flag);
 void eventloop_socket_release(SockEvtSource* source);
 void eventloop_socket_remove(SockEvtSource* source);
-
-
-const char*
-socket_status_string(
-  SocketStatus status
-);
 
 #ifdef __cplusplus
 }
