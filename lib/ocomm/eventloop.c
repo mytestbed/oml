@@ -398,6 +398,12 @@ int eventloop_run()
           do_status_callback(ch, SOCKET_DROPPED, 0);
         }
 
+        /* We reap idle channels as we go through the list.  XXX: There might
+         * be a corner case where all FDs are already used, and some of them
+         * idle, however a new a new connection (on one listening socket early
+         * in the list) would be dropped before cleanup triggered by its
+         * arrival freed the resources it needs (from the idle sockets further
+         * towards the end of the list. See #959.*/
         if (ch->last_activity != 0 &&
             self.socket_timeout > 0 &&
             self.now - ch->last_activity > self.socket_timeout) {
