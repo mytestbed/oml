@@ -33,9 +33,9 @@ Usage
 
     OML4R::init(ARGV, {
     	:appName => 'oml4rSimpleExample',
-    	:expID => 'foo',
+	:domain => 'foo',
     	:nodeID => 'n1',
-    	:omlServer => 'file:-'}
+	:collect=> 'file:-'}
     )
     MyMP.inject("hello", 13, 37.)
     OML4R::close()
