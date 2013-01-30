@@ -524,7 +524,7 @@ opts_t* g_opts;
 static opts_t g_opts_storage = {#{template(:options_default)}};
 opts_t* g_opts = &g_opts_storage;
 
-// only the file containing the main() function should come through here
+/* Only the file containing the main() function should come through here */
 
 #include <popt.h>
 
@@ -630,11 +630,9 @@ $(PROGRAM)_oml.h: $(PROGRAM).rb
 
 #include "version.h"
 
-void
-run(
-  opts_t* opts,
-  oml_mps_t* oml_mps
-) {
+/* Do application-specific work here */
+void run( opts_t* opts, oml_mps_t* oml_mps)
+{
   long val = 1;
 
   do {
@@ -649,25 +647,23 @@ run(
   } while (1);
 }
 
-int
-main(
-  int argc,
-  const char *argv[]
-) {
+int main(int argc, const char *argv[])
+{
   int c;
 
   omlc_init(argv[0], &argc, argv, NULL);
 
-  // parsing command line arguments
-  poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
+  /* Parse command line arguments */
+  poptContext optCon = poptGetContext(NULL, argc, argv, options, 0); /* options is defined in #{template(:app_name)}_popt.h */
   while ((c = poptGetNextOpt(optCon)) > 0) {}
 
-  // Initialize measurment points
-  oml_register_mps();  // defined in xxx_oml.h
+  /* Initialise measurment points */
+  oml_register_mps();  /* Defined in #{template(:app_name)}_oml.h */
   omlc_start();
 
-  // Do some work
-  run(g_opts, g_oml_mps_#{@name});
+  run(g_opts, g_oml_mps_#{@name}); /* Do some work and injections, see above */
+
+  omlc_close();
 
   return(0);
 }
