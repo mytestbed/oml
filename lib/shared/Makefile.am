@@ -33,5 +33,8 @@ libshared_la_SOURCES = \
 	text.h \
 	oml_util.c \
 	oml_util.h \
-	htonll.h
-
+	htonll.h \
+	base64.c \
+	base64.h \
+	string_utils.c \
+	string_utils.h
