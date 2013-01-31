@@ -249,7 +249,7 @@ OmlValueT oml_type_from_s (const char *s) {
     }
   }
 
-  if (type == OML_LONG_VALUE);
+  if (type == OML_LONG_VALUE)
     logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
 
   return type;
