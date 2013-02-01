@@ -30,7 +30,7 @@ fi
 loglevel=1
 nblobs=100
 
-port=4004
+port=$((RANDOM + 32766))
 exp=blobgen
 
 ## Each backend should provide the following functions:
@@ -65,7 +65,7 @@ sq3_extract() {
 ## PostgreSQL functions
 # Some more specific variables
 PGPATH=`dirname ${POSTGRES} 2>/dev/null`
-PGPORT=5433
+PGPORT=$((RANDOM + 32766))
 pg_prepare() {
 	dir=$1
 	exp=$2
