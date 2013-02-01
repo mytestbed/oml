@@ -137,7 +137,10 @@ memstats () {
 	backend=$3
 	file=$4
 	side=$(basename $file .log)
-	sed -n "/currently allocated/s/.*\[\([0-9]\+\).*, \([0-9]\+\).*, \([0-9]\+\).*\].*/$omlver,$exptype,$backend,$side,\1,\2,\3/p" $file
+	outfile=$side$exptype$backend.csv
+	echo "Version,Type,Backend,Side,Allocated,Freed,Leaked" > $outfile
+	sed -n "/currently allocated/s/.*\[\([0-9]\+\).*, \([0-9]\+\).*, \([0-9]\+\).*\].*/$omlver,$exptype,$backend,$side,\1,\2,\3/p" $file >> $outfile
+	tail -n 1 $outfile
 }
 
 ## Do the real work below
