@@ -22,6 +22,7 @@
  */
 /** Support functions for manipulating OmlValue objects. */
 
+#include <alloca.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +35,7 @@
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "oml_value.h"
+#include "string_utils.h"
 
 static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size);
 static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s);
@@ -370,9 +372,15 @@ static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *va
   case OML_UINT64_VALUE:  omlc_set_uint64 (*value, strtoull (value_s, NULL, 0)); break;
   case OML_DOUBLE_VALUE:  omlc_set_double (*value, strtod (value_s, NULL)); break;
   case OML_STRING_VALUE:
+  {
+    /*
     omlc_set_string_copy (*value, value_s, strlen(value_s));
+    */
+    char *s = alloca(strlen(s)+1);
+    size_t n = backslash_decode(value_s, s);
+    omlc_set_string_copy (*value, s, n);
     break;
-
+  }
   case OML_BLOB_VALUE:
     /* Can't retrieve a blob from a string (yet) */
     logerror("%s(): cannot retrieve a blob from a string (yet), zeroing blob", __FUNCTION__);

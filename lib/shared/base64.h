@@ -17,7 +17,7 @@
 extern size_t
 base64_size_string(size_t blob_sz);
 
-extern void
+extern size_t
 base64_encode_blob(size_t blob_sz, const void *blob, char *s);
 
 extern ssize_t

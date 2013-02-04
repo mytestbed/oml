@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/types.h>
 
 /**
  * The character set used for BASE64 encoding and decoding.
@@ -48,16 +49,19 @@ base64_size_string(size_t blob_sz)
  * \param blob_sz The size of the input blob.
  * \param blob A pointer to the input blob.
  * \param s A non-NULL pointer to the output string buffer.
+ * \return The size of the encoded string.
  */
-void
+size_t
 base64_encode_blob(size_t blob_sz, const void *blob, char *s)
 {
   size_t i;
   uint32_t x;
-  const uint8_t *p;
-  assert(s);
+  char *begin = s;
+  const uint8_t *p;  
   assert(0 == blob_sz || blob);
+  assert(s);
   p = blob;
+  begin = s;
   for(i = 0; i < blob_sz; i += 3) {
     switch(blob_sz - i) {
     case 1:
@@ -84,6 +88,7 @@ base64_encode_blob(size_t blob_sz, const void *blob, char *s)
     }
   }
   *s = '\0';
+  return s - begin;
 }
 
 /**
@@ -95,7 +100,7 @@ base64_encode_blob(size_t blob_sz, const void *blob, char *s)
  * string.
  *
  * \param s A non-NULL pointer to the BASE64-encoded string.
- * \return If valid the length of the string minus any padding otherwise -1.
+ * \return If valid the length of the string minus any padding; otherwise -1.
  */
 ssize_t
 base64_validate_string(const char *s)
@@ -141,14 +146,14 @@ base64_size_blob(size_t s_sz)
  * \param s A non-NULL pointer to the BASE64-encoded string.
  * \param blob_sz The size of the output buffer.
  * \param blob A non-NULL pointer to the blob.
- * \return 0 if the blob decoded successfully; -1 if an error occurred.
+ * \return The blob size or -1 if an error occurred.
  */
 ssize_t
 base64_decode_string(size_t s_sz, const char *s, size_t blob_sz, void *blob)
 {
-  uint8_t *p;
   uint32_t x;
   size_t i, j;
+  uint8_t *p, *begin;
 
   static const int8_t DECODE[] = {
     -1, -1, -1, -1, -1, -1, -1, -1, 
@@ -171,7 +176,7 @@ base64_decode_string(size_t s_sz, const char *s, size_t blob_sz, void *blob)
 
   assert(s);
   assert(blob);
-  p = blob;
+  p = begin = blob;
   for(i = 0; i < s_sz; i += 4) {
     x = 0;
     for(j = i; j < i + 4 &&  j < s_sz; j++) {
@@ -200,8 +205,7 @@ base64_decode_string(size_t s_sz, const char *s, size_t blob_sz, void *blob)
       return -1;
     }
   }
-  *p = '\0';
-  return 0;
+  return p - begin;
 }
 
 /*
