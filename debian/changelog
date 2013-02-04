@@ -1,4 +1,4 @@
-oml2 (2.10.pre) precise; urgency=low
+oml2 (2.10.0pre) precise; urgency=low
 
   * Add libocomm metapackage.
 
