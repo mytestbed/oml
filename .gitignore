@@ -21,6 +21,7 @@ config.status
 *.Po
 Makefile.in
 Makefile
+!example/liboml2/config.h
 !example/liboml2/Makefile
 aclocal.m4
 config.h.in
