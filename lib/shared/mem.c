@@ -40,6 +40,7 @@
 static size_t xbytes = 0;
 static size_t xnew = 0;
 static size_t xfreed = 0;
+static size_t xmax = 0;
 
 /** Take into account newly allocated memory.
  * \param bytes size of the new xchunk
@@ -49,7 +50,10 @@ static void xcount_new   (size_t bytes) {
 #if OML_MEM_DEBUG
   o_log(O_LOG_DEBUG4, "Allocated %dB of memory\n", bytes);
 #endif
-  xbytes += bytes; xnew   += bytes;
+  xbytes += bytes; xnew += bytes;
+  if (xbytes > xmax) {
+    xmax = xbytes;
+  }
 }
 
 /** Take into account freed memory.
@@ -93,9 +97,11 @@ char *xmemsummary ()
   snprintf(summary, 1024, "%"PRIuMAX" %s currently allocated [%"
              PRIuMAX" allocated overall, %"
              PRIuMAX" freed, %"
-             PRIuMAX" current]",
+             PRIuMAX" current, %"
+             PRIuMAX" maximum]",
              (uintmax_t)xbytes_h, units,
-             (uintmax_t)xnew, (uintmax_t)xfreed, (uintmax_t)xbytes);
+             (uintmax_t)xnew, (uintmax_t)xfreed, (uintmax_t)xbytes,
+             (uintmax_t)xmax);
   summary[1023] = '\0';
 
   return summary;
