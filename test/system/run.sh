@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This script is a meta test of the whole OML reporting chain.
 #
@@ -138,8 +138,8 @@ memstats () {
 	file=$4
 	side=$(basename $file .log)
 	outfile=$side$exptype$backend.csv
-	echo "Version,Type,Backend,Side,Allocated,Freed,Leaked" > $outfile
-	sed -n "/currently allocated/s/.*\[\([0-9]\+\).*, \([0-9]\+\).*, \([0-9]\+\).*\].*/$omlver,$exptype,$backend,$side,\1,\2,\3/p" $file >> $outfile
+	echo "Version,Type,Backend,Side,Allocated,Freed,Leaked,Maximum" > $outfile
+	sed -n "/currently allocated/s/.*\[\([0-9]\+\).*, \([0-9]\+\).*, \([0-9]\+\).*, \([0-9]\+\).*\].*/$omlver,$exptype,$backend,$side,\1,\2,\3,\4/p" $file >> $outfile
 	tail -n 1 $outfile
 }
 
