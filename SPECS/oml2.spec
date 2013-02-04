@@ -123,7 +123,7 @@ exit 0
 %{_prefix}/bin/oml2_scaffold
 %{_prefix}/bin/oml2-scaffold
 %{_prefix}/share/oml2/liboml2/Makefile
-%{_prefix}/share/oml2/liboml2/version.h
+%{_prefix}/share/oml2/liboml2/config.h
 %{_prefix}/share/oml2/liboml2/README
 %{_prefix}/share/oml2/liboml2/generator.rb
 %{_prefix}/share/oml2/liboml2/generator.c
