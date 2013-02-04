@@ -39,7 +39,7 @@ def run()
   if File.basename($PROGRAM_NAME) == 'oml2_scaffold'
     old = File.basename($PROGRAM_NAME)
     new = old.gsub('_', '-')
-    $stderr.write("WARNING:  '#{old}' is a deprecated name for this script; use '#{new}' instead.\n")
+    $stderr.puts "WARN\t'#{old}' is a deprecated name for this script; use '#{new}' instead."
   end
 
   opts = OptionParser.new
@@ -89,9 +89,9 @@ Generate C code for an OML application from an application definition file
     output << :main
   end
 
-  opts.on_tail("-h", "--help", "Show this message") do puts opts; exit end
+  opts.on_tail("-h", "--help", "Show this message") do $stderr.write(opts); exit end
   opts.on_tail("-v", "--version", "Show the version\n") do
-    puts VERSION_STRING
+    $stderr.write(VERSION_STRING)
     exit
   end
 
@@ -106,40 +106,41 @@ Generate C code for an OML application from an application definition file
   end
 
   if rest.size > 1
-    $stderr.puts "Too many arguments"
-    puts opts.banner
+    $stderr.puts "ERROR\tToo many arguments"
+    $stderr.write(opts.banner)
     exit -1
   end
   app_file = rest[0]
 
   if create_app
     if app_file
-      $stderr.puts "Don't specify app_file when asking to create one"
+      $stderr.puts "ERROR\tDon't specify app_file when asking to create one"
       exit -1
     end
     uri = "#{ENV['USER']}:app:#{app_name}"
     ad = AppDefinition.new uri, app_name
     app_file = "#{app_name}.rb"
     if File.exists?(app_file) && !force
-      $stderr.puts "'#{app_file}' already exists. Use --force to overwrite"
+      $stderr.puts "ERROR\tFile #{app_file} already exists. Use --force to overwrite"
+      exit -1
     else
       File.open(app_file, 'w') do |f|
-    ad.write_app_def(f)
+	ad.write_app_def(f, app_file)
       end
     end
-    puts "Created '#{app_file}'"
+    $stderr.puts "INFO\tCreated #{app_file}"
+    $stderr.puts "INFO\tYou can now generate a skeleton makefile with '#{$PROGRAM_NAME} --main #{app_file}' and its associated Makefile with '#{$PROGRAM_NAME} --make #{app_file}'"
     AppDefinition.remove ad
   end
 
   unless app_file
-    $stderr.puts "Missing app_file"
+    $stderr.puts "ERROR\tMissing app_file"
     exit -1
   end
 
-#  eval(File.read(app_file))
   app_file = File.expand_path(app_file)
   unless File.readable?(app_file)
-    $stderr.puts "Can't find or open app file '#{app_file}'"
+    $stderr.puts "ERROR\tCan't find or open application description file #{app_file}"
     exit -1
   end
   load(app_file)
@@ -151,39 +152,41 @@ Generate C code for an OML application from an application definition file
     File.open(fname, 'w') do |f|
       app.write_oml_h(f)
     end
-    puts "Created '#{fname}'"
+    $stderr.puts "INFO\tCreated #{fname}"
       when :popt
     fname = "#{app.name}_popt.h"
     File.open(fname, 'w') do |f|
       app.write_opts_h(f)
     end
-    puts "Created '#{fname}'"
+    $stderr.puts "INFO\tCreated #{fname}"
       when :make
     fname = "Makefile"
     if File.exists?(fname) && !force
-      $stderr.puts "'#{fname}' already exists. Use --force to overwrite"
+      $stderr.puts "ERROR\tFile #{fname} already exists. Use --force to overwrite"
+      exit -1
     else
       File.open(fname, 'w') do |f|
         app.write_makefile(f)
       end
-      puts "Created '#{fname}'"
+      $stderr.puts "INFO\tCreated #{fname}"
     end
       when :main
-    fname = "#{app.name}.c"
-    if File.exists?(fname) && !force
-      $stderr.puts "'#{fname}' already exists. Use --force to overwrite"
-    else
-      File.open(fname, 'w') do |f|
-        app.write_main(f)
-      end
-      File.open('version.h', 'w') do |f|
-        app.write_version(f)
-      end
-      puts "Created '#{fname}' and 'version.h'"
-    end
+	fname = "#{app.name}.c"
+	if (File.exists?(fname) || File.exists?("config.h")) && !force
+	  $stderr.puts "ERROR\t#{fname} or config.h already exist. Use --force to overwrite"
+	  exit -1
+	else
+	  File.open(fname, 'w') do |f|
+	    app.write_main(f)
+	  end
+	  File.open('config.h', 'w') do |f|
+	    app.write_config(f)
+	  end
+	  $stderr.puts "INFO\tCreated #{fname} and config.h"
+	end
       else
-    $stderr.puts "Unsupported output format '#{type}'"
-    exit -1
+	$stderr.puts "ERROR\tUnsupported output format #{type}"
+	exit -1
       end
     end
   end
@@ -377,7 +380,7 @@ class AppDefinition
   def write_oml_register(s)
     @mps.each do |mp|
       n = mp.name
-      s.puts "  g_oml_mps_#{@name}->#{n} = omlc_add_mp(\"#{n}\", oml_#{n}_def);"
+      s.puts "  g_oml_mps_#{template(:app_cstring)}->#{n} = omlc_add_mp(\"#{n}\", oml_#{n}_def);"
     end
   end
 
@@ -401,15 +404,17 @@ class AppDefinition
     end
   end
 
-
-
   def template(name)
     s = StringIO.new
     case name
     when :app_name
       return @name
+    when :app_cstring
+      return @name.gsub("-", "_")
     when :app_urn
       return "#{ENV['USER'] || 'xxx'}:app:#{@name}"
+    when :app_path
+      return @path
     when :options_t
       @properties.each do |p|
     p.write_opts_t(s)
@@ -427,19 +432,25 @@ class AppDefinition
     when :oml_helpers
       write_oml_helper_functions(s)
     else
-      raise "Undefined template '#{name}'"
+      raise "Undefined template #{name}"
     end
     s.string
   end
 
-  def write_oml_h(stream = $stdout)
-    stream.puts %Q|
-/*
- * This file is automatically generated by #{PROG}. Please do not edit.
- */
+  def write_file_header(stream = $stdout, notice="Please do not edit.")
+    stream.puts %Q|/*
+ * This file was automatically generated by #{PROG} #{VERSION}
+ * for #{template(:app_name)} version #{@version[0]}.#{@version[1]}.#{@version[2]}.
+ * #{notice}
+ */|
+  end
 
-#ifndef #{template(:app_name).upcase}_OML_H
-#define #{template(:app_name).upcase}_OML_H
+  def write_oml_h(stream = $stdout)
+    hdrsentinel = template(:app_cstring).upcase
+    write_file_header(stream)
+    stream.puts %Q|
+#ifndef #{hdrsentinel}_OML_H
+#define #{hdrsentinel}_OML_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -460,52 +471,45 @@ typedef struct {
  * Only declare storage once, usually from the main
  * source, where OML_FROM_MAIN is defined
  */
-
 #{template(:oml_decl)}
-
 static oml_mps_t g_oml_mps_storage;
-oml_mps_t* g_oml_mps_#{@name} = &g_oml_mps_storage;
+oml_mps_t* g_oml_mps_#{template(:app_cstring)} = &g_oml_mps_storage;
 
-static void
-oml_register_mps()
-
+static void oml_register_mps()
 {
 #{template(:oml_register)}
 }
 
 #{template(:oml_helpers)}
-
 #else
 /*
  * Not included from the main source,
  * only declare the global pointer to the MPs
  */
 
-extern oml_mps_t* g_oml_mps_#{@name};
+extern oml_mps_t* g_oml_mps_#{template(:app_cstring)};
 
 #endif /* OML_FROM_MAIN */
 
 /* Compatibility with old applications */
 #ifndef g_oml_mps
-# define g_oml_mps	g_oml_mps_#{@name}
+# define g_oml_mps	g_oml_mps_#{template(:app_cstring)}
 #endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* #{template(:app_name).upcase}_OML_H */
+#endif /* #{hdrsentinel}_OML_H */
 |
   end
 
   def write_opts_h(stream = $stdout)
+    hdrsentinel = template(:app_cstring).upcase
+    write_file_header(stream)
     stream.puts %Q|
-/*
- * This file is automatically generated by #{PROG}. Please do not edit.
- */
-
-#ifndef #{template(:app_name).upcase}_OPTS_H
-#define #{template(:app_name).upcase}_OPTS_H
+#ifndef #{hdrsentinel}_OPTS_H
+#define #{hdrsentinel}_OPTS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -540,106 +544,85 @@ struct poptOption options[] = {
 }
 #endif
 
-#endif /* #{template(:app_name).upcase}_OPTS_H */
+#endif /* #{hdrsentinel}_OPTS_H */
 |
   end
 
   def write_makefile(stream = $stdout)
-    stream.puts %Q?
-
+    stream.puts %Q?# This file was automatically generated by #{PROG} #{VERSION}
 PROGRAM = #{template(:app_name)}
-
-INSTALL_DIR = $(DESTDIR)/usr/local/bin
-
-#### FOR EXPERTS ONLY  ###
-TOP = .
-
-SCAFFOLD = oml2-scaffold
-
 SRCS = ${PROGRAM}.c
 
-CFLAGS = -g -I. -I/usr/local/include
-LDFLAGS =
+RUNARGS = --loop --delay 1
+
+BINDIR = $(DESTDIR)#{File.dirname(template(:app_path))}/
+
+CFLAGS = -Wall -Werror -g -I. # -I/usr/local/include
+LDFLAGS = # -L/usr/local/lib
 LIBS = -loml2 -lpopt
 
+SCAFFOLD = #{$PROGRAM_NAME}
 
-#BUILD_TOP = $(TOP)/build
-#BUILD_DIR = $(BUILD_TOP)/$(PROGRAM)
-BUILD_DIR = build
+OBJS = $(SRCS:%.c=%.o)
 
-OBJ_DIR = $(BUILD_DIR)/objs
-BIN_DIR = $(BUILD_DIR)/bin
+all: build
+build: $(PROGRAM)
 
-OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
-
-build:  $(BIN_DIR)/$(PROGRAM)
-
-$(BIN_DIR)/$(PROGRAM): $(BIN_DIR) $(OBJ_DIR) $(SRCS) $(OBJS)
-	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
-
-$(OBJ_DIR)/%.o: %.c
-	$(CC) -c $(CFLAGS) $< -o $@
-
-$(OBJ_DIR):
-	mkdir -p $@
-
-$(BIN_DIR):
-	mkdir -p $@
-
-$(BUILD_DIR)/$(PROGRAM):
-	mkdir -p $@
-
-install: build
-	install -m 755 $(BIN_DIR)/$(PROGRAM) $(INSTALL_DIR)
-
-debian: build
-	mkdir -p $(BUILD_DIR)/debian
-	v=`cat version.h | sed -n 's/.*VERSION[^"]*"\([^"]*\).*/\1/p'`; \
-	epm --output-dir $(BUILD_DIR)/debian -n -f deb $(DEB_NAME) \
-		build_dir=$(BUILD_DIR) version=$$v \
-		$(PROGRAM).epm
+install: $(PROGRAM)
+	install -m 755 $(PROGRAM) $(BINDIR)
 
 clean:
-	rm -fr $(BUILD_DIR) *~ $(PROGRAM)_popt.h $(PROGRAM)_oml.h
+	rm -rf $(OBJS)
+	rm -rf $(PROGRAM)
 
-run: ARGS = --loop --delay 1
-run: build
-	$(BIN_DIR)/$(PROGRAM) $(ARGS) --oml-collect file:-
+realclean: clean
+	rm -rf $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 
-debug:
-	echo $(OBJS)
+run: $(PROGRAM)
+	./$(PROGRAM) $(RUNARGS) --oml-collect file:-
 
-$(OBJ_DIR)/$(PROGRAM).o: version.h $(PROGRAM)_popt.h $(PROGRAM)_oml.h
+%.o: %.c
+	$(CC) -c $(CFLAGS) $< -o $@
 
+
+$(PROGRAM): $(OBJS)
+	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+$(PROGRAM).o: config.h $(PROGRAM)_popt.h $(PROGRAM)_oml.h
 $(PROGRAM)_popt.h: $(PROGRAM).rb
 	$(SCAFFOLD) --opts $<
-
 $(PROGRAM)_oml.h: $(PROGRAM).rb
 	$(SCAFFOLD) --oml $<
+
+.PHONY: all build install clean realclean
 ?
   end
 
   def write_main(stream = $stdout)
+    write_file_header(stream, "Please edit to suit your needs; the run() function should contain application code.")
     stream.puts %Q|
+#include <unistd.h> /* Needed for sleep(3) in run() */
 
 #define USE_OPTS
+#include <popt.h>
 #include "#{template(:app_name)}_popt.h"
 
+#include <oml2/omlc.h>
 #define OML_FROM_MAIN
 #include "#{template(:app_name)}_oml.h"
 
-#include "version.h"
+#include "config.h"
 
 /* Do application-specific work here */
-void run( opts_t* opts, oml_mps_t* oml_mps)
+void run(opts_t* opts, oml_mps_t* oml_mps)
 {
   long val = 1;
 
   do {
+    /* The oml_inject_MPNAME() helpers are defined in #{template(:app_name)}_oml.h*/
 |
     @mps.each do |mp|
       mp.write_inject_example(stream)
-      stream.puts "\n\n"
     end
     stream.puts %Q|
     val += 2;
@@ -651,57 +634,77 @@ int main(int argc, const char *argv[])
 {
   int c;
 
-  omlc_init(argv[0], &argc, argv, NULL);
+  omlc_init("#{template(:app_name)}", &argc, argv, NULL);
 
   /* Parse command line arguments */
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0); /* options is defined in #{template(:app_name)}_popt.h */
   while ((c = poptGetNextOpt(optCon)) > 0) {}
 
-  /* Initialise measurment points */
-  oml_register_mps();  /* Defined in #{template(:app_name)}_oml.h */
+  /* Initialise measurement points */
+  oml_register_mps(); /* Defined in #{template(:app_name)}_oml.h */
   omlc_start();
 
-  run(g_opts, g_oml_mps_#{@name}); /* Do some work and injections, see above */
+  run(g_opts, g_oml_mps_#{template(:app_cstring)}); /* Do some work and injections, see above */
 
   omlc_close();
 
   return(0);
 }
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 2
+ indent-tabs-mode: nil
+ End:
+ vim: sw=2:sts=2:expandtab
+*/
 |
   end
 
-  def write_version(stream = $stdout)
+  def write_config(stream = $stdout)
+    write_file_header(stream, "")
     stream.puts %Q|
+#define PACKAGE			"#{template(:app_name)}"
+#define VERSION			"#{@version[0]}.#{@version[1]}.#{@version[2]}"
 
-#define VERSION "1.0.0"
+/* Provide compatibility with autoconf-generated config.h */
+#define PACKAGE_NAME		PACKAGE
+#define PACKAGE_TAR_NAME	PACKAGE
+#define PACKAGE_VERSION		VERSION
 
 |
   end
 
-  def write_app_def(stream = $stdout)
-    stream.puts %@
-defApplication('#{template(:app_urn)}', '#{template(:app_name)}') do |a|
+  def write_app_def(stream = $stdout, app_file="[FILENAME]")
+    stream.puts %@# This file was automatically generated by #{PROG} #{VERSION}
 
-  a.version(1, 0, 0)
-  a.shortDescription = 'A short description'
-  a.description = %{
+defApplication('#{template(:app_urn)}', '#{template(:app_name)}') do |app|
+
+  app.version(1, 0, 0)
+  app.shortDescription = 'A short description'
+  app.description = %{
 A longer description describing in more detail what this application
 is doing and useful for.
 }
+  app.path = "/usr/local/bin/#{template(:app_name)}"
 
-  a.defProperty('loop', 'Create periodic result', ?l,
+  # Declare command-line arguments; generate Popt parser with
+  #  #{PROG} --opts #{app_file}
+  app.defProperty('loop', 'Create periodic result', ?l,
         :type => :flag, :impl => { :var_name => 'loop' })
-  a.defProperty('delay', 'Delay between consecutive measurements', ?d,
+  app.defProperty('delay', 'Delay between consecutive measurements', ?d,
         :type => :int, :unit => 'seconds',
         :impl => { :var_name => 'delay' })
 
-  a.defMeasurement("sensor") do |m|
-    m.defMetric('val', 'int32')
-    m.defMetric('inverse', 'double')
-    m.defMetric('name', 'string')
+  # Declare measurement points; generate OML injection helpers with
+  #  #{PROG} --oml #{app_file}
+  app.defMeasurement("sensor") do |mp|
+    mp.defMetric('val', 'int32')
+    mp.defMetric('inverse', 'double')
+    mp.defMetric('name', 'string')
   end
 
-  a.path = "/usr/local/bin/#{template(:app_name)}"
 end
 
 # Local Variables:
@@ -720,12 +723,12 @@ class Metric < Struct.new(:name, :type, :opts)
     case type.to_sym
     when :int, :integer
       if @@integer_alias == :long and @@warnings[type.to_sym] == nil
-        puts "WARNING:  Command line switch --long makes :#{type.to_sym} an alias for :long, but :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead"
+        $stderr.write("WARN\tCommand line switch --long makes :#{type.to_sym} an alias for :long, but :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead")
         @@warnings[type.to_sym] = true
       end
     when :long
       if @@warnings[type.to_sym] == nil
-        puts "WARNING:  Type :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead"
+        $stderr.write("WARN\tType :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead")
         @@warnings[type.to_sym] = true
       end
     end
@@ -760,7 +763,7 @@ class Metric < Struct.new(:name, :type, :opts)
     when :blob
       "OML_BLOB_VALUE"
     else
-      puts "ERROR: Unknown type #{type}"
+      $stderr.write("ERROR\tUnknown type #{type}")
       exit -1
     end
   end
@@ -917,7 +920,7 @@ class MeasurementPoint
       stream.print ", #{vals[m.type]}"
       i = i + 1
     end
-    stream.print ");"
+    stream.print ");\n"
   end
 
 
