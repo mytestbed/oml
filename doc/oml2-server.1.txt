@@ -71,12 +71,14 @@ OPTIONS
 OML HOOK READY
 .................
 +
-It should then process its input in a loop, looking for the 
-commands described in the following section. Apart from its banner, the
-*oml2-server* does not currently read anything the hook program outputs
-on its 'stdout'.
+It should then process its input in a loop, looking for the commands
+described in the link:#_hook_commands[HOOK COMMANDS] section, below.
+Apart from its banner, the *oml2-server* does not currently read
+anything the hook program outputs on its 'stdout'.
 +
-A simple example hook, *oml2-server-hook.sh*, is available in {pkgdatadir}.
+A simple example hook, *oml2-server-hook.sh*, is available in
+{pkgdatadir}, which pushes the SQL dump of a just-finished experiment to
+IRODS.
 
 -l port::
 --listen=port::
@@ -274,5 +276,9 @@ PostgreSQL
 ~~~~~~~~~~
 http://www.postgresql.org
 endif::have_pg[]
+
+IRODS
+~~~~~
+http://www.irods.org/
 
 // vim: ft=asciidoc:tw=72
