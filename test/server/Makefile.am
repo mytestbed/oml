@@ -1,4 +1,5 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
+AM_TESTS_ENVIRONMENT = CK_VERBOSITY=verbose
 
 if HAVE_CHECK
 TESTS = check_server
