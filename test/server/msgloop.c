@@ -89,7 +89,7 @@ read_message (char **line, size_t *size, size_t *length_out, int *seqno_out)
       fprintf (stderr, "reading header:  %s\n", strerror (errno));
       return -1;
     } else if (result == 0) {
-      fprintf (stderr, "Read no bytes! Pipe closed?\n");
+      fprintf (stderr, "\n# msgloop: no more data, assuming closed pipe\n");
       return 0;
     }
 
@@ -171,7 +171,7 @@ main (int argc, char **argv)
   client = client_new (NULL, 4096, "dummy.bin", 0, "dummy.com");
 
 
-  fprintf (stderr, "Processing messages:");
+  fprintf (stderr, "# msgloop: receiving test data...");
   do {
     int seqno = 0;
     size_t msg_length = 0;
@@ -195,9 +195,8 @@ main (int argc, char **argv)
 
     fprintf (stderr, " %d", n);
   } while (result == 1);
-  fprintf (stderr, ".\n");
 
-  fprintf (stderr, "Printing headers:\n");
+  fprintf (stderr, "# msgloop: sending interpreted headers...\n");
 
   struct header *header = client->headers;
   while (header) {
@@ -206,7 +205,7 @@ main (int argc, char **argv)
     header = header->next;
   }
 
-  fprintf (stderr, "Messages:  %d\n", (int)client->messages->length);
+  fprintf (stderr, "# msgloop: sending %d interpreted messages...\n", (int)client->messages->length);
   while (client->messages->length > 0) {
     struct msg_queue_node *head = msg_queue_head (client->messages);
     struct cbuffer_cursor *cursor = &head->cursor;

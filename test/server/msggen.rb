@@ -42,13 +42,48 @@ class Client
 
   def headers(content)
     h = []
-    h << "protocol: 3"
-    h << "experiment-id: #{@domain}"
-    h << "start_time: #{@start_time}"
-    h << "sender-id: #{@sender}"
-    h << "app-name: #{@application}"
-    h = h + @streams.collect { |stream| stream.schema_string }
-    h << "content: #{content}"
+    h3 = [] # Header V3
+    h4 = [] # Header V4
+
+    h3 << "protocol: 3"
+    h3 << "experiment-id: #{@domain}v3"
+    h3 << "start_time: #{@start_time + 3}"
+    h3 << "sender-id: #{@sender}v3"
+    h3 << "app-name: #{@application}v3"
+    h3 = h3 + @streams.collect { |stream| stream.schema_string }
+    h3 << "content: #{content}"
+    h << h3
+
+    h4 << "protocol: 4"
+    h4 << "domain: #{@domain}v4"
+    h4 << "start-time: #{@start_time+4}"
+    h4 << "sender-id: #{@sender}v4"
+    h4 << "app-name: #{@application}v4"
+    h4 << "content: #{content}"
+    # Stream definitions can appears anywhere in v4
+    h4 = h4 + @streams.collect { |stream| stream.schema_string }
+    h << h4
+
+    h
+  end
+
+  # Map old version of the headers to the most recent one.
+  def header_map_Vn_one(h)
+    [
+      [ /start_time/, "start-time"],
+      [ /experiment-id/, "domain" ],
+    ].each do |re, repl|
+      h = h.gsub(re, repl)
+    end
+    h
+  end
+
+  def header_map_Vn(t)
+    if t.kind_of?(Array)
+      t.map { |h| header_map_Vn_one(h) }
+    else
+      header_map_Vn_one(t)
+    end
   end
 
   def gen(index, content)
@@ -142,51 +177,69 @@ def run
   c.defStream(1, "generator_lin", "label" => :string, "seq_no" => :long)
   c.defStream(2, "generator_sin", "label" => :string, "phase" => :double, "angle" => :double)
 
-  headers = c.headers("text")
-  packets = []
-  20.times { packets << c.gen(1, "text") }
+  allhdrs = c.headers("text")
 
-  io = IO.popen("./msgloop", "w+")
+  testid = 0
+  fails = 0
 
-  seqno = 0
-  hstr = headers.join("\n") + "\n\n"
-  io.write(make_packet(seqno, hstr)); seqno += 1
-  packets.each { |p| io.write(make_packet(seqno, p)); seqno += 1}
-  puts "Wrote all test data to msgloop pipe"
+  ndata = 20
+  ntests = ndata * allhdrs.length + allhdrs.map { |h| h.length}.reduce(:+)
 
-  header_map = {}
-  headers.each { |h|
-    a = h.split(':')
-    header_map[a[0]] = a[1..-1].join(':').strip
-  }
+  # We generate TAP [0,1] compatible output
+  # [0] http://szabgab.com/tap--test-anything-protocol.html
+  # [1] https://www.gnu.org/software/automake/manual/automake.html#Using-the-TAP-test-protocol
+  puts "1..#{ntests}"
 
-  test_result = 0
-  io.close_write
-  puts "Reading from pipe"
-  io.readlines.each { |line|
-    res = "--"
-    if line[0] == ?H then
-      a = line.split('>')
-      if headers.include?("#{a[1]}: #{a[2].strip}") then
-        res =  "OK"
-      else
-        puts "E:#{header_map[a[1]]}"
-        puts "A:#{a[2]}"
-        res =  "FAIL"
-        test_result = 1
+  allhdrs.each do |headers|
+    header_map = {}
+    headers.each { |h|
+      a = h.split(':')
+      header_map[c.header_map_Vn(a[0])] = a[1..-1].join(':').strip
+    }
+    packets = []
+    ndata.times { packets << c.gen(1, "text") }
+
+    io = IO.popen("./msgloop", "w+")
+
+    seqno = 0
+    hstr = headers.join("\n") + "\n\n"
+    io.write(make_packet(seqno, hstr)); seqno += 1
+    packets.each { |p| io.write(make_packet(seqno, p)); seqno += 1}
+    puts "# msggen: wrote all test data to msgloop pipe"
+
+    io.close_write
+    puts "# msggen: receiving interpreted results..."
+    io.readlines.each { |line|
+      res = "--"
+      testid = testid + 1
+      if line[0] == ?H then
+	a = line.split('>')
+	if c.header_map_Vn(headers).include?("#{a[1]}: #{a[2].strip}") then
+	  res =  "ok"
+	else
+	  puts "# for '#{a[1]}'"
+	  puts "# expected '#{header_map[a[1]]}'"
+	  puts "# received '#{a[2].strip}'"
+	  res =  "not ok"
+	  fails = fails + 1
+	end
+      elsif line[0] == ?T then
+	a = line.split('>')
+	if packets.include?(a[1]) then
+	  res =  "ok"
+	else
+	  res =  "not ok"
+	  fails = fails + 1
+	end
       end
-    elsif line[0] == ?T then
-      a = line.split('>')
-      if packets.include?(a[1]) then
-        res =  "OK"
-      else
-        res =  "FAIL"
-        test_result = 1
-      end
-    end
-    puts "#{line.strip} ... #{res}"
-  }
-  exit test_result
+      puts "#{res} #{testid} - #{line.strip}"
+    }
+    puts "# #{fails}/#{testid-1} tests failed so far"
+  end
+
+  exit fails
 end
 
 if __FILE__ == $PROGRAM_NAME then run; end
+
+# vim: sw=2
