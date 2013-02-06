@@ -30,6 +30,9 @@ fi
 loglevel=1
 nblobs=100
 
+ntests=0
+tottests=$nblobs
+
 port=$((RANDOM + 32766))
 exp=blobgen
 
@@ -54,12 +57,12 @@ sq3_extract() {
 	db=${dir}/${exp}.sq3
 
 	seqs=$(sqlite3 $db 'SELECT oml_seq FROM blobgen_blobmp' 2>>${dir}/db.log)
-	echo -n "Extracting server-stored blobs from $db:"
+	echo -n "# $0 ($backend): extracting server-stored blobs from $db:" >&2
 	for i in $seqs; do
 		echo -n " $i"
 		sqlite3 $db "SELECT HEX(blob) FROM blobgen_blobmp WHERE oml_seq=$i" > ${dir}/s$i.hex 2>>${dir}/db.log
 	done
-	echo "."
+	echo "." >&2
 }
 
 ## PostgreSQL functions
@@ -88,13 +91,13 @@ pg_extract() {
 	PSQL_OPTS="-h localhost -p $PGPORT $db oml2 -P tuples_only=on"
 	seqs=$(${PGPATH}/psql ${PSQL_OPTS} -c 'SELECT oml_seq FROM blobgen_blobmp' 2>>${dir}/db.log) 
 
-	echo -n "Extracting server-stored blobs from postgresql://localhost:$PGPORT $db:"
+	echo -n "# $0 ($backend) extracting server-stored blobs from postgresql://localhost:$PGPORT $db:" >&2
 	for i in $seqs; do
-		echo -n " $i"
+		echo -n " $i" >&2
 		echo -n `${PGPATH}/psql ${PSQL_OPTS} -c "SELECT blob FROM blobgen_blobmp WHERE oml_seq=$i" 2>>${dir}/db.log | \
 			sed "/^$/d;y/abcdef/ABCDEF/;s/ *\\\\\x//"` > ${dir}/s$i.hex
 	done
-	echo "."
+	echo "." >&2
 }
 
 ## Start a daemon and wait for a pattern to appear in its log, or exit
@@ -111,20 +114,21 @@ startdaemon() {
 	# itself doesn't try to write there
 	$rest >$log 2>&1 &
 	pid=$!
-	echo -n " $prog=$pid" >&2
+	echo -n "# $prog=$pid" >&2
 	sleep 1
 	i=0
 	while ! grep -q "$pattern" "$log" ; do
-			echo -n "." >&2
+		echo -n "." >&2
 		if ! kill -0 ${pid} 2>/dev/null; then
-			echo "DEAD" >&2
+			echo "Bail out! Dead" >&2
 			exit 1
 		elif [ $((i++)) -gt 10 ]; then
-			echo "Giving up" >&2
+			echo "Bail out! Giving up" >&2
 			exit 1
 		fi
 		sleep 1
 	done
+	echo >&2
 	echo $pid
 }
 
@@ -144,7 +148,7 @@ memstats () {
 }
 
 ## Do the real work below
-echo -n "Blob test $dir (logs in ${PWD}/$dir/):"
+echo "# $0 ($backend): blob test $dir (logs in ${PWD}/$dir/)" >&2
 
 rm -rf $dir
 mkdir $dir
@@ -156,14 +160,13 @@ backendparams=`${backend}_params $dir $exp`
 # Start server
 server_pid=`startdaemon ${dir}/server.log "EventLoop" ${top_builddir}/server/oml2-server \
 	-d $loglevel --logfile - -l $port $backendparams`
-echo # Finish the line
 
 # Start client
 cd ${dir}
 if [ ! -z "${TIMEOUT}" ]; then
 	TIMEOUT="${TIMEOUT} 30s"
 else
-	echo "timeout(1) utility not found; this test might hang indefinitely" >&2
+	echo "# $0: timeout(1) utility not found; this test might hang indefinitely" >&2
 fi
 ${TIMEOUT} ../blobgen -h -n $nblobs $longopt \
 	--oml-id a --oml-domain ${exp} --oml-collect localhost:$port --oml-bufsize 110000 \
@@ -171,9 +174,9 @@ ${TIMEOUT} ../blobgen -h -n $nblobs $longopt \
 ret=$?
 if [ ! $ret = 0 ]; then
 	if [ $ret = 124 ]; then
-		echo "Timeout generating blobs";
+		echo "Bail out! Timeout generating blobs"; >&2
 	else
-		echo "Error $ret generating blobs";
+		echo "Bail out! Error $ret generating blobs"; >&2
 	fi
 	kill -9 $server_pid $pids
 	exit $ret
@@ -182,7 +185,7 @@ cd ..
 
 # Stop oml2-server
 sleep 10
-echo -n "Terminating oml2-server ($server_pid)"
+echo -n "# $0: Terminating oml2-server ($server_pid)" >&2
 kill $server_pid
 while kill -0 $server_pid 2>/dev/null; do echo -n '.'; sleep 1; done # Wait for the oml2-server to have exited properly
 echo
@@ -196,23 +199,24 @@ if [ -n "$pids" ]; then
 fi
 
 # Calculate the diffs, return result
-echo -n "Checking that server stored blobs match client-generated blobs:"
-fail=0
+echo "# $0: Checking that server stored blobs match client-generated blobs..." >&2
+echo "1..$tottests"
+fail=$tottests
 for f in ${dir}/g*.hex; do
 	g=$(basename $f .hex)
 	s=$(echo $g | sed "s/g/s/")
 	if [ ! -f $dir/$g.hex ]; then
-		echo -n " FAIL[$((++fail))]:!$g"
+		echo "not ok $((++ntests)) - !$g"
 	elif [ ! -f $dir/$s.hex ]; then
-		echo -n " FAIL[$((++fail))]:!$s"
+		echo "not ok $((++ntests)) - !$s"
 	elif diff -qw $dir/$g.hex $dir/$s.hex >/dev/null 2>&1; then
-		echo -n " $g==$s"
+		echo "ok $((++ntests)) - $g==$s"
+		fail=$((fail - 1))
 	else
-		echo -n " FAIL[$((++fail))]:$g!=$s"
-		
+		echo "not ok $((++ntests)) - $g!=$s"
 	fi
 done
-echo "."
+echo "# $0 ($backend): $fail/$tottests tests failed" >&2
 
 # Cleanup
 killall -9 $server_pid $pids 2>/dev/null

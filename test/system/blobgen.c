@@ -88,13 +88,13 @@ blob_to_file (int index, void *blob, size_t n)
   snprintf (s, sizeof(s), "g%d.%s", index, hex ? "hex" : "bin");
   fd = open (s, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
   if (fd == -1) {
-    fprintf (stderr, "Could not open file %s: %s\n", s, strerror (errno));
+    fprintf (stderr, "# blobgen: could not open file %s: %s\n", s, strerror (errno));
     exit (1);
   }
 
   result = (hex ? write_blob_hex : write_blob_bin) (fd, blob, n);
   if (result == -1) {
-    fprintf (stderr, "Error writing blob (%lu bytes) to file: %s\n", n, strerror (errno));
+    fprintf (stderr, "# blobgen: writing blob (%lu bytes) to file: %s\n", n, strerror (errno));
     close (fd);
     exit (1);
   }
@@ -120,7 +120,7 @@ run (void)
   OmlValueU v[3];
   omlc_zero_array(v, 3);
 
-  fprintf (stderr, "Writing blobs:");
+  fprintf (stderr, "# blobgen: writing blobs:");
   for (i = 0; samples != 0; i++, samples--) {
     snprintf (s, sizeof(s)-1, "sample-%04d\n", i);
     blob = randgen (&blob_length);
