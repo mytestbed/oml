@@ -1,0 +1,19 @@
+Collection points (oml2-server) Tests
+====================================
+
+Tests in this directory ensure proper decoding of the OML protocol by the
+collection components.
+
+The following tests are currently present:
+ - check_server: unit of the marshalling/interpretation of the binary/text
+   protocols code;
+ - msggen: macro test of the decoding logic of the proxy message loop; msgloop
+   implements that logic by reading content from msggen.rb on its STDIN (each
+   line prefixed by a custom text header starting with 'OML' followed by an 8-hex
+   seqno and an 8-hex length fields), and outputing its interpretation to STDOUT
+   (headers then text), for msggen to compare to its expectations;
+ - issue610: test case for a reported bug where the timestamp sent in text mode
+   would not be properly recorded [0].
+
+[0] http://oml.mytestbed.net/projects/oml/issues/610
+
