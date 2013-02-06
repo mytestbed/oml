@@ -1,0 +1,10 @@
+Unit tests for the OML libraries
+================================
+
+This directory contains CHECK-based [0] unit tests of the OML libraries.
+
+Mainly, the shared and client libraries are tested. The entry points are the
+respective check_* programs, which include all the check_*_SUITE.c testsuite for
+various subsets of their functionalities.
+
+[0] http://check.sf.net
