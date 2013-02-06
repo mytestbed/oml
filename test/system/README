@@ -1,0 +1,29 @@
+System Tests for the Full OML Reporting Chain
+=============================================
+
+This directory contains macrotests for the full OML reporting chain.
+
+The blobgen application uses the newly built library, and injects random data,
+covering most OML types, of various size when relevant, into a server. It also
+dumps all the injected data to flatfiles, for later verification.
+
+The main test is run.sh, which takes care of preparing the test (starting
+oml2-server and dependencies, on random ports), driving blobgen, then extracting
+the data from the database and comparing it to blobgen's dump.
+
+run.sh supports two types of tests (following blobgen's code): short and long,
+whichh refers to the length of the injected blobs. It also supports various
+backends, through a few helper functions defined towards the top of run.sh.
+
+In the process of running the tests, run.sh also collects memory usage (and
+leaks) statistics. They are only limited to those parts of the OML code using
+the wrappers in lib/shared/mem.c. An aggregate view is generated as
+memstats.csv, while bite-size files are generated as
+[client|server][--long][BACKEND].csv, mainly for Jenkins-based display.
+
+TODO: This should eventually be the full codebase; see issue #898
+
+The actual test script are simply wrapper around run.sh, providing the desired
+parameters for a specific test-case.
+
+TODO: Test text-mode too.
