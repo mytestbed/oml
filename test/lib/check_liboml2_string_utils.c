@@ -14,7 +14,9 @@
 
 START_TEST(test_round_trip)
 {
-  char in[BUFSIZ+1], out[2*BUFSIZ+1];
+  const size_t TEST_SZ = 128;
+  char in[TEST_SZ+1], out[2*TEST_SZ+1];
+
   /* encode */
 
   strcpy(in, "");
