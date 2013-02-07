@@ -31,6 +31,7 @@
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "mbuf.h"
+#include "oml_util.h"
 #include "oml_value.h"
 #include "marshal.h"
 #include "binary.h"
@@ -44,6 +45,12 @@ extern char *sqlite_database_dir;
 /* Prototypes of functions to test */
 
 void client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
+
+#define printmbuf(mbuf)  logdebug("Sending message (in %p, at %p, from %p):\n%s\n", \
+      (mbuf_buffer(mbuf)),                                                          \
+      (mbuf_message(mbuf)),                                                         \
+      (mbuf_rdptr(mbuf)),                                                           \
+      to_octets(mbuf_message(mbuf), mbuf_remaining(mbuf)))
 
 START_TEST(test_find_sync)
 {
@@ -107,7 +114,7 @@ START_TEST(test_binary_resync)
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "binary resync socket";
 
-  o_set_log_level(-1);
+  o_set_log_level(4);
 
   /* Create the ClientHandler almost as server/client_handler.h:client_handler_new() would */
   ch = (ClientHandler*) xmalloc(sizeof(ClientHandler));
@@ -137,36 +144,7 @@ START_TEST(test_binary_resync)
   marshal_measurements(mbuf, 1, 1, time1);
   marshal_values(mbuf, &v, 1);
   marshal_finalize(mbuf);
-#define printmbuf  logdebug("Sending message (in %p, at %p, from %p): %x %x %x %x  %x %x %x %x  %x %x %x %x  %x %x %x %x  %x %x %x %x  %x %x %x %x\n", \
-      (mbuf_buffer(mbuf)),                       \
-      (mbuf_message(mbuf)),                      \
-      (mbuf_rdptr(mbuf)),                      \
-      *((uint8_t*)mbuf_message(mbuf)),                     \
-      *((uint8_t*)mbuf_message(mbuf)+1),   \
-      *((uint8_t*)mbuf_message(mbuf)+2),   \
-      *((uint8_t*)mbuf_message(mbuf)+3),   \
-      *((uint8_t*)mbuf_message(mbuf)+4),   \
-      *((uint8_t*)mbuf_message(mbuf)+5),   \
-      *((uint8_t*)mbuf_message(mbuf)+6),   \
-      *((uint8_t*)mbuf_message(mbuf)+7),   \
-      *((uint8_t*)mbuf_message(mbuf)+8),   \
-      *((uint8_t*)mbuf_message(mbuf)+9),   \
-      *((uint8_t*)mbuf_message(mbuf)+10),  \
-      *((uint8_t*)mbuf_message(mbuf)+11),  \
-      *((uint8_t*)mbuf_message(mbuf)+12),  \
-      *((uint8_t*)mbuf_message(mbuf)+13),  \
-      *((uint8_t*)mbuf_message(mbuf)+14),  \
-      *((uint8_t*)mbuf_message(mbuf)+15),  \
-      *((uint8_t*)mbuf_message(mbuf)+16),  \
-      *((uint8_t*)mbuf_message(mbuf)+17),  \
-      *((uint8_t*)mbuf_message(mbuf)+18),  \
-      *((uint8_t*)mbuf_message(mbuf)+19),  \
-      *((uint8_t*)mbuf_message(mbuf)+20),  \
-      *((uint8_t*)mbuf_message(mbuf)+21),  \
-      *((uint8_t*)mbuf_message(mbuf)+22),  \
-      *((uint8_t*)mbuf_message(mbuf)+23)   \
-      );
-  printmbuf;
+  printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_remaining(mbuf));
 
   logdebug("Sending second sample for an invalid table, in two steps\n");
@@ -178,9 +156,11 @@ START_TEST(test_binary_resync)
   marshal_values(mbuf, &v, 1);
   marshal_finalize(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), 5);
+  printmbuf(mbuf);
   fail_if(ch->state == C_PROTOCOL_ERROR, "An incomplete sample confused the client_handler");
-  printmbuf;
+  printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf)+5, mbuf_remaining(mbuf)-5);
+  printmbuf(mbuf);
   fail_if(ch->state == C_PROTOCOL_ERROR, "A sample for a non existing stream confused the client_handler");
 
   logdebug("Sending some noise\n");
@@ -197,7 +177,7 @@ START_TEST(test_binary_resync)
   marshal_measurements(mbuf, 1, 2, time2);
   marshal_values(mbuf, &v, 1);
   marshal_finalize(mbuf);
-  printmbuf;
+  printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), 5);
   fail_if(ch->state == C_PROTOCOL_ERROR, "An incomplete sample after resync confused the client_handler");
   client_callback(&source, ch, mbuf_buffer(mbuf)+5, mbuf_remaining(mbuf)-5);
