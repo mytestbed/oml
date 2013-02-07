@@ -42,6 +42,30 @@ void chomp(char *str)
   *++p = '\0';
 }
 
+/** Template code to search for a matching condition in a string or array up
+ * to a given length or nil-terminator.
+ *
+ * p should be of a dereferenceable type that can be compared to 0.
+ *
+ * If len is negative, this allows for a very long string to be parsed. Very
+ * long here being entirely machine dependent, one should not really rely on
+ * this...
+ *
+ * \param[in,out] p pointer to the beginning of the string or array; updated to the matching element, or NULL if not found
+ * \param cond success condition involving p
+ * \param[in,out] len maximum length to search for; updated to the remaining number of characters when finishing (found or not)
+ */
+#define find_matching(p, cond, len)  \
+do {                              \
+  while (p && !(cond)) {          \
+    if (!--len || *p == 0) {      \
+      p = NULL;                   \
+    } else {                      \
+      p++;                        \
+    }                             \
+  }                               \
+} while(0)
+
 /** Skip whitespaces in a string
  *
  * \param p string to skip whitespace out of
@@ -50,11 +74,10 @@ void chomp(char *str)
  */
 const char* skip_white(const char *p)
 {
-  if (p) {
-    while (*p && isspace (*p)) p++;
-    if (*p) return p;
-  }
-  return NULL;
+  int l = -1;
+  find_matching(p, !(isspace (*p)), l);
+  if (*p == '\0') p = NULL;
+  return p;
 }
 
 /** Find first whitespace in a string
@@ -65,13 +88,33 @@ const char* skip_white(const char *p)
  */
 const char* find_white(const char *p)
 {
-  if (p) {
-    while (*p && !isspace (*p)) p++;
-    if (*p) return p;
-  }
-  return NULL;
+  int l = -1;
+  find_matching(p, (isspace (*p)), l);
+  return p;
 }
 
+/** Find the first occurence of a character in a string up to a nul character
+ * or a given number of characters, whichever comes first,
+ *
+ * \param str a possibly nul-terminated string
+ * \param c the character to look for
+ * \param len the maximum length to search the string for
+ * \return a pointer to character c in str, or NULL
+ */
+const char* find_charn(const char *str, char c, int len)
+{
+  find_matching(str, (*str == c), len);
+  return str;
+}
+
+/** Dump the contents of a buffer as a string of hex characters
+ *
+ * \param buf array of data to dump
+ * \param len length of buf
+ * \return a character string which needs to be xfree()'d
+ *
+ * \see xmalloc, xfree
+ */
 char* to_octets(unsigned char *buf, int len)
 {
   const int octet_width = 3;

@@ -68,6 +68,10 @@ START_TEST (test_util_find)
   fail_unless(find_white(ts) == ts);
   fail_unless(find_white(tsnwf) == tsnw - 1);
   fail_unless(find_white(tsnw) == NULL, "'%s', %p, %p, '%s'", tsnw, find_white(tsnw), tsnw, find_white(tsnw));
+
+  fail_unless(find_charn(ts, 'a', sizeof(ts)) == tsnwf);
+  fail_unless(find_charn(ts, 'z', sizeof(ts) + 10) == NULL, "%s %p %s %p", ts, ts, find_charn(ts, 'z', sizeof(ts) + 10), find_charn(ts, 'z', sizeof(ts) + 10));
+  fail_unless(find_charn(ts, 'a', 1) == NULL);
 }
 END_TEST
 
