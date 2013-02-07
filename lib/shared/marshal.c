@@ -20,14 +20,107 @@
  * THE SOFTWARE.
  *
  */
-/** \file Implements marhsalling and unmarshalling of basic types for binary
+/** \file marshal.c
+ *
+ * Implements marhsalling and unmarshalling of basic types for binary
  * transmission across the network.
  *
- * Marshalling is done directly into Mbuffers.
+ * \publicsection \page binprotocol Binary Protocol Marshalling
  *
- * \see marshal_init, marshal_measurements, marshal_values, marshal_finalize
+ * Marshalling is done directly into Mbuffers. A marshalled packet is
+ * structured as follows.
+ *
+ * A header is first populated using marshal_init(), depending on the expected
+ * length. A short header, created by marshal_header_short(), is 5 bytes.
+ *
+ * \verbatim
+ *    0                   1                   2                   3
+ *    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *    +---------------+---------------+---------------+---------------+
+ *    |   SYNC-BYTE   |   SYNC-BYTE   |  OMB_DATA_P   |   msg-len-H   |
+ *    +---------------+---------------+---------------+---------------+
+ *    |   msg-len-L   |
+ *    +-------+-------+--
+ * \endverbatim
+ *
+ * A long header, created by marshal_header_long(), allows two more bytes for
+ * the length.
+ * \verbatim
+ *    0                   1                   2                   3
+ *    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *    +---------------+---------------+---------------+---------------+
+ *    |   SYNC-BYTE   |   SYNC-BYTE   |  OMB_DATA_P   |   msg-len-HH  |
+ *    +---------------+---------------+---------------+---------------+
+ *    |   msg-len-HL  |   msg-len-LH  |   msg-len-LL  |
+ *    +---------------+---------------+---------------+--
+ * \endverbatim
+ *
+ * This header is followed by metadata about its content, in the form of one
+ * byte indicating the number of measuments, and one the MS number (identifying
+ * the schema). The former is is updated at the end, by marshal_finalize(),
+ * that function also takes care of promoting a short header to a long one if
+ * too much data was written into the packet.
+ * \verbatim
+ *                  --+---------------+---------------+-
+ *                    |   num-meas    |   ms-index    |
+ *                  --+---------------+---------------+-
+ * \endverbatim
+ *
+ * Then, num-meas marshalled values follow, respecting the schema defined by
+ * ms-index. The values are marshalled after a one-byte header identifying
+ * their type (OmlValueT).
+ *
+ * The first two values are always a 32-bit integer representing the message
+ * sequence number, and a double representing the injection timestamp.
+ * marshal_measurements() should be called to add these two elements. Then,
+ * marshal_values() is used to marshall the array of OmlValue; it marshalls
+ * each of the with marshal_value().
+ *
+ * 32-bit integers (and longs) are put on the wire verbatim, in network byte
+ * order.
+ * \verbatim
+ *  --+---------------+---------------+---------------+---------------+
+ *    |  int32-type   |  int-byte-HH  |  int-byte-HL  |  int-byte-LH  |
+ *  --+---------------+---------------+---------------+---------------+
+ *    |  int-byte-HL  |  int-byte-LL  |
+ *    +---------------+---------------+--
+ * \endverbatim
+ *
+ * The same goes for 64-bit integers.
+ * \verbatim
+ *  --+---------------+---------------+---------------+---------------+
+ *    |  int64-type   |  int-byte-HHH |  int-byte-HHL |  int-byte-HLH |
+ *  --+---------------+---------------+---------------+---------------+
+ *    |  int-byte-HHL |  int-byte-HLL |  int-byte-LHL |  int-byte-LLH |
+ *    +---------------+---------------+---------------+---------------+
+ *    |  int-byte-LHL |  int-byte-LLH |
+ *    +---------------+---------------+--
+ * \endverbatim
+ *
+ * Doubles are represented with a 4-byte mantissa \f$M\f$ and a one-byte exponent
+ * \f$x\f$, so that \f$v=\frac{2^xM}{2^{30}}\f$.
+ * \verbatim
+ *  --+---------------+---------------+---------------+---------------+
+ *    |   DOUBLE_T    |  mant-byte-HH |  mant-byte-HL |  mant-byte-LH |
+ *  --+---------------+---------------+---------------+---------------+
+ *    |  mant-byte-HL |  mant-byte-LL |  exponent     |
+ *    +---------------+---------------+---------------+--
+ * \endverbatim
+ *
+ * Strings and blobs are serialised as bytes, with the second byte (i.e., first
+ * after the type), being their length.
+ * \verbatim
+ *  --+---------------+---------------+---------------+---------------+
+ *    |STRING_T|BLOB_T|       n       |   1st byte    |               |
+ *  --+---------------+---------------+---------------+---------------+
+ *    |               |              ...              |               |
+ *    +---------------+---------------+---------------+---------------+
+ *    |              ...              |   nth byte    |
+ *    +---------------+---------------+---------------+--
+ * \endverbatim
+ *
+ * \see marshal_init, marshal_header_short, marshal_header_long, marshal_measurements, marshal_values, marshal_finalize
  */
-
 #include <math.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -217,7 +310,7 @@ marshal_get_msgtype (MBuffer *mbuf)
  * \param mbuf MBuffer to serialize into
  * \param msgtype OmlBinMsgType of packet to build
  * \return 0 on success, -1 on failure
- * \see marshal_measurements
+ * \see marshal_header_short, marshal_header_long, marshal_measurements
  */
 int
 marshal_init(MBuffer *mbuf, OmlBinMsgType msgtype)
@@ -262,13 +355,14 @@ marshal_init(MBuffer *mbuf, OmlBinMsgType msgtype)
  * \param seqno message sequence number
  * \param now message time
  * \return 1 if successful, -1 otherwise
- * \see marshal_init, marshal_values
+ * \see marshal_init, marshal_values, marshal_finalize
  */
 int
 marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
 {
   OmlValueU v;
   uint8_t s[2] = { 0, (uint8_t)stream };
+  /* Write num-meas (0, for now), and the stream index */
   int result = mbuf_write (mbuf, s, LENGTH (s));
 
   omlc_zero(v);
