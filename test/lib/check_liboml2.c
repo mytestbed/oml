@@ -23,15 +23,15 @@
 #include <stdlib.h>
 #include <check.h>
 
-#include "check_liboml2_suites.h"
 #include "ocomm/o_log.h"
+#include "check_liboml2_suites.h"
 
 int
 main (void)
 {
   int number_failed = 0;
 
-  o_set_log_file ("check_oml2.log");
+  o_set_log_file ("check_liboml2_oml.log");
   SRunner* sr = srunner_create (omlvalue_suite());
   srunner_add_suite (sr, bswap_suite ());
   srunner_add_suite (sr, mbuf_suite ());
@@ -41,6 +41,8 @@ main (void)
   srunner_add_suite (sr, writers_suite ());
   srunner_add_suite (sr, filters_suite ());
   srunner_add_suite (sr, util_suite ());
+  /* The log_suite has to be last, lest it messes up logging for suites
+   * following it */
   srunner_add_suite (sr, log_suite ());
 
   srunner_run_all (sr, CK_NORMAL);

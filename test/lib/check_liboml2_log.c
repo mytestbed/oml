@@ -30,7 +30,7 @@
 START_TEST (test_log_rate)
 {
   int i;
-  char *logfile = "check_oml2_log.log";
+  char *logfile = "check_liboml2_log.log";
   struct stat statbuf;
 
   unlink(logfile);

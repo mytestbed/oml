@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <check.h>
 
+#include "ocomm/o_log.h"
 #include "check_server_suites.h"
 
 int
@@ -31,6 +32,7 @@ main (void)
 {
   int number_failed = 0;
 
+  o_set_log_file ("check_server_oml.log");
   SRunner *sr = srunner_create (text_protocol_suite ());
   //  srunner_add_suite (sr, database_suite ()); /* For example ... */
 

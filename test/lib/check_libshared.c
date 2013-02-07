@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <check.h>
 
+#include "ocomm/o_log.h"
 #include "check_libshared_suites.h"
 
 int
@@ -31,6 +32,7 @@ main (void)
 {
   int number_failed = 0;
 
+  o_set_log_file ("check_libshared_oml.log");
   SRunner *sr = srunner_create (headers_suite ());
   //  srunner_add_suite (sr, database_suite ()); /* For example ... */
 

@@ -54,8 +54,9 @@ BUILT_SOURCES = \
 CLEANFILES = \
 	stddev_0.c \
 	stddev_1.c \
-	check_oml2.log \
-	check_oml2_log.log \
+	check_liboml2_oml.log \
+	check_liboml2_log.log \
+	check_libshared_oml.log \
 	test_fw_create_buffered
 
 STDDEV = $(srcdir)/stddev.py
