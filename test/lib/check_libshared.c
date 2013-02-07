@@ -33,8 +33,8 @@ main (void)
   int number_failed = 0;
 
   o_set_log_file ("check_libshared_oml.log");
-  SRunner *sr = srunner_create (headers_suite ());
-  //  srunner_add_suite (sr, database_suite ()); /* For example ... */
+  SRunner *sr = srunner_create (util_suite ());
+  srunner_add_suite (sr, headers_suite ());
 
   srunner_run_all (sr, CK_NORMAL);
   number_failed += srunner_ntests_failed (sr);

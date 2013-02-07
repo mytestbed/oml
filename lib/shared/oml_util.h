@@ -32,6 +32,7 @@ void chomp (char* str);
 
 const char *skip_white (const char *p);
 const char *find_white (const char *p);
+const char *find_charn (const char *p, char c, int len);
 
 char* to_octets (unsigned char* buf, int len);
 

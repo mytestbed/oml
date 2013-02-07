@@ -26,6 +26,7 @@
 
 #include <check.h>
 
+extern Suite* util_suite (void);
 extern Suite* headers_suite (void);
 
 #endif /* CHECK_LIBOML2_SUITES_H__ */

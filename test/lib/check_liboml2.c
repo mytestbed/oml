@@ -40,7 +40,6 @@ main (void)
   srunner_add_suite (sr, api_suite ());
   srunner_add_suite (sr, writers_suite ());
   srunner_add_suite (sr, filters_suite ());
-  srunner_add_suite (sr, util_suite ());
   /* The log_suite has to be last, lest it messes up logging for suites
    * following it */
   srunner_add_suite (sr, log_suite ());

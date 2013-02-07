@@ -22,7 +22,6 @@ check_liboml2_SOURCES = \
 	check_liboml2_mbuf.c \
 	check_liboml2_omlvalue.c \
 	check_liboml2_suites.h \
-	check_liboml2_util.c \
 	check_liboml2_writers.c \
 	$(top_srcdir)/lib/client/oml2/omlc.h \
 	$(top_srcdir)/lib/client/oml2/oml_filter.h
@@ -32,6 +31,7 @@ check_libshared_SOURCES = \
 	check_util.h \
 	check_libshared.c \
 	check_libshared_suites.h \
+	check_libshared_util.c \
 	check_libshared_headers.c
 
 check_liboml2_CFLAGS = $(CHECK_CFLAGS)

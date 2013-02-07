@@ -54,14 +54,31 @@ START_TEST (test_util_uri)
 }
 END_TEST
 
-Suite*
-util_suite (void)
+START_TEST (test_util_find)
+{
+  char ts[] = " abc def";
+  char *tsnwf = ts + 1;
+  char *tsnw = tsnwf + 4;
+
+  fail_unless(skip_white("   ") == NULL);
+  fail_unless(skip_white(ts) == tsnwf);
+  fail_unless(skip_white(tsnwf) == tsnwf);
+  fail_unless(skip_white(tsnw) == tsnw);
+
+  fail_unless(find_white(ts) == ts);
+  fail_unless(find_white(tsnwf) == tsnw - 1);
+  fail_unless(find_white(tsnw) == NULL, "'%s', %p, %p, '%s'", tsnw, find_white(tsnw), tsnw, find_white(tsnw));
+}
+END_TEST
+
+Suite* util_suite (void)
 {
   Suite* s = suite_create ("Util");
 
   TCase* tc_util = tcase_create ("Util");
 
   tcase_add_test (tc_util, test_util_uri);
+  tcase_add_test (tc_util, test_util_find);
 
   suite_add_tcase (s, tc_util);
 

@@ -20,7 +20,6 @@
  * THE SOFTWARE.
  *
  */
-
 #include <stdio.h> // For snprintf
 #include <stdlib.h>
 #include <string.h>
@@ -31,54 +30,73 @@
 #include "mem.h"
 #include "oml_util.h"
 
-/**
- * \brief Remove trailing space from a string
- * \param[in,out] str the string to chomp, with the first trailing space replaced by '\0'
+/** Remove trailing space from a string
+ * \param[in,out] str nil-terminated string to chomp, with the first trailing space replaced by '\0'
  */
-void
-chomp (char* str)
+void chomp(char *str)
 {
-  char* p = str + strlen (str);
+  char *p = str + strlen (str);
 
   while (p != str && isspace (*--p));
 
   *++p = '\0';
 }
 
-const char *
-skip_white (const char *p)
+/** Skip whitespaces in a string
+ *
+ * \param p string to skip whitespace out of
+ * \return a pointer to the first non-white character of the string, or NULL if p is entirely composed of whitespaces
+ * \see isspace(3)
+ */
+const char* skip_white(const char *p)
 {
-  if (p)
+  if (p) {
     while (*p && isspace (*p)) p++;
-  return p;
+    if (*p) return p;
+  }
+  return NULL;
 }
 
-const char *
-find_white (const char *p)
+/** Find first whitespace in a string
+ *
+ * \param p string to search for whitespace in
+ * \return a pointer to the first whitespace character of the string, or NULL if p does not contain whitspaces
+ * \see isspace(3)
+ */
+const char* find_white(const char *p)
 {
-  if (p)
+  if (p) {
     while (*p && !isspace (*p)) p++;
-  return p;
+    if (*p) return p;
+  }
+  return NULL;
 }
 
-char*
-to_octets (unsigned char* buf, int len)
+char* to_octets(unsigned char *buf, int len)
 {
   const int octet_width = 3;
   const int columns = 16;
-  const int rows = len / columns + 1;
-  char* out = xmalloc (octet_width * len + 1 + rows);
-  int i = 0;
-  int col = 1;
-  int count = 0;
-  for (i = 0, col = 1; i < len; i++, col++) {
-    int n = snprintf (&out[count], octet_width + 1, "%02x ", (unsigned int)buf[i]);
-    count += n;
+  const int rows = len / columns + 2; /* Integer division, and first line */
+  char *out = xmalloc (1 + rows * (octet_width * columns + 8)); /* Each row has 8 non-data characters (numbers and spaces) */
+  int n = 0, i, col, rw=0;
 
-    if (col >= columns) {
-      n = snprintf (&out[count], 3, "\n");
-      count += n;
-      col = 0;
+  if(out) {
+    /* Don't forget nil-terminator in snprintf's size */
+    n += snprintf(out, columns * octet_width + 9, "   0 1 2 3  4 5 6 7   8 9 a b  c d e f\n%2x ", rw++);
+    for (i = 0, col = 1; i < len; i++, col++) {
+      n += snprintf(&out[n], octet_width + 1, "%02x", (unsigned int)buf[i]);
+
+      /* Add some spacing for readability */
+      if (col >= columns) {
+        n += snprintf(&out[n], 5, "\n%2x ", rw++);
+        col = 0;
+      } else if (col > 0) {
+        if(0 == (col % 8)) {
+          n += snprintf(&out[n], 3, "  ");
+        } else if (0 == (col % 4)) {
+          n += snprintf(&out[n], 2, " ");
+        }
+      }
     }
   }
 
@@ -121,8 +139,8 @@ int resolve_service(const char *service, int defport)
  */
 OmlURIType oml_uri_type(const char* uri) {
   int len = strlen(uri);
-  
-  if(len>5 && !strncmp(uri, "flush", 5)) 
+
+  if(len>5 && !strncmp(uri, "flush", 5))
     return OML_URI_FILE_FLUSH;
   else if(len>4 && !strncmp(uri, "file", 4))
     return OML_URI_FILE;
