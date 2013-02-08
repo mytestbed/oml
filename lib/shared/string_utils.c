@@ -34,7 +34,7 @@ backslash_encode_size(size_t in_sz)
  *
  * \param in A non-NULL pointer to the input string.
  * \param out A non-NULL pointer to the output string.
- * \return The size of the encoded string.
+ * \return The length of the encoded string.
  */
 size_t
 backslash_encode(const char *in, char *out)
@@ -78,7 +78,7 @@ backslash_encode(const char *in, char *out)
  *
  * \param in A non-NULL pointer to the NUL-terminated input string.
  * \param out A non-NULL pointer to the NUL-terminated output string.
- * \return The size of the decoded string.
+ * \return The length of the decoded string.
  */
 size_t
 backslash_decode(const char *in, char *out)

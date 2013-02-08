@@ -22,7 +22,6 @@
  */
 /** Support functions for manipulating OmlValue objects. */
 
-#include <alloca.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +34,7 @@
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "oml_value.h"
+#include "base64.h"
 #include "string_utils.h"
 
 static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size);
@@ -371,26 +371,48 @@ static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *va
   case OML_INT64_VALUE:   omlc_set_int64 (*value, strtoll (value_s, NULL, 0)); break;
   case OML_UINT64_VALUE:  omlc_set_uint64 (*value, strtoull (value_s, NULL, 0)); break;
   case OML_DOUBLE_VALUE:  omlc_set_double (*value, strtod (value_s, NULL)); break;
-  case OML_STRING_VALUE:
-  {
+  case OML_STRING_VALUE: {
     /*
-    omlc_set_string_copy (*value, value_s, strlen(value_s));
+    printf("%s(value=%p,type=%d,value_s=%p)\n", __func__, value, type, value_s);
+    printf("omlc_get_string_size(*value)=%d\n", omlc_get_string_size(*value));
+    printf("omlc_get_string_length(*value)=%d\n", omlc_get_string_length(*value));
+    printf("omlc_get_string_ptr(*value)=%p\n", omlc_get_string_ptr(*value));
+    // printf("omlc_get_string_ptr(*value)='%s'\n\n", omlc_get_string_ptr(*value));
     */
-    char *s = alloca(strlen(s)+1);
+    // omlc_reset_string(*value);
+    char *s = xmalloc(strlen(value_s)+1);
     size_t n = backslash_decode(value_s, s);
-    omlc_set_string_copy (*value, s, n);
+    omlc_set_string(*value, s);
+    omlc_set_string_size(*value,n+1);
     break;
   }
-  case OML_BLOB_VALUE:
-    /* Can't retrieve a blob from a string (yet) */
-    logerror("%s(): cannot retrieve a blob from a string (yet), zeroing blob", __FUNCTION__);
-    omlc_reset_blob(*value);
-    break;
+  case OML_BLOB_VALUE: {
 
+    printf("%s(value=%p,type=%d,value_s='%s')\n", __func__, value, type, value_s);
+    printf("omlc_get_blob_size(*value)=%d\n", omlc_get_blob_size(*value));
+    printf("omlc_get_blob_length(*value)=%d\n", omlc_get_blob_length(*value));
+    printf("omlc_get_blob_ptr(*value)=%p\n", omlc_get_blob_ptr(*value));
+
+    /* omlc_reset_blob(*value); */
+    ssize_t s_sz = base64_validate_string(value_s);
+    if(s_sz != -1) {
+      size_t blob_sz = base64_size_blob(s_sz);
+      uint8_t *blob = xmalloc(blob_sz);
+      base64_decode_string(s_sz, value_s, blob_sz, blob);
+      omlc_set_blob_ptr(*value, blob);
+      omlc_set_blob_length(*value, blob_sz);
+      omlc_set_blob_size(*value, blob_sz);
+
+      printf("\nomlc_get_blob_size(*value)=%d\n", omlc_get_blob_size(*value));
+      printf("omlc_get_blob_length(*value)=%d\n", omlc_get_blob_length(*value));
+      printf("omlc_get_blob_ptr(*value)=%p\n", omlc_get_blob_ptr(*value));
+      printf("omlc_get_blob_ptr(*value)='%s'\n", omlc_get_blob_ptr(*value));
+    }
+    break;
+  }
   default:
     logerror("%s() for type '%d' not implemented to convert '%s'\n", __FUNCTION__, type, value_s);
     return -1;
-
   }
 
   if (errno == ERANGE) {

@@ -148,7 +148,6 @@ static int owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
     case OML_UINT64_VALUE: res = mbuf_print(mbuf, "\t%" PRIu64,  v->value.uint64Value); break;
     case OML_DOUBLE_VALUE: res = mbuf_print(mbuf, "\t%f",  v->value.doubleValue); break;
     case OML_STRING_VALUE: {
-      // res = mbuf_print(mbuf, "\t%s",  omlc_get_string_ptr(*oml_value_get_value(v)));
       OmlValueU *u = oml_value_get_value(v);
       char *n = alloca(backslash_encode_size(omlc_get_string_size(*u)));
       backslash_encode(omlc_get_string_ptr(*u), n);
@@ -156,16 +155,10 @@ static int owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
       break;
     }
     case OML_BLOB_VALUE: {
-      const unsigned int max_bytes = 6;
-      int bytes = v->value.blobValue.length < max_bytes ? v->value.blobValue.length : max_bytes;
-      int i = 0;
-      /* SG - fix me! */
-      res = mbuf_print(mbuf, "blob ");
-      for (i = 0; i < bytes; i++) {
-        res = mbuf_print(mbuf, "%02x", ((uint8_t*)v->value.blobValue.ptr)[i]);
-      }
-      res = mbuf_print (mbuf, " ...");
-      /* SG - end fix! */
+      size_t enc_sz = base64_size_string(v->value.blobValue.length);
+      char *enc = alloca(enc_sz);
+      base64_encode_blob(v->value.blobValue.length, v->value.blobValue.ptr, enc);
+      res = mbuf_print(mbuf, "\t%s", enc);
       break;
     }
     default:
