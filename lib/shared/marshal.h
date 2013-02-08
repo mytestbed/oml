@@ -23,6 +23,8 @@
 #ifndef MARSHAL_H_
 #define MARSHAL_H_
 
+#include <stdint.h>
+
 #include "oml2/omlc.h"
 #include "mbuf.h"
 
@@ -60,7 +62,7 @@ int unmarshal_values(MBuffer*  mbuffer, OmlBinaryHeader* header,
 int unmarshal_value(MBuffer* mbuffer, OmlValue* value);
 int unmarshal_typed_value (MBuffer* mbuf, const char* name, OmlValueT type, OmlValue* value);
 
-unsigned char* find_sync (unsigned char* buf, int len);
+uint8_t* find_sync (const uint8_t* buf, int len);
 
 #endif /*MARSHAL_H_*/
 

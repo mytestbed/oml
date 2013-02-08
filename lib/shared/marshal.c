@@ -126,6 +126,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <assert.h>
 
 #include "oml2/omlc.h"
@@ -237,16 +238,17 @@ static const size_t oml_size_map [] =
  *
  * \param buf buffer to search for SYNC_BYTEs
  * \param len length of buf
- * \return a pointer to the first of two subsequent SYNC_BYTEs
+ * \return a pointer to the first of two subsequent SYNC_BYTEs, or NULL if not found
  * */
-unsigned char*
-find_sync (unsigned char* buf, int len)
+uint8_t* find_sync (const uint8_t *buf, int len)
 {
   int i;
 
+  /* We cannot use find_matching from oml_util here as buf is not a
+   * nil-terminated string, and some bytes within might be nil */
   for (i = 1; i < len; i++)
       if (buf[i] == SYNC_BYTE && buf[i-1] == SYNC_BYTE)
-        return &buf[i-1];
+        return (uint8_t*)&buf[i-1];
 
   return NULL;
 }

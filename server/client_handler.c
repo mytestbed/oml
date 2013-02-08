@@ -40,6 +40,7 @@
 #include "oml_util.h"
 #include "validate.h"
 #include "marshal.h"
+#include "binary.h"
 #include "schema.h"
 #include "client_handler.h"
 
@@ -356,13 +357,13 @@ static void process_meta(ClientHandler* self, char* key, char* value)
        *
        * When the client connects, the server calculates:
        *
-       *   \f$\delta = (start_\mathrm{client} - cur_\mathrm{server})\f$
+       *   \f[\delta = (start_\mathrm{client} - cur_\mathrm{server})\f]
        *
        * and stores it in the per-client data structure. For each packet from
        * the client, it takes the client's timestamp ts_client and calculates
        * ts_server as:
        *
-       *   \f$ts_\mathrm{server} = ts_\mathrm{client} + \delta\f$
+       *   \f[ts_\mathrm{server} = ts_\mathrm{client} + \delta\f]
        *
        * When the first client for a yet unknown experimental domain connects,
        * the server also uses its timestamps to create a reference start time
@@ -370,7 +371,7 @@ static void process_meta(ClientHandler* self, char* key, char* value)
        * -100s to account for badly synchronised clients and avoid negative
        *  timestamps.
        *
-       *   \f$start_\mathrm{server} = start_\mathrm{client} - 100\f$
+       *   \f[start_\mathrm{server} = start_\mathrm{client} - 100\f]
        *
        * This server start date is stored in the database (in the
        * `_experiment_metadata` table) to enable experiment restarting.
@@ -545,26 +546,27 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
   mbuf_consume_message (mbuf);
 }
 
-/**
- * \brief analyse the data from the buffer
- * \param self the client handler
- * \param mbuf the buffer that contain the data
+/** Read binary data from an MBuffer
+ *
+ * \param self client handler
+ * \param mbuf MBuffer that contain the data
  * \return 1 when successfull, 0 otherwise
  */
-  static int
-process_bin_message(ClientHandler* self, MBuffer* mbuf)
+static int process_bin_message(ClientHandler* self, MBuffer* mbuf)
 {
+  int res;
   OmlBinaryHeader header;
 
-  unsigned char* sync = find_sync (mbuf_rdptr (mbuf),
-      mbuf_remaining (mbuf));
-
-  if (sync > mbuf->rdptr) {
-    mbuf_read_skip (mbuf, sync - mbuf->rdptr);
-    mbuf_consume_message (mbuf);
+  res = bin_find_sync(mbuf);
+  if(res>0) {
+    logwarn("%s(bin): Skipped %d bytes of data searching for a new message\n", self->name, res);
+  } else if (res == -1 && mbuf_remaining(mbuf)>=2) {
+    logdebug("%s(bin): No message found in binary packet; packet follows\n%s\n", self->name,
+        to_octets(mbuf_rdptr(mbuf), mbuf_remaining(mbuf)));
+    return 0;
   }
 
-  int res = unmarshal_init(mbuf, &header);
+  res = unmarshal_init(mbuf, &header);
   if (res == 0) {
     logerror("%s(bin): Error while reading message header\n", self->name);
     mbuf_clear (mbuf);

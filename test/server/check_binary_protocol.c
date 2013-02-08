@@ -24,7 +24,9 @@
 #include <stdint.h>
 #include <check.h>
 
+#include "mbuf.h"
 #include "marshal.h"
+#include "binary.h"
 
 START_TEST(test_find_sync)
 {
@@ -40,6 +42,26 @@ START_TEST(test_find_sync)
 }
 END_TEST
 
+START_TEST(test_bin_find_sync)
+{
+  MBuffer *mbuf = mbuf_create();
+  uint8_t data[] = { 0xaa, 0xaa, 0x1, 0xaa, 0xaa, 0x2, };
+
+  mbuf_write(mbuf, data, sizeof(data));
+
+  fail_unless(bin_find_sync(mbuf) == 0);
+  mbuf_read_skip(mbuf, 1);
+  fail_unless(bin_find_sync(mbuf) == 2);
+  fail_unless(bin_find_sync(mbuf) == 0);
+  mbuf_read_skip(mbuf, 1);
+  fail_unless(bin_find_sync(mbuf) == -1);
+  mbuf_read_skip(mbuf, 1);
+  fail_unless(bin_find_sync(mbuf) == -1);
+
+  mbuf_destroy(mbuf);
+}
+END_TEST
+
 Suite* binary_protocol_suite (void)
 {
   Suite* s = suite_create ("Binary protocol");
@@ -47,6 +69,7 @@ Suite* binary_protocol_suite (void)
   TCase *tc_bin_sync = tcase_create ("Sync");
 
   tcase_add_test (tc_bin_sync, test_find_sync);
+  tcase_add_test (tc_bin_sync, test_bin_find_sync);
   suite_add_tcase (s, tc_bin_sync);
 
   return s;

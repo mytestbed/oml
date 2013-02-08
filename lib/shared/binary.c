@@ -47,23 +47,34 @@ bin_read_value (MBuffer *mbuf, OmlValue *value)
   return unmarshal_value (mbuf, value);
 }
 
-static int
-bin_find_sync (MBuffer *mbuf)
+/** Find the next sync bytes in an MBuffer, and advance read pointer accordingly if found.
+ *
+ * The previous message is also consumed.
+ *
+ * \param mbuf MBuffer to look into
+ * \return (>=0) offset if found, -1 otherwise (including if there is not enough data in the buffer)
+ * \see find_sync, mbuf_read_skip, mbuf_consume_message
+ */
+int bin_find_sync (MBuffer *mbuf)
 {
-  int pos;
-  do {
-    if (mbuf_remaining (mbuf) < 2)
-      return -1;
+  int len, offset = -1;
+  uint8_t *buf, *sync_pos;
 
-    uint8_t *buf = mbuf_rdptr (mbuf);
-    if (buf[0] == SYNC_BYTE && buf[1] == SYNC_BYTE)
-      return 0;
-    mbuf_read_skip (mbuf, 1);
-    pos = mbuf_find (mbuf, SYNC_BYTE);
-    mbuf_read_skip (mbuf, pos);
-  } while (pos != -1);
+  len = mbuf_remaining (mbuf);
+  if (len < 2) {
+    /* Optimisation: get out early */
+    return -1;
+  }
 
-  return -1;
+  buf = mbuf_rdptr (mbuf);
+  sync_pos = find_sync(buf, len);
+  if (sync_pos) {
+    offset = sync_pos - buf;
+    mbuf_read_skip (mbuf, offset);
+    mbuf_consume_message(mbuf);
+  }
+
+  return offset;
 }
 
 size_t

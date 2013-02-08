@@ -23,10 +23,14 @@
 #ifndef BINARY_H__
 #define BINARY_H__
 
+#include <stdint.h>
+
 #include "oml2/omlc.h"
 #include "mbuf.h"
 #include "schema.h"
 #include "message.h"
+
+int bin_find_sync (MBuffer *mbuf);
 
 size_t bin_value_size (MBuffer *mbuf, OmlValue *value);
 
