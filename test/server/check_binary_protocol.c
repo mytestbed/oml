@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2012 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,16 +20,37 @@
  * THE SOFTWARE.
  *
  */
-
-#ifndef CHECK_LIBOML2_SUITES_H__
-#define CHECK_LIBOML2_SUITES_H__
-
+/** \file Tests behaviours and issues related to the binary protocol. */
+#include <stdint.h>
 #include <check.h>
 
-extern Suite* text_protocol_suite (void);
-extern Suite* binary_protocol_suite (void);
+#include "marshal.h"
 
-#endif /* CHECK_LIBOML2_SUITES_H__ */
+START_TEST(test_find_sync)
+{
+  uint8_t data[] = { 0xaa, 0xaa, 0x1, 0xaa, 0xaa, 0x2, };
+
+  fail_unless(find_sync(data, 0) == NULL);
+  fail_unless(find_sync(data, 1) == NULL);
+  fail_unless(find_sync(data, sizeof(data)) == data);
+  fail_unless(find_sync(data+1, sizeof(data)-1) == data+3);
+  fail_unless(find_sync(data+3, sizeof(data)-3) == data+3);
+  fail_unless(find_sync(data+4, sizeof(data)-4) == NULL);
+  fail_unless(find_sync(data+5, sizeof(data)-5) == NULL);
+}
+END_TEST
+
+Suite* binary_protocol_suite (void)
+{
+  Suite* s = suite_create ("Binary protocol");
+
+  TCase *tc_bin_sync = tcase_create ("Sync");
+
+  tcase_add_test (tc_bin_sync, test_find_sync);
+  suite_add_tcase (s, tc_bin_sync);
+
+  return s;
+}
 
 /*
  Local Variables:
