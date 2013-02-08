@@ -330,7 +330,7 @@ static void process_meta(ClientHandler* self, char* key, char* value)
       self->state = C_PROTOCOL_ERROR;
     } else {
 
-      /** \publicsection \page timestamps OML timestamping
+      /** \publicsection \page timestamps OML Timestamping
        *
        * OML provides a timestamping mechanism based on each reporting node's
        * time (`oml_ts_client`). Each server remaps the MSs they receive to an

@@ -150,7 +150,7 @@ mbuf_length (MBuffer* mbuf)
   return mbuf->length;
 }
 
-/* Get the remaining amount of data to read in MBuffer
+/** Get the remaining amount of data to read in MBuffer
  *
  * \param mbuf MBuffer to manipulate
  * \return the number of unread bytes in the buffer
