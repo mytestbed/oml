@@ -143,9 +143,9 @@ base64_size_blob(size_t s_sz)
  * for s_sz and ensures the string is valid).
  *
  * \param s_sz The size of the *unpadded* BASE64-encoded string.
- * \param s A non-NULL pointer to the BASE64-encoded string.
+ * \param s A pointer to the BASE64-encoded string.
  * \param blob_sz The size of the output buffer.
- * \param blob A non-NULL pointer to the blob.
+ * \param blob A pointer to the blob.
  * \return The blob size or -1 if an error occurred.
  */
 ssize_t
@@ -174,8 +174,9 @@ base64_decode_string(size_t s_sz, const char *s, size_t blob_sz, void *blob)
     49, 50, 51, -1, -1, -1, -1, -1, 
   };
 
-  assert(s);
-  assert(blob);
+
+  assert(s_sz == 0 || s);
+  assert(blob_sz == 0 || blob);
   p = begin = blob;
   for(i = 0; i < s_sz; i += 4) {
     x = 0;

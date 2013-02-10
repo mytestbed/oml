@@ -20,93 +20,93 @@ START_TEST(test_round_trip)
   /* encode */
 
   strcpy(in, "");
-  str_backslash_encode(in, out);
+  backslash_encode(in, out);
   fail_unless(strlen(out) == 0);
   fail_unless('\0' == out[0]);
 
   strcpy(in, "a");
-  str_backslash_encode(in, out);
+  backslash_encode(in, out);
   fail_unless(strlen(out) == 1);
   fail_unless(strcmp(in, out) == 0);
 
   strcpy(in, "\t");
-  str_backslash_encode(in, out);
+  backslash_encode(in, out);
   fail_unless(strlen(out) == 2);
   fail_unless(strcmp("\\t", out) == 0);
 
   strcpy(in, "\\");
-  str_backslash_encode(in, out);
+  backslash_encode(in, out);
   fail_unless(strlen(out) == 2);
   fail_unless(strcmp("\\\\", out) == 0);
 
   strcpy(in, "\\x");
-  str_backslash_encode(in, out);
+  backslash_encode(in, out);
   fail_unless(strlen(out) == 3);
   fail_unless(strcmp("\\\\x", out) == 0);
 
   strcpy(in, "\\\\");
-  str_backslash_encode(in, out);
+  backslash_encode(in, out);
   fail_unless(strlen(out) == 4);
   fail_unless(strcmp("\\\\\\\\", out) == 0);
 
   strcpy(in, "foo\\bar");
-  str_backslash_encode(in, out);
+  backslash_encode(in, out);
   fail_unless(strlen(out) == 8);
   fail_unless(strcmp("foo\\\\bar", out) == 0);
 
   strcpy(in, "\t\r\n");
-  str_backslash_encode(in, out);
+  backslash_encode(in, out);
   fail_unless(strlen(out) == 6);
   fail_unless(strcmp("\\t\\r\\n", out) == 0);
 
   strcpy(in, "foo\tbar\rbaz\n");
-  str_backslash_encode(in, out);
+  backslash_encode(in, out);
   fail_unless(strlen(out) == 15);
   fail_unless(strcmp("foo\\tbar\\rbaz\\n", out) == 0);
 
   strcpy(in, "\\a\\b\\c\\d\\e");
-  str_backslash_encode(in, out);
+  backslash_encode(in, out);
   fail_unless(strlen(out) == 15);
   fail_unless(strcmp("\\\\a\\\\b\\\\c\\\\d\\\\e", out) == 0);
 
   /* decode */
 
   strcpy(in, "");
-  str_backslash_decode(in, out);
+  backslash_decode(in, out);
   fail_unless(strlen(out) == 0);
   fail_unless('\0' == out[0]);
 
   strcpy(in, "a");
-  str_backslash_decode(in, out);
+  backslash_decode(in, out);
   fail_unless(strlen(out) == 1);
   fail_unless(strcmp(in, out) == 0);
 
   strcpy(in, "\\t");
-  str_backslash_decode(in, out);
+  backslash_decode(in, out);
   fail_unless(strlen(out) == 1);
   fail_unless(strcmp("\t", out) == 0);
 
   strcpy(in, "\\t\\r\\n");
-  str_backslash_decode(in, out);
+  backslash_decode(in, out);
   fail_unless(strlen(out) == 3);
   fail_unless(strcmp("\t\r\n", out) == 0);
 
   strcpy(in, "foo\\tbar\\rbaz\\n");
-  str_backslash_decode(in, out);
+  backslash_decode(in, out);
   fail_unless(strlen(out) == 12);
   fail_unless(strcmp("foo\tbar\rbaz\n", out) == 0);
 
   strcpy(in, "\\\\");
-  str_backslash_decode(in, out);
+  backslash_decode(in, out);
   fail_unless(strlen(out) == 1);
   fail_unless(strcmp("\\", out) == 0);
 
   strcpy(in, "\\a\\b\\c\\d");
-  str_backslash_decode(in, out);
+  backslash_decode(in, out);
   fail_unless(strlen(out) == 4);
   fail_unless(strcmp("abcd", out) == 0);
 }
-EXIT_TEST
+END_TEST
 
 Suite*
 string_utils_suite(void)

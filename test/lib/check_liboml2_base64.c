@@ -8,6 +8,7 @@
  * liability disclaimer in the License.
  */
 
+#include <alloca.h>
 #include <check.h>
 #include <stdint.h>
 #include <string.h>
@@ -24,6 +25,21 @@ START_TEST(test_base64_string_size)
 }
 END_TEST
 
+START_TEST(zero_length_inputs)
+{
+  fail_unless(base64_size_string(0) == 1);
+  char junk[1];
+  fail_unless(base64_encode_blob(0, NULL, junk) == 0);
+  char in[0], out[0];
+  fail_unless(base64_encode_blob(0, in, out) == 0);
+  fail_unless(base64_validate_string("") == 0);
+  fail_unless(base64_validate_string("") == 0);
+  fail_unless(base64_size_blob(0) == 0);
+  fail_unless(base64_decode_string(0, "", out) == 0);
+  fail_unless(base64_decode_string(0, NULL, out) == 0);
+}
+END_TEST
+
 START_TEST(test_round_trip)
 {
   struct testcase {
@@ -32,7 +48,6 @@ START_TEST(test_round_trip)
   };
 
   static struct testcase TESTS[] = {
-    { "", "" },
     { "a", "YQ==" },
     { "ab", "YWI=" },
     { "abc", "YWJj" },
@@ -72,7 +87,7 @@ START_TEST(test_round_trip)
     actual_sz = base64_size_blob(encoded_sz);
     fail_unless(actual_sz == strlen(TESTS[i].plain));
     fail_if(base64_decode_string(encoded_sz, encoded, actual_sz, actual) < 0, "actual=%s, expected=%s\n", encoded, TESTS[i].plain);
-    fail_unless(strcmp(actual, TESTS[i].plain) == 0);
+    fail_unless(memcmp(actual, TESTS[i].plain, actual_sz) == 0, "actual=%.*s, expected=%s\n", actual_sz, actual, TESTS[i].plain);
   }
 }
 END_TEST
@@ -83,6 +98,7 @@ base64_suite(void)
   Suite *s = suite_create("base64");
   TCase *tc_core = tcase_create("base64");
   tcase_add_test(tc_core, test_base64_string_size);
+  tcase_add_test(tc_core, zero_length_inputs);
   tcase_add_test(tc_core, test_round_trip);
   suite_add_tcase(s, tc_core);
   return s;
