@@ -148,20 +148,25 @@ static int owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
     case OML_UINT64_VALUE: res = mbuf_print(mbuf, "\t%" PRIu64,  v->value.uint64Value); break;
     case OML_DOUBLE_VALUE: res = mbuf_print(mbuf, "\t%f",  v->value.doubleValue); break;
     case OML_STRING_VALUE: {
-      OmlValueU *u = oml_value_get_value(v);
-      char *n = alloca(backslash_encode_size(omlc_get_string_size(*u)));
-      backslash_encode(omlc_get_string_ptr(*u), n);
-      res = mbuf_print(mbuf, "\t%s", n);
+      if(v->value.stringValue.ptr && 0 < v->value.stringValue.length) {
+        char *enc = alloca(backslash_encode_size(omlc_get_string_size(v->value)));
+        backslash_encode(omlc_get_string_ptr(v->value), enc);
+        res = mbuf_print(mbuf, "\t%s", enc);
+      } else {
+        logwarn ("Attempting to send NULL or empty string; string of length 0 will be sent\n");
+        res = mbuf_print(mbuf, "\t");
+      }
       break;
     }
     case OML_BLOB_VALUE: {
-      if(NULL == v->value.blobValue.ptr || 0 == v->value.blobValue.length)
+      if(v->value.blobValue.ptr && 0 < v->value.blobValue.length) {
+        char *enc = alloca(base64_size_string(v->value.blobValue.length));
+        base64_encode_blob(v->value.blobValue.length, v->value.blobValue.ptr, enc);
+        res = mbuf_print(mbuf, "\t%s", enc);
+      } else {
         logwarn ("Attempting to send NULL or empty blob; blob of length 0 will be sent\n");
-
-      size_t enc_sz = base64_size_string(v->value.blobValue.length);
-      char *enc = alloca(enc_sz);
-      base64_encode_blob(v->value.blobValue.length, v->value.blobValue.ptr, enc);
-      res = mbuf_print(mbuf, "\t%s", enc);
+        res = mbuf_print(mbuf, "\t");
+      }
       break;
     }
     default:
