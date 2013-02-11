@@ -414,11 +414,11 @@ typedef union _omlValueU {
  * \param var OmlValueU to operate on
  * \param str C-string pointer to use
  */
-#define omlc_set_string(var, str)               \
-  do {                                          \
-    omlc_reset_string(var);                     \
-    omlc_set_string_ptr((var), (str));          \
-    omlc_set_string_length((var), strlen(str)); \
+#define omlc_set_string(var, str)                         \
+  do {                                                    \
+    omlc_reset_string(var);                               \
+    omlc_set_string_ptr((var), (str));                    \
+    omlc_set_string_length((var), str ? strlen(str) : 0); \
   } while (0)
 
 /** Store a pointer to a constant C string in an OmlValueU's string storage.
