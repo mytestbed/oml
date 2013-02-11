@@ -155,6 +155,9 @@ static int owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
       break;
     }
     case OML_BLOB_VALUE: {
+      if(NULL == v->value.blobValue.ptr || 0 == v->value.blobValue.length)
+        logwarn ("Attempting to send NULL or empty blob; blob of length 0 will be sent\n");
+
       size_t enc_sz = base64_size_string(v->value.blobValue.length);
       char *enc = alloca(enc_sz);
       base64_encode_blob(v->value.blobValue.length, v->value.blobValue.ptr, enc);
