@@ -1,12 +1,11 @@
 /*
- * Copyright 2013 NICTA
+ * Copyright 2013 National ICT Australia Limited (NICTA)
  *
  * This software may be used and distributed solely under the terms of
- * the MIT license. You should have received a copy of this license in
- * the file LICENSE.TXT or you can retrieve a copy at
- * http://opensource.org/licenses/MIT. If you require a license of
- * this Software, you must read and accept the terms and the liability
- * disclaimer in the above file or link.
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
 
 #ifndef STRING_UTILS_H
