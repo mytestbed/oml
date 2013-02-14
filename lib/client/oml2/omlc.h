@@ -54,7 +54,8 @@ typedef enum _omlValueE {
   OML_UINT32_VALUE,
   OML_INT64_VALUE,
   OML_UINT64_VALUE,
-  OML_BLOB_VALUE
+  OML_BLOB_VALUE,
+  OML_GUID_VALUE
 } OmlValueT;
 
 #define omlc_is_integer_type(t)                             \
@@ -72,6 +73,8 @@ typedef enum _omlValueE {
   ((t) == OML_STRING_VALUE)
 #define omlc_is_blob_type(t) \
   ((t) == OML_BLOB_VALUE)
+#define omlc_is_guid_type(t) \
+  ((t) == OML_GUID_VALUE)
 
 #define omlc_is_integer(v) \
   omlc_is_integer_type((v).type)
@@ -81,6 +84,8 @@ typedef enum _omlValueE {
   omlc_is_string_type((v).type)
 #define omlc_is_blob(v) \
   omlc_is_blob_type((v).type)
+#define omlc_is_guid(v) \
+  omlc_is_guid_type((v).type)
 
 /**  Representation of a string measurement value.
  */
@@ -113,6 +118,10 @@ typedef struct _omlBlob {
 
 } OmlBlob;
 
+/** Representation of a guid_t.
+ */
+typedef uint64_t guid_t;
+
 /** Multi-typed variable container without type information.
  *
  * WARNING: OmlValueU MUST be omlc_zero()d out before use. Additionally, if the
@@ -134,6 +143,7 @@ typedef union _omlValueU {
   int64_t   int64Value;
   uint64_t  uint64Value;
   OmlBlob   blobValue;
+  guid_t    guidValue;
 } OmlValueU;
 
 /** Zero out a freshly declared OmlValueU.
@@ -198,6 +208,9 @@ typedef union _omlValueU {
 /** DEPRECATED \see omlc_get_uint32, omlc_get_uint64 */
 #define omlc_get_long(var) \
   ((long)(_omlc_get_intrinsic_value(var, long)))
+/** \see _omlc_get_intrinsic_value */
+#define omlc_get_guid(var) \
+  ((guid_t)(_omlc_get_intrinsic_value(var, guid)))
 
 /** \see _omlc_set_intrinsic_value */
 #define omlc_set_int32(var, val) \
@@ -217,6 +230,9 @@ typedef union _omlValueU {
 /** DEPRECATED \see omlc_set_uint32, omlc_set_uint64 */
 #define omlc_set_long(var, val) \
   _omlc_set_intrinsic_value(var, long, (long)(val))
+/** \see _omlc_set_intrinsic_value */
+#define omlc_set_guid(var, val)                            \
+  _omlc_set_intrinsic_value(var, guid, (guid_t)(val))
 
 /** Get fields of an OmlValueU containing pointer to possibly dynamically allocated storage.
  *
@@ -456,6 +472,7 @@ typedef union _omlValueU {
  */
 #define omlc_copy_blob(dst, src) \
   _omlc_set_storage_copy((dst), blob, omlc_get_blob_ptr(src), omlc_get_blob_length(src))
+
 
 /** Typed container for an OmlValueU
  *

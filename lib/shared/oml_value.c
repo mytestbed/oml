@@ -110,7 +110,9 @@ void oml_value_set_type(OmlValue* v, OmlValueT type){
 int oml_value_set(OmlValue *to, OmlValueU *value, OmlValueT type) {
   oml_value_set_type(to, type);
   if (omlc_is_numeric_type (type)) {
-      to->value = *value;
+    to->value = *value;
+  } else if(omlc_is_guid_type (type)) {
+    to->value = *value;
   } else {
     switch (type) {
     case OML_STRING_VALUE:
@@ -159,12 +161,12 @@ int oml_value_reset(OmlValue* v) {
   case OML_INT64_VALUE:
   case OML_UINT64_VALUE:
   case OML_DOUBLE_VALUE:
+  case OML_GUID_VALUE:
     /* No deep cleanup needed, memset(3) below is sufficient */
     break;
   case OML_STRING_VALUE:
     omlc_reset_string(v->value);
     break;
-
   case OML_BLOB_VALUE:
     omlc_reset_blob(v->value);
     break;
@@ -208,13 +210,14 @@ const char* oml_type_to_s (OmlValueT type) {
   case OML_LONG_VALUE:
     logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
     return "long";
-  case OML_INT32_VALUE:  return "int32";
-  case OML_UINT32_VALUE: return "uint32";
-  case OML_INT64_VALUE:  return "int64";
-  case OML_UINT64_VALUE: return "uint64";
-  case OML_DOUBLE_VALUE: return "double";
-  case OML_STRING_VALUE: return "string";
-  case OML_BLOB_VALUE:   return "blob";
+  case OML_INT32_VALUE:   return "int32";
+  case OML_UINT32_VALUE:  return "uint32";
+  case OML_INT64_VALUE:   return "int64";
+  case OML_UINT64_VALUE:  return "uint64";
+  case OML_DOUBLE_VALUE:  return "double";
+  case OML_STRING_VALUE:  return "string";
+  case OML_BLOB_VALUE:    return "blob";
+  case OML_GUID_VALUE:    return "guid";
   default: return "UNKNOWN";
   }
 }
@@ -231,14 +234,15 @@ OmlValueT oml_type_from_s (const char *s) {
     const char * const name;
   } type_list [] =
     {
-      { OML_LONG_VALUE,   "long"   },
-      { OML_INT32_VALUE,  "int32"  },
-      { OML_UINT32_VALUE, "uint32" },
-      { OML_INT64_VALUE,  "int64"  },
-      { OML_UINT64_VALUE, "uint64" },
-      { OML_DOUBLE_VALUE, "double" },
-      { OML_STRING_VALUE, "string" },
-      { OML_BLOB_VALUE,   "blob" }
+      { OML_LONG_VALUE,    "long"    },
+      { OML_INT32_VALUE,   "int32"   },
+      { OML_UINT32_VALUE,  "uint32"  },
+      { OML_INT64_VALUE,   "int64"   },
+      { OML_UINT64_VALUE,  "uint64"  },
+      { OML_DOUBLE_VALUE,  "double"  },
+      { OML_STRING_VALUE,  "string"  },
+      { OML_BLOB_VALUE,    "blob"    },
+      { OML_GUID_VALUE,    "guid"    }
     };
   int i = 0;
   int n = sizeof (type_list) / sizeof (type_list[0]);
@@ -303,6 +307,9 @@ static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size
       n += sprintf(buf + n, "%02x", *((uint8_t*)(omlc_get_blob_ptr(*value) + i)));
     if (n == size && i < omlc_get_blob_length(*value)) /* if there was more data than we could write */
       strncpy(buf+size-4, "...", 4);
+    break;
+  case OML_GUID_VALUE:
+    n += omlc_guid_to_string(omlc_get_guid(*value), buf);
     break;
   default:
     logerror("%s() for type '%d' not implemented'\n", __FUNCTION__, type);
@@ -390,6 +397,12 @@ static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *va
       omlc_set_blob_length(*value, blob_sz);
       omlc_set_blob_size(*value, blob_sz);
     }
+    break;
+  }
+  case OML_GUID_VALUE: {
+    guid_t c;
+    omlc_string_to_guid(value_s, &c);
+    omlc_set_guid(*value, c);
     break;
   }
   default:

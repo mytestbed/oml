@@ -1,3 +1,4 @@
+#include <alloca.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +8,7 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 
+#include "guid.h"
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "mstring.h"
@@ -420,6 +422,7 @@ oml_to_postgresql_type (OmlValueT type)
   case OML_UINT32_VALUE:  return "INT8"; break; // PG doesn't support unsigned types --> promote
   case OML_INT64_VALUE:   return "INT8"; break;
   case OML_UINT64_VALUE:  return "BIGINT"; break;
+  case OML_GUID_VALUE:    return "BIGINT"; break;
   default:
     logerror("Unknown type %d\n", type);
     return NULL;
@@ -636,9 +639,9 @@ psql_insert(Database* db,
   unsigned char *escaped_blob;
   size_t eblob_len=-1;
 
-  char * paramValues[4+value_count];
+  char *paramValues[4+value_count], *shadow_values[4+value_count];
   for (i=0;i<4+value_count;i++) {
-    paramValues[i] = xmalloc(512*sizeof(char));
+    paramValues[i] = shadow_values[i] = alloca(512*sizeof(char));
   }
 
   int paramLength[4+value_count];
@@ -705,6 +708,14 @@ psql_insert(Database* db,
                            snprintf(paramValues[4+i], eblob_len, "%s", escaped_blob);
                            PQfreemem(escaped_blob);
                            break;
+    case OML_GUID_VALUE:
+      if(v->value.guidValue != OMLC_GUID_NULL) {
+        paramValues[4+i] = shadow_values[4+i];
+        sprintf(paramValues[4+i],"%" PRIu64, v->value.guidValue);
+      } else {
+        paramValues[4+i] = NULL;
+      }
+      break;
     default:
       logerror("psql:%s: Unknown type %d in col '%s' of table '%s'; this is probably a bug\n",
           db->name, field->type, field->name, table->schema->name);
@@ -716,8 +727,8 @@ psql_insert(Database* db,
   /* Use stuff from http://www.postgresql.org/docs/current/static/plpgsql-control-structures.html#PLPGSQL-ERROR-TRAPPING */
 
   res = PQexecPrepared(psqldb->conn, insert_stmt,
-                       4+value_count, (const char**)paramValues,
-                       (int*) &paramLength, (int*) &paramFormat, 0 );
+                       4+value_count, (const char**)(paramValues),
+                       (int*) &paramLength, (int*)(&paramFormat), 0);
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
     logerror("psql:%s: INSERT INTO '%s' failed: %s\n",
@@ -726,10 +737,6 @@ psql_insert(Database* db,
     return -1;
   }
   PQclear(res);
-
-  for (i=0;i<4+value_count;i++) {
-    xfree(paramValues[i]);
-  }
 
   return 0;
 }

@@ -169,6 +169,9 @@ static int owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
       }
       break;
     }
+    case OML_GUID_VALUE:
+      res = mbuf_print(mbuf, "\t%" PRIu64, v->value.guidValue);
+      break;
     default:
       res = -1;
       logerror( "Unsupported value type '%d'\n", oml_value_get_type(v));

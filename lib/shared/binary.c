@@ -94,6 +94,8 @@ bin_value_size (OmlValue *value)
     return 2 + omlc_get_string_length(*oml_value_get_value(value));
   case OML_BLOB_VALUE:
     return 1 + sizeof (uint32_t) + value->value.blobValue.length;
+  case OML_GUID_VALUE:
+    return sizeof(guid_t) + 1;
   default:
     return 0;
   }

@@ -37,4 +37,6 @@ libshared_la_SOURCES = \
 	base64.c \
 	base64.h \
 	string_utils.c \
-	string_utils.h
+	string_utils.h \
+	guid.c \
+	guid.h

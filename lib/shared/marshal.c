@@ -142,15 +142,16 @@
 #define BIG_S 15
 #define BIG_L 30
 
-#define LONG_T   0x1
-#define DOUBLE_T 0x2
+#define LONG_T     0x1
+#define DOUBLE_T   0x2
 #define DOUBLE_NAN 0x3
-#define STRING_T 0x4
-#define INT32_T  0x5
-#define UINT32_T 0x6
-#define INT64_T  0x7
-#define UINT64_T 0x8
-#define BLOB_T   0x9
+#define STRING_T   0x4
+#define INT32_T    0x5
+#define UINT32_T   0x6
+#define INT64_T    0x7
+#define UINT64_T   0x8
+#define BLOB_T     0x9
+#define GUID_T     0xa
 
 #define SYNC_BYTE 0xAA
 
@@ -167,6 +168,7 @@
 #define INT64_T_SIZE      8
 #define UINT64_T_SIZE     8
 #define BLOB_T_MAX_SIZE   UINT32_MAX
+#define GUID_T_SIZE       8
 
 #define MAX_STRING_LENGTH STRING_T_MAX_SIZE
 
@@ -184,7 +186,8 @@ static const int oml_type_map [] =
     UINT32_T,
     INT64_T,
     UINT64_T,
-    BLOB_T
+    BLOB_T,
+    GUID_T
   };
 
 /** Map from protocol types to OML_*_VALUE types.  */
@@ -200,7 +203,8 @@ static const size_t protocol_type_map [] =
     OML_UINT32_VALUE,
     OML_INT64_VALUE,
     OML_UINT64_VALUE,
-    OML_BLOB_VALUE
+    OML_BLOB_VALUE,
+    OML_GUID_VALUE
   };
 
 /** Map from protocol types to protocol sizes. */
@@ -216,7 +220,8 @@ static const size_t protocol_size_map [] =
     UINT32_T_SIZE,
     INT64_T_SIZE,
     UINT64_T_SIZE,
-    BLOB_T_MAX_SIZE
+    BLOB_T_MAX_SIZE,
+    UINT64_T_SIZE,
   };
 
 /** Map from OML_*_VALUE types to size of protocol types on the wire. */
@@ -231,7 +236,8 @@ static const size_t oml_size_map [] =
     UINT32_T_SIZE,
     INT64_T_SIZE,
     UINT64_T_SIZE,
-    BLOB_T_MAX_SIZE
+    BLOB_T_MAX_SIZE,
+    UINT64_T_SIZE
   };
 
 /** Find two synchronisation bytes (SYNC_BYTE) back to back.
@@ -593,6 +599,21 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
    }
    break;
  }
+
+  case OML_GUID_VALUE: {
+    uint64_t nv64;
+    uint8_t buf[GUID_T_SIZE+1];
+    buf[0] = GUID_T;
+    nv64 = htonll(omlc_get_guid(*val));
+    memcpy(&buf[1], &nv64, sizeof(nv64));
+    if (-1 == mbuf_write(mbuf, buf, LENGTH(buf))) {
+      logerror("Failed to marshal OML_GUID_VALUE (mbuf_write())\n");
+      mbuf_reset_write(mbuf);
+      return 0;
+    }
+    break;
+  }
+
  default:
    logerror("Unsupported value type '%d'\n", val_type);
    return 0;
@@ -825,10 +846,8 @@ unmarshal_values(
  * \return 1 if successful, 0 otherwise
  */
 int
-unmarshal_value(
-  MBuffer*  mbuf,
-  OmlValue*    value
-) {
+unmarshal_value(MBuffer *mbuf, OmlValue *value)
+{
   if (mbuf_remaining(mbuf) == 0) {
       o_log(O_LOG_ERROR, "Tried to unmarshal a value from the buffer, but didn't receive enough data to do that\n");
       return 0;
@@ -938,6 +957,20 @@ unmarshal_value(
       mbuf_read_skip (mbuf, len);
       break;
     }
+
+  case GUID_T: {
+    uint64_t nv64;
+    uint8_t buf[GUID_T_SIZE];
+    if(mbuf_read(mbuf, buf, GUID_T_SIZE) == -1) {
+      logerror("Failed to unmarshall OML_GUID_VALUE data; not enough data?\n");
+      return 0;
+    }
+    memcpy(&nv64, buf, sizeof(nv64));
+    oml_value_set_type(value, OML_GUID_VALUE);
+    omlc_set_guid(*oml_value_get_value(value), ntohll(nv64));
+    break;
+  }
+
     default:
       logerror("Unsupported value type '%d'\n", type);
       return 0;

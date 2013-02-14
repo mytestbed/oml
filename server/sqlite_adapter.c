@@ -578,6 +578,14 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
                                SQLITE_TRANSIENT);
       break;
     }
+    case OML_GUID_VALUE: {
+      if(v->value.uint64Value != UINT64_C(0)) {
+        res = sqlite3_bind_int64(stmt, idx, (int64_t)(v->value.guidValue));
+      } else {
+        res = sqlite3_bind_null(stmt, idx);
+      }
+      break;
+    }
     default:
       logerror("sqlite:%s: Unknown type %d in col '%s' of table '%s; this is probably a bug'\n",
           db->name, schema->fields[i].type, schema->fields[i].name, table->schema->name);
