@@ -13,6 +13,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "base64.h"
+
 START_TEST(test_base64_string_size)
 {
   fail_unless(base64_size_string(0) == 1);
@@ -35,8 +37,8 @@ START_TEST(zero_length_inputs)
   fail_unless(base64_validate_string("") == 0);
   fail_unless(base64_validate_string("") == 0);
   fail_unless(base64_size_blob(0) == 0);
-  fail_unless(base64_decode_string(0, "", out) == 0);
-  fail_unless(base64_decode_string(0, NULL, out) == 0);
+  fail_unless(base64_decode_string(0, "", 0, out) == 0);
+  fail_unless(base64_decode_string(0, NULL, 0, out) == 0);
 }
 END_TEST
 
@@ -60,10 +62,10 @@ START_TEST(test_round_trip)
     { "any carnal pleas", "YW55IGNhcm5hbCBwbGVhcw==" },
   };
 
-  const NOF_TESTS = sizeof(TESTS) / sizeof(TESTS[0]);
+  const int NOF_TESTS = sizeof(TESTS) / sizeof(TESTS[0]);
 
   const size_t MAX_PLAIN_SZ = 21;
-  uint8_t plain[MAX_PLAIN_SZ];
+  char plain[MAX_PLAIN_SZ];
   size_t plain_sz;
   const size_t MAX_ACTUAL_SZ = MAX_PLAIN_SZ;
   uint8_t actual[MAX_ACTUAL_SZ];
@@ -74,12 +76,12 @@ START_TEST(test_round_trip)
 
   for(i = 0; i < NOF_TESTS; i++) {
     /* encoding */
-    strcpy(plain, TESTS[i].plain);
+    strncpy(plain, TESTS[i].plain, MAX_PLAIN_SZ);
     plain_sz = strlen(plain);
-    encoded_sz = base64_size_string(plain_sz); 
+    encoded_sz = base64_size_string(plain_sz);
     fail_unless(strlen(TESTS[i].encoded) + 1 == encoded_sz);
     base64_encode_blob(plain_sz, plain, encoded);
-    fail_unless(strcmp(encoded, TESTS[i].encoded) == 0, "actual=%s, expected=%s\n", encoded, TESTS[i].encoded);
+    fail_unless(strncmp(encoded, TESTS[i].encoded, encoded_sz) == 0, "actual=%s, expected=%s\n", encoded, TESTS[i].encoded);
     /* decoding */
     encoded_sz = base64_validate_string(encoded);
     fail_if(encoded_sz < 0);

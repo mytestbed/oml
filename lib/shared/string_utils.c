@@ -58,7 +58,7 @@ backslash_encode(const char *in, char *out)
       break;
     case '\\':
       *out++ = '\\';
-      *out++ = '\\';    
+      *out++ = '\\';
       break;
     default:
       *out++ = *in;
