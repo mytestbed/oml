@@ -65,27 +65,34 @@ client_state_to_s (CState state)
   return states[state];
 }
 
-/*
- *  Allocate data structures for the client's tables.
+/**  Allocate data structures for the ClientHandler's tables.
  *
- *  The following need to be allocated:
+ *  (Re)Allocate the following:
+ *  * self->tables -- the DbTables themselves
+ *  * self->seq_no_offsets -- the seq_no offet of each table
+ *  * self->values_vectors -- values vectors -- one for each table
+ *  * self->values_vector_counts -- size of each of the values_vectors
  *
- *  self->tables -- the DbTables themselves
- *  self->seq_no_offsets -- the seq_no offet of each table
- *  self->values_vectors -- values vectors -- one for each table
- *  self->values_vector_counts -- size of each of the values_vectors
- *
- *  There should be ntables of each of these.  For the size of each of
+ *  There should be at least ntables of each of these.  For the size of each of
  *  the values_vectors[i], see client_realloc_values().
  *
+ *  If reallocating, only *grow* the structures: a call to
+ *  client_realloc_tables(ch, n) then client_realloc_tables(ch, m) with m<n is
+ *  safe and won't lose any data.
  *  self->table_count is set to ntables at the end of this, as long as
  *  there are not already enough tables to accomodate ntables.
+ *
+ * \param self the ClientHandler
+ * \param ntables the maximal number of tables to handle
+ *
+ * \return 0 on success, -1 otherwise
  */
-  int
+int
 client_realloc_tables (ClientHandler *self, int ntables)
 {
-  if (!self || ntables <= 0)
+  if (!self || ntables <= 0) {
     return -1;
+  }
 
   if (ntables > self->table_count) {
     int error = 0;
@@ -248,12 +255,13 @@ validate_schema_names (struct schema *schema, char **invalid)
   return 1;
 }
 
-/**
- * \brief Process the data and put value inside the database
- * \param self the clienat handler
- * \param value the value to put in the database
+/** Process schema from string.
+ *
+ * \param self pointer to ClientHandler processing the schema
+ * \param value schema to process
+ * \return 1 if successful, 0 otherwise
  */
-  void
+void
 process_schema(ClientHandler* self, char* value)
 {
   struct schema *schema = schema_from_meta (value);
@@ -272,7 +280,7 @@ process_schema(ClientHandler* self, char* value)
   }
 
   int idx = schema->index - 1;
-  logdebug("%s: New schema %d '%s'\n", self->name, idx, value);
+  loginfo("%s: New MS schema %s\n", self->name, value); /* Value contains the index */
 
   DbTable* table = database_find_or_create_table(self->database, schema);
   if (table == NULL) {
@@ -304,14 +312,14 @@ process_schema(ClientHandler* self, char* value)
  * \param key key
  * \param value value
  */
-static void process_meta(ClientHandler* self, char* key, char* value)
+static void
+process_meta(ClientHandler* self, char* key, char* value)
 {
   chomp (value);
-  logdebug("%s: Meta '%s:%s'\n", self->name, key, value);
+  logdebug("%s: Meta '%s':'%s'\n", self->name, key, value);
   if (strcmp(key, "protocol") == 0) {
     int protocol = atoi (value);
-    if (protocol < MIN_PROTOCOL_VERSION || protocol > MAX_PROTOCOL_VERSION)
-    {
+    if (protocol < MIN_PROTOCOL_VERSION || protocol > MAX_PROTOCOL_VERSION) {
       logerror("%s: Client connected with incorrect protocol version (%s; %d > %d)\n",
           self->name, value, protocol, MAX_PROTOCOL_VERSION);
       logdebug("%s:    Maybe the client was built with a newer version of OML.\n",
@@ -425,22 +433,28 @@ static void process_meta(ClientHandler* self, char* key, char* value)
   }
 }
 
-/**
- * \brief analyse the header
- * \param line_p a pointer to the line to read into the buffer
- * \param length_p a pointer to the length of the line
- * \param mbuf the buffer that contain the header and the data
+/** Read a \n-terminated line from an MBuffer
+ *
+ * The caller is responsible of advancing (by *length_p+1) the MBuffer and/or
+ * consuming the message to make sure it can be properly repacked.
+ *
+ * \param line_p[out] pointer to pointer to be set to point to the beginning of the string in the MBuffer
+ * \param length_p[out] pointer to variable to be filled with the line lenght
+ * \param mbuf MBuffer containing header and/or data
+ *
  * \return 1 if successful, 0 otherwise
+ * \see mbuf_read_skip, mbuf_consume_message
  */
-  static int
+static int
 read_line(char** line_p, int* length_p, MBuffer* mbuf)
 {
   uint8_t* line = mbuf_rdptr (mbuf);
   int length = mbuf_find (mbuf, '\n');
 
   // No newline found
-  if (length == -1)
+  if (length == -1) {
     return 0;
+  }
 
   *line_p = (char*)line;
   *length_p = length;
@@ -448,20 +462,21 @@ read_line(char** line_p, int* length_p, MBuffer* mbuf)
   return 1;
 }
 
-/**
- * \brief analyse the header
- * \param self the client handler
- * \param mbuf the buffer that contain the header and the data
+/** Process one line of header.
+ *
+ * \param self pointer to ClientHandler processing the header
+ * \param mbuf MBuffer containing the header
  * \return 1 if successful, 0 otherwise
  */
-  static int
+static int
 process_header(ClientHandler* self, MBuffer* mbuf)
 {
   char* line;
   int len;
 
-  if (read_line(&line, &len, mbuf) == 0)
+  if (read_line(&line, &len, mbuf) == 0) {
     return 0;
+  }
 
   if (len == 0) {
     // empty line denotes separator between header and body
@@ -470,32 +485,27 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     mbuf_consume_message (mbuf);
     self->state = self->content;
     client_handler_update_name(self);
-    loginfo("%s: New client '%s' ready\n", self->event->name, self->name);
+    loginfo("%s: Client '%s' ready to send data\n", self->event->name, self->name);
     return 0;
   }
 
   // separate key from value (check for ':')
   char* value = line;
   int count = 0;
-  while (*(value) != ':' && count < len)
-  {
+  while (*(value) != ':' && count < len) {
     value++;
     count++;
   }
 
-  if (*value == ':')
-  {
+  if (*value == ':') {
     *value++ = '\0';
-    while (*(value) == ' ' && count < len)
-    {
+    while (*(value) == ' ' && count < len) {
       value++;
       count++;
     }
     mbuf_read_skip (mbuf, len + 1);
     process_meta(self, line, value);
-  }
-  else
-  {
+  } else {
     logerror("%s: Malformed meta line in header: '%s'\n", self->name, line);
     self->state = C_PROTOCOL_ERROR;
   }
@@ -507,7 +517,16 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     return 1; // still in header
 }
 
-  static void
+/** Process contents of a message for which the header has already been
+ * extracted by the marshalling code.
+ *
+ * If the stream ID index is 0, this is some metadata, otherwise, insert data
+ * into the storage backend.
+ * \param self ClientHandler
+ * \param header OmlBinaryHeader of the message
+ * \see process_bin_message, unmarshal_init
+ */
+static void
 process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 {
   int table_index = header->stream - 1;
@@ -558,7 +577,8 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
  * \param mbuf MBuffer that contain the data
  * \return 1 when successfull, 0 otherwise
  */
-static int process_bin_message(ClientHandler* self, MBuffer* mbuf)
+static int
+process_bin_message(ClientHandler* self, MBuffer* mbuf)
 {
   int res;
   OmlBinaryHeader header;
@@ -601,13 +621,17 @@ static int process_bin_message(ClientHandler* self, MBuffer* mbuf)
   return 1;
 }
 
-/**
- * \brief process a single measurement
- * \param self the client handler
- * \param msg a single message encoded in a string
- * \param length length of msg
+/** Process split data.
+ *
+ * The data would have been split by process_text_message.
+ *
+ * \param self pointer to ClientHandler processing the data
+ * \param msg pointer to array of strings corresponding to the fields
+ * \param size length of msg
+ *
+ * \see process_text_message
  */
-  static void
+static void
 process_text_data_message(ClientHandler* self, char** msg, int size)
 {
   if (size < 3) {
@@ -653,17 +677,15 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
       ts, self->values_vectors[table_index], size - 3);
 }
 
-/**
- * \brief analyse the data from the buffer as text protocol
- * \param self the client handler
- * \param mbuf the buffer that contain the data
- * \return 1 when successfull, 0 otherwise
+/** Process as many lines of data as possible from an MBuffer.
+ *
+ * \param self pointer to ClientHandler processing the data
+ * \param mbuf MBuffer containing the header
+ * \return 1 if successful, 0 otherwise
  */
 static int
-process_text_message(
-    ClientHandler* self,
-    MBuffer*    mbuf
-    ) {
+process_text_message(ClientHandler* self, MBuffer* mbuf)
+{
   char* line;
   int len;
 
@@ -672,6 +694,7 @@ process_text_message(
       return 0;
     }
     mbuf_read_skip(mbuf, len+1);
+    mbuf_consume_message(mbuf);
 
     // split line into array
     char* a[DEF_NUM_VALUES];
@@ -707,6 +730,7 @@ process_text_message(
     process_text_data_message(self, a, a_size);
   }
   /* Never reached */
+  return 0;
 }
 
 /**
@@ -728,6 +752,7 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
       buf_size);
 
   int result = mbuf_write (mbuf, buf, buf_size);
+
   if (result == -1) {
     logerror("%s: Failed to write message from client into message buffer\n",
         source->name);
