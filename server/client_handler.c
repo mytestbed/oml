@@ -326,6 +326,11 @@ process_meta(ClientHandler* self, char* key, char* value)
   chomp (value);
   logdebug("%s: Meta '%s':'%s'\n", self->name, key, value);
   if (strcmp(key, "protocol") == 0) {
+    if (self->state != C_HEADER) {
+      logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
+          self->name, key);
+      return;
+    }
     int protocol = atoi (value);
     if (protocol < MIN_PROTOCOL_VERSION || protocol > MAX_PROTOCOL_VERSION) {
       logerror("%s: Client connected with incorrect protocol version (%s; %d > %d)\n",
@@ -336,10 +341,20 @@ process_meta(ClientHandler* self, char* key, char* value)
       return;
     }
   } else if (strcmp(key, "domain") == 0 || strcmp(key, "experiment-id") == 0) {
+    if (self->state != C_HEADER) {
+      logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
+          self->name, key);
+      return;
+    }
     self->database = database_find(value);
     if (!self->database)
       self->state = C_PROTOCOL_ERROR;
   } else if (strcmp(key, "start-time") == 0 || strcmp(key, "start_time") == 0) {
+    if (self->state != C_HEADER) {
+      logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
+          self->name, key);
+      return;
+    }
     if (self->database == NULL) {
       logerror("%s: Meta 'start-time' needs to come after 'domain'.\n",
           self->name);
@@ -414,6 +429,11 @@ process_meta(ClientHandler* self, char* key, char* value)
       self->time_offset = start_time - self->database->start_time;
     }
   } else if (strcmp(key, "sender-id") == 0) {
+    if (self->state != C_HEADER) {
+      logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
+          self->name, key);
+      return;
+    }
     if (self->database == NULL) {
       logerror("%s: Meta 'sender-id' needs to come after 'domain'.\n",
           self->name);
@@ -423,10 +443,20 @@ process_meta(ClientHandler* self, char* key, char* value)
       self->sender_name = xstrndup (value, strlen (value));
     }
   } else if (strcmp(key, "app-name") == 0) {
+    if (self->state != C_HEADER) {
+      logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
+          self->name, key);
+      return;
+    }
     self->app_name = xstrndup (value, strlen (value));
   } else if (strcmp(key, "schema") == 0) {
     process_schema(self, value);
   } else if (strcmp(key, "content") == 0) {
+    if (self->state != C_HEADER) {
+      logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
+          self->name, key);
+      return;
+    }
     if (strcmp(value, "binary") == 0) {
       logdebug("%s: Switching to binary mode\n", self->name);
       self->content = C_BINARY_DATA;
