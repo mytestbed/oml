@@ -336,7 +336,8 @@ OmlValueT sqlite_to_oml_type (const char *s)
       { OML_UINT64_VALUE, "UNSIGNED BIGINT" },
       { OML_DOUBLE_VALUE, "REAL" },
       { OML_STRING_VALUE, "TEXT" },
-      { OML_BLOB_VALUE,   "BLOB" }
+      { OML_BLOB_VALUE,   "BLOB" },
+      { OML_GUID_VALUE,   "UNSIGNED BIGINT" },
     };
   int i = 0;
   int n = sizeof (type_list) / sizeof (type_list[0]);
@@ -371,6 +372,7 @@ oml_to_sqlite_type (OmlValueT type)
   case OML_UINT32_VALUE:  return "UNSIGNED INTEGER"; break;
   case OML_INT64_VALUE:   return "BIGINT"; break;
   case OML_UINT64_VALUE:  return "UNSIGNED BIGINT"; break;
+  case OML_GUID_VALUE:    return "UNSIGNED BIGINT"; break;
   default:
     logerror("Unknown type %d\n", type);
     return NULL;

@@ -711,7 +711,7 @@ psql_insert(Database* db,
     case OML_GUID_VALUE:
       if(v->value.guidValue != OMLC_GUID_NULL) {
         paramValues[4+i] = shadow_values[4+i];
-        sprintf(paramValues[4+i],"%" PRIu64, v->value.guidValue);
+        sprintf(paramValues[4+i],"%" PRId64, (int64_t)(v->value.guidValue));
       } else {
         paramValues[4+i] = NULL;
       }
