@@ -568,43 +568,71 @@ static void
 process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 {
   int table_index = header->stream - 1;
+  double ts = self->time_offset + header->timestamp;
   MBuffer* mbuf = self->mbuf;
-  OmlValue *values;
+  OmlValue *values, meta[2];
   int count;
-  int cnt;
 
-  if (table_index >= self->table_count || table_index < 0) {
-    logwarn("%s(bin): Table index %d out of bounds, discarding sample %d\n", self->name, table_index, header->seqno, header->length);
+  if (header->stream < 0 || table_index >= self->table_count) {
+    logwarn("%s(bin): Schema index %d out of bounds, discarding sample %d\n", self->name, table_index, header->seqno, header->length);
     return;
   }
 
-  values = self->values_vectors[table_index];
-  count = self->values_vector_counts[table_index];
-  cnt = unmarshal_measurements(mbuf, header, values, count);
+  if (0 == header->stream) {
+    /* Header mode: two strings: k/v */
+    logdebug("%s(bin): Client sending metadata at %f\n", self->name, ts);
 
-  /* Some error occurred in unmarshaling; can't continue */
-  if (cnt < 0)
-    return;
+    oml_value_array_init(meta, 2);
+    count = unmarshal_measurements(mbuf, header, meta, 2);
 
-  double ts;
+    if (count < 0) {
+      oml_value_array_reset(meta, 2);
+      return;
+    } else if (count > 2) {
+      logwarn("%s(bin): Expecting metadata, but the number of elements is invalid (%d), ignoring\n",
+          self->name, count);
+      oml_value_array_reset(meta, 2);
+      return;
+    } else if (oml_value_get_type(&meta[0]) != OML_STRING_VALUE ) {
+      logwarn("%s(bin): Expecting metadata, but key is not a string (%d), ignoring\n",
+          self->name, oml_value_get_type(&meta[0]));
+    } else if (oml_value_get_type(&meta[1]) != OML_STRING_VALUE ) {
+      logwarn("%s(bin): Expecting metadata, but value for key %s is not a string (%d), ignoring\n",
+          self->name, omlc_get_string_ptr(*oml_value_get_value(&meta[0])), oml_value_get_type(&meta[1]));
+    } else {
+      process_meta(self,
+          omlc_get_string_ptr(*oml_value_get_value(&meta[0])),
+          omlc_get_string_ptr(*oml_value_get_value(&meta[1])));
+    }
 
-  ts = self->time_offset + header->timestamp;
-  /* XXX: Return to header-parsing state on table_index = 0 */
-  DbTable* table = self->tables[table_index];
-  if (table == NULL) {
-    logerror("%s(bin): Undefined table index %d\n", self->name, table_index);
-    self->state = C_PROTOCOL_ERROR;
-    return;
+    oml_value_array_reset(meta, 2);
+
+  } else {
+    values = self->values_vectors[table_index];
+    count = self->values_vector_counts[table_index];
+    count = unmarshal_measurements(mbuf, header, values, count);
+
+    /* Some error occurred in unmarshaling; can't continue */
+    if (count < 0) {
+      return;
+    }
+
+    DbTable* table = self->tables[table_index];
+    if (table == NULL) {
+      logerror("%s(bin): Undefined table index %d\n", self->name, table_index);
+      self->state = C_PROTOCOL_ERROR;
+      return;
+    }
+    logdebug("%s(bin): Inserting data into table index %d (seqno=%d, ts=%f)\n",
+        self->name, table_index, header->seqno, ts);
+    self->database->insert(self->database,
+        table,
+        self->sender_id,
+        header->seqno,
+        ts,
+        self->values_vectors[table_index],
+        count);
   }
-  logdebug("%s(bin): Inserting data into table index %d (seqno=%d, ts=%f)\n",
-      self->name, table_index, header->seqno, ts);
-  self->database->insert(self->database,
-      table,
-      self->sender_id,
-      header->seqno,
-      ts,
-      self->values_vectors[table_index],
-      cnt);
 
   mbuf_consume_message (mbuf);
 }
