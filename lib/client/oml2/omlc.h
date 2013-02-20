@@ -464,7 +464,7 @@ typedef union _omlValueU {
  *
  * This takes care of manipulating the contained OmlValueU properly.
  *
- * \see oml_value_init, oml_value_reset
+ * \see oml_value_init, oml_value_array_init, oml_value_reset,oml_value_array_reset
  */
 typedef struct _omlValue {
   /** Type of value */

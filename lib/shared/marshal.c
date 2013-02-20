@@ -127,6 +127,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <assert.h>
 
 #include "oml2/omlc.h"
@@ -472,19 +473,18 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     uint8_t *p_nv;
 
     if (oml_size_map[val_type] == 4)
-      {
-        uv32 = omlc_get_uint32(*val);
-        nv32 = htonl(uv32);
-        p_nv = (uint8_t*)&nv32;
-      }
-    else
-      {
-        uv64 = omlc_get_uint64(*val);
-        nv64 = htonll(uv64);
-        p_nv = (uint8_t*)&nv64;
-      }
+    {
+      uv32 = omlc_get_uint32(*val);
+      nv32 = htonl(uv32);
+      p_nv = (uint8_t*)&nv32;
+      logdebug("Marshalling %s %" PRIu32 "\n", oml_type_to_s(val_type), uv32);
+    } else {
+      uv64 = omlc_get_uint64(*val);
+      nv64 = htonll(uv64);
+      p_nv = (uint8_t*)&nv64;
+      logdebug("Marshalling %s %" PRIu64 "\n", oml_type_to_s(val_type), uv64);
+    }
 
-    logdebug("Marshalling %s\n", oml_type_to_s(val_type));
     buf[0] = oml_type_map[val_type];
     memcpy(&buf[1], p_nv, oml_size_map[val_type]);
 
@@ -530,11 +530,10 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
  case OML_STRING_VALUE: {
    char* str = omlc_get_string_ptr(*val);
 
-   if (str == NULL)
-     {
-       str = "";
-       logwarn("Attempting to send a NULL string; sending empty string instead\n");
-     }
+   if (str == NULL) {
+     str = "";
+     logwarn("Attempting to send a NULL string; sending empty string instead\n");
+   }
 
    size_t len = strlen(str);
    if (len > STRING_T_MAX_SIZE) {
@@ -542,15 +541,14 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
      len = STRING_T_MAX_SIZE;
    }
 
+   logdebug("Marshalling string '%s' of length %d\n", str, len);
    uint8_t buf[2] = { STRING_T, (uint8_t)(len & 0xff) };
    int result = mbuf_write (mbuf, buf, LENGTH (buf));
-
-   if (result == -1)
-     {
-       logerror("Failed to marshal OML_STRING_VALUE type and length (mbuf_write())\n");
-       mbuf_reset_write (mbuf);
-       return 0;
-     }
+   if (result == -1) {
+     logerror("Failed to marshal OML_STRING_VALUE type and length (mbuf_write())\n");
+     mbuf_reset_write (mbuf);
+     return 0;
+   }
 
    result = mbuf_write (mbuf, (uint8_t*)str, len);
 
@@ -575,7 +573,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
    size_t n_length = htonl (length);
    memcpy (&buf[1], &n_length, 4);
 
-   logdebug("Marshalling blob of size %d.\n", length);
+   logdebug("Marshalling blob of size %d\n", length);
    result = mbuf_write (mbuf, buf, sizeof (buf));
 
    if (result == -1) {
