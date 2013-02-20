@@ -109,7 +109,11 @@ client_realloc_tables (ClientHandler *self, int ntables)
     }
 
     /* Keep whatever succeeded */
-    if (new_tables) self->tables = new_tables;
+    if (new_tables) {
+      self->tables = new_tables;
+      /* Initialise all new tables to NULL so we know they are not allocated yet */
+      memset(&self->tables[self->table_count], 0, (ntables - self->table_count) * sizeof(DbTable*));
+    }
     if (new_so) self->seqno_offsets = new_so;
     if (new_vv) self->values_vectors = new_vv;
     if (new_vv_counts) self->values_vector_counts = new_vv_counts;
@@ -297,6 +301,10 @@ process_schema(ClientHandler* self, char* value)
     return;
   }
 
+  if (self->tables[idx] != NULL) {
+    logwarn("%s: Replacing existing MS schema %s with new schema %s\n",
+        self->name, self->tables[idx]->schema->name, value);
+  }
   self->tables[idx] = table;
 
   /* Reallocate the values vector if this schema has more columns than can fit already. */
