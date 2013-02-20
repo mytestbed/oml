@@ -676,12 +676,22 @@ process_text_data_message(ClientHandler* self, char** msg, int size)
     return;
   }
 
-  double ts = atof(msg[0]);
-  long table_index = atol(msg[1]) - 1;
-  long seq_no = atol(msg[2]);
+  double ts;
+  long table_index;
+  long seq_no;
+
+  ts = atof(msg[0]);
+  table_index = atol(msg[1]) - 1;
+  seq_no = atol(msg[2]);
 
   ts += self->time_offset;
-  if (table_index >= self->table_count || table_index < 0) {
+  if (-1 == table_index) { /* Stream 0: Metadata */
+    if (size==5)
+      process_meta(self, msg[3], msg[4]);
+    else
+      logwarn("%s(txt): received metadata with incorrect number of elements (%d)\n", self->name, size-3);
+    return;
+  } else if (table_index >= self->table_count || table_index < 0) {
     logwarn("%s(txt): Table index %d out of bounds, discarding sample %d\n", self->name, table_index, seq_no);
     return;
   }
@@ -727,7 +737,7 @@ process_text_message(ClientHandler* self, MBuffer* mbuf)
   char* line;
   int len;
 
-  while (1) {
+  while (C_TEXT_DATA == self->state) {
     if (read_line(&line, &len, mbuf) == 0) {
       return 0;
     }
@@ -761,7 +771,7 @@ process_text_message(ClientHandler* self, MBuffer* mbuf)
     }
     /* XXX: This message belongs in process_text_data_message(),
      * however putting it here allows to access line, for nicer logging*/
-    if (a_size <= 3) {
+    if (a_size < 3) {
       logerror("%s(txt): Not enough parameters (%d<3) in sample '%s'\n", self->name, a_size, line);
       return 0;
     }
