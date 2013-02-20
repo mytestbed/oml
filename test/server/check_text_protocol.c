@@ -34,6 +34,7 @@
 #include "database.h"
 #include "client_handler.h"
 #include "sqlite_adapter.h"
+#include "check_server.h"
 
 extern char *dbbackend;
 extern char *sqlite_database_dir;
@@ -69,6 +70,8 @@ START_TEST(test_text_insert)
 
   int rc = -1;
 
+  o_set_log_level(-1);
+
   snprintf(h, sizeof(h),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\nschema: 1 %s size:uint32\n\n", domain, basename(__FILE__), __FUNCTION__, table);
   snprintf(s1, sizeof(s1), "%f\t1\t%d\t%d\n", time1, 1, d1);
   snprintf(s2, sizeof(s2), "%f\t1\t%d\t%d\n", time2, 2, d2);
@@ -76,18 +79,7 @@ START_TEST(test_text_insert)
 
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "text insert socket";
-
-  o_set_log_level(-1);
-
-  /* Create the ClientHandler almost as server/client_handler.h:client_handler_new() would */
-  ch = (ClientHandler*) xmalloc(sizeof(ClientHandler));
-  ch->state = C_HEADER;
-  ch->content = C_TEXT_DATA;
-  ch->mbuf = mbuf_create ();
-  ch->socket = NULL;
-  ch->event = &source;
-  strncpy (ch->name, "test_text_insert", MAX_STRING_SIZE);
-
+  ch = check_server_prepare_client_handler("test_text_insert", &source);
   fail_unless(ch->state == C_HEADER);
 
   logdebug("Processing text protocol for issue #672\n");
@@ -164,6 +156,8 @@ START_TEST(test_text_flexibility)
 
   int rc = -1;
 
+  o_set_log_level(-1);
+
   snprintf(s1, sizeof(s1), "1 %s size:uint32", table[0]);
   snprintf(s2, sizeof(s2), "2 %s size:uint32", table[1]);
   snprintf(s3, sizeof(s3), "1 %s bli:int32", table[2]);
@@ -174,18 +168,7 @@ START_TEST(test_text_flexibility)
 
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "text flex socket";
-
-  o_set_log_level(2);
-
-  /* Create the ClientHandler almost as server/client_handler.h:client_handler_new() would */
-  ch = (ClientHandler*) xmalloc(sizeof(ClientHandler));
-  ch->state = C_HEADER;
-  ch->content = C_TEXT_DATA;
-  ch->mbuf = mbuf_create ();
-  ch->socket = NULL;
-  ch->event = &source;
-  strncpy (ch->name, "test_text_flex", MAX_STRING_SIZE);
-
+  ch = check_server_prepare_client_handler("test_text_flex", &source);
   fail_unless(ch->state == C_HEADER);
   fail_unless(ch->table_count == 0, "Unexpected number of tables (%d instead of 0)", ch->table_count);
 
@@ -240,7 +223,7 @@ START_TEST(test_text_flexibility)
       );
   client_callback(&source, ch, sample, strlen(sample));
 
-  client_handler_free(ch);
+  check_server_destroy_client_handler(ch);
 
   logdebug("Checking recorded data in %s.sq3\n", domain);
   /* Open database */

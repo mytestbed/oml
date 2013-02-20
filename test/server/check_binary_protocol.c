@@ -38,6 +38,7 @@
 #include "database.h"
 #include "client_handler.h"
 #include "sqlite_adapter.h"
+#include "check_server.h"
 
 extern char *dbbackend;
 extern char *sqlite_database_dir;
@@ -108,23 +109,14 @@ START_TEST(test_binary_resync)
 
   int rc = -1;
 
+  o_set_log_level(-1);
+
   snprintf(h1, sizeof(h1),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\ncontent: binary\nschema: 1 %s size:uint32\n\n", domain, basename(__FILE__), __FUNCTION__, table);
   snprintf(select1, sizeof(select1), "select oml_ts_client, oml_seq, size from %s;", table);
 
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "binary resync socket";
-
-  o_set_log_level(-1);
-
-  /* Create the ClientHandler almost as server/client_handler.h:client_handler_new() would */
-  ch = (ClientHandler*) xmalloc(sizeof(ClientHandler));
-  ch->state = C_HEADER;
-  ch->content = C_TEXT_DATA; /* That's how client_handler_new() does it */
-  ch->mbuf = mbuf_create ();
-  ch->socket = NULL;
-  ch->event = &source;
-  strncpy (ch->name, "test_binary_resync", MAX_STRING_SIZE);
-
+  ch = check_server_prepare_client_handler("test_binary_resync", &source);
   fail_unless(ch->state == C_HEADER);
 
   logdebug("Sending header '%s'\n", h1);
@@ -243,6 +235,8 @@ START_TEST(test_binary_flexibility)
 
   int rc = -1;
 
+  o_set_log_level(-1);
+
   snprintf(s1, sizeof(s1), "1 %s size:uint32", table[0]);
   snprintf(s2, sizeof(s2), "2 %s size:uint32", table[1]);
   snprintf(s3, sizeof(s3), "1 %s bli:int32", table[2]);
@@ -253,18 +247,7 @@ START_TEST(test_binary_flexibility)
 
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "binary flexibility socket";
-
-  o_set_log_level(2);
-
-  /* Create the ClientHandler almost as server/client_handler.h:client_handler_new() would */
-  ch = (ClientHandler*) xmalloc(sizeof(ClientHandler));
-  ch->state = C_HEADER;
-  ch->content = C_TEXT_DATA; /* That's how client_handler_new() does it */
-  ch->mbuf = mbuf_create ();
-  ch->socket = NULL;
-  ch->event = &source;
-  strncpy (ch->name, "test_binary_flexibility", MAX_STRING_SIZE);
-
+  ch = check_server_prepare_client_handler("test_binary_flexibility", &source);
   fail_unless(ch->state == C_HEADER);
   fail_unless(ch->table_count == 0, "Unexpected number of tables (%d instead of 0)", ch->table_count);
 

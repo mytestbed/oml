@@ -24,6 +24,7 @@ msgloop_SOURCES = \
 
 check_server_SOURCES = \
 	check_server.c \
+	check_server.h \
 	check_server_suites.h \
 	check_text_protocol.c \
 	check_binary_protocol.c \

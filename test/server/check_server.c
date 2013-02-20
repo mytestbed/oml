@@ -20,12 +20,57 @@
  * THE SOFTWARE.
  *
  */
+/** \privatesection \file check_server.c
+ * Test the features of the server
+ */
 
 #include <stdlib.h>
 #include <check.h>
 
 #include "ocomm/o_log.h"
+#include "ocomm/o_eventloop.h"
+#include "mem.h"
+#include "mbuf.h"
+#include "client_handler.h"
+#include "check_server.h"
 #include "check_server_suites.h"
+
+/** Create a fake test ClientHandler almost as server/client_handler.h:client_handler_new() would.
+ *
+ * \param name identifier for this ClientHandler
+ * \return a working ClientHandler (or fail the test)
+ *
+ * \see client_handler_new
+ */
+ClientHandler*
+check_server_prepare_client_handler(const char* name, SockEvtSource *source) {
+  ClientHandler* ch;
+
+  ch = (ClientHandler*) xmalloc(sizeof(ClientHandler));
+  fail_if(ch == NULL, "Problem allocating ClientHandler");
+
+  ch->state = C_HEADER;
+  ch->content = C_TEXT_DATA;
+  ch->mbuf = mbuf_create ();
+  ch->socket = NULL;
+  ch->event = source;
+  strncpy (ch->name, name, MAX_STRING_SIZE);
+
+  return ch;
+}
+
+/** Free the fake test ClientHandler.
+ *
+ * \param ch ClientHandler
+ *
+ * \see client_handler_new
+ */
+void
+check_server_destroy_client_handler(ClientHandler* ch)
+{
+  mbuf_destroy(ch->mbuf);
+  xfree(ch);
+}
 
 int
 main (void)
