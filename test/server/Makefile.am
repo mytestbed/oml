@@ -80,5 +80,5 @@ CLEANFILES = \
 	binary-flex-test.sq3-journal \
 	binary-meta-test.sq3 \
 	binary-meta-test.sq3-journal \
-	issue610.sq3
+	issue610.sq3 \
 	issue610.sq3-journal

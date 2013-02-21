@@ -511,6 +511,8 @@ process_meta(ClientHandler* self, char* key, char* value)
 
   } else {
     /* Unknown key, let the caller deal with it */
+    logdebug("%s: Received metadata '%s':'%s'\n", self->name, key, value);
+    self->database->set_metadata (self->database, key, value);
     return 1;
   }
 
