@@ -72,6 +72,8 @@ CLEANFILES = \
 	text-test.sq3-journal \
 	text-flex-test.sq3 \
 	text-flex-test.sq3-journal \
+	text-meta-test.sq3 \
+	text-meta-test.sq3-journal \
 	binary-resync-test.sq3 \
 	binary-resync-test.sq3-journal \
 	binary-flex-test.sq3 \
