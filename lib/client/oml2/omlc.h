@@ -118,9 +118,14 @@ typedef struct _omlBlob {
 
 } OmlBlob;
 
-/** Representation of a guid_t.
+/** An opaque type to represent globally unique IDs.
  */
 typedef uint64_t guid_t;
+
+guid_t
+omlc_guid_generate();
+
+#define OMLC_GUID_NULL ((guid_t) 0)
 
 /** Multi-typed variable container without type information.
  *

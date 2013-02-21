@@ -8,14 +8,13 @@
  * liability disclaimer in the License.
  */
 
-#ifndef GUID_H
-#define GUID_H
+#ifndef OML_GUID_H
+#define OML_GUID_H
 
-#include "oml2/omlc.h"
-
+#include <stdint.h>
 #include <sys/types.h>
 
-#define OMLC_GUID_NULL ((guid_t) 0)
+#include "oml2/omlc.h"
 
 extern guid_t
 omlc_guid_generate();
@@ -28,4 +27,4 @@ omlc_guid_to_string(guid_t in, char *out);
 extern ssize_t
 omlc_string_to_guid(const char *in, guid_t *out);
   
-#endif /* GUID_H */
+#endif /* OML_GUID_H */
