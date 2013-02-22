@@ -589,96 +589,22 @@ typedef struct _omlMStream
 
 } OmlMStream;
 
-/** Initialise the measurement library. */
-int
-omlc_init(
-  const char* appName,
-  int* argcPtr,
-  const char** argv,
-  o_log_fn oml_log
-);
+/* Initialise the measurement library. */
+int omlc_init(const char *appName, int *argcPtr, const char **argv, o_log_fn oml_log);
 
-/**
- *  Register a measurement point.
- *
- *  This function should be called after omlc_init() and before
- *  omlc_start().  It can be called multiple times, once for each
- *  measurement point that the application needs to define.
- *
- *  The returned +OmlMP+ must be the first argument in every
- *  +omlc_inject+ call for this specific measurement point.
- *
- *  The MP's input structure is defined by the mp_def parameter.
- *
- *  \param mp_name The name of this MP.  The name must not contain
- *                 whitespace.
- *  \param mp_def  Definition of this MP's input tuple, as an array
- *                 of OmlMPDef objects.
- *
- *  \return 0 on success, -1 on failure.
- */
-OmlMP*
-omlc_add_mp(
-  const char* mp_name,
-  OmlMPDef*  mp_def
-);
+/*  Register a measurement point. */
+OmlMP *omlc_add_mp(const char *mp_name, OmlMPDef *mp_def);
 
-/**
- *  Finalize the initialization process and enable measurement
- *  collection.
- *
- *  This function must be called after +omlc_init+ and after any calls
- *  to +omlc_add_mp+.  It finalizes the initialization process and
- *  initializes filters on all measurement points, according to the
- *  current configuration (based on either command line options or the
- *  XML config file named by the --oml-config command line option).
- *
- *  Once this function has been called, and if it succeeds, the
- *  application is free to start creating measurement samples by
- *  calling +omlc_inject+.
- *
- *  If this function fails, subsequent calls to +omlc_inject+ will
- *  result in undefined behaviour.
- *
- *  \return 0 on success, -1 on failure.
- */
-int
-omlc_start(
-  void
-);
+/* Get ready to start the measurement collection. */
+int omlc_start(void);
 
-/**
- *  Inject a measurement sample into a Measurement Point.
- *
- *  \param mp     the measurement point to inject into, as returned by
- *                +omlc_add_mp+.
- *  \param values the measurement sample vector.  The types of the
- *                values in this vector should match the definition
- *                for this MP given in the call to +omlc_add_mp+.
- */
-void
-omlc_inject(
-  OmlMP*      mp,
-  OmlValueU*  values
-);
+/*  Inject a measurement sample into a Measurement Point.  */
+void omlc_inject(OmlMP *mp, OmlValueU *values);
 
 // DEPRECATED
-void
-omlc_process(
-  OmlMP*      mp,
-  OmlValueU*  values
-);
+void omlc_process(OmlMP* mp, OmlValueU* values);
 
-/**
- *  Finalize all open connections.
- *
- *  Once this function has been called, any futher calls to
- *  +omlc_inject+ will be ignored.
- *
- *  @note This call doesn't free all memory used by OML
- *  immediately. There may be a few threads which will take some
- *  time to finish.
- */
+/**  Terminate all open connections. */
 int omlc_close(void);
 
 #ifdef __cplusplus

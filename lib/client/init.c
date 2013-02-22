@@ -20,6 +20,9 @@
  * THE SOFTWARE.
  *
  */
+/** \file init.c
+ * Implement the user-visible initialisation routines of the user-visible OML API.
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -80,7 +83,8 @@ extern int parse_config(char* config_file);
  * \param custom_oml_log custom format-based logging function
  * \return 0 on success, -1 on failure.
  *
- * \see o_log_fn, o_set_log()
+ * \see omlc_add_mp, omlc_start, omlc_close
+ * \see o_log_fn, o_set_log
  */
 int
 omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custom_oml_log)
@@ -279,14 +283,33 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
 /** Register a measurement point.
  *
- * Needs to be called for every measurment point AFTER omlc_init and before a
- * final omlc_start.
+ * This function should be called after omlc_init() and before omlc_start().
+ * It can be called multiple times, once for each measurement point that the
+ * application needs to define.
  *
- * \param  mp_name the name of the measurement point
- * \param mp_def the definition of the set of measurements in this measurement point
- * \return a new measurement point
+ * The returned OmlMP must be the first argument in every omlc_inject() call
+ * for this specific measurement point.
+ *
+ * The MP's input structure is defined by the mp_def parameter, it should be
+ * initialised as this example shows.
+ * \code {.c}
+ *   OmlMPDef mp_def[] =
+ *   {
+ *     { "source", OML_UINT32_VALUE },
+ *     { "destination", OML_UINT32_VALUE },
+ *     { "length", OML_UINT32_VALUE },
+ *     { "weight", OML_DOUBLE_VALUE },
+ *     { "protocol", OML_STRING_VALUE },
+ *     { NULL, (OmlValueT)0 }
+ *   };
+ * \endcode
+ *
+ * \param mp_name The name of this MP.  The name must not contain whitespace
+ * \param mp_def  Definition of this MP's input tuple, as an array of OmlMPDef objects
+ * \return a new measurement point \see omlc_init, omlc_start
  */
-OmlMP* omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
+OmlMP*
+omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 {
   if (omlc_instance == NULL) return NULL;
   if (!validate_name (mp_name)) {
@@ -336,7 +359,8 @@ OmlMP* omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
  * \param mp pointer to the OmlMP to free
  * \return mp->next (can be NULL)
  */
-OmlMP *destroy_mp(OmlMP *mp)
+OmlMP*
+destroy_mp(OmlMP *mp)
 {
   OmlMP *next;
   OmlMStream *ms;
@@ -358,11 +382,28 @@ OmlMP *destroy_mp(OmlMP *mp)
   return next;
 }
 
-/**
- * @brief Finalizes inital configurations and get ready for consecutive +omlc_process+ calls
- * @return 0 if successful, <0 otherwise
+/** Get ready to start the measurement collection.
+ *
+ *  This function must be called after omlc_init and after any calls to
+ *  omlc_add_mp().  It finalises the initialisation process and initialises
+ *  filters on all measurement points, according to the current configuration
+ *  (based on either command line options or the XML config file named by the
+ *  --oml-config command line option).
+ *
+ *  It also registers a termination handler.
+ *
+ *  Once this function has been called, and if it succeeds, the application is
+ *  free to start creating measurement samples by calling omlc_inject().
+ *
+ *  If this function fails, subsequent calls to omlc_inject() will result in
+ *  undefined behaviour.
+ *
+ *  \return 0 on success, -1 on failure
+ *
+ *  \see omlc_init, omlc_add_mp, omlc_close
+ *  \see install_close_handler, termination_handler
  */
-  int
+int
 omlc_start()
 {
   if (omlc_instance == NULL) return -1;
@@ -395,11 +436,11 @@ omlc_start()
   return 0;
 }
 
-/**
- * @brief Close the oml process
- * @param signum the signal number
+/** Terminate data collection on signals
+ * \param signum the signal number
+ * \see install_close_handler
  */
-  static void
+static void
 termination_handler(int signum)
 {
   // SIGPIPE is handled by disabling the writer that caused it.
@@ -411,10 +452,9 @@ termination_handler(int signum)
   }
 }
 
-/**
- * @brief start the signal handler
- */
-  static void
+/** Register a signal handler calling omlc_close on SIGINT, SIGHUP, SIGTERM, and SIGPIPE
+ * \see omlc_start, termination_handler */
+static void
 install_close_handler(void)
 {
   struct sigaction new_action, old_action;
@@ -441,12 +481,19 @@ install_close_handler(void)
     sigaction (SIGPIPE, &new_action, NULL);
 }
 
-/** Finalizes all open connections. Any futher calls to +omlc_process+ are
- * being ignored
+/** Terminate all open connections.
  *
- * \return -1 if fails
+ * Once this function has been called, any futher calls to omlc_inject() will
+ * be ignored.
+ *
+ * This call doesn't free all memory used by OML immediately. There may be a
+ * few threads which will take some time to finish while the remaining
+ * buffered data is sent.
+ *
+ * \return 0 on sucess, -1 otherwise
  */
-int omlc_close(void)
+int
+omlc_close(void)
 {
 
   if (omlc_instance == NULL) return -1;
@@ -716,7 +763,7 @@ create_writer(const char* uri, enum StreamEncoding encoding)
  * @param name The name of the measurement point to search for.
  * @return the measurement point, or NULL if not found.
  */
-OmlMP *
+OmlMP*
 find_mp (const char *name)
 {
   OmlMP *mp = omlc_instance->mpoints;
@@ -751,7 +798,7 @@ find_mp_field (const char *name, OmlMP *mp)
  * @return the fields summary for mp.  The caller is repsonsible for
  * calling mstring_delete() to deallocate the returned MString.
  */
-MString *
+MString*
 mp_fields_summary (OmlMP *mp)
 {
   int i;
@@ -778,7 +825,7 @@ mp_fields_summary (OmlMP *mp)
  * \param mp MP in which to search for the stream
  * \return a pointer to the OmlMStream if found, or NULL if not (or name is NULL)
  */
-OmlMStream *
+OmlMStream*
 find_mstream_in_mp (const char *name, OmlMP *mp)
 {
   OmlMStream *ms = mp->streams;
@@ -802,7 +849,7 @@ find_mstream_in_mp (const char *name, OmlMP *mp)
  * @param name the name of the measurement stream to search for.
  * @return a pointer to the measurement stream or NULL if not found.
  */
-OmlMStream *
+OmlMStream*
 find_mstream (const char *name)
 {
   OmlMP *mp = omlc_instance->mpoints;
@@ -900,7 +947,8 @@ create_mstream (const char *name,
  * \param ms pointer to the OmlMStream to free
  * \return ms->next (can be NULL)
  */
-OmlMStream *destroy_ms(OmlMStream *ms)
+OmlMStream*
+destroy_ms(OmlMStream *ms)
 {
   OmlMStream *next;
   OmlFilter *ft;

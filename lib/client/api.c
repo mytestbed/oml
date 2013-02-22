@@ -20,6 +20,9 @@
  * THE SOFTWARE.
  *
  */
+/** \file api.c
+ * Implement the user-visible API of OML.
+ */
 
 #include <string.h>
 #include <stdlib.h>
@@ -48,18 +51,23 @@ omlc_process(OmlMP *mp, OmlValueU *values)
   omlc_inject(mp, values);
 }
 
-/** Called when new sample has to be treated.
+/**  Inject a measurement sample into a Measurement Point.
+ *
+ * \param mp pointer to OmlMP into which the new sample is being injected
+ * \param values an array of OmlValueU to be processed
+ *
+ * The values' types is assumed to be the same as what was passed to omlc_add_mp
+ * Type information is stored in (stored in mp->param_defs[].param_types)
  *
  * Traverse the list of MSs attached to this MP and, for each MS, the list of
  * filters to apply to the sample. Input the relevant field of the MP to each
  * filter, the call omlc_ms_process() to determine whether a new sample has to
  * be output on that MS.
  *
- * \param mp pointer to OmlMP into which the new sample is being injected
- * \param values an array of OmlValueU to be processed, typed according to mp->param_defs[].param_types
- * \see omlc_ms_process
+ * \see omlc_add_mp, omlc_ms_process
  */
-void omlc_inject(OmlMP *mp, OmlValueU *values)
+void
+omlc_inject(OmlMP *mp, OmlValueU *values)
 {
   OmlMStream* ms;
   OmlValue v;
@@ -100,7 +108,8 @@ void omlc_inject(OmlMP *mp, OmlValueU *values)
  * \param ms pointer to the OmlMStream to process
  * \see filter_process
  */
-static void omlc_ms_process(OmlMStream *ms)
+static void
+omlc_ms_process(OmlMStream *ms)
 {
   if (ms == NULL) return;
 
