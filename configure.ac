@@ -54,7 +54,7 @@ AC_SUBST([OML_ALT_VER], [`echo "$PACKAGE_VERSION" | sed 's/-/./g'`])
 AC_SUBST([OML_BASE_VER], [`echo "$PACKAGE_VERSION" | sed 's/^\([[0-9]]\+\.[[0-9]]\+\).*$/\1/'`])
 
 AC_SUBST([LIBOML2_LT_VER_CUR], [9])
-AC_SUBST([LIBOML2_LT_VER_REV], [0])
+AC_SUBST([LIBOML2_LT_VER_REV], [1])
 AC_SUBST([LIBOML2_LT_VER_AGE], [0])
 AC_SUBST([LIBOML2_LT_VER], [9]) dnl cur[:rev[:age]]
 AC_SUBST([LIBOCOMM_LT_VER_CUR], [1])

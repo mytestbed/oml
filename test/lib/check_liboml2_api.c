@@ -24,6 +24,7 @@
 #include <check.h>
 
 #include "oml2/omlc.h"
+#include "oml_value.h"
 #include "validate.h"
 #include "client.h"
 
@@ -140,20 +141,75 @@ START_TEST (test_api_mp_name_spaces)
 }
 END_TEST
 
+
+
+START_TEST(test_api_metadata)
+{
+  OmlMPDef mpdef [] =
+    {
+      { "label", OML_INT32_VALUE },
+      { NULL, (OmlValueT)0 }
+    };
+  OmlMP *mp;
+  OmlValueU value;
+  OmlValueT type = OML_STRING_VALUE;
+
+  omlc_reset_string(value);
+
+ /* XXX: Yuck */
+ const char* argv[] = {"--oml-id", __FUNCTION__, "--oml-domain", __FILE__, "--oml-collect", "file:/dev/null"};
+ int argc = 6;
+
+ fail_if(omlc_init("app", &argc, argv, NULL), "Error initialising OML");
+ mp = omlc_add_mp("MP", mpdef);
+ fail_if(mp == NULL, "Failed to add MP");
+
+ fail_unless(-1 == omlc_inject_metadata(NULL, "k", &value, type, NULL),
+     "omlc_inject_metadata accepted to work before omlc_start()");
+
+ fail_if(omlc_start(), "Error starting OML");
+
+ /* Test argument validation */
+ fail_unless(-1 == omlc_inject_metadata(NULL, "k", &value, type, NULL),
+     "omlc_inject_metadata accepted a NULL MP");
+ fail_unless(-1 == omlc_inject_metadata(mp, NULL, &value, type, NULL),
+     "omlc_inject_metadata accepted a NULL key");
+ fail_unless(-1 == omlc_inject_metadata(mp, "k", NULL, type, NULL),
+     "omlc_inject_metadata accepted a NULL value");
+
+ omlc_set_string(value, "value");
+ fail_unless(0 == omlc_inject_metadata(mp, "k", &value, type, NULL),
+     "omlc_inject_metadata refused valid metadata");
+ fail_unless(0 == omlc_inject_metadata(mp, "k", &value, type, "label"),
+     "omlc_inject_metadata refused metadata for an existing field");
+ omlc_reset_string(value);
+
+ for (type = OML_INPUT_VALUE; type <= OML_BLOB_VALUE; type++) {
+   if (type != OML_STRING_VALUE) {
+     fail_unless(-1 == omlc_inject_metadata((OmlMP *)-1, "k", &value, type, NULL),
+         "omlc_inject_metadata accepted a non-string value type");
+   }
+ }
+
+ fail_if(omlc_close(), "Error closing OML");
+}
+END_TEST
+
 Suite*
 api_suite (void)
 {
   Suite* s = suite_create("API");
 
-  /* API test cases */
   TCase* tc_api_names = tcase_create("ApiNames");
 
-  /* Add tests to test case "ApiNames" */
   tcase_add_loop_test (tc_api_names, test_api_app_name_spaces, 0, LENGTH(names_vector));
   tcase_add_loop_test (tc_api_names, test_api_validate_mp_name, 0, LENGTH(names_vector));
   tcase_add_loop_test (tc_api_names, test_api_mp_name_spaces, 0, LENGTH(names_vector));
-
   suite_add_tcase (s, tc_api_names);
+
+  TCase* tc_api_func = tcase_create("ApiFunctions");
+  tcase_add_test(tc_api_func, test_api_metadata);
+  suite_add_tcase (s, tc_api_func);
 
   return s;
 }

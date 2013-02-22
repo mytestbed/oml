@@ -104,6 +104,28 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
   return 0;
 }
 
+/** Inject metadata (key/value) for a specific MP.
+ *
+ * With the current storage backends, the key will be a concatenation following
+ * this pattern: MPNAME_[FIELDNAME_]KEY. This transformation is done on the
+ * client's side. Additionally any later injection of metadata in an already
+ * existing key will override its provious value.
+ *
+ * \param mp pointer to the OmlMP to which the metadata relates
+ * \param key base name for the key (keys are unique)
+ * \param value OmlValueU containing the value for the given key
+ * \param type OmlValueT of value, currently only OML_STRING_VALUE is valid
+ * \param fname optional field name to which this metadata relates
+ * \return 0 on success, -1 otherwise
+ *
+ * \see omlc_add_mp
+ */
+int
+omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValueT type, const char *fname)
+{
+  return -1;
+}
+
 /** Called when the particular MS has been filled.
  *
  * Determine whether a new sample must be issued (in per-sample reporting), and

@@ -601,6 +601,9 @@ int omlc_start(void);
 /*  Inject a measurement sample into a Measurement Point.  */
 int omlc_inject(OmlMP *mp, OmlValueU *values);
 
+/** Inject metadata (key/value) for a specific MP.  */
+int omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValueT type, const char *fname);
+
 // DEPRECATED
 void omlc_process(OmlMP* mp, OmlValueU* values);
 
