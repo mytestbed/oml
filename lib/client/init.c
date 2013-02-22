@@ -52,10 +52,15 @@
 
 OmlClient* omlc_instance = NULL;
 
-
 #define DEF_LOG_LEVEL = O_LOG_INFO;
 
-static OmlClient instance_storage;
+static OmlMPDef _experiment_metadata[] = {
+  {"subject", OML_STRING_VALUE},
+  {"key", OML_STRING_VALUE},
+  {"value", OML_STRING_VALUE},
+  {NULL, (OmlValueT)0}
+};
+OmlMP *schema0;
 
 static void usage(void);
 static void print_filters(void);
@@ -250,7 +255,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
   setup_features (getenv ("OML_FEATURES"));
 
-  omlc_instance = &instance_storage;
+  omlc_instance = xmalloc(sizeof(OmlClient));
   memset(omlc_instance, 0, sizeof(OmlClient));
 
   omlc_instance->app_name = app_name;
@@ -272,6 +277,8 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   omlc_instance->config_file = config_file;
 
   register_builtin_filters ();
+
+  schema0 = omlc_add_mp("_experiment_metadata", _experiment_metadata);
 
   loginfo ("OML Client V%s [Protocol V%d] %s\n",
            VERSION,
@@ -343,8 +350,12 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
   }
   mp->param_count = pc;
   mp->active = 1;  // True if there is an attached MS.
-  mp->next = omlc_instance->mpoints;
-  omlc_instance->mpoints = mp;
+  if (NULL == omlc_instance->mpoints) {
+    omlc_instance->mpoints = mp;
+  } else {
+    omlc_instance->last_mpoint->next = mp;
+  }
+  omlc_instance->last_mpoint = mp;
 
   return mp;
 }
@@ -903,8 +914,15 @@ create_mstream (const char *name,
   ms->writer = writer;
   ms->next = NULL;
 
-  mstring_set (namestr, omlc_instance->app_name);
-  mstring_cat (namestr, "_");
+  /* XXX: We should not do it for any MP, as an MP should be
+   * application-agnostic. This is not the case at the moment, and we don't
+   * want to confuse legacy post-processing scripts. See #1055.
+   * However, schema 0 is new, so let's do the right thing here.
+   */
+  if (mp!=schema0) {
+    mstring_set (namestr, omlc_instance->app_name);
+    mstring_cat (namestr, "_");
+  }
   if (name)
     mstring_cat (namestr, name);
   else
@@ -1079,7 +1097,7 @@ write_meta(void)
   }
 
   OmlMP* mp = omlc_instance->mpoints;
-  int index = 1;
+  int index = 0; /* Schema 0 is, well schema0 */
   while (mp != NULL) {
     OmlMStream* ms = mp->streams;
     for(; ms != NULL; ms = ms->next) {

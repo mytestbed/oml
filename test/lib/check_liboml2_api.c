@@ -127,6 +127,7 @@ START_TEST (test_api_mp_name_spaces)
     };
 
   OmlClient dummy;
+  memset(&dummy, 0, sizeof(OmlClient));
   omlc_instance = &dummy;
 
   const char* name = names_vector[_i].name;
@@ -153,8 +154,7 @@ START_TEST(test_api_metadata)
   OmlMP *mp;
   OmlValueU value;
   OmlValueT type = OML_STRING_VALUE;
-
-  omlc_reset_string(value);
+  omlc_zero(value);
 
  /* XXX: Yuck */
  const char* argv[] = {"--oml-id", __FUNCTION__, "--oml-domain", __FILE__, "--oml-collect", "file:/dev/null"};
@@ -192,6 +192,8 @@ START_TEST(test_api_metadata)
  }
 
  fail_if(omlc_close(), "Error closing OML");
+
+ omlc_reset_string(value);
 }
 END_TEST
 

@@ -54,6 +54,8 @@ typedef struct OmlClient {
 
   /** Linked list of measurement points */
   OmlMP*       mpoints;
+  /** Last measurement point added \see omlc_add_mp */
+  OmlMP*       last_mpoint;
 
   /** Default collection URI */
   char collection_uri[COLLECTION_URI_MAX_LENGTH + 1];

@@ -587,6 +587,9 @@ typedef struct _omlMStream
     /** Next MS in this MP's linked list */
     struct _omlMStream* next;
 
+    /** Output's sequence number for the metadata associated to this stream */
+    long meta_seq_no;
+
 } OmlMStream;
 
 /* Initialise the measurement library. */
