@@ -59,7 +59,7 @@ static inline int32_t oml_value_clamp_long (long value)
 #define oml_value_get_type(v) \
   ((OmlValueT)(v)->type)
 
-int oml_value_set(OmlValue* to, OmlValueU* value, OmlValueT type);
+int oml_value_set(OmlValue* to, const OmlValueU* value, OmlValueT type);
 int oml_value_copy(OmlValueU* value, OmlValueT type, OmlValue* to) __attribute__ ((deprecated));
 
 void oml_value_init(OmlValue* v);

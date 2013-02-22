@@ -107,7 +107,7 @@ void oml_value_set_type(OmlValue* v, OmlValueT type){
  * \return 0 if successful, -1 otherwise
  * \see oml_value_init, omlc_copy_string, omlc_copy_blob
  */
-int oml_value_set(OmlValue *to, OmlValueU *value, OmlValueT type) {
+int oml_value_set(OmlValue *to, const OmlValueU *value, OmlValueT type) {
   oml_value_set_type(to, type);
   if (omlc_is_numeric_type (type)) {
       to->value = *value;

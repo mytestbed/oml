@@ -116,7 +116,6 @@ omlc_ms_process(OmlMStream *ms)
   if (ms->sample_thres > 0 && ++ms->sample_size >= ms->sample_thres) {
     // sample based filters fire
     filter_process(ms);
-    ms->sample_size = 0;
   }
 }
 

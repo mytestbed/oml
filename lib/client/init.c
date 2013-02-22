@@ -416,16 +416,19 @@ omlc_start()
   if (config_file) {
     if (parse_config((char*)config_file)) {
       logerror("Error while parsing configuration '%s'\n", config_file);
+      xfree(omlc_instance);
       omlc_instance = NULL;
       return -1;
     }
   } else {
     if (omlc_instance->collection_uri == NULL) {
       logerror("Missing --oml-collect declaration.\n");
+      xfree(omlc_instance);
       omlc_instance = NULL;
       return -2;
     }
     if (default_configuration()) {
+      xfree(omlc_instance);
       omlc_instance = NULL;
       return -3;
     }
@@ -504,6 +507,8 @@ omlc_close(void)
 
   while( (mp = destroy_mp(mp)) );
   while( (w =  w->close(w)) );
+
+  xfree(omlc_instance);
 
   xmemreport(O_LOG_DEBUG);
 
