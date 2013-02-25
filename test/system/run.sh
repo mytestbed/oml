@@ -120,10 +120,12 @@ startdaemon() {
 	while ! grep -q "$pattern" "$log" ; do
 		echo -n "." >&2
 		if ! kill -0 ${pid} 2>/dev/null; then
-			echo "Bail out! Dead" >&2
+			echo
+			echo "Bail out! $prog is dead" >&2
 			exit 1
 		elif [ $((i++)) -gt 10 ]; then
-			echo "Bail out! Giving up" >&2
+			echo
+			echo "Bail out! Giving up on $prog" >&2
 			exit 1
 		fi
 		sleep 1
