@@ -91,7 +91,7 @@ Generate C code for an OML application from an application definition file
 
   opts.on_tail("-h", "--help", "Show this message") do $stderr.write(opts); exit end
   opts.on_tail("-v", "--version", "Show the version\n") do
-    $stderr.write(VERSION_STRING)
+    $stderr.puts (VERSION_STRING)
     exit
   end
 
@@ -475,12 +475,12 @@ typedef struct {
 static oml_mps_t g_oml_mps_storage;
 oml_mps_t* g_oml_mps_#{template(:app_cstring)} = &g_oml_mps_storage;
 
-static void oml_register_mps()
+static inline void
+oml_register_mps()
 {
 #{template(:oml_register)}
 }
 
-#{template(:oml_helpers)}
 #else
 /*
  * Not included from the main source,
@@ -490,6 +490,8 @@ static void oml_register_mps()
 extern oml_mps_t* g_oml_mps_#{template(:app_cstring)};
 
 #endif /* OML_FROM_MAIN */
+
+#{template(:oml_helpers)}
 
 /* Compatibility with old applications */
 #ifndef g_oml_mps
@@ -572,8 +574,8 @@ install: $(PROGRAM)
 	install -m 755 $(PROGRAM) $(BINDIR)
 
 clean:
-	rm -rf $(OBJS)
 	rm -rf $(PROGRAM)
+	rm -rf $(OBJS)
 
 realclean: clean
 	rm -rf $(PROGRAM)_popt.h $(PROGRAM)_oml.h
@@ -614,7 +616,8 @@ $(PROGRAM)_oml.h: $(PROGRAM).rb
 #include "config.h"
 
 /* Do application-specific work here */
-void run(opts_t* opts, oml_mps_t* oml_mps)
+void
+run(opts_t* opts, oml_mps_t* oml_mps)
 {
   long val = 1;
 
@@ -630,7 +633,8 @@ void run(opts_t* opts, oml_mps_t* oml_mps)
   } while (1);
 }
 
-int main(int argc, const char *argv[])
+int
+main(int argc, const char *argv[])
 {
   int c;
 
@@ -853,7 +857,8 @@ class MeasurementPoint
       "blob" => "blob",
     }
 
-    stream.print "inline void oml_inject_#{@name}(OmlMP* mp"
+    stream.print "static inline void
+oml_inject_#{@name}(OmlMP* mp"
     @ms.each do |m|
       stream.print ", #{ctypes[m.type]} #{m.name}"
       if m.type == :blob || m.type == "blob"

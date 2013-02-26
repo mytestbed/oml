@@ -18,7 +18,8 @@
 #include "config.h"
 
 /* Do application-specific work here */
-void run(opts_t* opts, oml_mps_t* oml_mps)
+void
+run(opts_t* opts, oml_mps_t* oml_mps)
 {
   double angle = 0;
   double delta = opts->frequency * opts->sample_interval * 2 * M_PI;
@@ -44,7 +45,8 @@ void run(opts_t* opts, oml_mps_t* oml_mps)
   }
 }
 
-int main(int argc, const char *argv[])
+int
+main(int argc, const char *argv[])
 {
   int c;
 
