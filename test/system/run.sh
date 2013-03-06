@@ -7,7 +7,7 @@
 #
 # The client also writes the generated blobs on disk, and can generate longer
 # ones with the --long flag (as the second argument to this script).
-# 
+#
 # Once done, the script extracts the data from the storage backend, and
 # compares them to those dumped by the client.
 #
@@ -16,7 +16,7 @@
 # forensic inspection in case of failures.
 #
 # Can be run manually as
-#  top_builddir=../.. POSTGRES=`which postgres` TIMEOUT=`which timeout` VERSION=`git describe` ./run.sh
+#  srcdir=. top_builddir=../.. POSTGRES=`which postgres` TIMEOUT=`which timeout` VERSION=`git describe` ./run.sh
 
 backend=${1:-sq3}
 long=$2
@@ -29,9 +29,10 @@ fi
 
 loglevel=1
 nblobs=100
+nmeta=2
 
 ntests=0
-tottests=$nblobs
+tottests=$(($nblobs+$nmeta))
 
 port=$((RANDOM + 32766))
 exp=blobgen
@@ -56,16 +57,24 @@ sq3_extract() {
 	exp=$2
 	db=${dir}/${exp}.sq3
 
-	seqs=$(sqlite3 $db 'SELECT oml_seq FROM blobgen_blobmp' 2>>${dir}/db.log)
 	echo -n "# $0 ($backend): extracting server-stored blobs from $db:" >&2
+	seqs=$(sqlite3 $db 'SELECT oml_seq FROM blobgen_blobmp' 2>>${dir}/db.log)
 	for i in $seqs; do
 		echo -n " $i"
 		sqlite3 $db "SELECT HEX(blob) FROM blobgen_blobmp WHERE oml_seq=$i" > ${dir}/s$i.hex 2>>${dir}/db.log
+	done
+
+	echo -n "# $0 ($backend): extracting server-stored metadata from $db:" >&2
+	keys=$(sqlite3 $db 'SELECT key FROM _experiment_metadata' 2>>${dir}/db.log)
+	for k in $keys; do
+		echo -n " $k"
+		sqlite3 $db "SELECT subject, value FROM _experiment_metadata WHERE key='$k'" > ${dir}/s$k.meta 2>>${dir}/db.log
 	done
 	echo "." >&2
 }
 
 ## PostgreSQL functions
+# To debug: postgres --single -D db blobgen
 # Some more specific variables
 PGPATH=`dirname ${POSTGRES} 2>/dev/null`
 PGPORT=$((RANDOM + 32766))
@@ -88,14 +97,24 @@ pg_extract() {
 	exp=$2
 	db=${exp}
 
-	PSQL_OPTS="-h localhost -p $PGPORT $db oml2 -P tuples_only=on"
-	seqs=$(${PGPATH}/psql ${PSQL_OPTS} -c 'SELECT oml_seq FROM blobgen_blobmp' 2>>${dir}/db.log) 
+	PSQL_OPTS="-h localhost -p $PGPORT $db oml2 -P tuples_only=on -P format=unaligned"
 
 	echo -n "# $0 ($backend) extracting server-stored blobs from postgresql://localhost:$PGPORT $db:" >&2
+	seqs=$(${PGPATH}/psql ${PSQL_OPTS} -c 'SELECT oml_seq FROM blobgen_blobmp' 2>>${dir}/db.log)
 	for i in $seqs; do
 		echo -n " $i" >&2
-		echo -n `${PGPATH}/psql ${PSQL_OPTS} -c "SELECT blob FROM blobgen_blobmp WHERE oml_seq=$i" 2>>${dir}/db.log | \
-			sed "/^$/d;y/abcdef/ABCDEF/;s/ *\\\\\x//"` > ${dir}/s$i.hex
+		${PGPATH}/psql ${PSQL_OPTS} -c "SELECT blob FROM blobgen_blobmp WHERE oml_seq=$i" 2>>${dir}/db.log \
+			| sed "y/abcdef/ABCDEF/;s/ *\\\\\x//" \
+			> ${dir}/s$i.hex
+	done
+	echo "." >&2
+
+	echo -n "# $0 ($backend) extracting server-stored metadata from postgresql://localhost:$PGPORT $db:" >&2
+	keys=$(${PGPATH}/psql ${PSQL_OPTS} -c 'SELECT key FROM _experiment_metadata' 2>>${dir}/db.log)
+	for k in $keys; do
+		echo -n " $k"
+		${PGPATH}/psql ${PSQL_OPTS} -c "SELECT subject, value FROM _experiment_metadata WHERE key='$k'" \
+			> ${dir}/s$k.meta 2>>${dir}/db.log
 	done
 	echo "." >&2
 }
@@ -201,21 +220,18 @@ if [ -n "$pids" ]; then
 fi
 
 # Calculate the diffs, return result
-echo "# $0: Checking that server stored blobs match client-generated blobs..." >&2
+echo "# $0: Checking that server stored data match client-generated data..." >&2
 echo "1..$tottests"
 fail=$tottests
-for f in ${dir}/g*.hex; do
-	g=$(basename $f .hex)
-	s=$(echo $g | sed "s/g/s/")
-	if [ ! -f $dir/$g.hex ]; then
-		echo "not ok $((++ntests)) - !$g"
-	elif [ ! -f $dir/$s.hex ]; then
+for g in ${dir}/g*; do
+	s=${dir}/$(basename $g | sed "s/g/s/")
+	if [ ! -f  $s ]; then
 		echo "not ok $((++ntests)) - !$s"
-	elif diff -qw $dir/$g.hex $dir/$s.hex >/dev/null 2>&1; then
-		echo "ok $((++ntests)) - $g==$s"
+	elif diff -qw $g $s >/dev/null 2>&1; then
+		echo "ok $((++ntests)) - $g == $s"
 		fail=$((fail - 1))
 	else
-		echo "not ok $((++ntests)) - $g!=$s"
+		echo "not ok $((++ntests)) - $g != $s"
 	fi
 done
 echo "# $0 ($backend): $fail/$tottests tests failed" >&2

@@ -123,6 +123,38 @@ double difftv(struct timeval t1, struct timeval t2)
   return (((double)(t1.tv_sec - t2.tv_sec)) + (double)(t1.tv_usec - t2.tv_usec)/1000000.);
 }
 
+void
+meta_to_file (const char *key, const char *value, const char *mpname, const char *fname)
+{
+  char s[64];
+  FILE *fd;
+  int result;
+
+  snprintf (s, sizeof(s), "g%s.meta", key);
+  fd = fopen (s, "a");
+  if (fd == NULL) {
+    fprintf (stderr, "# blobgen: could not open file %s: %s\n", s, strerror (errno));
+    exit (1);
+  }
+
+  if (NULL == mpname) {         /* Nothing */
+    result = fprintf (fd, ".|%s\n", value);
+
+  } else if (NULL == fname) {	/* Just mpname */
+    result = fprintf (fd, ".blobgen_%s|%s\n", mpname, value); /* Currently, the library prefixes the application name...
+                                                               * See #1055 */
+  } else {		        /* Everything */
+    result = fprintf (fd, ".blobgen_%s.%s|%s\n", mpname, fname, value);
+  }
+
+  if (result < 0) {
+    fprintf (stderr, "# blobgen: error writing meta to file: %s\n", strerror (errno));
+    fclose (fd);
+    exit (1);
+  }
+  fclose (fd);
+}
+
 static OmlMPDef mpdef [] = {
   { "label", OML_STRING_VALUE },
   { "seq", OML_UINT32_VALUE },
@@ -144,6 +176,11 @@ run (void)
   OmlValueU v[3];
   omlc_zero_array(v, 3);
 
+  /* Piggyback on v[0] which should later contain a string */
+  omlc_set_string(v[0], "v1");
+  omlc_inject_metadata(mp, "k1", &v[0], OML_STRING_VALUE, NULL);
+  meta_to_file("k1", "v1", "blobmp", NULL);
+
   gettimeofday(&beg, NULL);
   fprintf (stderr, "# blobgen: writing blobs:");
   for (i = 0; samples != 0; i++, samples--) {
@@ -163,6 +200,12 @@ run (void)
   deltaT = difftv(end, beg);
   fprintf (stderr, " (%d injects and %dB in %fs: %fips, %fBps).\n", i, (int)totlength, deltaT,
       (double)i/deltaT, (double)totlength/deltaT);
+
+  omlc_set_string(v[0], "v2");
+  omlc_inject_metadata(mp, "k2", &v[0], OML_STRING_VALUE, "blob");
+  meta_to_file("k2", "v2", "blobmp", "blob");
+  omlc_inject_metadata(mp, "k1", &v[0], OML_STRING_VALUE, NULL);
+  meta_to_file("k1", "v2", "blobmp", NULL);
 
   omlc_reset_string(v[0]);
   omlc_reset_blob(v[2]);
