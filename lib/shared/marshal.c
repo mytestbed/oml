@@ -22,10 +22,10 @@
  */
 /** \file marshal.c
  *
- * Implements marhsalling and unmarshalling of basic types for binary
- * transmission across the network.
+ * \brief Implements marhsalling and unmarshalling of basic types for binary
+ * transmission across the network (see \ref binprotocol).
  *
- * \publicsection \page binprotocol Binary Protocol Marshalling
+ * \page binprotocol Binary Protocol Marshalling
  *
  * Marshalling is done directly into Mbuffers. A marshalled packet is
  * structured as follows.
