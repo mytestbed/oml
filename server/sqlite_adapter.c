@@ -719,9 +719,8 @@ sq3_get_table_list (Database *database, int *num_tables)
        i < (nrows + 1) * ncols;
        i += ncols, j+= ncols, n++) {
     TableDescr *t;
-    // Don't try to treat the metadata tables as measurement tables.
-    if (strcmp (result[i], "_experiment_metadata") == 0 ||
-        strcmp (result[i], "_senders") == 0) {
+    /* Don't try to treat the _senders table as a measurement table. */
+    if (strcmp (result[i], "_senders") == 0) {
       t = table_descr_new (result[i], NULL);
     } else {
       struct schema *schema = schema_from_sql (result[j], sq3_type_to_oml);

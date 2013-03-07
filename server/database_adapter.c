@@ -23,8 +23,8 @@ static struct {
   const char *schema;
 } meta_tables[] = {
   { .name = "_experiment_metadata",
-    .sql = "CREATE TABLE _experiment_metadata (key TEXT PRIMARY KEY, value TEXT);",
-    .schema = NULL,
+    .sql = NULL,
+    .schema = "0 _experiment_metadata subject:string key:string value:string",
   },
   { .name = "_senders",
     .sql = "CREATE TABLE _senders (name TEXT PRIMARY KEY, id INTEGER UNIQUE);",
