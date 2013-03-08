@@ -20,12 +20,25 @@
  * THE SOFTWARE.
  *
  */
+/** \file table_descr.c
+ * Manipulate table description structures
+ */
 #include <stdlib.h>
 #include <string.h>
 
 #include "mem.h"
+#include "schema.h"
 #include "table_descr.h"
 
+/** Create a new table description
+ *
+ * The caller should xfree the returned value when no longer needed.
+ *
+ * \param name name of the table
+ * \param schema MP schema of the table
+ * \return an xmalloc'd TableDescr, or NULL on error
+ * \see xmalloc, xfree
+ */
 TableDescr*
 table_descr_new (const char* name, struct schema* schema)
 {
@@ -48,46 +61,61 @@ table_descr_new (const char* name, struct schema* schema)
   return t;
 }
 
+/** Look for a given table in a list of TableDescr
+ *
+ * \param tables the head of the TableDescr list
+ * \param table_name the name of the table to look for
+ * \return 1 if found, 0 otherwise
+ */
 int
 table_descr_have_table (TableDescr* tables, const char* table_name)
 {
-  while (tables)
-    {
-      if (strcmp (tables->name, table_name) == 0)
+  while (tables) {
+      if (strcmp (tables->name, table_name) == 0) {
         return 1;
+      }
       tables = tables->next;
-    }
+  }
   return 0;
 }
 
+/** Deallocate a TableDescr array
+ *
+ * \param tables beginning of the array
+ * \param n size of the array
+ */
 void
 table_descr_array_free (TableDescr* tables, int n)
 {
   int i = 0;
-  for (i = 0; i < n; i++)
-    {
+  for (i = 0; i < n; i++) {
       xfree (tables[i].name);
-      if (tables[i].schema)
+      if (tables[i].schema) {
         schema_free (tables[i].schema);
-    }
+      }
+  }
 
   xfree(tables);
 }
 
+/** Deallocate a TableDescr linked list
+ *
+ * \param tables head of the list
+ */
 void
 table_descr_list_free (TableDescr* tables)
 {
   TableDescr* t = tables;
 
-  while (t)
-    {
+  while (t) {
       TableDescr* next = t->next;
       xfree (t->name);
-      if (t->schema)
+      if (t->schema) {
         schema_free (t->schema);
+      }
       xfree (t);
       t = next;
-    }
+  }
 }
 
 /*

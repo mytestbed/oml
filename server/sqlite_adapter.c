@@ -1,24 +1,14 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia Limited (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file sqlite_adapter.c
+ * \brief Adapter code for the SQLite3 database backend.
  */
 #include <stdio.h>
 #include <limits.h>
@@ -43,37 +33,42 @@
 
 char *sqlite_database_dir = NULL;
 
-static int
-sql_stmt(Sq3DB* self, const char* stmt);
+/** Metadata tables */
+static struct {
+  const char *name;
+  const char *sql;
+} meta_tables [] = {
+  { .name = "_experiment_metadata",
+    .sql = "CREATE TABLE _experiment_metadata (key TEXT PRIMARY KEY, value TEXT, mpname TEXT, fname TEXT);" },
+  { .name = "_senders",
+    .sql = "CREATE TABLE _senders (name TEXT PRIMARY KEY, id INTEGER UNIQUE);" },
+};
 
-char*
-sq3_get_key_value (Database* database, const char* table,
-                   const char* key_column, const char* value_column,
-                   const char* key);
+static int sql_stmt(Sq3DB* self, const char* stmt);
 
-int
-sq3_set_key_value (Database* database, const char* table,
-                   const char* key_column, const char* value_column,
-                   const char* key, const char* value);
+/* Functions needed by the Database struct */
+static int sq3_stmt(Database* db, const char* stmt);
+static void sq3_release(Database* db);
+static int sq3_table_create (Database* db, DbTable* table, int shallow);
+static int sq3_table_create_meta (Database *db, const char *name);
+static int sq3_table_free (Database *database, DbTable* table);
+static int sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_stamp, OmlValue *values, int value_count);
+static char* sq3_get_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key);
+static int sq3_set_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key, const char* value);
+static char* sq3_get_metadata (Database* database, const char* key);
+static int sq3_set_metadata (Database* database, const char* key, const char* value);
+static int sq3_add_sender_id(Database* database, const char* sender_id);
+static char* sq3_get_uri(Database *db, char *uri, size_t size);
+static TableDescr* sq3_get_table_list (Database *database, int *num_tables);
 
-int
-sq3_get_max_value (Database* database, const char* table, const char* column_name,
-                   const char* where_column, const char* where_value);
+static OmlValueT sqlite_to_oml_type (const char *s);
+static char* sq3_get_sender_id (Database* database, const char* name);
+static int sq3_set_sender_id (Database* database, const char* name, int id);
+static int sq3_get_max_value (Database* database, const char* table, const char* column_name, const char* where_column, const char* where_value);
+static int sq3_get_max_sender_id (Database* database);
+static MString* sq3_make_sql_insert (DbTable* table);
 
-char*
-sq3_get_sender_id (Database* database, const char* name);
-
-int
-sq3_set_sender_id (Database* database, const char* name, int id);
-
-int
-sq3_get_max_sender_id (Database* database);
-
-long
-sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id);
-
-/**
- * @brief Work out which directory to put sqlite databases in, and set
+/** Work out which directory to put sqlite databases in, and set
  * sqlite_database_dir to that directory.
  *
  * This works as follows: if the user specified --data-dir on the
@@ -83,7 +78,6 @@ sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id);
  * system (under Autotools defaults this should be
  * ${prefix}/var/oml2-server, but on a distro it should be something
  * like /var/lib/oml2-server).
- *
  */
 void
 sq3_dbdir_setup (void)
@@ -101,6 +95,8 @@ sq3_dbdir_setup (void)
 /** Setup the SQLite3 backend.
  *
  * \return 0 on success, -1 otherwise
+ *
+ * \see database_setup_backend
  */
 int
 sq3_backend_setup (void)
@@ -137,183 +133,25 @@ sq3_backend_setup (void)
 }
 
 static int
-begin_transaction (Sq3DB *db)
+begin_transaction (Database *db)
 {
   const char *sql = "BEGIN TRANSACTION;";
-  return sql_stmt (db, sql);
+  return sq3_stmt (db, sql);
 }
 
 static int
-end_transaction (Sq3DB *db)
+end_transaction (Database *db)
 {
   const char *sql = "END TRANSACTION";
-  return sql_stmt (db, sql);
+  return sq3_stmt (db, sql);
 }
 
 static int
-reopen_transaction (Sq3DB *db)
+reopen_transaction (Database *db)
 {
   if (end_transaction (db) == -1) return -1;
   if (begin_transaction (db) == -1) return -1;
   return 0;
-}
-
-//static int first_row;
-
-static struct {
-  const char *name;
-  const char *sql;
-} meta_tables [] = {
-  { .name = "_experiment_metadata",
-    .sql = "CREATE TABLE _experiment_metadata (key TEXT PRIMARY KEY, value TEXT);" },
-  { .name = "_senders",
-    .sql = "CREATE TABLE _senders (name TEXT PRIMARY KEY, id INTEGER UNIQUE);" },
-};
-
-int
-sq3_table_create_meta (Database *db, const char *name)
-{
-  Sq3DB *self = (Sq3DB*)db->handle;
-  size_t i = 0;
-  for (i = 0; i < LENGTH (meta_tables); i++)
-    if (strcmp (meta_tables[i].name, name) == 0)
-      return sql_stmt (self, meta_tables[i].sql);
-  return -1;
-}
-
-/** Build a URI for this database.
- *
- * \param db Database object
- * \param uri output string buffer
- * \param size length of uri
- * \return uri on success, NULL otherwise (e.g., uri buffer too small)
- */
-char* sq3_get_uri(Database *db, char *uri, size_t size)
-{
-  char fullpath[PATH_MAX+1];
-  if(snprintf(uri, size, "file:%s/%s.sq3\n", realpath(sqlite_database_dir, fullpath), db->name) >= size)
-    return NULL;
-  return uri;
-}
-
-
-/**
- * \brief Release the sqlite3 database
- * \param db the database that contains the sqlite3 database
- */
-void
-sq3_release(Database* db)
-{
-  Sq3DB* self = (Sq3DB*)db->handle;
-  end_transaction (self);
-  sqlite3_close(self->conn);
-
-  db->handle = NULL;
-  xfree(self);
-}
-
-/**
- * @brief Add sender a new sender to the database, returning its
- * index.
- *
- * If a sender with the given id already exists, its pre-existing
- * index is returned.  Otherwise, a new sender is added to the table
- * with a new sender id, unique to this experiment.
- *
- * @param db the experiment database to which the sender id is being added.
- * @param sender_id the sender id
- * @return the index of the new sender
- */
-static int
-sq3_add_sender_id(Database* database, char* sender_id)
-{
-  Sq3DB* self = (Sq3DB*)database->handle;
-  int index = -1;
-  char* id_str = sq3_get_sender_id (database, sender_id);
-
-  if (id_str) {
-    index = atoi (id_str);
-    xfree (id_str);
-
-  } else {
-    if (self->sender_cnt == 0) {
-      int max_sender_id = sq3_get_max_sender_id (database);
-      if (max_sender_id < 0) {
-        logwarn("sqlite:%s: Could not determine maximum sender id; starting at 0\n",
-            database->name);
-        max_sender_id = 0;
-      }
-      self->sender_cnt = max_sender_id;
-    }
-    index = ++self->sender_cnt;
-
-    sq3_set_sender_id (database, sender_id, index);
-
-  }
-
-  return index;
-}
-
-char*
-sq3_get_sender_id (Database* database, const char* name)
-{
-  return sq3_get_key_value (database, "_senders", "name", "id", name);
-}
-
-int
-sq3_set_sender_id (Database* database, const char* name, int id)
-{
-  char s[64];
-  snprintf (s, LENGTH(s), "%d", id);
-  return sq3_set_key_value (database, "_senders", "name", "id", name, s);
-}
-
-int
-sq3_get_max_sender_id (Database* database)
-{
-  return sq3_get_max_value (database, "_senders", "id", NULL, NULL);
-}
-
-long
-sq3_get_max_seq_no (Database* database, DbTable* table, int sender_id)
-{
-  char s[64];
-  snprintf (s, LENGTH(s), "%u", sender_id);
-  // SELECT MAX(oml_seq) FROM table WHERE oml_sender_id='sender_id';
-  return sq3_get_max_value (database, table->schema->name, "oml_seq", "oml_sender_id", s);
-}
-
-MString*
-sq3_make_sql_insert (DbTable* table)
-{
-  MString* mstr = mstring_create ();
-  int n = 0;
-  int max = table->schema->nfields;
-
-  if (max <= 0) {
-    logerror ("sqlite: Trying to insert 0 values into table %s\n", table->schema->name);
-    goto fail_exit;
-  }
-
-  if (mstr == NULL) {
-    logerror("sqlite: Failed to create managed string for preparing SQL INSERT statement\n");
-    goto fail_exit;
-  }
-
-  /* Build SQL "INSERT INTO" statement */
-  n += mstring_set (mstr, "INSERT INTO \"");
-  n += mstring_cat (mstr, table->schema->name);
-  n += mstring_cat (mstr, "\" VALUES (?, ?, ?, ?"); /* metadata columns */
-  while (max-- > 0)
-    mstring_cat (mstr, ", ?");
-  mstring_cat (mstr, ");");
-
-  if (n != 0) goto fail_exit;
-  return mstr;
-
- fail_exit:
-  if (mstr) mstring_delete (mstr);
-  return NULL;
 }
 
 /** Mapping from SQLite3 types to OML types.
@@ -377,19 +215,97 @@ oml_to_sqlite_type (OmlValueT type)
   }
 }
 
-/*
- * Create the adapter data structures required to represent a database
- * table, and if "backend_create" is true, actually issue the SQL
- * CREATE TABLE statement to the libsqlite3 library to create the
- * table in the backend.  If "backend_create" is false, the CREATE
- * TABLE statement is not executed, but an INSERT INTO prepared
- * statement is created, and other associated required data structures
- * are built.
- *
- * Returns 0 on success, -1 on failure.
+/** Execute an SQL statement (using sqlite3_exec()).
+ * FIXME: Clearly not prepared statements (#168)
+ * FIXME: Wrap into sq3_stmt and adapt code (s/db->conn/db/)
+ * \see db_adapter_stmt, sqlite3_exec
  */
 static int
-table_create (Database* db, DbTable* table, int backend_create)
+sql_stmt(Sq3DB* self, const char* stmt)
+{
+  char *errmsg;
+  int   ret;
+  logdebug("sqlite: Will execute '%s'\n", stmt);
+  ret = sqlite3_exec(self->conn, stmt, 0, 0, &errmsg);
+
+  if (ret != SQLITE_OK) {
+    logerror("sqlite: Error executing '%s': %s\n", stmt, errmsg);
+    return -1;
+  }
+  return 0;
+}
+
+/** Type-agnostic wrapper for sql_stmt */
+static int
+sq3_stmt(Database* db, const char* stmt)
+{
+ return sql_stmt((Sq3DB*)db->handle, stmt);
+}
+
+/** Create an SQLite3 database and adapter structures
+ * \see db_adapter_create
+ */
+/* This function is exposed to the rest of the code for backend initialisation */
+int
+sq3_create_database(Database* db)
+{
+  sqlite3* conn;
+  int rc;
+  MString *path = mstring_create ();
+  if (mstring_sprintf (path, "%s/%s.sq3", sqlite_database_dir, db->name) == -1) {
+    logerror ("sqlite:%s: Failed to construct database path string\n", db->name);
+    return -1;
+  }
+  loginfo ("sqlite:%s: Opening database at '%s'\n",
+           db->name, mstring_buf (path));
+  rc = sqlite3_open(mstring_buf (path), &conn);
+  mstring_delete (path);
+  if (rc) {
+    logerror("sqlite:%s: Can't open database: %s\n", db->name, sqlite3_errmsg(conn));
+    sqlite3_close(conn);
+    return -1;
+  }
+
+  Sq3DB* self = xmalloc(sizeof(Sq3DB));
+  self->conn = conn;
+  self->last_commit = time (NULL);
+  db->table_create = sq3_table_create;
+  db->table_create_meta = sq3_table_create_meta;
+  db->table_free = sq3_table_free;
+  db->release = sq3_release;
+  db->insert = sq3_insert;
+  db->add_sender_id = sq3_add_sender_id;
+  db->set_metadata = sq3_set_metadata;
+  db->get_metadata = sq3_get_metadata;
+  db->get_uri = sq3_get_uri;
+  db->get_table_list = sq3_get_table_list;
+
+  db->handle = self;
+
+  begin_transaction (db);
+  return 0;
+}
+
+
+/** Release the SQLite3 database.
+ * \see db_adapter_release
+ */
+static void
+sq3_release(Database* db)
+{
+  Sq3DB* self = (Sq3DB*)db->handle;
+  end_transaction (db);
+  sqlite3_close(self->conn);
+
+  db->handle = NULL;
+  xfree(self);
+}
+
+/** Create the adapter structures required for the SQLite3 adapter
+ * \see db_adapter_table_create
+ */
+static int
+sq3_table_create (Database* db, DbTable* table, int shallow)
 {
   if (db == NULL) {
       logwarn("sqlite: Tried to create a table in a NULL database\n");
@@ -406,7 +322,7 @@ table_create (Database* db, DbTable* table, int backend_create)
   MString *insert = NULL, *create = NULL;
   Sq3DB* sq3db = (Sq3DB*)db->handle;
 
-  if (backend_create) {
+  if (!shallow) {
     create = schema_to_sql (table->schema, oml_to_sqlite_type);
     if (!create) {
       logerror("sqlite:%s: Failed to build SQL CREATE TABLE statement string for table %s\n",
@@ -436,33 +352,39 @@ table_create (Database* db, DbTable* table, int backend_create)
     goto fail_exit;
   }
 
-  if (create) mstring_delete (create);
-  if (insert) mstring_delete (insert);
+  if (create) { mstring_delete (create); }
+  if (insert) { mstring_delete (insert); }
   return 0;
 
  fail_exit:
-  if (create) mstring_delete (create);
-  if (insert) mstring_delete (insert);
+  if (create) { mstring_delete (create); }
+  if (insert) { mstring_delete (insert); }
   return -1;
 }
 
-/*
- * Create the adapter structures required for the SQLite3 adapter to
- * represent the table.  If thin is false, then also issue an SQL
- * CREATE TABLE statement to the libsqlite3 library to actually create
- * the table in the backend; otherwise don't do that (it's a "shallow"
- * creation of the wrapper data structures, not "deep" into the
- * database itself).
- *
- * Return 0 on success, -1 on failure.
+/** Create the adapter structures required for the metadata table
+ * \see db_adapter_table_create_meta
  */
-int
-sq3_table_create (Database *database, DbTable *table, int shallow)
+static int
+sq3_table_create_meta (Database *db, const char *name)
 {
-  return table_create (database, table, !shallow);
+  Sq3DB *self = (Sq3DB*)db->handle;
+  size_t i = 0;
+  for (i = 0; i < LENGTH (meta_tables); i++) {
+    if (strcmp (meta_tables[i].name, name) == 0) {
+      return sql_stmt (self, meta_tables[i].sql);
+    }
+  }
+  return -1;
 }
 
-int
+/** Free an SQLite3 table
+ *
+ * Parameter database is ignored in this implementation
+ *
+ * \see db_adapter_table_free, sqlite3_finalize
+ */
+static int
 sq3_table_free (Database *database, DbTable* table)
 {
   (void)database;
@@ -478,20 +400,11 @@ sq3_table_free (Database *database, DbTable* table)
   return ret;
 }
 
-/** Insert value in the sqlite3 database.
- *
- * \param Db database that links to the sqlite3 db
- * \param table DbTable to insert data in
- * \param sender_id sender ID
- * \param seq_no sequence number
- * \param time_stamp timestamp of the receiving data
- * \param values OmlValue array to insert
- * \param value_count number of values
- * \return 0 if successful, -1 otherwise
+/** Insert value in the SQLite3 database.
+ * \see db_adapter_insert
  */
 static int
-sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
-           double time_stamp, OmlValue *values, int value_count)
+sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_stamp, OmlValue *values, int value_count)
 {
   Sq3DB* sq3db = (Sq3DB*)db->handle;
   Sq3Table* sq3table = (Sq3Table*)table->handle;
@@ -503,8 +416,9 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
   time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
 
   if (tv.tv_sec > sq3db->last_commit) {
-    if (reopen_transaction (sq3db) == -1)
+    if (reopen_transaction (db) == -1) {
       return -1;
+    }
     sq3db->last_commit = tv.tv_sec;
   }
 
@@ -601,192 +515,41 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no,
   return sqlite3_reset(stmt);
 }
 
-#if 0 // select_callback is not used anywhere in this translation unit, but it's static!
-static int
-select_callback(void* p_data, int num_fields, char** p_fields, char** p_col_names)
-{
-  int i;
-  int* nof_records = (int*) p_data;
-  (*nof_records)++;
-
-  if (first_row) {
-    first_row = 0;
-    for (i=0; i < num_fields; i++)
-      printf("%20s", p_col_names[i]);
-    printf("\n");
-    for (i=0; i< num_fields*20; i++)
-      printf("=");
-    printf("\n");
-  }
-
-  for(i=0; i < num_fields; i++) {
-    if (p_fields[i])
-      printf("%20s", p_fields[i]);
-    else
-      printf("%20s", " ");
-  }
-  printf("\n");
-  return 0;
-}
-#endif
-
-#if 0 // select_stmt is not used anywhere in this translation unit, but it's static!
-static int
-select_stmt(Sq3DB* self, const char* stmt)
-{
-  char* errmsg;
-  int   ret;
-  int   nrecs = 0;
-  logdebug("sqlite: Will execute '%s'\n", stmt);
-  first_row = 1;
-
-  ret = sqlite3_exec(self->conn, stmt, select_callback, &nrecs, &errmsg);
-
-  if (ret != SQLITE_OK) {
-    logerror("sqlite: Error executing '%s': %s\n", stmt, errmsg);
-    return -1;
-  }
-  return nrecs;
-}
-#endif
-
-/**
- * \brief Execute sqlite3 statement
- * \param self the sqlite3 database
- * \param stmt the statement to prepare
- * \return 0 if successfull, -1 otherwise
+/** Do a key-value style select on a database table.
+ *
+ * FIXME: Not using prepared statements (#168)
+ *
+ * The caller is responsible for xfree()ing the returned value when no longer
+ * needed.
+ *
+ * This function does a key lookup on a database table that is set up
+ * in key-value style.  The table can have more than two columns, but
+ * this function SELECT's two of them and returns the value of the
+ * value column.  It checks to make sure that the key returned is the
+ * one requested, then returns its corresponding value.
+ *
+ * This function makes a lot of assumptions about the database and
+ * the table:
+ *
+ * #- the database exists and is open
+ * #- the table exists in the database
+ * #- there is a column named key_column in the table
+ * #- there is a column named value_column in the table
+ *
+ * The function does not check for any of these conditions, but just
+ * assumes they are true.  Be advised.
+ *
+ * \param database Database to use
+ * \param table name of the table to work in
+ * \param key_column name of the column to use as key
+ * \param value_column name of the column to set the value in
+ * \param key key to look for in key_column
+ *
+ * \return an xmalloc'd string value for the given key, or NULL
+ *
+ * \see sq3_set_key_value, xmalloc, xfree
  */
-static int
-sql_stmt(Sq3DB* self, const char* stmt)
-{
-  char *errmsg;
-  int   ret;
-  logdebug("sqlite: Will execute '%s'\n", stmt);
-  ret = sqlite3_exec(self->conn, stmt, 0, 0, &errmsg);
-
-  if (ret != SQLITE_OK) {
-    logerror("sqlite: Error executing '%s': %s\n", stmt, errmsg);
-    return -1;
-  }
-  return 0;
-}
-
-TableDescr*
-sq3_get_table_list (Database *database, int *num_tables)
-{
-  Sq3DB *self = database->handle;
-  const char* stmt = "SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name;";
-  char* errmsg;
-  char** result;
-  int nrows;
-  int ncols;
-  int ret = sqlite3_get_table (self->conn, stmt, &result, &nrows, &ncols, &errmsg);
-
-  *num_tables = -1;
-  if (ret != SQLITE_OK) {
-    logerror("sqlite:%s: Error in SELECT statement '%s': %s\n", 
-        database->name, stmt, errmsg);
-    sqlite3_free (errmsg);
-    return NULL;
-  }
-
-  if (ncols == 0 || nrows == 0) {
-    logdebug("sqlite:%s: Table list empty; need to create tables\n", database->name);
-    sqlite3_free_table (result);
-    *num_tables = 0;
-    return NULL;
-  }
-
-  int i = 0;
-  int name_col = -1;
-  int schema_col = -1;
-  for (i = 0; i < ncols; i++) {
-    if (strcasecmp(result[i], "name") == 0)
-      name_col = i;
-    if (strcasecmp (result[i], "sql") == 0)
-      schema_col = i;
-  }
-
-  if (name_col == -1 || schema_col == -1) {
-    logerror("sqlite:%s: Couldn't get the 'name' or 'schema' column index from list of tables\n",
-        database->name);
-    sqlite3_free_table (result);
-    *num_tables = 0;
-    return NULL;
-  }
-
-  TableDescr* tables = NULL;
-
-  int n = 0;
-  int j = 0;
-  for (i = name_col + ncols, j = schema_col + ncols;
-       i < (nrows + 1) * ncols;
-       i += ncols, j+= ncols, n++) {
-    TableDescr *t;
-    // Don't try to treat the metadata tables as measurement tables.
-    if (strcmp (result[i], "_experiment_metadata") == 0 ||
-        strcmp (result[i], "_senders") == 0) {
-      t = table_descr_new (result[i], NULL);
-    } else {
-      struct schema *schema = schema_from_sql (result[j], sqlite_to_oml_type);
-      if (!schema) {
-        logwarn ("sqlite:%s: Failed to create table '%s': error parsing schema '%s'; not created by OML?\n",
-            database->name, result[i], result[j]);
-        continue;
-      }
-      t = table_descr_new (result[i], schema);
-    }
-    t->next = tables;
-    tables = t;
-  }
-
-  sqlite3_free_table (result);
-  *num_tables = n;
-  return tables;
-}
-
-char*
-sq3_get_metadata (Database* database, const char* key)
-{
-  return sq3_get_key_value (database, "_experiment_metadata", "key", "value", key);
-}
-
-int
-sq3_set_metadata (Database* database, const char* key, const char* value)
-{
-  return sq3_set_key_value (database, "_experiment_metadata", "key", "value", key, value);
-}
-
-/**
- *  @brief Do a key-value style select on a database table.
- *
- *  This function does a key lookup on a database table that is set up
- *  in key-value style.  The table can have more than two columns, but
- *  this function SELECT's two of them and returns the value of the
- *  value column.  It checks to make sure that the key returned is the
- *  one requested, then returns its corresponding value.
- *
- *  This function makes a lot of assumptions about the database and
- *  the table:
- *
- *  #- the database exists and is open
- *  #- the table exists in the database
- *  #- there is a column named key_column in the table
- *  #- there is a column named value_column in the table
- *
- *  The function does not check for any of these conditions, but just
- *  assumes they are true.  Be advised.
- *
- *  @param database the database to look up in.
- *  @param table the name of the table to look up in.
- *  @param key_column the name of the column holding the key strings.
- *  @param value_column the name of the column holding the value strings.
- *  @param key the key string to look up (i.e. WHERE key_column='key').
- *
- *  @return the string value corresponding to the given key, or NULL
- *  if an error occurred of if the key was not present in the table.
- */
-char*
+static char*
 sq3_get_key_value (Database* database, const char* table, const char* key_column,
                    const char* value_column, const char* key)
 {
@@ -824,16 +587,29 @@ sq3_get_key_value (Database* database, const char* table, const char* key_column
   char* value = NULL;
 
   if (strcmp (key, result[2]) == 0) {
-    size_t len = strlen (result[3]) + 1;
-    value = xmalloc (len);
-    strncpy (value, result[3], len);
+    size_t len = strlen (result[3]);
+    value = xstrndup (result[3], len);
   }
 
   sqlite3_free_table (result);
   return value;
 }
 
-int
+/** Set a value for the given key in the given table
+ *
+ * FIXME: Not using prepared statements (#168)
+ *
+ * \param database Database to use
+ * \param table name of the table to work in
+ * \param key_column name of the column to use as key
+ * \param value_column name of the column to set the value in
+ * \param key key to look for in key_column
+ * \param value value to look for in value_column
+ * \return 0 on success, -1 otherwise
+ *
+ * \see sq3_get_key_value
+ */
+static int
 sq3_set_key_value (Database* database, const char* table,
                    const char* key_column, const char* value_column,
                    const char* key, const char* value)
@@ -842,19 +618,21 @@ sq3_set_key_value (Database* database, const char* table,
   char stmt[512];
   size_t n;
   char* check_value = sq3_get_key_value (database, table, key_column, value_column, key);
-  if (check_value == NULL)
+  if (check_value == NULL) {
     n = snprintf (stmt, LENGTH(stmt), "INSERT INTO \"%s\" (\"%s\", \"%s\") VALUES ('%s', '%s');",
                   table,
                   key_column, value_column,
                   key, value);
-  else
+  } else {
     n = snprintf (stmt, LENGTH(stmt), "UPDATE \"%s\" SET \"%s\"='%s' WHERE \"%s\"='%s';",
                   table,
                   value_column, value,
                   key_column, key);
 
-  if (check_value != NULL)
+  }
+  if (check_value != NULL) {
     xfree (check_value);
+  }
 
   if (n >= LENGTH (stmt)) {
     logwarn("sqlite:%s: SQL statement too long trying to update key-value pair %s='%s' in %s(%s, %s)\n",
@@ -871,7 +649,188 @@ sq3_set_key_value (Database* database, const char* table,
   return 0;
 }
 
-int
+/** Get data from the metadata table
+ * \see db_adapter_get_metadata, sq3_get_key_value
+ */
+static char*
+sq3_get_metadata (Database* database, const char* key)
+{
+  return sq3_get_key_value (database, "_experiment_metadata", "key", "value", key);
+}
+
+/** Set data in the metadata table
+ * \see db_adapter_set_metadata, sq3_set_key_value
+ */
+static int
+sq3_set_metadata (Database* database, const char* key, const char* value)
+{
+  return sq3_set_key_value (database, "_experiment_metadata", "key", "value", key, value);
+}
+
+/** Add a new sender to the database, returning its index.
+ * \see db_add_sender_id
+ */
+static int
+sq3_add_sender_id(Database* database, const char* sender_id)
+{
+  Sq3DB* self = (Sq3DB*)database->handle;
+  int index = -1;
+  char* id_str = sq3_get_sender_id (database, sender_id);
+
+  if (id_str) {
+    index = atoi (id_str);
+    xfree (id_str);
+
+  } else {
+    if (self->sender_cnt == 0) {
+      int max_sender_id = sq3_get_max_sender_id (database);
+      if (max_sender_id < 0) {
+        logwarn("sqlite:%s: Could not determine maximum sender id; starting at 0\n",
+            database->name);
+        max_sender_id = 0;
+      }
+      self->sender_cnt = max_sender_id;
+    }
+    index = ++self->sender_cnt;
+
+    sq3_set_sender_id (database, sender_id, index);
+
+  }
+
+  return index;
+}
+
+/** Build a URI for this database.
+ *
+ * URI is of the form file:PATH/DATABASE.sq3
+ *
+ * \see db_adapter_get_uri
+ */
+static char*
+sq3_get_uri(Database *db, char *uri, size_t size)
+{
+  char fullpath[PATH_MAX+1];
+  if(snprintf(uri, size, "file:%s/%s.sq3\n", realpath(sqlite_database_dir, fullpath), db->name) >= size) {
+    return NULL;
+  }
+  return uri;
+}
+
+/** Get a list of tables in an SQLite3 database
+ * \see db_adapter_get_table_list
+ */
+static TableDescr*
+sq3_get_table_list (Database *database, int *num_tables)
+{
+  Sq3DB *self = database->handle;
+  TableDescr* tables = NULL;
+  const char* stmt = "SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name;";
+  char* errmsg;
+  char** result;
+  int i = 0, j = 0, n = 0;
+  int nrows, ncols;
+  int name_col = -1, schema_col = -1;
+  int ret = sqlite3_get_table (self->conn, stmt, &result, &nrows, &ncols, &errmsg);
+
+  *num_tables = -1;
+  if (ret != SQLITE_OK) {
+    logerror("sqlite:%s: Error in SELECT statement '%s': %s\n",
+        database->name, stmt, errmsg);
+    sqlite3_free (errmsg);
+    return NULL;
+  }
+
+  if (ncols == 0 || nrows == 0) {
+    logdebug("sqlite:%s: Table list empty; need to create tables\n", database->name);
+    sqlite3_free_table (result);
+    *num_tables = 0;
+    return NULL;
+  }
+
+  for (i = 0; i < ncols; i++) {
+    if (strcasecmp(result[i], "name") == 0) {
+      name_col = i;
+    }
+    if (strcasecmp (result[i], "sql") == 0) {
+      schema_col = i;
+    }
+  }
+
+  if (name_col == -1 || schema_col == -1) {
+    logerror("sqlite:%s: Couldn't get the 'name' or 'schema' column index from list of tables\n",
+        database->name);
+    sqlite3_free_table (result);
+    *num_tables = 0;
+    return NULL;
+  }
+
+  for (i = name_col + ncols, j = schema_col + ncols;
+       i < (nrows + 1) * ncols;
+       i += ncols, j+= ncols, n++) {
+    TableDescr *t;
+    // Don't try to treat the metadata tables as measurement tables.
+    if (strcmp (result[i], "_experiment_metadata") == 0 ||
+        strcmp (result[i], "_senders") == 0) {
+      t = table_descr_new (result[i], NULL);
+    } else {
+      struct schema *schema = schema_from_sql (result[j], sqlite_to_oml_type);
+      if (!schema) {
+        logwarn ("sqlite:%s: Failed to create table '%s': error parsing schema '%s'; not created by OML?\n",
+            database->name, result[i], result[j]);
+        continue;
+      }
+      t = table_descr_new (result[i], schema);
+    }
+    t->next = tables;
+    tables = t;
+  }
+
+  sqlite3_free_table (result);
+  *num_tables = n;
+  return tables;
+}
+
+/** Get the sender_id for a given name in the _senders table.
+ *
+ * \param name name of the sender
+ * \return the sender ID
+ *
+ * \see sq3_get_key_value
+ */
+static char*
+sq3_get_sender_id (Database* database, const char* name)
+{
+  return sq3_get_key_value (database, "_senders", "name", "id", name);
+}
+
+/** Set the sender_id for a given name in the _senders table.
+ *
+ * \param name name of the sender
+ * \param id the ID to set
+ * \return the sender ID
+ *
+ * \see sq3_set_key_value
+ */
+static int
+sq3_set_sender_id (Database* database, const char* name, int id)
+{
+  char s[64];
+  snprintf (s, LENGTH(s), "%d", id);
+  return sq3_set_key_value (database, "_senders", "name", "id", name, s);
+}
+
+/** Find the largest value in a given column of a table, matching some conditions
+ *
+ * FIXME: Not using prepared statements (#168)
+ *
+ * \param database Database to use
+ * \param table name of the table to work in
+ * \param column_name name of the column to lookup
+ * \param where_column column to look for specific condition
+ * \param where_value condition on where_column
+ * \return the maximal value found in column_name when where_column==where_value is matched, or -1 on error
+ */
+static int
 sq3_get_max_value (Database* database, const char* table, const char* column_name,
                    const char* where_column, const char* where_value)
 {
@@ -936,49 +895,57 @@ sq3_get_max_value (Database* database, const char* table, const char* column_nam
   return max;
 }
 
-/**
- * \brief Create a sqlite3 database
- * \param db the databse to associate with the sqlite3 database
- * \return 0 if successful, -1 otherwise
+/** Get the highest sender ID in this database.
+ * \param db Database to use
+ * \return the highest sender ID, or -1 on error
+ * \see sq3_get_max_value
  */
-int
-sq3_create_database(Database* db)
+static int
+sq3_get_max_sender_id (Database* database)
 {
-  sqlite3* conn;
-  int rc;
-  MString *path = mstring_create ();
-  if (mstring_sprintf (path, "%s/%s.sq3", sqlite_database_dir, db->name) == -1) {
-    logerror ("sqlite:%s: Failed to construct database path string\n", db->name);
-    return -1;
+  return sq3_get_max_value (database, "_senders", "id", NULL, NULL);
+}
+
+/** Prepare an INSERT statement for a given SQLite3 table
+ *
+ * The returned value is to be destroyed by the caller.
+ *
+ * \param table DbTable adapter for the target SQLite3 table
+ * \return an MString containing the prepared statement, or NULL on error
+ *
+ * \see mstring_create, mstring_delete
+ */
+static MString*
+sq3_make_sql_insert (DbTable* table)
+{
+  MString* mstr = mstring_create ();
+  int n = 0;
+  int max = table->schema->nfields;
+
+  if (max <= 0) {
+    logerror ("sqlite: Trying to insert 0 values into table %s\n", table->schema->name);
+    goto fail_exit;
   }
-  loginfo ("sqlite:%s: Opening database at '%s'\n",
-           db->name, mstring_buf (path));
-  rc = sqlite3_open(mstring_buf (path), &conn);
-  mstring_delete (path);
-  if (rc) {
-    logerror("sqlite:%s: Can't open database: %s\n", db->name, sqlite3_errmsg(conn));
-    sqlite3_close(conn);
-    return -1;
+
+  if (mstr == NULL) {
+    logerror("sqlite: Failed to create managed string for preparing SQL INSERT statement\n");
+    goto fail_exit;
   }
 
-  Sq3DB* self = xmalloc(sizeof(Sq3DB));
-  self->conn = conn;
-  self->last_commit = time (NULL);
-  db->table_create = sq3_table_create;
-  db->table_create_meta = sq3_table_create_meta;
-  db->table_free = sq3_table_free;
-  db->release = sq3_release;
-  db->insert = sq3_insert;
-  db->add_sender_id = sq3_add_sender_id;
-  db->set_metadata = sq3_set_metadata;
-  db->get_metadata = sq3_get_metadata;
-  db->get_uri = sq3_get_uri;
-  db->get_table_list = sq3_get_table_list;
+  /* Build SQL "INSERT INTO" statement */
+  n += mstring_set (mstr, "INSERT INTO \"");
+  n += mstring_cat (mstr, table->schema->name);
+  n += mstring_cat (mstr, "\" VALUES (?, ?, ?, ?"); /* metadata columns */
+  while (max-- > 0)
+    mstring_cat (mstr, ", ?");
+  mstring_cat (mstr, ");");
 
-  db->handle = self;
+  if (n != 0) goto fail_exit;
+  return mstr;
 
-  begin_transaction (self);
-  return 0;
+ fail_exit:
+  if (mstr) mstring_delete (mstr);
+  return NULL;
 }
 
 /*

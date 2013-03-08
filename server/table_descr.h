@@ -24,19 +24,20 @@
 #ifndef TABLE_DESCR_H__
 #define TABLE_DESCR_H__
 
-#include <schema.h>
+#include "schema.h"
 
+/** Structure describing a measurement table */
 typedef struct TableDescr
 {
-  char* name;
-  struct schema *schema;
-  struct TableDescr* next;
+  char* name;               /** Name of the MS/table */
+  struct schema *schema;    /** Schemam of the MS */
+  struct TableDescr* next;  /** Pointer to the next element in the linked list */
 } TableDescr;
 
 TableDescr* table_descr_new (const char* name, struct schema* schema);
+int  table_descr_have_table (TableDescr* tables, const char* table_name);
 void table_descr_array_free (TableDescr* tables, int n);
 void table_descr_list_free (TableDescr* tables);
-int  table_descr_have_table (TableDescr* tables, const char* table_name);
 
 #endif // TABLE_DESCR_H__
 

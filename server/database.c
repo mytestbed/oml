@@ -1,27 +1,15 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia Limited (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-//! Implements the interface to a local database
-
+/** \file database.c
+ * Generic interface for database backends
+ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -90,12 +78,12 @@ database_valid_backends ()
 
 /** Setup the selected database backend.
  *
- * Must be called after droppnig privileges.
+ * Must be called after dropping privileges.
  *
  * \param backend name of the selected backend
  * \return 0 on success, -1 otherwise
  *
- * \see sq3_backend_setup()
+ * \see sq3_backend_setup, psql_backend_setup
  */
 int
 database_setup_backend (const char* backend)
@@ -134,18 +122,15 @@ database_create_function (const char *backend)
   return NULL;
 }
 
-
-int database_init (Database *self);
-
-/**  Return the database instance for +name+.
+/** Find a database instance for name.
  *
- * If no database with this name exists, a new one is created
+ * If no database with this name exists, a new one is created.
  *
- * \param name the name of the database
- * \return a new database
+ * \param name name of the database to find
+ * \return a pointer to the database
  */
 Database*
-database_find (char* name)
+database_find (const char* name)
 {
   Database* db = first_db;
   while (db != NULL) {
@@ -190,10 +175,10 @@ database_find (char* name)
 
   return self;
 }
-/**
- * \brief Client no longer uses this database.
+/** One client no longer uses this database.
  * If this was the last client checking out, close database.
  * \param self the database to release
+ * \see db_adapter_release
  */
 void
 database_release(Database* self)
@@ -252,10 +237,12 @@ database_release(Database* self)
   xfree(self);
 }
 
-/**
- * Close all databases, e.g., before quitting
+/** Close all open databases
+ *
+ * Useful when exiting.
  */
-void database_cleanup()
+void
+database_cleanup()
 {
   Database *next, *db = first_db;
 
