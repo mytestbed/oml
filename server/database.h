@@ -38,6 +38,18 @@ struct DbTable;
 typedef struct DbTable DbTable;
 typedef struct Database Database;
 
+/** Execute an SQL statement with no data return.
+ *
+ * This function executes a statement with the assumption that the
+ * result can be ignored; that is, it's not useful for SELECT
+ * statements.
+ *
+ * \param self the database handle.
+ * \param stmt the SQL statement to execute.
+ * \return 0 if successful, -1 if the database reports an error.
+ */
+typedef int (*db_adapter_stmt)(Database *db, const char* stmt);
+
 /** Create a database adapter structures
  *
  * \param db basic Database structure to associate with the database
@@ -159,6 +171,7 @@ struct Database{
   time_t     start_time;              /** Experiment start time */
   void*      handle;                  /** Opaque pointer to database implementation handle */
 
+  db_adapter_stmt stmt;                           /** Pointer to low-level function to execute a given SQL statement \see db_adapter_stmt */
   db_adapter_create create;                       /** Pointer to function to create a new database \see db_adapter_create */
   db_adapter_release release;                     /** Pointer to function to release from one client \see db_adapter_release */
   db_adapter_table_create table_create;           /** Pointer to function to create a table \see db_adapter_table_create*/

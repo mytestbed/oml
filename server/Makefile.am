@@ -17,6 +17,8 @@ oml2_server_SOURCES = \
 	database.h \
 	hook.c \
 	hook.h \
+	database_adapter.c \
+	database_adapter.h \
 	sqlite_adapter.c \
 	sqlite_adapter.h \
 	table_descr.c \

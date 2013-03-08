@@ -29,20 +29,10 @@
 #include "schema.h"
 #include "database.h"
 #include "table_descr.h"
+#include "database_adapter.h"
 #include "sqlite_adapter.h"
 
 char *sqlite_database_dir = NULL;
-
-/** Metadata tables */
-static struct {
-  const char *name;
-  const char *sql;
-} meta_tables [] = {
-  { .name = "_experiment_metadata",
-    .sql = "CREATE TABLE _experiment_metadata (key TEXT PRIMARY KEY, value TEXT, mpname TEXT, fname TEXT);" },
-  { .name = "_senders",
-    .sql = "CREATE TABLE _senders (name TEXT PRIMARY KEY, id INTEGER UNIQUE);" },
-};
 
 static int sql_stmt(Sq3DB* self, const char* stmt);
 
@@ -50,7 +40,6 @@ static int sql_stmt(Sq3DB* self, const char* stmt);
 static int sq3_stmt(Database* db, const char* stmt);
 static void sq3_release(Database* db);
 static int sq3_table_create (Database* db, DbTable* table, int shallow);
-static int sq3_table_create_meta (Database *db, const char *name);
 static int sq3_table_free (Database *database, DbTable* table);
 static int sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_stamp, OmlValue *values, int value_count);
 static char* sq3_get_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key);
@@ -129,28 +118,6 @@ sq3_backend_setup (void)
 
   loginfo ("sqlite: Creating SQLite3 databases in %s\n", sqlite_database_dir);
 
-  return 0;
-}
-
-static int
-begin_transaction (Database *db)
-{
-  const char *sql = "BEGIN TRANSACTION;";
-  return sq3_stmt (db, sql);
-}
-
-static int
-end_transaction (Database *db)
-{
-  const char *sql = "END TRANSACTION";
-  return sq3_stmt (db, sql);
-}
-
-static int
-reopen_transaction (Database *db)
-{
-  if (end_transaction (db) == -1) return -1;
-  if (begin_transaction (db) == -1) return -1;
   return 0;
 }
 
@@ -269,8 +236,9 @@ sq3_create_database(Database* db)
   Sq3DB* self = xmalloc(sizeof(Sq3DB));
   self->conn = conn;
   self->last_commit = time (NULL);
+  db->stmt = sq3_stmt;
   db->table_create = sq3_table_create;
-  db->table_create_meta = sq3_table_create_meta;
+  db->table_create_meta = dba_table_create_meta;
   db->table_free = sq3_table_free;
   db->release = sq3_release;
   db->insert = sq3_insert;
@@ -282,7 +250,7 @@ sq3_create_database(Database* db)
 
   db->handle = self;
 
-  begin_transaction (db);
+  dba_begin_transaction (db);
   return 0;
 }
 
@@ -294,7 +262,7 @@ static void
 sq3_release(Database* db)
 {
   Sq3DB* self = (Sq3DB*)db->handle;
-  end_transaction (db);
+  dba_end_transaction (db);
   sqlite3_close(self->conn);
 
   db->handle = NULL;
@@ -362,22 +330,6 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
   return -1;
 }
 
-/** Create the adapter structures required for the metadata table
- * \see db_adapter_table_create_meta
- */
-static int
-sq3_table_create_meta (Database *db, const char *name)
-{
-  Sq3DB *self = (Sq3DB*)db->handle;
-  size_t i = 0;
-  for (i = 0; i < LENGTH (meta_tables); i++) {
-    if (strcmp (meta_tables[i].name, name) == 0) {
-      return sql_stmt (self, meta_tables[i].sql);
-    }
-  }
-  return -1;
-}
-
 /** Free an SQLite3 table
  *
  * Parameter database is ignored in this implementation
@@ -416,7 +368,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
   time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
 
   if (tv.tv_sec > sq3db->last_commit) {
-    if (reopen_transaction (db) == -1) {
+    if (dba_reopen_transaction (db) == -1) {
       return -1;
     }
     sq3db->last_commit = tv.tv_sec;

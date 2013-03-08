@@ -35,6 +35,8 @@ check_server_SOURCES = \
 	$(top_srcdir)/server/hook.h \
 	$(top_srcdir)/server/sqlite_adapter.c \
 	$(top_srcdir)/server/sqlite_adapter.h \
+	$(top_srcdir)/server/database_adapter.c \
+	$(top_srcdir)/server/database_adapter.h \
 	$(top_srcdir)/server/database.c \
 	$(top_srcdir)/server/database.h \
 	$(top_srcdir)/server/table_descr.c \
