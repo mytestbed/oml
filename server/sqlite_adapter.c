@@ -275,7 +275,8 @@ sq3_release(Database* db)
 static int
 sq3_table_create (Database* db, DbTable* table, int shallow)
 {
-  MString *insert = NULL, *create = NULL;
+  MString *insert = NULL, *create = NULL, *meta_skey = NULL;;
+  char *meta_svalue = NULL;
   Sq3DB* sq3db = NULL;
   Sq3Table *sq3table = NULL;
   if (db == NULL) {
@@ -305,6 +306,17 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
           sqlite3_errmsg(sq3db->conn));
       goto fail_exit;
     }
+
+    /* The schema index is irrelevant in the metadata, temporarily drop it */
+    int sindex = table->schema->index;
+    table->schema->index = -1;
+    meta_skey = mstring_create ();
+    mstring_sprintf (meta_skey, "table_%s", table->schema->name);
+    meta_svalue = schema_to_meta (table->schema);
+    table->schema->index = sindex;
+    sq3_set_metadata (db, mstring_buf (meta_skey), meta_svalue);
+    mstring_delete(meta_skey);
+    xfree(meta_svalue);
   }
 
   insert = sq3_make_sql_insert (table);
