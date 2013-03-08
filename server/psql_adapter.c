@@ -29,15 +29,36 @@
 #include "database_adapter.h"
 #include "psql_adapter.h"
 
+static char backend_name[] = "psql";
+/* Cannot be static due to the way the server sets its parameters */
 char *pg_host = DEFAULT_PG_HOST;
 char *pg_port = DEFAULT_PG_PORT;
 char *pg_user = DEFAULT_PG_USER;
 char *pg_pass = DEFAULT_PG_PASS;
 char *pg_conninfo = DEFAULT_PG_CONNINFO;
 
+/** Mapping between OML and PostgreSQL data types
+ * \see psql_type_to_oml, psql_oml_to_type
+ */
+static struct {
+  OmlValueT type;           /** OML type */
+  const char * const name;  /** PostgreSQL equivalent */
+} psql_type_pair[] = {
+  { OML_LONG_VALUE,    "INT4" },
+  { OML_DOUBLE_VALUE,  "FLOAT8" },
+  { OML_STRING_VALUE,  "TEXT" },
+  { OML_BLOB_VALUE,    "BYTEA" },
+  { OML_INT32_VALUE,   "INT4" },
+  { OML_UINT32_VALUE,  "INT8" }, /* PG doesn't support unsigned types --> promote */
+  { OML_INT64_VALUE,   "INT8" },
+  { OML_UINT64_VALUE,  "BIGINT" },
+};
+
 static int sql_stmt(PsqlDB* self, const char* stmt);
 
 /* Functions needed by the Database struct */
+static OmlValueT psql_type_to_oml (const char *s);
+static const char* psql_oml_to_type (OmlValueT type);
 static int psql_stmt(Database* db, const char* stmt);
 static void psql_release(Database* db);
 static int psql_table_create (Database* db, DbTable* table, int shallow);
@@ -52,7 +73,6 @@ static char* psql_get_uri(Database *db, char *uri, size_t size);
 static TableDescr* psql_get_table_list (Database *database, int *num_tables);
 
 static MString* psql_prepare_conninfo(const char *database, const char *host, const char *port, const char *user, const char *pass, const char *extra_conninfo);
-static const char* oml_to_postgresql_type (OmlValueT type);
 static char* psql_get_sender_id (Database* database, const char* name);
 static int psql_set_sender_id (Database* database, const char* name, int id);
 static MString* psql_make_sql_insert (DbTable* table);
@@ -133,27 +153,40 @@ psql_backend_setup (void)
   return 0;
 }
 
+/** Mapping from PostgreSQL to OML types.
+ * \see db_adapter_type_to_oml
+ */
+static
+OmlValueT psql_type_to_oml (const char *type)
+{
+  int i = 0;
+  int n = LENGTH(psql_type_pair);
+
+  for (i = 0; i < n; i++) {
+    if (strcmp (type, psql_type_pair[i].name) == 0) {
+        return psql_type_pair[i].type;
+    }
+  }
+  logwarn("Unknown PostgreSQL type '%s', using OML_UNKNOWN_VALUE\n", type);
+  return OML_UNKNOWN_VALUE;
+}
+
 /** Mapping from OML types to PostgreSQL types.
- *
- * \param type OmlValueT
- * \return a pointer to a static string describing the PostgreSQL type, or NULL if unknown
+ * \see db_adapter_oml_to_type
  */
 static const char*
-oml_to_postgresql_type (OmlValueT type)
+psql_oml_to_type (OmlValueT type)
 {
-  switch (type) {
-  case OML_LONG_VALUE:    return "INT4"; break;
-  case OML_DOUBLE_VALUE:  return "FLOAT8"; break;
-  case OML_STRING_VALUE:  return "TEXT"; break;
-  case OML_BLOB_VALUE:    return "BYTEA"; break;
-  case OML_INT32_VALUE:   return "INT4"; break;
-  case OML_UINT32_VALUE:  return "INT8"; break; // PG doesn't support unsigned types --> promote
-  case OML_INT64_VALUE:   return "INT8"; break;
-  case OML_UINT64_VALUE:  return "BIGINT"; break;
-  default:
-    logerror("Unknown type %d\n", type);
-    return NULL;
+  int i = 0;
+  int n = LENGTH(psql_type_pair);
+
+  for (i = 0; i < n; i++) {
+    if (psql_type_pair[i].type == type) {
+        return psql_type_pair[i].name;
+    }
   }
+  logerror("Unknown OML type %d\n", type);
+  return NULL;
 }
 
 /** Execute an SQL statement (using PQexec()).
@@ -258,6 +291,9 @@ psql_create_database(Database* db)
   self->conn = conn;
   self->last_commit = time (NULL);
 
+  db->backend_name = backend_name;
+  db->o2t = psql_oml_to_type;
+  db->t2o = psql_type_to_oml;
   db->stmt = psql_stmt;
   db->create = psql_create_database;
   db->release = psql_release;
@@ -330,7 +366,7 @@ psql_table_create (Database *db, DbTable *table, int shallow)
   psqldb = (PsqlDB*)db->handle;
 
   if (!shallow) {
-    create = schema_to_sql (table->schema, oml_to_postgresql_type);
+    create = schema_to_sql (table->schema, psql_oml_to_type);
     if (!create) {
       logerror("psql:%s: Failed to build SQL CREATE TABLE statement string for schema '%s'\n",
           db->name, schema_to_meta(table->schema));

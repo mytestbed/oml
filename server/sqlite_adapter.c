@@ -32,11 +32,31 @@
 #include "database_adapter.h"
 #include "sqlite_adapter.h"
 
+static char backend_name[] = "sqlite";
+/* Cannot be static due to testsuite */
 char *sqlite_database_dir = NULL;
+
+/** Mapping between OML and SQLite3 data types
+ * \see sq3_type_to_oml, sq3_oml_to_type
+ */
+static struct {
+  OmlValueT type;           /** OML type */
+  const char * const name;  /** SQLite3 equivalent */
+} sq3_type_pair [] = {
+  { OML_INT32_VALUE,  "INTEGER"  },
+  { OML_UINT32_VALUE, "UNSIGNED INTEGER" },
+  { OML_INT64_VALUE,  "BIGINT"  },
+  { OML_UINT64_VALUE, "UNSIGNED BIGINT" },
+  { OML_DOUBLE_VALUE, "REAL" },
+  { OML_STRING_VALUE, "TEXT" },
+  { OML_BLOB_VALUE,   "BLOB" },
+};
 
 static int sql_stmt(Sq3DB* self, const char* stmt);
 
 /* Functions needed by the Database struct */
+static OmlValueT sq3_type_to_oml (const char *s);
+static const char *sq3_oml_to_type (OmlValueT T);
 static int sq3_stmt(Database* db, const char* stmt);
 static void sq3_release(Database* db);
 static int sq3_table_create (Database* db, DbTable* table, int shallow);
@@ -50,7 +70,6 @@ static int sq3_add_sender_id(Database* database, const char* sender_id);
 static char* sq3_get_uri(Database *db, char *uri, size_t size);
 static TableDescr* sq3_get_table_list (Database *database, int *num_tables);
 
-static OmlValueT sqlite_to_oml_type (const char *s);
 static char* sq3_get_sender_id (Database* database, const char* name);
 static int sq3_set_sender_id (Database* database, const char* name, int id);
 static int sq3_get_max_value (Database* database, const char* table, const char* column_name, const char* where_column, const char* where_value);
@@ -121,65 +140,40 @@ sq3_backend_setup (void)
   return 0;
 }
 
-/** Mapping from SQLite3 types to OML types.
- *
- * \param type string describing the SQLite3 type
- * \return the corresponding OmlValueT or OML_UNKNOWN_VALUE if unknown
+/** Mapping from SQLite3 to OML types.
+ * \see db_adapter_type_to_oml
  */
 static
-OmlValueT sqlite_to_oml_type (const char *s)
+OmlValueT sq3_type_to_oml (const char *type)
 {
-  static struct type_pair
-  {
-    OmlValueT type;
-    const char * const name;
-  } type_list [] =
-    {
-      { OML_INT32_VALUE,  "INTEGER"  },
-      { OML_UINT32_VALUE, "UNSIGNED INTEGER" },
-      { OML_INT64_VALUE,  "BIGINT"  },
-      { OML_UINT64_VALUE, "UNSIGNED BIGINT" },
-      { OML_DOUBLE_VALUE, "REAL" },
-      { OML_STRING_VALUE, "TEXT" },
-      { OML_BLOB_VALUE,   "BLOB" }
-    };
   int i = 0;
-  int n = sizeof (type_list) / sizeof (type_list[0]);
-  OmlValueT type = OML_UNKNOWN_VALUE;
+  int n = LENGTH(sq3_type_pair);
 
-  for (i = 0; i < n; i++)
-    if (strcmp (s, type_list[i].name) == 0) {
-        type = type_list[i].type;
-        break;
+  for (i = 0; i < n; i++) {
+    if (strcmp (type, sq3_type_pair[i].name) == 0) {
+        return sq3_type_pair[i].type;
     }
-
-  if (type == OML_UNKNOWN_VALUE)
-    logwarn("Unknown SQL type '%s' --> OML_UNKNOWN_VALUE\n", s);
-
-  return type;
+  }
+  logwarn("Unknown SQLite3 type '%s', using OML_UNKNOWN_VALUE\n", type);
+  return OML_UNKNOWN_VALUE;
 }
 
 /** Mapping from OML types to SQLite3 types.
- *
- * \param type OmlValueT to convert
- * \return a pointer to a static string describing the SQLite3 type, or NULL if unknown
+ * \see db_adapter_oml_to_type
  */
 static const char*
-oml_to_sqlite_type (OmlValueT type)
+sq3_oml_to_type (OmlValueT type)
 {
-  switch (type) {
-  case OML_LONG_VALUE:    return "INTEGER"; break;
-  case OML_DOUBLE_VALUE:  return "REAL"; break;
-  case OML_STRING_VALUE:  return "TEXT"; break;
-  case OML_BLOB_VALUE:    return "BLOB"; break;
-  case OML_INT32_VALUE:   return "INTEGER"; break;
-  case OML_UINT32_VALUE:  return "UNSIGNED INTEGER"; break;
-  case OML_INT64_VALUE:   return "BIGINT"; break;
-  case OML_UINT64_VALUE:  return "UNSIGNED BIGINT"; break;
-  default:
-    logerror("Unknown type %d\n", type);
-    return NULL;
+  int i = 0;
+  int n = LENGTH(sq3_type_pair);
+
+  for (i = 0; i < n; i++) {
+    if (sq3_type_pair[i].type == type) {
+        return sq3_type_pair[i].name;
+    }
   }
+  logerror("Unknown OML type %d\n", type);
+  return NULL;
 }
 
 /** Execute an SQL statement (using sqlite3_exec()).
@@ -236,6 +230,9 @@ sq3_create_database(Database* db)
   Sq3DB* self = xmalloc(sizeof(Sq3DB));
   self->conn = conn;
   self->last_commit = time (NULL);
+  db->backend_name = backend_name;
+  db->o2t = sq3_oml_to_type;
+  db->t2o = sq3_type_to_oml;
   db->stmt = sq3_stmt;
   db->table_create = sq3_table_create;
   db->table_create_meta = dba_table_create_meta;
@@ -292,7 +289,7 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
   sq3db = (Sq3DB*)db->handle;
 
   if (!shallow) {
-    create = schema_to_sql (table->schema, oml_to_sqlite_type);
+    create = schema_to_sql (table->schema, sq3_oml_to_type);
     if (!create) {
       logerror("sqlite:%s: Failed to build SQL CREATE TABLE statement string for schema '%s'\n",
           db->name, schema_to_meta(table->schema));
@@ -739,7 +736,7 @@ sq3_get_table_list (Database *database, int *num_tables)
         strcmp (result[i], "_senders") == 0) {
       t = table_descr_new (result[i], NULL);
     } else {
-      struct schema *schema = schema_from_sql (result[j], sqlite_to_oml_type);
+      struct schema *schema = schema_from_sql (result[j], sq3_type_to_oml);
       if (!schema) {
         logwarn ("sqlite:%s: Failed to create table '%s': error parsing schema '%s'; not created by OML?\n",
             database->name, result[i], result[j]);

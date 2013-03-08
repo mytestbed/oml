@@ -167,7 +167,7 @@ schema_to_meta (const struct schema *schema)
  * name up to but not including the comma (or closing parenthesis) following
  * the type.
  * \param[out] field parse result, must be allocated by the caller.
- * \param reverse_typemap function pointer to the database adapter's SQL to OML type converter function
+ * \param t2o function pointer to the database adapter's SQL to OML type converter function
  * \return 0 on success, -1 on failure.
  *
  * Example input (SQLite3 types):
@@ -191,7 +191,7 @@ schema_to_meta (const struct schema *schema)
  *
  */
 static int
-schema_field_from_sql (const char *sql, size_t len, struct schema_field *field, OmlValueT (*reverse_typemap) (const char *s))
+schema_field_from_sql (const char *sql, size_t len, struct schema_field *field, typemap t2o)
 {
   char *p = (char*)sql, *q, *up, *uq;
   q = (char*)find_white (p);
@@ -202,7 +202,7 @@ schema_field_from_sql (const char *sql, size_t len, struct schema_field *field, 
   char *type = xstrndup (q, len - (q - p));
   if (!field->name || !type)
     goto exit;
-  field->type = reverse_typemap (type);
+  field->type = t2o (type);
   // OML_LONG_VALUE is deprecated, and converted to INT32 internally in server.
   field->type = (field->type == OML_LONG_VALUE) ? OML_INT32_VALUE : field->type;
   if (field->type == OML_UNKNOWN_VALUE)
@@ -223,7 +223,7 @@ schema_field_from_sql (const char *sql, size_t len, struct schema_field *field, 
  * \see xmalloc, xfree
  */
 MString*
-schema_to_sql (const struct schema* schema, const char *(*typemap) (OmlValueT))
+schema_to_sql (const struct schema* schema, reverse_typemap o2t)
 {
   int n = 0;
   int max = schema->nfields;
@@ -242,16 +242,16 @@ schema_to_sql (const struct schema* schema, const char *(*typemap) (OmlValueT))
   /* Build SQL "CREATE TABLE" statement */
   n += mstring_set (mstr, "CREATE TABLE \"");
   n += mstring_cat (mstr, schema->name);
-  n += mstring_sprintf (mstr, "\" (oml_sender_id %s, ", typemap (OML_INT32_VALUE));
-  n += mstring_sprintf (mstr, "oml_seq %s, ", typemap (OML_INT32_VALUE));
-  n += mstring_sprintf (mstr, "oml_ts_client %s, ", typemap (OML_DOUBLE_VALUE));
-  n += mstring_sprintf (mstr, "oml_ts_server %s", typemap (OML_DOUBLE_VALUE));
+  n += mstring_sprintf (mstr, "\" (oml_sender_id %s, ", o2t (OML_INT32_VALUE));
+  n += mstring_sprintf (mstr, "oml_seq %s, ", o2t (OML_INT32_VALUE));
+  n += mstring_sprintf (mstr, "oml_ts_client %s, ", o2t (OML_DOUBLE_VALUE));
+  n += mstring_sprintf (mstr, "oml_ts_server %s", o2t (OML_DOUBLE_VALUE));
 
   int i = 0;
   while (max > 0) {
     OmlValueT type = schema->fields[i].type;
     char *name = schema->fields[i].name;
-    const char* t = typemap (type);
+    const char* t = o2t (type);
     if (!t) {
       logerror("Unknown type in column '%s'\n", name);
       goto fail_exit;
@@ -304,12 +304,12 @@ schema_check_metadata (struct schema_field *field)
  * \param sql pointer to the start of the column specifier can be part of a
  * longer string and does not have to be null terminated.  There must be no
  * leading whitespace.
- * \param reverse_typemap function pointer to the database adapter's SQL to OML type converter function
+ * \param t2o function pointer to the database adapter's SQL to OML type converter function
  * \return 0 on success, -1 on failure.
  *
  */
 struct schema*
-schema_from_sql (const char *sql, OmlValueT (*reverse_typemap) (const char *s))
+schema_from_sql (const char *sql, OmlValueT (*t2o) (const char *s))
 {
   const char * const command = "CREATE TABLE ";
   int command_len = strlen (command);
@@ -348,7 +348,7 @@ schema_from_sql (const char *sql, OmlValueT (*reverse_typemap) (const char *s))
       if (!f)
         goto exit;
       fields = f;
-      if (schema_field_from_sql (p, (q - p), &fields[nfields], reverse_typemap) == -1)
+      if (schema_field_from_sql (p, (q - p), &fields[nfields], t2o) == -1)
         goto exit;
       int n = schema_check_metadata (&fields[nfields]);
       if (n == -1)

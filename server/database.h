@@ -38,6 +38,20 @@ struct DbTable;
 typedef struct DbTable DbTable;
 typedef struct Database Database;
 
+/** Mapping from native to OML types.
+ *
+ * \param type string describing the SQLite3 type
+ * \return the corresponding OmlValueT or OML_UNKNOWN_VALUE if unknown
+ */
+typedef OmlValueT (*db_adapter_type_to_oml)(const char *type);
+
+/** Mapping from OML to native types.
+ *
+ * \param type string describing the SQLite3 type
+ * \return the corresponding OmlValueT or OML_UNKNOWN_VALUE if unknown
+ */
+typedef const char* (*db_adapter_oml_to_type)(OmlValueT type);
+
 /** Execute an SQL statement with no data return.
  *
  * This function executes a statement with the assumption that the
@@ -165,12 +179,15 @@ struct DbTable {
 /** An open and active database, with manipulations functions from its backend */
 struct Database{
   char       name[MAX_DB_NAME_SIZE];  /** Name of this database */
+  char       *backend_name;           /** Name of the backend for this database */
 
   int        ref_count;               /** Number of active clients */
   DbTable*   first_table;             /** Pointer to the first data table */
   time_t     start_time;              /** Experiment start time */
   void*      handle;                  /** Opaque pointer to database implementation handle */
 
+  db_adapter_oml_to_type o2t;                     /** Pointer to OML-to-native type conversion function */
+  db_adapter_type_to_oml t2o;                     /** Pointer to native-to-OML type conversion function */
   db_adapter_stmt stmt;                           /** Pointer to low-level function to execute a given SQL statement \see db_adapter_stmt */
   db_adapter_create create;                       /** Pointer to function to create a new database \see db_adapter_create */
   db_adapter_release release;                     /** Pointer to function to release from one client \see db_adapter_release */

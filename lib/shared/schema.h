@@ -43,10 +43,16 @@ struct schema
   int index;                    /** Schema index as set by the sender */
 };
 
+/* These types should match those in server/database.h */
+/** \see db_adapter_type_to_oml */
+typedef OmlValueT (*typemap)(const char *type);
+/** \see db_adapter_oml_to_type */
+typedef const char* (*reverse_typemap)(OmlValueT type);
+
 struct schema* schema_from_meta (const char *meta);
 char *schema_to_meta (const struct schema *schema);
-struct schema* schema_from_sql (const char *sql, OmlValueT (*reverse_typemap) (const char *s));
-MString* schema_to_sql (const struct schema* schema, const char *(*typemap) (OmlValueT));
+struct schema* schema_from_sql (const char *sql, typemap t2o);
+MString* schema_to_sql (const struct schema* schema, reverse_typemap o2t);
 struct schema *schema_new (const char *name);
 void schema_free (struct schema *schema);
 int schema_add_field (struct schema *schema, const char *name, OmlValueT type);
