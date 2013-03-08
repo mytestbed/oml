@@ -453,7 +453,8 @@ schema_diff (struct schema *s1, struct schema *s2)
  *
  * \param schema schema structure as created by, e.g., schema_from_meta()
  * \param typemap function pointer to the database adapter's SQL to OML type converter function
- * \return an MString containing the table-creation statement
+ * \return an xmalloc'd MString containing the table-creation statement; the caller is responsible of freeing it
+ * \see xmalloc, xfree
  */
 MString*
 schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT))

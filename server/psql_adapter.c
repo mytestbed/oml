@@ -309,6 +309,11 @@ psql_release(Database* db)
 int
 psql_table_create (Database *db, DbTable *table, int shallow)
 {
+  MString *insert = NULL, *create = NULL, *mstr = NULL, *insert_name = NULL;
+  PsqlDB* psqldb = NULL;
+  PGresult *res = NULL;
+  PsqlTable* psqltable = NULL;
+
   logdebug("psql:%s: Creating table '%s' (shallow=%d)\n", db->name, table->schema->name, shallow);
 
   if (db == NULL) {
@@ -323,14 +328,12 @@ psql_table_create (Database *db, DbTable *table, int shallow)
     logerror("psql:%s: No schema defined for table, cannot create\n", db->name);
     return -1;
   }
-  MString *insert = NULL, *create = NULL;
-  PsqlDB* psqldb = (PsqlDB*)db->handle;
-  PGresult *res;
+  psqldb = (PsqlDB*)db->handle;
 
   if (!shallow) {
     int sindex = table->schema->index;
     table->schema->index = -1;
-    MString *mstr = mstring_create ();
+    mstr = mstring_create ();
     mstring_sprintf (mstr, "table_%s", table->schema->name);
     const char *meta = schema_to_meta (table->schema);
     table->schema->index = sindex;
@@ -357,10 +360,10 @@ psql_table_create (Database *db, DbTable *table, int shallow)
     goto fail_exit;
   }
   /* Prepare the insert statement and update statement  */
-  PsqlTable* psqltable = (PsqlTable*)xmalloc(sizeof(PsqlTable));
+  psqltable = (PsqlTable*)xmalloc(sizeof(PsqlTable));
   table->handle = psqltable;
 
-  MString *insert_name = mstring_create();
+  insert_name = mstring_create();
   mstring_set (insert_name, "OMLInsert-");
   mstring_cat (insert_name, table->schema->name);
   res = PQprepare(psqldb->conn,
@@ -380,12 +383,16 @@ psql_table_create (Database *db, DbTable *table, int shallow)
   psqltable->insert_stmt = insert_name;
 
   if (create) { mstring_delete (create); }
+  if (mstr) { mstring_delete (mstr); }
   if (insert) { mstring_delete (insert); }
   return 0;
 
 fail_exit:
   if (create) { mstring_delete (create); }
+  if (mstr) { mstring_delete (mstr); }
   if (insert) { mstring_delete (insert); }
+  if (insert_name) { mstring_delete (insert_name); }
+  if (psqltable) { xfree (psqltable); }
   return -1;
 }
 
@@ -830,7 +837,7 @@ psql_set_sender_id (Database *database, const char *name, int id)
  * The returned value is to be destroyed by the caller.
  *
  * \param table DbTable adapter for the target PostgreSQL table
- * \return an MString containing the prepared statement, or NULL on error
+ * \return an xmalloc'd MString containing the prepared statement, or NULL on error
  *
  * \see mstring_create, mstring_delete
  */

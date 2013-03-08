@@ -275,6 +275,9 @@ sq3_release(Database* db)
 static int
 sq3_table_create (Database* db, DbTable* table, int shallow)
 {
+  MString *insert = NULL, *create = NULL;
+  Sq3DB* sq3db = NULL;
+  Sq3Table *sq3table = NULL;
   if (db == NULL) {
       logwarn("sqlite: Tried to create a table in a NULL database\n");
       return -1;
@@ -287,8 +290,7 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
     logwarn("sqlite:%s: No schema defined for table, cannot create\n", db->name);
     return -1;
   }
-  MString *insert = NULL, *create = NULL;
-  Sq3DB* sq3db = (Sq3DB*)db->handle;
+  sq3db = (Sq3DB*)db->handle;
 
   if (!shallow) {
     create = schema_to_sql (table->schema, oml_to_sqlite_type);
@@ -311,7 +313,7 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
              db->name, table->schema->name);
     goto fail_exit;
   }
-  Sq3Table *sq3table = xmalloc(sizeof(Sq3Table));
+  sq3table = xmalloc(sizeof(Sq3Table));
   table->handle = sq3table;
   if (sqlite3_prepare_v2(sq3db->conn, mstring_buf(insert), -1,
                          &sq3table->insert_stmt, 0) != SQLITE_OK) {
@@ -327,6 +329,7 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
  fail_exit:
   if (create) { mstring_delete (create); }
   if (insert) { mstring_delete (insert); }
+  if (sq3table) { xfree (sq3table); }
   return -1;
 }
 
@@ -344,9 +347,10 @@ sq3_table_free (Database *database, DbTable* table)
   int ret = 0;
   if (sq3table) {
     ret = sqlite3_finalize (sq3table->insert_stmt);
-    if (ret != SQLITE_OK)
+    if (ret != SQLITE_OK) {
       logwarn("sqlite:%s: Couldn't finalise statement for table '%s' (database error)\n",
           database->name, table->schema->name);
+    }
     xfree (sq3table);
   }
   return ret;
