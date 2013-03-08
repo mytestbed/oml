@@ -343,8 +343,7 @@ psql_release(Database* db)
 int
 psql_table_create (Database *db, DbTable *table, int shallow)
 {
-  MString *insert = NULL, *create = NULL, *meta_skey= NULL, *insert_name = NULL;
-  char *meta_svalue = NULL;
+  MString *insert = NULL, *insert_name = NULL;
   PsqlDB* psqldb = NULL;
   PGresult *res = NULL;
   PsqlTable* psqltable = NULL;
@@ -366,29 +365,12 @@ psql_table_create (Database *db, DbTable *table, int shallow)
   psqldb = (PsqlDB*)db->handle;
 
   if (!shallow) {
-    create = schema_to_sql (table->schema, psql_oml_to_type);
-    if (!create) {
-      logerror("psql:%s: Failed to build SQL CREATE TABLE statement string for schema '%s'\n",
-          db->name, schema_to_meta(table->schema));
-      goto fail_exit;
-    }
-    if (sql_stmt (psqldb, mstring_buf (create))) {
+    if (dba_table_create_from_schema(db, table->schema)) {
       logerror("psql:%s: Could not create table '%s': %s\n",
           db->name, table->schema->name,
           PQerrorMessage (psqldb->conn));
       goto fail_exit;
     }
-
-    /* The schema index is irrelevant in the metadata, temporarily drop it */
-    int sindex = table->schema->index;
-    table->schema->index = -1;
-    meta_skey = mstring_create ();
-    mstring_sprintf (meta_skey, "table_%s", table->schema->name);
-    meta_svalue = schema_to_meta (table->schema);
-    table->schema->index = sindex;
-    psql_set_metadata (db, mstring_buf (meta_skey), meta_svalue);
-    mstring_delete(meta_skey);
-    xfree(meta_svalue);
   }
 
   insert = psql_make_sql_insert (table);
@@ -420,12 +402,10 @@ psql_table_create (Database *db, DbTable *table, int shallow)
   PQclear(res);
   psqltable->insert_stmt = insert_name;
 
-  if (create) { mstring_delete (create); }
   if (insert) { mstring_delete (insert); }
   return 0;
 
 fail_exit:
-  if (create) { mstring_delete (create); }
   if (insert) { mstring_delete (insert); }
   if (insert_name) { mstring_delete (insert_name); }
   if (psqltable) { xfree (psqltable); }

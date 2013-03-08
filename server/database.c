@@ -270,19 +270,26 @@ database_find_table (Database *database, const char *name)
   return NULL;
 }
 
-/*
+/** Create the adapter structure for a table.
+ *
  * Create a new table in the database, with given schema.  Register
  * the table with the database, so that database_find_table () will
- * find it.  Return a pointer to the table, or NULL on error.
+ * find it. Return a pointer to the table, or NULL on error.
  *
  * The schema is deep copied, so the caller can safely free the
  * schema.
  *
  * Note: this function does NOT issue the SQL required to create the
  * table in the actual storage backend.
+ *
+ * \param database Database to add the DbTable to
+ * \param schema schema structure for that tables
+ * \return an xmalloc'd DbTable (already added to database), or NULL on error
+ *
+ * \see database_find_table, schema_copy, database_release
  */
 DbTable*
-database_create_table (Database *database, struct schema *schema)
+database_create_table (Database *database, const struct schema *schema)
 {
   DbTable *table = xmalloc (sizeof (DbTable));
   if (!table)
@@ -297,6 +304,21 @@ database_create_table (Database *database, struct schema *schema)
   return table;
 }
 
+/** Search a Database's registered DbTables for one matchng the given schema.
+ *
+ * If none is found, the table is created. If one is found, but the schema
+ * differs, try to append a number to the name (up to MAX_TABLE_RENAME), create
+ * that table, and update the schema.
+ *
+ * If the table search/creation is successful, the returned DbTable is already
+ * added to the list of the Database.
+ *
+ * \param database Database to search
+ * \param schema schema structure for the table to add
+ * \return a newly created DbTable for that table, or NULL on error
+ *
+ * \see MAX_TABLE_RENAME, database_create_table
+ */
 DbTable*
 database_find_or_create_table(Database *database, struct schema *schema)
 {
@@ -309,7 +331,7 @@ database_find_or_create_table(Database *database, struct schema *schema)
   int diff = 0, tnlen;
 
   tnlen = strlen(schema->name);
-  
+
   do {
     table = database_find_table (database, s->name);
 
@@ -397,6 +419,15 @@ database_table_free(Database *database, DbTable *table)
   }
 }
 
+/** Initialise adapters for a new database
+ *
+ * If the database already has tables, initialise the adapters.
+ *
+ * \param database main Database object
+ * \return 0 on success, -1 otherwise
+ *
+ * \see database_create_table, db_adapter_table_create
+ */
 int
 database_init (Database *database)
 {
@@ -434,6 +465,8 @@ database_init (Database *database)
     if (!table_descr_have_table (tables, meta_tables[j])) {
       if (database->table_create_meta (database, meta_tables[j])) {
         table_descr_list_free (tables);
+        logerror("%s: Could not create default table %s\n",
+            database->name, meta_tables[j]);
         return -1;
       }
     }

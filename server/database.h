@@ -214,7 +214,7 @@ void database_cleanup();
 
 DbTable *database_find_table(Database* database, const char* name);
 DbTable *database_find_or_create_table(Database *database, struct schema *schema);
-DbTable *database_create_table (Database *database, struct schema *schema);
+DbTable *database_create_table (Database *database, const struct schema *schema);
 void     database_table_free(Database *database, DbTable* table);
 
 #endif /*DATABASE_H_*/
