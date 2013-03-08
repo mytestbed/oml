@@ -295,8 +295,8 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
   if (!shallow) {
     create = schema_to_sql (table->schema, oml_to_sqlite_type);
     if (!create) {
-      logerror("sqlite:%s: Failed to build SQL CREATE TABLE statement string for table %s\n",
-          db->name, table->schema->name);
+      logerror("sqlite:%s: Failed to build SQL CREATE TABLE statement string for schema '%s'\n",
+          db->name, schema_to_meta(table->schema));
       goto fail_exit;
     }
     if (sql_stmt(sq3db, mstring_buf(create))) {

@@ -309,6 +309,7 @@ psql_release(Database* db)
 int
 psql_table_create (Database *db, DbTable *table, int shallow)
 {
+  const char *meta = NULL;
   MString *insert = NULL, *create = NULL, *mstr = NULL, *insert_name = NULL;
   PsqlDB* psqldb = NULL;
   PGresult *res = NULL;
@@ -333,16 +334,17 @@ psql_table_create (Database *db, DbTable *table, int shallow)
   if (!shallow) {
     int sindex = table->schema->index;
     table->schema->index = -1;
+
     mstr = mstring_create ();
     mstring_sprintf (mstr, "table_%s", table->schema->name);
-    const char *meta = schema_to_meta (table->schema);
+    meta = schema_to_meta (table->schema);
     table->schema->index = sindex;
-    logdebug("psql:%s: SET META: %s\n", db->name, meta);
     psql_set_metadata (db, mstring_buf (mstr), meta);
+
     create = schema_to_sql (table->schema, oml_to_postgresql_type);
     if (!create) {
-      logerror("psql:%s: Failed to build SQL CREATE TABLE statement string for table '%s'\n",
-          db->name, table->schema->name);
+      logerror("psql:%s: Failed to build SQL CREATE TABLE statement string for schema '%s'\n",
+          db->name, schema_to_meta(table->schema));
       goto fail_exit;
     }
     if (sql_stmt (psqldb, mstring_buf (create))) {
@@ -385,12 +387,14 @@ psql_table_create (Database *db, DbTable *table, int shallow)
   if (create) { mstring_delete (create); }
   if (mstr) { mstring_delete (mstr); }
   if (insert) { mstring_delete (insert); }
+  if (meta) { xfree(meta); }
   return 0;
 
 fail_exit:
   if (create) { mstring_delete (create); }
   if (mstr) { mstring_delete (mstr); }
   if (insert) { mstring_delete (insert); }
+  if (meta) { xfree(meta); }
   if (insert_name) { mstring_delete (insert_name); }
   if (psqltable) { xfree (psqltable); }
   return -1;

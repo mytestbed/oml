@@ -27,29 +27,31 @@
 #include "oml2/omlc.h"
 #include "mstring.h"
 
+/** Represent one field in a schema */
 struct schema_field
 {
-  char *name;
-  OmlValueT type;
+  char *name;     /** Name of the field */
+  OmlValueT type; /** Type of the field */
 };
 
+/** Represent the fields of a schema */
 struct schema
 {
-  char *name;
-  struct schema_field *fields;
-  int nfields;
-  int index;
+  char *name;                   /** Name of the schema */
+  struct schema_field *fields;  /** Array of struct schema_field */
+  int nfields;                  /** Number of elements in nfields */
+  int index;                    /** Schema index as set by the sender */
 };
 
-struct schema* schema_from_meta (char *meta);
-const char *schema_to_meta (struct schema *schema);
-struct schema* schema_from_sql (char *sql, OmlValueT (*reverse_typemap) (const char *s));
+struct schema* schema_from_meta (const char *meta);
+char *schema_to_meta (const struct schema *schema);
+struct schema* schema_from_sql (const char *sql, OmlValueT (*reverse_typemap) (const char *s));
+MString* schema_to_sql (const struct schema* schema, const char *(*typemap) (OmlValueT));
 struct schema *schema_new (const char *name);
 void schema_free (struct schema *schema);
 int schema_add_field (struct schema *schema, const char *name, OmlValueT type);
-struct schema* schema_copy (struct schema *schema);
+struct schema* schema_copy (const struct schema *schema);
 int schema_diff (struct schema *s1, struct schema *s2);
-MString* schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT));
 
 
 #endif /* SCHEMA_H__ */

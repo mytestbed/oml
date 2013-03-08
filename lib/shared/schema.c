@@ -1,24 +1,14 @@
 /*
- * Copyright 2010-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia Limited (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file schema.c
+ * \brief Manipulate schema structures, and convert to/from string or SQL representation.
  */
 #include <stdlib.h>
 #include <string.h>
@@ -31,109 +21,121 @@
 #include "schema.h"
 #include "oml_util.h"
 
-/*
- * Parse a schema field like '<name>:<type>' into a struct schema_field.
- * The storage for the schema_field must be provided by the caller.
- * "len" must give the number of characters in the field; the field does not
- * have to be zero-terminated, but the string pointed to by "meta" should.
- * Returns 0 on success, -1 on failure.
+/* * Parse a schema field like '<name>:<type>' into a struct schema_field.
+ *
+ * \param meta nil-terminated string to parse
+ * \param len length to parse in the string
+ * \param schema_field client-provided memory to store the parsed field
+ * \return 0 on success, -1 on failure.
  */
 int
-schema_field_from_meta (char *meta, size_t len, struct schema_field *field)
+schema_field_from_meta (const char *meta, size_t len, struct schema_field *field)
 {
-  char *p = meta;
-  char *q = memchr (p, ':', len);
-  if (!q)
+  char *type = NULL;
+  const char *p = meta, *q = (char*)find_charn (p, ':', len);
+  if (!q) {
     return -1;
+  }
   field->name = xstrndup (p, q++ - p);
-  char *type = xstrndup (q, len - (q - p));
-  if (!field->name || !type)
+  type = xstrndup (q, len - (q - p));
+  if (!field->name || !type) {
     goto exit;
+  }
   field->type = oml_type_from_s (type);
   // OML_LONG_VALUE is deprecated, and converted to INT32 internally in server.
   field->type = (field->type == OML_LONG_VALUE) ? OML_INT32_VALUE : field->type;
-  if (field->type == OML_UNKNOWN_VALUE)
+  if (field->type == OML_UNKNOWN_VALUE) {
     goto exit;
+  }
   xfree (type);
   return 0;
  exit:
-  if (!field->name) xfree (field->name);
-  if (!type) xfree (type);
+  if (!field->name) {
+    xfree (field->name);
+    field->name = NULL;
+  }
+  if (!type) { xfree (type); }
   return -1;
 }
 
-/*
- * Parse a schema metadata line from client headers.  For a valid schema,
- * return a pointer to the schema.  Otherwise, return NULL.
+/* * Parse a schema metadata line from client headers.
  *
  * Schema meta lines look like:
- *
  *  schema: <n> <name> <field_name1>:<field_type1> <field_name2>:<field_type2> ...
+ * We get everything from the first colon ':' onwards in "meta" parameter.
  *
- *  We get everything from the first colon ':' onwards in "meta" parameter.
+ * \param meta nil-terminated string to parse
+ * \return a pointer to an xmalloc'd struct schema, to be freed by the caller, or NULL
+ *
+ * \see schema_field_from_meta
  */
 struct schema*
-schema_from_meta (char *meta)
+schema_from_meta (const char *meta)
 {
   if (!meta) return NULL;
 
-  int index;
   struct schema *schema = NULL;
-  struct schema_field *fields = NULL;
-  int nfields = -1;
+  struct schema_field *f = NULL;
   size_t fields_size = 0;
-  char *name;
-  char *p = meta, *q;
-  index = strtol (p, &q, 0);
-  if (p == q)
+  const char *p = meta;
+  char *q;
+
+  schema = xmalloc (sizeof (struct schema));
+  if (!schema) { goto exit; }
+  schema->nfields = 0;
+  schema->fields = NULL;
+
+  /* Parse the schema index */
+  schema->index = strtol (p, &q, 0);
+  if (p == q) {
     return NULL; /* no digits found */
+  }
   p = q;
 
+  /* Get the name of the schema */
   p = (char*)skip_white (p);
   q = (char*)find_white (p);
-  name = xstrndup (p, (q - p));
+  schema->name = xstrndup (p, (q - p));
+  if (!schema->name) { goto exit; }
   p = q;
 
+  /* Parse the field definitions */
   while (q && *q) {
     p = (char*)skip_white (p);
     q = (char*)find_white (p);
     if (p != q) {
-      nfields++;
+      schema->nfields++;
       fields_size += sizeof (struct schema_field);
-      struct schema_field *f = xrealloc (fields, fields_size);
-      if (!f) goto exit;
-      else fields = f;
-      if (schema_field_from_meta (p, (q - p), &fields[nfields]) == -1)
+      /* We need this intermediary to be able to free the previous block on failure */
+      if (!(f = xrealloc (schema->fields, fields_size))) {
         goto exit;
+      }
+      schema->fields = f;
+      if (schema_field_from_meta (p, (q - p), &(schema->fields[schema->nfields-1])) == -1) {
+        goto exit;
+      }
       p = q;
     }
   }
-  schema = xmalloc (sizeof (struct schema));
-  if (!schema) goto exit;
-
-  schema->nfields = nfields + 1;
-  schema->index = index;
-  schema->fields = fields;
-  schema->name = name;
   return schema;
  exit:
-  if (name) xfree (name);
-  if (fields) {
-    int i = 0;
-    for (; i < nfields; i++)
-      if (fields[i].name)
-        xfree (fields[i].name);
-    xfree (fields);
+  if (schema) {
+    schema_free(schema);
   }
-  if (schema) xfree (schema);
   return NULL;
 }
 
-const char *
-schema_to_meta (struct schema *schema)
+/** Create a string representation of a schema
+ *
+ * \param schema a schema structure to trancribe
+ * \return a pointer to an xmalloc'd string containing the schema; the caller should free the memory
+ */
+char *
+schema_to_meta (const struct schema *schema)
 {
-  if (!schema) return NULL;
   int i;
+  char *s = NULL;
+  if (!schema) return NULL;
   MString *str = mstring_create ();
   mstring_sprintf (str, "%d %s", schema->index, schema->name);
 
@@ -146,7 +148,7 @@ schema_to_meta (struct schema *schema)
   else
     goto fail_exit;
 
-  const char *s = xstrndup (mstring_buf (str), mstring_len (str));
+  s = xstrndup (mstring_buf (str), mstring_len (str));
   mstring_delete (str);
   return s;
 
@@ -189,9 +191,9 @@ schema_to_meta (struct schema *schema)
  *
  */
 static int
-schema_field_from_sql (char *sql, size_t len, struct schema_field *field, OmlValueT (*reverse_typemap) (const char *s))
+schema_field_from_sql (const char *sql, size_t len, struct schema_field *field, OmlValueT (*reverse_typemap) (const char *s))
 {
-  char *p = sql, *q, *up, *uq;
+  char *p = (char*)sql, *q, *up, *uq;
   q = (char*)find_white (p);
   up = *p == '"' ? p+1 : p;
   uq = *(q-1) == '"' ? q-1 : q;
@@ -213,13 +215,66 @@ schema_field_from_sql (char *sql, size_t len, struct schema_field *field, OmlVal
   return -1;
 }
 
+/* Convert a schema into an SQL table creation statement.
+ *
+ * \param schema schema structure as created by, e.g., schema_from_meta()
+ * \param typemap function pointer to the database adapter's SQL to OML type converter function
+ * \return an xmalloc'd MString containing the table-creation statement; the caller is responsible of freeing it
+ * \see xmalloc, xfree
+ */
+MString*
+schema_to_sql (const struct schema* schema, const char *(*typemap) (OmlValueT))
+{
+  int n = 0;
+  int max = schema->nfields;
+
+  if (max <= 0) {
+    logerror ("Tried to create SQL CREATE TABLE statement for schema with 0 columns\n");
+    return NULL;
+  }
+
+  MString* mstr = mstring_create ();
+  if (mstr == NULL) {
+    logerror("Failed to create managed string for preparing SQL CREATE TABLE statement\n");
+    return NULL;
+  }
+
+  /* Build SQL "CREATE TABLE" statement */
+  n += mstring_set (mstr, "CREATE TABLE \"");
+  n += mstring_cat (mstr, schema->name);
+  n += mstring_sprintf (mstr, "\" (oml_sender_id %s, ", typemap (OML_INT32_VALUE));
+  n += mstring_sprintf (mstr, "oml_seq %s, ", typemap (OML_INT32_VALUE));
+  n += mstring_sprintf (mstr, "oml_ts_client %s, ", typemap (OML_DOUBLE_VALUE));
+  n += mstring_sprintf (mstr, "oml_ts_server %s", typemap (OML_DOUBLE_VALUE));
+
+  int i = 0;
+  while (max > 0) {
+    OmlValueT type = schema->fields[i].type;
+    char *name = schema->fields[i].name;
+    const char* t = typemap (type);
+    if (!t) {
+      logerror("Unknown type in column '%s'\n", name);
+      goto fail_exit;
+    }
+    n += mstring_sprintf (mstr, ", \"%s\" %s", name, t);
+    i++; max--;
+  }
+  n += mstring_cat (mstr, ");");
+  if (n != 0) goto fail_exit;
+  return mstr;
+
+ fail_exit:
+  if (mstr) mstring_delete (mstr);
+  return NULL;
+}
+
 /*
  *  Check to see if "field" represents a metadata column.  If so,
  *  check the type matches the expected type.  If the type mismatches,
  *  return -1.  If the type matches, return 0.  If the field is not a
  *  metadata field, return 1.
  */
-int
+static int
 schema_check_metadata (struct schema_field *field)
 {
   struct schema_field metadata [] =
@@ -254,7 +309,7 @@ schema_check_metadata (struct schema_field *field)
  *
  */
 struct schema*
-schema_from_sql (char *sql, OmlValueT (*reverse_typemap) (const char *s))
+schema_from_sql (const char *sql, OmlValueT (*reverse_typemap) (const char *s))
 {
   const char * const command = "CREATE TABLE ";
   int command_len = strlen (command);
@@ -263,10 +318,10 @@ schema_from_sql (char *sql, OmlValueT (*reverse_typemap) (const char *s))
 
   struct schema *schema = NULL;
   struct schema_field *fields = NULL;
-  int nfields = 0; /* Different to schema_from_meta () */
+  int nfields = 0;
   size_t fields_size = 0;
   char *name;
-  char *p = sql + command_len, *up;
+  char *p = (char *)sql + command_len, *up;
   char *q, *uq;
 
   p = (char*)skip_white (p);
@@ -326,46 +381,61 @@ schema_from_sql (char *sql, OmlValueT (*reverse_typemap) (const char *s))
         xfree (fields[i].name);
     xfree (fields);
   }
-  if (schema) xfree (schema);
+  xfree (schema);
   return NULL;
 }
 
-
+/** Create a new schema structure
+ *
+ * \param name name for that schema
+ */
 struct schema *
 schema_new (const char *name)
 {
   struct schema *schema = xmalloc (sizeof (struct schema));
-  if (!schema) goto exit;
+  if (!schema) { goto exit; }
+  memset(schema, 0, sizeof(struct schema));
 
   schema->name = xstrndup (name, strlen (name));
-  if (!schema->name) goto exit;
+  if (!schema->name) { goto exit; }
   schema->index = -1;
   return schema;
 
  exit:
-  if (schema) {
-    if (schema->name) xfree (schema->name);
-    xfree (schema);
-  }
+  schema_free(schema);
   return NULL;
 }
 
+/** Free an allocated schema structures
+ * \param schema schema structure to free
+ */
 void
 schema_free (struct schema *schema)
 {
   if (schema) {
-    if (schema->name)
+    if (schema->name) {
       xfree (schema->name);
+    }
     if (schema->fields) {
       int i;
-      for (i = 0; i < schema->nfields; i++)
-        xfree (schema->fields[i].name);
+      for (i = 0; i < schema->nfields; i++) {
+        if (schema->fields[i].name) {
+          xfree (schema->fields[i].name);
+        }
+      }
       xfree (schema->fields);
     }
     xfree (schema);
   }
 }
 
+
+/** Add a field to an existing schema.
+ * \param schema schema to add a field to
+ * \param name name of that field
+ * \param type OmlValueT representing the type of that field
+ * \return 0 un success, -1 otherwise
+ */
 int
 schema_add_field (struct schema *schema, const char *name, OmlValueT type)
 {
@@ -381,41 +451,56 @@ schema_add_field (struct schema *schema, const char *name, OmlValueT type)
   return 0;
 }
 
+/** Deep copy of an existing schema structure
+ *
+ * \param schema schema structur to copy
+ * \return a new xmalloc'd copy (to be cleaned by the caller), or NULL
+ */
 struct schema*
-schema_copy (struct schema *schema)
+schema_copy (const struct schema *schema)
 {
-  if (!schema) return NULL;
-  struct schema *new = xmalloc (sizeof (struct schema));
-  if (!new) return NULL;
+  struct schema *new;
+  int i;
+  if (!schema) { return NULL; }
+
+  new = xmalloc (sizeof (struct schema));
+  if (!new) { return NULL; }
+
   new->name = xstrndup (schema->name, strlen (schema->name));
   new->index = schema->index;
   new->nfields = schema->nfields;
   new->fields = xcalloc (new->nfields, sizeof (struct schema_field));
-  if (!new->name || !new->fields)
+  if (!new->name || !new->fields) {
     goto exit;
-  int i;
+  }
+
   for (i = 0; i < new->nfields; i++) {
     new->fields[i].name = xstrndup (schema->fields[i].name, strlen (schema->fields[i].name));
-    if (!new->fields[i].name)
+    if (!new->fields[i].name) {
       goto exit;
+    }
     new->fields[i].type = schema->fields[i].type;
   }
   return new;
  exit:
-  if (new->name) xfree (new->name);
+  /* new has been successfully allocated if we reach here */
+  if (new->name) { xfree (new->name); }
   if (new->fields) {
-    for (i = 0; i < new->nfields; i++)
-      if (new->fields[i].name)
+    for (i = 0; i < new->nfields; i++) {
+      if (new->fields[i].name) {
         xfree (new->fields[i].name);
+      }
+    }
     xfree (new->fields);
   }
-  if (new) xfree (new);
+  xfree (new);
   return NULL;
 }
 
-/*
- * Check if two schema are different.  Schema are equal if they have the
- * same names and identical field names/numbers/types.  They may have a
+/** Compare two schemas.
+ *
+ * Schema are equal if they have the
+ * same names and identical field names/numbers/types. They may have a
  * different index and still be considered equal.
  *
  * If the schema are the same object, or if the schema are identical
@@ -429,6 +514,10 @@ schema_copy (struct schema *schema)
  * column number of the field that differs (fields are numbered from 1
  * in this case to distinguish from return value 0, corresponding to
  * "schema are equal".).
+ *
+ * \param s1 first schema structure
+ * \param s2 second schema structure
+ * \return 0 on equality, -1 on error, or a positive index+1 of the first mismatching field
  */
 int
 schema_diff (struct schema *s1, struct schema *s2)
@@ -444,62 +533,10 @@ schema_diff (struct schema *s1, struct schema *s2)
           s1->fields[i].type != s2->fields[i].type)
         return i+1;
     }
-  } else
+  } else {
     return -1;
+  }
   return 0;
-}
-
-/* Convert a schema into an SQL table creation statement.
- *
- * \param schema schema structure as created by, e.g., schema_from_meta()
- * \param typemap function pointer to the database adapter's SQL to OML type converter function
- * \return an xmalloc'd MString containing the table-creation statement; the caller is responsible of freeing it
- * \see xmalloc, xfree
- */
-MString*
-schema_to_sql (struct schema* schema, const char *(*typemap) (OmlValueT))
-{
-  int n = 0;
-  int max = schema->nfields;
-
-  if (max <= 0) {
-    logerror ("Tried to create SQL CREATE TABLE statement for schema with 0 columns\n");
-    return NULL;
-  }
-
-  MString* mstr = mstring_create ();
-  if (mstr == NULL) {
-    logerror("Failed to create managed string for preparing SQL CREATE TABLE statement\n");
-    return NULL;
-  }
-
-  /* Build SQL "CREATE TABLE" statement */
-  n += mstring_set (mstr, "CREATE TABLE \"");
-  n += mstring_cat (mstr, schema->name);
-  n += mstring_sprintf (mstr, "\" (oml_sender_id %s, ", typemap (OML_INT32_VALUE));
-  n += mstring_sprintf (mstr, "oml_seq %s, ", typemap (OML_INT32_VALUE));
-  n += mstring_sprintf (mstr, "oml_ts_client %s, ", typemap (OML_DOUBLE_VALUE));
-  n += mstring_sprintf (mstr, "oml_ts_server %s", typemap (OML_DOUBLE_VALUE));
-
-  int i = 0;
-  while (max > 0) {
-    OmlValueT type = schema->fields[i].type;
-    char *name = schema->fields[i].name;
-    const char* t = typemap (type);
-    if (!t) {
-      logerror("Unknown type in column '%s'\n", name);
-      goto fail_exit;
-    }
-    n += mstring_sprintf (mstr, ", \"%s\" %s", name, t);
-    i++; max--;
-  }
-  n += mstring_cat (mstr, ");");
-  if (n != 0) goto fail_exit;
-  return mstr;
-
- fail_exit:
-  if (mstr) mstring_delete (mstr);
-  return NULL;
 }
 
 /*
