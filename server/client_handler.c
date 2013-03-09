@@ -328,46 +328,61 @@ process_schema(ClientHandler* self, char* value)
  * \param self ClientHandler
  * \param key key
  * \param value value
+ * \return 0 if meta was process successfully, <0 on error, or >0 if key was not recognised
  */
-static void
+static int
 process_meta(ClientHandler* self, char* key, char* value)
 {
+  int protocol;
+
   chomp (value);
   logdebug("%s: Meta '%s':'%s'\n", self->name, key, value);
+
   if (strcmp(key, "protocol") == 0) {
+    protocol = atoi (value);
     if (self->state != C_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
-      return;
-    }
-    int protocol = atoi (value);
-    if (protocol < MIN_PROTOCOL_VERSION || protocol > MAX_PROTOCOL_VERSION) {
+      return -1;
+
+    } else if (protocol < MIN_PROTOCOL_VERSION || protocol > MAX_PROTOCOL_VERSION) {
       logerror("%s: Client connected with incorrect protocol version (%s; %d > %d)\n",
           self->name, value, protocol, MAX_PROTOCOL_VERSION);
       logdebug("%s:    Maybe the client was built with a newer version of OML.\n",
           self->name);
       self->state = C_PROTOCOL_ERROR;
-      return;
+      return -2;
+
+    } else {
+      return 0;
     }
+
   } else if (strcmp(key, "domain") == 0 || strcmp(key, "experiment-id") == 0) {
     if (self->state != C_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
-      return;
-    }
-    self->database = database_find(value);
-    if (!self->database)
+      return -1;
+
+    } else if (!(self->database = database_find(value))) {
       self->state = C_PROTOCOL_ERROR;
+      return -2;
+
+    } else {
+      return 0;
+    }
+
   } else if (strcmp(key, "start-time") == 0 || strcmp(key, "start_time") == 0) {
     if (self->state != C_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
-      return;
-    }
-    if (self->database == NULL) {
+      return -1;
+
+    } else if (self->database == NULL) {
       logerror("%s: Meta 'start-time' needs to come after 'domain'.\n",
           self->name);
       self->state = C_PROTOCOL_ERROR;
+      return -2;
+
     } else {
 
       /** \publicsection \page timestamps OML Timestamping
@@ -436,48 +451,69 @@ process_meta(ClientHandler* self, char* key, char* value)
         self->database->set_metadata (self->database, "start_time", s);
       }
       self->time_offset = start_time - self->database->start_time;
+      return 0;
     }
+
   } else if (strcmp(key, "sender-id") == 0) {
     if (self->state != C_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
-      return;
-    }
-    if (self->database == NULL) {
+      return -1;
+
+    } else if (self->database == NULL) {
       logerror("%s: Meta 'sender-id' needs to come after 'domain'.\n",
           self->name);
       self->state = C_PROTOCOL_ERROR;
+      return -2;
+
     } else {
       self->sender_id = self->database->add_sender_id(self->database, value);
       self->sender_name = xstrndup (value, strlen (value));
+      return 0;
     }
+
   } else if (strcmp(key, "app-name") == 0) {
     if (self->state != C_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
-      return;
+      return -1;
+
+    } else {
+      self->app_name = xstrndup (value, strlen (value));
+      return 0;
     }
-    self->app_name = xstrndup (value, strlen (value));
+
   } else if (strcmp(key, "schema") == 0) {
     process_schema(self, value);
+    return 0;
+
   } else if (strcmp(key, "content") == 0) {
     if (self->state != C_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
-      return;
-    }
-    if (strcmp(value, "binary") == 0) {
+      return -1;
+
+    } else if (strcmp(value, "binary") == 0) {
       logdebug("%s: Switching to binary mode\n", self->name);
       self->content = C_BINARY_DATA;
+      return 0;
+
     } else if (strcmp(value, "text") == 0) {
       self->content = C_TEXT_DATA;
+      return 0;
+
     } else {
       logerror("%s: Unknown content type '%s'\n", self->name, value);
       self->state = C_PROTOCOL_ERROR;
+      return -2;
     }
+
   } else {
-    logwarn("%s: Ignoring unknown meta info '%s' (%s)\n", self->name, key, value);
+    /* Unknown key, let the caller deal with it */
+    return 1;
   }
+
+  return -3;
 }
 
 /** Read a \n-terminated line from an MBuffer
