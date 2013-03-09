@@ -292,7 +292,7 @@ process_schema(ClientHandler* self, char* value)
     return;
   }
 
-  int idx = schema->index - 1;
+  int idx = schema->index;
   loginfo("%s: New MS schema %s\n", self->name, value); /* Value contains the index */
 
   DbTable* table = database_find_or_create_table(self->database, schema);
@@ -613,14 +613,16 @@ process_header(ClientHandler* self, MBuffer* mbuf)
 static void
 process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 {
-  int table_index = header->stream - 1;
   double ts = self->time_offset + header->timestamp;
+  int table_index = header->stream;
+  int seqno = header->seqno;
   MBuffer* mbuf = self->mbuf;
   OmlValue *values, meta[2];
   int count;
 
   if (header->stream < 0 || table_index >= self->table_count) {
-    logwarn("%s(bin): Schema index %d out of bounds, discarding sample %d\n", self->name, table_index, header->seqno, header->length);
+    logwarn("%s(bin): Table index %d out of bounds, discarding sample %d\n",
+        self->name, table_index, seqno);
     return;
   }
 
@@ -670,7 +672,7 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
       return;
     }
     logdebug("%s(bin): Inserting data into table index %d (seqno=%d, ts=%f)\n",
-        self->name, table_index, header->seqno, ts);
+        self->name, table_index, seqno, ts);
     self->database->insert(self->database,
         table,
         self->sender_id,
