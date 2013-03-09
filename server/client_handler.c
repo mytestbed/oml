@@ -141,11 +141,17 @@ client_realloc_tables (ClientHandler *self, int ntables)
   return 0;
 }
 
-/*
- *  (Re)allocate the values vector for the table with the given index,
- *  so that it is expanded or contracted to have nvalues elements.
+/** (Re)allocate the values vector for the table with the given index,
+ *  so that it is expanded (never reduced) to hold nvalues elements.
+ *
+ *  \param self ClientHandler holding the vectors
+ *  \param idx index of the vector to reallocate
+ *  \param nvalues number of values to allow in that vector
+ *  \return 0 on success, -1 otherwise
+ *
+ *  \see client_realloc_tables
  */
-  int
+int
 client_realloc_values (ClientHandler *self, int idx, int nvalues)
 {
   int curnvalues;
@@ -156,15 +162,18 @@ client_realloc_values (ClientHandler *self, int idx, int nvalues)
   curnvalues = self->values_vector_counts[idx];
 
   if (nvalues > curnvalues) {
-    OmlValue *new_values = xrealloc (self->values_vectors[idx], nvalues * sizeof (OmlValue));
-    if (!new_values)
+    OmlValue *new_values = xrealloc (self->values_vectors[idx],
+        nvalues * sizeof (OmlValue));
+    if (!new_values) {
+      logwarn("%s: Could not reallocate memory for values for table %d\n",
+          self->name, idx);
       return -1;
+    }
 
     oml_value_array_init(&new_values[curnvalues], nvalues - curnvalues);
 
     self->values_vectors[idx] = new_values;
     self->values_vector_counts[idx] = nvalues;
-
   }
 
   return 0;
