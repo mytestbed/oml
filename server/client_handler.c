@@ -741,64 +741,112 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
  *
  * \param self pointer to ClientHandler processing the data
  * \param msg pointer to array of strings corresponding to the fields
- * \param size length of msg
+ * \param count number of elements in msg
  *
  * \see process_text_message
  */
 static void
-process_text_data_message(ClientHandler* self, char** msg, int size)
+process_text_data_message(ClientHandler* self, char** msg, int count)
 {
-  if (size < 3) {
+  double ts;
+  int table_index;
+  int seqno;
+  struct schema *schema;
+  int i, ki = -1, vi = -1, si = -1;
+  DbTable *table;
+  OmlValue *v;
+
+  if (count < 3) {
     return;
   }
-
-  double ts;
-  long table_index;
-  long seq_no;
 
   ts = atof(msg[0]);
-  table_index = atol(msg[1]) - 1;
-  seq_no = atol(msg[2]);
+  table_index = atol(msg[1]);
+  seqno = atol(msg[2]);
+
+  if (table_index < 0 || table_index >= self->table_count) {
+    logwarn("%s(txt): Table index %d out of bounds, discarding sample %d\n",
+        self->name, table_index, seqno);
+    return;
+  }
 
   ts += self->time_offset;
-  if (-1 == table_index) { /* Stream 0: Metadata */
-    if (size==5)
-      process_meta(self, msg[3], msg[4]);
-    else
-      logwarn("%s(txt): received metadata with incorrect number of elements (%d)\n", self->name, size-3);
-    return;
-  } else if (table_index >= self->table_count || table_index < 0) {
-    logwarn("%s(txt): Table index %d out of bounds, discarding sample %d\n", self->name, table_index, seq_no);
-    return;
-  }
-  DbTable* table = self->tables[table_index];
-  if (table == NULL) {
-    logerror("%s(txt): Undefined table index %d\n", self->name, table_index);
-    return;
+  table = self->tables[table_index];
+  if (NULL == table) {
+    if (0 == table_index) {
+      /* If this is schema 0, there is a chance the ClientHandler
+       * doesn't know about it yet; find it */
+      table = database_find_table(self->database,
+          "_experiment_metadata");
+      client_realloc_tables(self, 1); /* Make sure we have space for 1 */
+      client_realloc_values(self, 0, table->schema->nfields);
+      self->tables[table_index] = table;
+    } else {
+      logerror("%s(txt): Undefined table index %d\n", self->name, table_index);
+      return;
+    }
   }
 
-  struct schema *schema = table->schema;
-  if (schema->nfields != size - 3) {
+  schema = table->schema;
+  if (schema->nfields != count - 3) { /* Ignore first 3 elements */
     logerror("%s(txt): Data item number mismatch for schema '%s' (expected %d, got %d)\n",
-        self->name, schema->name, schema->nfields, size-3);
+        self->name, schema->name, schema->nfields, count - 3);
     return;
   }
 
-  int i;
-  OmlValue* v = self->values_vectors[table_index];
-  char** val_ap = msg + 3;
-  for (i= 0; i < schema->nfields; i++, v++, val_ap++) {
-    char* val = *val_ap;
-    oml_value_set_type(v, schema->fields[i].type);
-    if (oml_value_from_s (v, val) == -1)
-      logerror("%s(txt): Error converting value of type %d from string '%s'\n", self->name, oml_value_get_type(v), val);
-    /* FIXME: Do something here */
+  if (0 == table_index) { /* Stream 0: Metadata */
+    logdebug("%s(txt): Client sending metadata at %f\n", self->name, ts);
+
+    /* For future-proofness: find fields with actual names "key" and "value",
+     * regardless of how many there are .*/
+    for (i = 0; i < schema->nfields; i++) {
+      logdebug("%s(txt): Found field %s at index %d in schema %s\n",
+          self->name, schema->fields[i].name, i, schema->name);
+      if (!strcmp(schema->fields[i].name, "key")) {
+        ki = i + 3; /* Ignore first 3 elements */
+      } else if (!strcmp(schema->fields[i].name, "value")) {
+        vi = i + 3; /* Ignore first 3 elements */
+      } else if (!strcmp(schema->fields[i].name, "subject")) {
+        si = i + 3; /* Ignore first 3 elements */
+      }
+    }
+    if (ki<0 || vi<0 || si<0) {
+      logerror("%s(txt): Trying to process metadata from a schema without 'subject', 'key' or 'value' fields\n", self->name);
+      return;
+
+    } else if (strcmp(".", msg[si])) {
+      logwarn("%s(txt): Metadata subject '%s' is not the root, not processing\n",
+          self->name, msg[si]);
+
+    } else if(process_meta(self, msg[ki], msg[vi]) <=0 ) {
+      logdebug("%s(txt): No need to store metadata separately", self->name);
+      return;
+    }
+  }
+
+  if (self->values_vector_counts[table_index] <  schema->nfields) {
+    logerror("%s(txt): Not enough OmlValues (%d) to hold received data (%d)\n",
+        self->name, self->values_vector_counts[table_index], schema->nfields);
+    return;
+  }
+
+  v = self->values_vectors[table_index];
+  /* These OmlValue are properly initialised by client_realloc_values,
+   * however, the schema might have been redefined sinc last time */
+  oml_value_array_reset(v, count);
+
+  for (i=0; i < schema->nfields; i++) {
+    oml_value_set_type(&v[i], schema->fields[i].type);
+    if (oml_value_from_s (&v[i], msg[i+3]) == -1) {
+      logerror("%s(txt): Error converting value of type %d from string '%s'\n", self->name, oml_value_get_type(v), msg[i+3]);
+      return;
+    }
   }
 
   logdebug("%s(txt): Inserting data into table index %d (seqno=%d, ts=%f)\n",
-      self->name, table_index, seq_no, ts);
-  self->database->insert(self->database, table, self->sender_id, seq_no,
-      ts, self->values_vectors[table_index], size - 3);
+      self->name, table_index, seqno, ts);
+  self->database->insert(self->database, table, self->sender_id, seqno,
+      ts, self->values_vectors[table_index], count - 3); /* Ignore first 3 elements */
 }
 
 /** Process as many lines of data as possible from an MBuffer.
