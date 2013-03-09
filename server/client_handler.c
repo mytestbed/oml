@@ -604,6 +604,8 @@ process_header(ClientHandler* self, MBuffer* mbuf)
 /** Process contents of a message for which the header has already been
  * extracted by the marshalling code.
  *
+ * XXX: A lot of code duplicated with process_text_data_message (#763)
+ *
  * If the stream ID index is 0, this is some metadata, otherwise, insert data
  * into the storage backend.
  * \param self ClientHandler
@@ -613,12 +615,19 @@ process_header(ClientHandler* self, MBuffer* mbuf)
 static void
 process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 {
-  double ts = self->time_offset + header->timestamp;
-  int table_index = header->stream;
-  int seqno = header->seqno;
+  double ts;
+  int table_index;
+  int seqno;
+  struct schema *schema;
+  int i, ki = -1, vi = -1, si = -1;
+  DbTable *table;
   MBuffer* mbuf = self->mbuf;
-  OmlValue *values, meta[2];
+  OmlValue *v;
   int count;
+
+  ts = header->timestamp;
+  table_index = header->stream;
+  seqno = header->seqno;
 
   if (header->stream < 0 || table_index >= self->table_count) {
     logwarn("%s(bin): Table index %d out of bounds, discarding sample %d\n",
@@ -626,63 +635,87 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
     return;
   }
 
-  if (0 == header->stream) {
-    /* Header mode: two strings: k/v */
-    logdebug("%s(bin): Client sending metadata at %f\n", self->name, ts);
-
-    oml_value_array_init(meta, 2);
-    count = unmarshal_measurements(mbuf, header, meta, 2);
-
-    if (count < 0) {
-      oml_value_array_reset(meta, 2);
-      return;
-    } else if (count > 2) {
-      logwarn("%s(bin): Expecting metadata, but the number of elements is invalid (%d), ignoring\n",
-          self->name, count);
-      oml_value_array_reset(meta, 2);
-      return;
-    } else if (oml_value_get_type(&meta[0]) != OML_STRING_VALUE ) {
-      logwarn("%s(bin): Expecting metadata, but key is not a string (%d), ignoring\n",
-          self->name, oml_value_get_type(&meta[0]));
-    } else if (oml_value_get_type(&meta[1]) != OML_STRING_VALUE ) {
-      logwarn("%s(bin): Expecting metadata, but value for key %s is not a string (%d), ignoring\n",
-          self->name, omlc_get_string_ptr(*oml_value_get_value(&meta[0])), oml_value_get_type(&meta[1]));
+  ts += self->time_offset;
+  table = self->tables[table_index];
+  if (NULL == table) {
+    if (0 == table_index) {
+      /* If this is schema 0, there is a chance the ClientHandler
+       * doesn't know about it yet; find it */
+      table = database_find_table(self->database,
+          "_experiment_metadata");
+      client_realloc_tables(self, 1); /* Make sure we have space for 1 */
+      client_realloc_values(self, 0, table->schema->nfields);
+      self->tables[table_index] = table;
     } else {
-      process_meta(self,
-          omlc_get_string_ptr(*oml_value_get_value(&meta[0])),
-          omlc_get_string_ptr(*oml_value_get_value(&meta[1])));
-    }
-
-    oml_value_array_reset(meta, 2);
-
-  } else {
-    values = self->values_vectors[table_index];
-    count = self->values_vector_counts[table_index];
-    count = unmarshal_measurements(mbuf, header, values, count);
-
-    /* Some error occurred in unmarshaling; can't continue */
-    if (count < 0) {
-      return;
-    }
-
-    DbTable* table = self->tables[table_index];
-    if (table == NULL) {
       logerror("%s(bin): Undefined table index %d\n", self->name, table_index);
-      self->state = C_PROTOCOL_ERROR;
       return;
     }
-    logdebug("%s(bin): Inserting data into table index %d (seqno=%d, ts=%f)\n",
-        self->name, table_index, seqno, ts);
-    self->database->insert(self->database,
-        table,
-        self->sender_id,
-        header->seqno,
-        ts,
-        self->values_vectors[table_index],
-        count);
   }
 
+  v = self->values_vectors[table_index];
+  /* These OmlValue are properly initialised by client_realloc_values,
+   * however, the schema might have been redefined sinc last time */
+  count = self->values_vector_counts[table_index];
+  oml_value_array_reset(v, count);
+  count = unmarshal_measurements(mbuf, header, v, count);
+
+  schema = table->schema;
+  if (schema->nfields != count) {
+    logerror("%s(bin): Data item number mismatch for schema '%s' (expected %d, got %d)\n",
+        self->name, schema->name, schema->nfields, count - 3);
+    return;
+  }
   mbuf_consume_message (mbuf);
+
+  if (0 == table_index) { /* Stream 0: Metadata */
+    logdebug("%s(bin): Client sending metadata at %f\n", self->name, ts);
+
+    /* For future-proofness: find fields with actual names "key" and "value",
+     * regardless of how many there are .*/
+    for (i = 0; i < schema->nfields; i++) {
+      logdebug("%s(bin): Found field %s at index %d in schema %s\n",
+          self->name, schema->fields[i].name, i, schema->name);
+      if (!strcmp(schema->fields[i].name, "key")) {
+        ki = i;
+      } else if (!strcmp(schema->fields[i].name, "value")) {
+        vi = i;
+      } else if (!strcmp(schema->fields[i].name, "subject")) {
+        si = i;
+      }
+    }
+    if (ki<0 || vi<0 || si<0) {
+      logerror("%s(bin): Trying to process metadata from a schema without 'subject', 'key' or 'value' fields\n", self->name);
+      return;
+
+    } else if (oml_value_get_type(&v[si]) != OML_STRING_VALUE ) {
+      logwarn("%s(bin): Expecting metadata, but subject is not a string (%d), ignoring\n",
+          self->name, oml_value_get_type(&v[si]));
+
+    } else if (strcmp(".", omlc_get_string_ptr(*oml_value_get_value(&v[si])))) {
+      logwarn("%s(bin): Metadata subject '%s' is not the root, ignoring\n",
+          self->name, omlc_get_string_ptr(*oml_value_get_value(&v[si])));
+
+    } else if (oml_value_get_type(&v[ki]) != OML_STRING_VALUE ) {
+      logwarn("%s(bin): Expecting metadata, but key is not a string (%d), ignoring\n",
+          self->name, oml_value_get_type(&v[ki]));
+
+    } else if (oml_value_get_type(&v[vi]) != OML_STRING_VALUE ) {
+      logwarn("%s(bin): Expecting metadata, but value for key %s is not a string (%d), ignoring\n",
+          self->name, omlc_get_string_ptr(*oml_value_get_value(&v[ki])),
+          oml_value_get_type(&v[vi]));
+
+    } else if(process_meta(self,
+          omlc_get_string_ptr(*oml_value_get_value(&v[ki])),
+          omlc_get_string_ptr(*oml_value_get_value(&v[vi]))) <= 0) {
+      logdebug("%s(bin): No need to store metadata separately", self->name);
+      return;
+    }
+  }
+
+  logdebug("%s(bin): Inserting data into table index %d (seqno=%d, ts=%f)\n",
+      self->name, table_index, seqno, ts);
+  self->database->insert(self->database, table, self->sender_id, header->seqno,
+      ts, self->values_vectors[table_index], count);
 }
 
 /** Read binary data from an MBuffer
@@ -738,6 +771,8 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
 /** Process split data.
  *
  * The data would have been split by process_text_message.
+ *
+ * XXX: A lot of code duplicated with process_bin_data_message (#763)
  *
  * \param self pointer to ClientHandler processing the data
  * \param msg pointer to array of strings corresponding to the fields
