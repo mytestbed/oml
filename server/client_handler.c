@@ -334,6 +334,7 @@ static int
 process_meta(ClientHandler* self, char* key, char* value)
 {
   int protocol;
+  int start_time;
 
   chomp (value);
   logdebug("%s: Meta '%s':'%s'\n", self->name, key, value);
@@ -442,12 +443,12 @@ process_meta(ClientHandler* self, char* key, char* value)
        * the precision of gettimeofday(2).
        */
 
-      long start_time = atol(value);
+      start_time = atoi(value);
       if (self->database->start_time == 0) {
         // seed it with a time in the past
         self->database->start_time = start_time;// - 100;
         char s[64];
-        snprintf (s, LENGTH(s), "%lu", start_time);
+        snprintf (s, LENGTH(s), "%u", start_time);
         self->database->set_metadata (self->database, "start_time", s);
       }
       self->time_offset = start_time - self->database->start_time;
