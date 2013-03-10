@@ -254,7 +254,6 @@ sq3_create_database(Database* db)
   return 0;
 }
 
-
 /** Release the SQLite3 database.
  * \see db_adapter_release
  */
@@ -264,9 +263,8 @@ sq3_release(Database* db)
   Sq3DB* self = (Sq3DB*)db->handle;
   dba_end_transaction (db);
   sqlite3_close(self->conn);
-
-  db->handle = NULL;
   xfree(self);
+  db->handle = NULL;
 }
 
 /** Create the adapter structures required for the SQLite3 adapter

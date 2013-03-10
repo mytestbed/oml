@@ -296,8 +296,6 @@ psql_release(Database* db)
   PsqlDB* self = (PsqlDB*)db->handle;
   dba_end_transaction (db);
   PQfinish(self->conn);
-  // TODO: Release table specific data
-
   xfree(self);
   db->handle = NULL;
 }
