@@ -11,6 +11,7 @@ SYNOPSIS
 *#include <oml2/omlc.h>*
 [verse]
 'int' *omlc_inject*('OmlMP' *mp, 'OmlValueU' *values);
+'int' *omlc_inject_metadata*('OmlMP' *mp, 'const char' *key, 'const OmlValueU' *value, 'OmlValueT' type, 'const char' *fname);
 
 DESCRIPTION
 -----------
@@ -20,6 +21,14 @@ measurement sample into a 'measurement point' (MP) previously defined
 via a call to linkoml:omlc_add_mp[3]. If linkoml:omlc_inject[3] is called prior to
 the start of measurement sampling, then it will be ignored.
 Measurement sampling is initiated by a call to linkoml:omlc_start[3].
+
+*omlc_inject_metadata*() injects a metadata 'key'/'value' pair about MP
+'mp', and its optional field 'fname'. Unlike other data injected in an
+MP, metadata is treated differently. It is sent along a specific
+metadata 'measurement stream' (MS), and ends up being stored in the
+timestamped '_experiment_metadata' table by the linkoml:oml2-server[1].
+At the moment, the only valid 'type' for 'value' is 'OML_STRING_VALUE';
+anything else will generate an error.
 
 Prior to reading the following, it is worthy to note that
 linkoml:oml-scaffold[1] can be used to generate custom registration and
@@ -123,7 +132,7 @@ the values vector, as *omlc_inject*() creates internal copies.
 RETURN VALUE
 ------------
 
-This function returns 0 on success, or a negative value on error.
+These functions return 0 on success, or a negative value on error.
 
 This is particularly the case if the library has not been initialized
 with a call to linkoml:omlc_init[3], or if measurement sampling has not

@@ -38,6 +38,9 @@ OMLVALUE3_LINKS= \
 	omlc_copy_blob.3 \
 	omlc_reset_blob.3
 
+OMLCINJECT3_LINKS = \
+	omlc_inject_metadata.3
+
 # How to publish documentation
 USER= # If set, should contain a trailing @
 WWWHOST=mytestbed.net
@@ -53,7 +56,11 @@ index.txt: index.tpl.txt
 		echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/* link:\1.\2.html[\1(\2)]/' >> $@; \
 		if [ "$${MANPAGE}" = "OmlValueU.3" ]; then \
 			for MANPAGE in $(OMLVALUE3_LINKS); do \
-				echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/** link:OmlValueU.3.html[\1(\2)]/' >> $@; \
+				echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/** link:$${MANPAGE}.html[\1(\2)]/' >> $@; \
+			done; \
+		elif [ "$${MANPAGE}" = "omlc_inject.3" ]; then \
+			for MANPAGE in $(OMLINJECT3_LINKS); do \
+				echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/** link:$${MANPAGE}.html[\1(\2)]/' >> $@; \
 			done; \
 		elif [ "$${MANPAGE}" = "liboml.3" ]; then \
 			for MANPAGE in $(LIBOML3_LINKS); do \
@@ -73,6 +80,7 @@ CLEANFILES=$(ALL_MAN_FILES:.txt=) \
 	liboml2.3 \
 	oml2_scaffold.1 \
 	$(LIBOML3_LINKS) \
+	$(OMLCINJECT3_LINKS) \
 	$(OMLVALUE3_LINKS) \
 	oml2_scaffold.1
 
@@ -128,6 +136,7 @@ A2X_ARGS = --destination-dir=. -f manpage $(ASCIIDOC_ARGS) --attribute='date=$(D
 if HAVE_A2X
 man_MANS = $(ALL_MAN_FILES:.txt=) \
 	$(LIBOML3_LINKS) \
+	$(OMLCINJECT3_LINKS) \
 	$(OMLVALUE3_LINKS) \
 	oml2_scaffold.1
 
@@ -144,12 +153,16 @@ $(LIBOML3_LINKS):
 #  - the OmlValueU manipulation macros (they share the same manpage).
 $(OMLVALUE3_LINKS):
 	echo ".so man3/OmlValueU.3" > $@
+# - omlc_inject_metadata is documented in omlc_inject(3)
+$(OMLCINJECT3_LINKS):
+	echo ".so man3/omlc_inject.3" > $@
 #  - oml2_scaffold (renamed to oml2-scaffold)
 oml2_scaffold.1:
 	echo ".so man1/oml2-scaffold.1" > $@
 
 EXTRA_DIST+=$(ALL_MAN_FILES:.txt=)  \
 	$(LIBOML3_LINKS) \
+	$(OMLCINJECT3_LINKS) \
 	$(OMLVALUE3_LINKS) \
 	oml2_scaffold.1
 
