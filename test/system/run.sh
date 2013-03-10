@@ -112,7 +112,7 @@ startdaemon() {
 	# stdout to somewhere, otherwise the function doesn't return;
 	# the logfile is the best place, but this assumes the application
 	# itself doesn't try to write there
-	$rest >$log 2>&1 &
+	$rest >>$log 2>&1 &
 	pid=$!
 	echo -n "# $prog=$pid" >&2
 	sleep 1
