@@ -296,14 +296,22 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
     }
   }
 
+  /* Related to #1056. */
+  if (table->handle != NULL) {
+    logwarn("sqlite:%s: BUG: Recreating Sq3Table handle for table %s\n",
+        table->schema->name);
+  }
+  sq3table = (Sq3Table*)xmalloc(sizeof(Sq3Table));
+  table->handle = sq3table;
+
+  /* XXX: Should not be done here, see #1056 */
   insert = sq3_make_sql_insert (table);
   if (!insert) {
     logerror ("sqlite:%s: Failed to build SQL INSERT INTO statement string for table '%s'\n",
              db->name, table->schema->name);
     goto fail_exit;
   }
-  sq3table = xmalloc(sizeof(Sq3Table));
-  table->handle = sq3table;
+
   if (sqlite3_prepare_v2(sq3db->conn, mstring_buf(insert), -1,
                          &sq3table->insert_stmt, 0) != SQLITE_OK) {
     logerror("sqlite:%s: Could not prepare statement: %s\n",

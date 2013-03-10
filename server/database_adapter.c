@@ -79,6 +79,7 @@ dba_table_create_from_schema (Database *db, const struct schema *schema)
   if (db->stmt(db, mstring_buf(create))) {
     goto fail_exit;
   }
+  /* FIXME: Create prepared insertion statement here. See #1056. */
   if(!(table = database_create_table(db, schema))) {
     logerror("%s:%s: Failed to register generic adapter for newly created table for schema '%s'\n",
         db->backend_name, db->name, schema_to_meta(schema));

@@ -373,33 +373,60 @@ psql_table_create (Database *db, DbTable *table, int shallow)
     }
   }
 
-  insert = psql_make_sql_insert (table);
-  if (!insert) {
-    logerror("psql:%s: Failed to build SQL INSERT INTO statement for table '%s'\n",
-          db->name, table->schema->name);
-    goto fail_exit;
+  /* Related to #1056. */
+  if (table->handle != NULL) {
+    logwarn("psql:%s: BUG: Recreating PsqlTable handle for table %s\n",
+        table->schema->name);
   }
-  /* Prepare the insert statement and update statement  */
   psqltable = (PsqlTable*)xmalloc(sizeof(PsqlTable));
   table->handle = psqltable;
 
+  /* Prepare the insert statement  */
   insert_name = mstring_create();
   mstring_set (insert_name, "OMLInsert-");
   mstring_cat (insert_name, table->schema->name);
-  res = PQprepare(psqldb->conn,
-                  mstring_buf (insert_name),
-                  mstring_buf (insert),
-                  table->schema->nfields + 4, // FIXME:  magic number of metadata cols
-                  NULL);
 
-  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    logerror("psql:%s: Could not prepare statement: %s\n",
-        db->name, PQerrorMessage(psqldb->conn));
+  /* Prepare the statement in the database if it doesn't exist yet
+   * XXX: We should really only create it if shallow==0; however some
+   * tables can get created through dba_table_create_from_* which doesn't
+   * initialise the prepared statement; there should be a
+   * db_adapter_prepare_insert function provided by the backend, and callable
+   * from dba_table_create_from_schema to do the following (in the case of
+   * PostgreSQL). See #1056.
+   */
+  /* This next test might kill the transaction */
+  dba_reopen_transaction(db);
+  res = PQdescribePrepared(psqldb->conn, mstring_buf (insert_name));
+  if(PQresultStatus(res) == PGRES_COMMAND_OK) {
+    logdebug ("psql:%s: Insertion statement %s already exists\n",
+        db->name, mstring_buf (insert_name));
+  } else {
     PQclear(res);
-    goto fail_exit;
-    return -1;
+    /* This test killed the transaction; start a new one */
+    dba_reopen_transaction(db);
+
+    insert = psql_make_sql_insert (table);
+    if (!insert) {
+      logerror("psql:%s: Failed to build SQL INSERT INTO statement for table '%s'\n",
+          db->name, table->schema->name);
+      goto fail_exit;
+    }
+
+    res = PQprepare(psqldb->conn,
+        mstring_buf (insert_name),
+        mstring_buf (insert),
+        table->schema->nfields + 4, // FIXME:  magic number of metadata cols
+        NULL);
+
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+      logerror("psql:%s: Could not prepare statement: %s\n",
+          db->name, PQerrorMessage(psqldb->conn));
+      PQclear(res);
+      goto fail_exit;
+    }
   }
   PQclear(res);
+
   psqltable->insert_stmt = insert_name;
 
   if (insert) { mstring_delete (insert); }
