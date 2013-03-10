@@ -121,7 +121,7 @@ psql_backend_setup (void)
   PGconn *conn = PQconnectdb (mstring_buf (conninfo));
 
   if (PQstatus (conn) != CONNECTION_OK) {
-    logerror ("psql: Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
+    logerror ("psql: Could not connect to PostgreSQL database (conninfo \"%s\"): %s", /* PQerrorMessage strings already have '\n'  */
          mstring_buf(conninfo), PQerrorMessage (conn));
     mstring_delete(conninfo);
     return -1;
@@ -134,7 +134,7 @@ psql_backend_setup (void)
   PGresult *res = PQexec (conn, mstring_buf (str));
   mstring_delete(str);
   if (PQresultStatus (res) != PGRES_TUPLES_OK) {
-    logerror ("psql: Failed to determine role privileges for role '%s': %s\n",
+    logerror ("psql: Failed to determine role privileges for role '%s': %s", /* PQerrorMessage strings already have '\n'  */
          pg_user, PQerrorMessage (conn));
     return -1;
   }
@@ -200,7 +200,8 @@ sql_stmt(PsqlDB* self, const char* stmt)
   res = PQexec(self->conn, stmt);
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    logerror("psql: Error executing '%s': %s\n", stmt, PQerrorMessage(self->conn));
+    logerror("psql: Error executing '%s': %s", /* PQerrorMessage strings already have '\n'  */
+        stmt, PQerrorMessage(self->conn));
     PQclear(res);
     return -1;
   }
@@ -244,7 +245,7 @@ psql_create_database(Database* db)
 
   /* Check to see that the backend connection was successfully made */
   if (PQstatus(conn) != CONNECTION_OK) {
-    logerror ("psql: Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
+    logerror ("psql: Could not connect to PostgreSQL database (conninfo \"%s\"): %s", /* PQerrorMessage strings already have '\n'  */
          mstring_buf(conninfo), PQerrorMessage (conn));
     goto cleanup_exit;
   }
@@ -267,7 +268,8 @@ psql_create_database(Database* db)
 
     res = PQexec (conn, mstring_buf (str));
     if (PQresultStatus (res) != PGRES_COMMAND_OK) {
-      logerror ("psql:%s: Could not create database: %s\n", db->name, PQerrorMessage (conn));
+      logerror ("psql:%s: Could not create database: %s", /* PQerrorMessage strings already have '\n'  */
+          db->name, PQerrorMessage (conn));
       goto cleanup_exit;
     }
   }
@@ -281,7 +283,8 @@ psql_create_database(Database* db)
 
   /* Check to see that the backend connection was successfully made */
   if (PQstatus(conn) != CONNECTION_OK) {
-    logerror ("psql:%s: Could not connect to PostgreSQL database (conninfo \"%s\"): %s\n",
+    logerror ("psql:%s: Could not connect to PostgreSQL database (conninfo \"%s\"): %s",
+  /* PQerrorMessage strings already have '\n'  */
         db->name, mstring_buf(conninfo), PQerrorMessage (conn));
     goto cleanup_exit;
   }
@@ -366,7 +369,7 @@ psql_table_create (Database *db, DbTable *table, int shallow)
 
   if (!shallow) {
     if (dba_table_create_from_schema(db, table->schema)) {
-      logerror("psql:%s: Could not create table '%s': %s\n",
+      logerror("psql:%s: Could not create table '%s': %s", /* PQerrorMessage strings already have '\n' */
           db->name, table->schema->name,
           PQerrorMessage (psqldb->conn));
       goto fail_exit;
@@ -419,7 +422,7 @@ psql_table_create (Database *db, DbTable *table, int shallow)
         NULL);
 
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      logerror("psql:%s: Could not prepare statement: %s\n",
+      logerror("psql:%s: Could not prepare statement: %s", /* PQerrorMessage strings already have '\n' */
           db->name, PQerrorMessage(psqldb->conn));
       PQclear(res);
       goto fail_exit;
@@ -526,7 +529,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
                            escaped_blob = PQescapeByteaConn(psqldb->conn,
                                v->value.blobValue.ptr, v->value.blobValue.length, &eblob_len);
                            if (!escaped_blob) {
-                             logerror("psql:%s: Error escaping blob in field %d of table '%s': %s\n",
+                             logerror("psql:%s: Error escaping blob in field %d of table '%s': %s", /* PQerrorMessage strings already have '\n' */
                                  db->name, i, table->schema->name, PQerrorMessage(psqldb->conn));
                            }
                            /* XXX: 512 char is the size allocated above. Nasty. */
@@ -557,7 +560,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
                        (int*) &paramLength, (int*) &paramFormat, 0 );
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    logerror("psql:%s: INSERT INTO '%s' failed: %s\n",
+    logerror("psql:%s: INSERT INTO '%s' failed: %s", /* PQerrorMessage strings already have '\n' */
         db->name, table->schema->name, PQerrorMessage(psqldb->conn));
     PQclear(res);
     return -1;
@@ -621,7 +624,7 @@ psql_get_key_value (Database *database, const char *table, const char *key_colum
   res = PQexec (psqldb->conn, mstring_buf (stmt));
 
   if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-    logerror("psql:%s: Error trying to get %s[%s]; (%s).\n",
+    logerror("psql:%s: Error trying to get %s[%s]; (%s)", /* PQerrorMessage strings already have '\n' */
              database->name, table, key, PQerrorMessage(psqldb->conn));
     goto fail_exit;
   }
@@ -724,7 +727,7 @@ psql_add_sender_id(Database *db, const char *sender_id)
     PGresult *res = PQexec (self->conn, "SELECT MAX(id) FROM _senders;");
 
     if (PQresultStatus (res) != PGRES_TUPLES_OK) {
-      logwarn("psql:%s: Failed to get maximum sender id from database: %s; starting at 0\n",
+      logwarn("psql:%s: Failed to get maximum sender id from database (restarting at 0)<++>: %s", /* PQerrorMessage strings already have '\n'  */
           db->name, PQerrorMessage (self->conn));
       PQclear (res);
       index = 0;
@@ -779,7 +782,7 @@ psql_get_table_list (Database *database, int *num_tables)
   *num_tables = -1;
   res = PQexec (self->conn, stmt_tablename);
   if (PQresultStatus (res) != PGRES_TUPLES_OK) {
-    logerror("psql:%s: Couldn't get list of tables: %s\n",
+    logerror("psql:%s: Couldn't get list of tables: %s", /* PQerrorMessage strings already have '\n'  */
         database->name, PQerrorMessage (self->conn));
     PQclear (res);
     return NULL;
@@ -814,7 +817,7 @@ psql_get_table_list (Database *database, int *num_tables)
       mstring_sprintf (str, "SELECT value FROM _experiment_metadata WHERE key='table_%s';", val);
       PGresult *schema_res = PQexec (self->conn, mstring_buf (str));
       if (PQresultStatus (schema_res) != PGRES_TUPLES_OK) {
-        logdebug("psql:%s: Couldn't get schema for table '%s': %s; skipping\n",
+        logdebug("psql:%s: Couldn't get schema for table '%s' (skipping): %s", /* PQerrorMessage strings already have '\n'  */
             database->name, val, PQerrorMessage (self->conn));
         mstring_delete (str);
         continue;
