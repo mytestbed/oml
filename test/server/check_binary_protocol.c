@@ -23,6 +23,7 @@
 /** \file Tests behaviours and issues related to the binary protocol. */
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <math.h>
 #include <check.h>
 #include <sqlite3.h>
@@ -96,6 +97,7 @@ START_TEST(test_binary_resync)
   MBuffer* mbuf = mbuf_create();
 
   char domain[] = "binary-resync-test";
+  char dbname[sizeof(domain)+3];
   char table[] = "resync1_table";
   double time1 = 1.096202;
   double time2 = 2.092702;
@@ -110,6 +112,11 @@ START_TEST(test_binary_resync)
   int rc = -1;
 
   o_set_log_level(-1);
+
+  /* Remove pre-existing databases */
+  *dbname=0;
+  snprintf(dbname, sizeof(dbname), "%s.sq3", domain);
+  unlink(dbname);
 
   snprintf(h1, sizeof(h1),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\ncontent: binary\nschema: 1 %s size:uint32\n\n", domain, basename(__FILE__), __FUNCTION__, table);
   snprintf(select1, sizeof(select1), "select oml_ts_client, oml_seq, size from %s;", table);
@@ -216,6 +223,7 @@ START_TEST(test_binary_flexibility)
   MBuffer* mbuf = mbuf_create();
 
   char domain[] = "binary-flex-test";
+  char dbname[sizeof(domain)+3];
   char table[3][12] = { "flex1_table", "flex2_table", "flex3_table" };
   double time1 = 1.096202;
   double time2 = 2.092702;
@@ -236,6 +244,11 @@ START_TEST(test_binary_flexibility)
   int rc = -1;
 
   o_set_log_level(-1);
+
+  /* Remove pre-existing databases */
+  *dbname=0;
+  snprintf(dbname, sizeof(dbname), "%s.sq3", domain);
+  unlink(dbname);
 
   snprintf(s1, sizeof(s1), "1 %s size:uint32", table[0]);
   snprintf(s2, sizeof(s2), "2 %s size:uint32", table[1]);

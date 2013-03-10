@@ -57,6 +57,7 @@ START_TEST(test_text_insert)
   SockEvtSource source;
 
   char domain[] = "text-test";
+  char dbname[sizeof(domain)+3];
   char table[] = "text_table";
   double time1 = 1.096202;
   double time2 = 2.092702;
@@ -71,6 +72,11 @@ START_TEST(test_text_insert)
   int rc = -1;
 
   o_set_log_level(-1);
+
+  /* Remove pre-existing databases */
+  *dbname=0;
+  snprintf(dbname, sizeof(dbname), "%s.sq3", domain);
+  unlink(dbname);
 
   snprintf(h, sizeof(h),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\nschema: 1 %s size:uint32\n\n", domain, basename(__FILE__), __FUNCTION__, table);
   snprintf(s1, sizeof(s1), "%f\t1\t%d\t%d\n", time1, 1, d1);
@@ -139,6 +145,7 @@ START_TEST(test_text_flexibility)
   SockEvtSource source;
 
   char domain[] = "text-flex-test";
+  char dbname[sizeof(domain)+3];
   char table[3][12] = { "flex1_table", "flex2_table", "flex3_table" };
   double time1 = 1.096202;
   double time2 = 2.092702;
@@ -157,6 +164,11 @@ START_TEST(test_text_flexibility)
   int rc = -1;
 
   o_set_log_level(-1);
+
+  /* Remove pre-existing databases */
+  *dbname=0;
+  snprintf(dbname, sizeof(dbname), "%s.sq3", domain);
+  unlink(dbname);
 
   snprintf(s1, sizeof(s1), "1 %s size:uint32", table[0]);
   snprintf(s2, sizeof(s2), "2 %s size:uint32", table[1]);
