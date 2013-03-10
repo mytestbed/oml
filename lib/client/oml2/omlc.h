@@ -599,7 +599,7 @@ OmlMP *omlc_add_mp(const char *mp_name, OmlMPDef *mp_def);
 int omlc_start(void);
 
 /*  Inject a measurement sample into a Measurement Point.  */
-void omlc_inject(OmlMP *mp, OmlValueU *values);
+int omlc_inject(OmlMP *mp, OmlValueU *values);
 
 // DEPRECATED
 void omlc_process(OmlMP* mp, OmlValueU* values);

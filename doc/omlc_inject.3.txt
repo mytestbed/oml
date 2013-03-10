@@ -10,7 +10,7 @@ SYNOPSIS
 [verse]
 *#include <oml2/omlc.h>*
 [verse]
-'void' *omlc_inject*('OmlMP' *mp, 'OmlValueU' *values);
+'int' *omlc_inject*('OmlMP' *mp, 'OmlValueU' *values);
 
 DESCRIPTION
 -----------
@@ -97,14 +97,17 @@ MP tuple definition. This is particularly important for strings.
 The values vector should be considered "write-only" and should only be
 manipulated using the value-setting macros, see linkoml:omlc_set_int32[3].
 
-ERRORS
-------
+RETURN VALUE
+------------
 
-If the library has not been initialized with a call to linkoml:omlc_init[3],
-and if measurement sampling has not been started with a call
-to linkoml:omlc_start[3], then this function exits without performing any
-actions.  Similarly, if either 'mp' or 'values' is NULL, then the
-function exits silently.
+This function returns 0 on success, or a negative value on error.
+
+This is particularly the case if the library has not been initialized
+with a call to linkoml:omlc_init[3], or if measurement sampling has not
+been started with a call to linkoml:omlc_start[3]. It this case the
+function exits, without performing any actions, with status -1.
+Similarly, if either 'mp' or 'values' is NULL, then the function exits
+with the same status.
 
 BUGS
 ----

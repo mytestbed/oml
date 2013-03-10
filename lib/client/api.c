@@ -55,6 +55,7 @@ omlc_process(OmlMP *mp, OmlValueU *values)
  *
  * \param mp pointer to OmlMP into which the new sample is being injected
  * \param values an array of OmlValueU to be processed
+ * \return 0 on success, <0 otherwise
  *
  * The values' types is assumed to be the same as what was passed to omlc_add_mp
  * Type information is stored in (stored in mp->param_defs[].param_types)
@@ -66,20 +67,20 @@ omlc_process(OmlMP *mp, OmlValueU *values)
  *
  * \see omlc_add_mp, omlc_ms_process
  */
-void
+int
 omlc_inject(OmlMP *mp, OmlValueU *values)
 {
   OmlMStream* ms;
   OmlValue v;
 
-  if (omlc_instance == NULL) return;
-  if (mp == NULL || values == NULL) return;
+  if (omlc_instance == NULL) return -1;
+  if (mp == NULL || values == NULL) return -1;
 
   oml_value_init(&v);
 
   if (mp_lock(mp) == -1) {
     logwarn("Cannot lock MP '%s' for injection\n", mp->name);
-    return;
+    return -1;
   }
   ms = mp->streams;
   while (ms) {
@@ -96,6 +97,8 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
   }
   mp_unlock(mp);
   oml_value_reset(&v);
+
+  return 0;
 }
 
 /** Called when the particular MS has been filled.
