@@ -1,3 +1,17 @@
+/*
+ * Copyright 2010-2013 National ICT Australia Limited (NICTA)
+ *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file blobgen.c
+ * \brief A blob generator saving its data to plain files. It is used in the
+ * system tests to report data to the server, and make sure it has been
+ * properly written in the backend.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -153,3 +167,11 @@ main (int argc, const char **argv)
   omlc_close ();
   return 0;
 }
+/*
+ Local Variables:
+ mode: C
+ tab-width: 2
+ indent-tabs-mode: nil
+ End:
+ vim: sw=2:sts=2:expandtab
+*/
