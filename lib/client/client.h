@@ -43,29 +43,44 @@
 #define DEF_PORT 3003
 #define DEF_PORT_STRING  xstr(DEF_PORT)
 
-typedef struct _omlClient {
+/** Internal data structure holding OML paramaters */
+typedef struct OmlClient {
+  /** Application name */
   const char* app_name;
+  /** Experimental domain */
   const char* domain;
+  /** Sender ID */
   const char* node_name;
 
+  /** Linked list of measurement points */
   OmlMP*       mpoints;
 
+  /** Default collection URI */
   char collection_uri[COLLECTION_URI_MAX_LENGTH + 1];
 
+  /** Linked list of writers */
   OmlWriter*  first_writer;
 
+  /** Configuration file */
   const char* config_file;
 
+  /** Time when this client was started \see gettimeofday(3) */
   time_t      start_time;    // unix epoch when started
 
-  // The following are used for setting up default filters when
-  // we don't have a config file.
-  int         sample_count;  // default sample count
-  double      sample_interval; // default sample interval
-  int         max_queue; // Maximum number of buffers in the buffer queue for each writer
-  enum StreamEncoding default_encoding; // Default wire encoding for network streams
+  /* The following are used for setting up default filters
+   * when we don't have a config file.
+   */
+  /** Default sample count */
+  int         sample_count;
+  /** Default interval */
+  double      sample_interval;
+  /** Maximum number of buffers in the buffer queue for each writer */
+  int         max_queue;
+  /** Default wire encoding for network streams */
+  enum StreamEncoding default_encoding;
 } OmlClient;
 
+/** Global OmlClient instance */
 extern OmlClient* omlc_instance;
 
 // init.c
