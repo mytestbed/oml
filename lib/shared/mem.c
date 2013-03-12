@@ -204,7 +204,7 @@ void *xrealloc (void *ptr, size_t size)
 size_t xmalloc_usable_size(void *ptr) {
   if(!ptr) return 0;
   size_t *sptr = (size_t*)ptr - 1;
-  return *sptr;
+  return *sptr-sizeof(size_t);
 }
 
 /** Free an xchunk
