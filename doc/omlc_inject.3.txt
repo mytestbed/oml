@@ -48,7 +48,7 @@ declare an 'OmlValueU' array with the right number of elements, in
 this case five (the sentinel value is only needed when declaring the
 MP to linkoml:omlc_add_mp[3], it doesn't play any further part).  Then, call
 the value setting macros to load new values into the vector, and
-finally pass the array to linkoml:omlc_inject[3]:
+finally pass the array to *omlc_inject*():
 
 ----
 OmlMP *mp = omlc_add_mp ("myMP", mp_def);
@@ -95,7 +95,11 @@ as declared, and in the same order in the array as specified for the
 MP tuple definition. This is particularly important for strings.
 
 The values vector should be considered "write-only" and should only be
-manipulated using the value-setting macros, see linkoml:omlc_set_int32[3].
+manipulated using the value-setting macros, see
+linkoml:omlc_set_int32[3].
+
+Once a call to *omlc_inject*() has been made, it is safe to modify/free
+the values vector, as *omlc_inject*() creates internal copies.
 
 RETURN VALUE
 ------------

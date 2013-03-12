@@ -65,7 +65,10 @@ omlc_process(OmlMP *mp, OmlValueU *values)
  * filter, the call omlc_ms_process() to determine whether a new sample has to
  * be output on that MS.
  *
- * \see omlc_add_mp, omlc_ms_process
+ * The content of values is deep-copied into the MSs' storage, so values can be
+ * directly freed/reused when inject returns.
+ *
+ * \see omlc_add_mp, omlc_ms_process, oml_value_set
  */
 int
 omlc_inject(OmlMP *mp, OmlValueU *values)
