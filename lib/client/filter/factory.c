@@ -147,7 +147,6 @@ create_filter(
  */
 OmlFilter *destroy_filter(OmlFilter* f) {
   OmlFilter *next;
-  int i;
   if (!f)
     return NULL;
 
@@ -156,8 +155,7 @@ OmlFilter *destroy_filter(OmlFilter* f) {
   next = f->next;
 
   if(f->result) {
-    for (i=0; i < f->output_count; i++)
-      oml_value_reset(&f->result[i]);
+    oml_value_array_reset(f->result, f->output_count);
     xfree(f->result);
   }
   if(f->instance_data)
