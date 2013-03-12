@@ -16,8 +16,10 @@ SYNOPSIS
 'void'   *omlc_inject*('OmlMP' \*mp, linkoml:OmlValueU[3] \*values); +
 'int'    *omlc_close*('void'); +
 [verse]
+*#define OML_FROM_MAIN* '/* enable oml_register_mps() and necessary storage; only in one file */'
+*#include "APPNAME_oml.h*
+'inline void' *oml_register_mps*(); +
 'inline void' *oml_inject_MPNAME*('OmlMP*' mp, ...); +
-
 
 DESCRIPTION
 -----------
@@ -50,10 +52,13 @@ First the library is initialised and measurement points are defined.
 Measurement::
 Second, the filters are constructed and enabled by calling
 linkoml:omlc_start[3]. Measurement can proceed, with as many calls to
-linkoml:omlc_inject[3] as required. For convenience,
-linkoml:oml2-scaffold[1] generates helper functions
-(*oml_inject_MPNAME*) which take care of preparing the data and passing
-it to linkoml:omlc_inject[3].
+linkoml:omlc_inject[3] as required.
+
+For convenience, it is recommended to use linkoml:oml2-scaffold[1] to
+generate helper functions for MP registration and injection
+(*oml_register_mps* and *oml_inject_MPNAME*) which take care of
+preparing the data and passing it to linkoml:omlc_add_mp[3] and
+linkoml:omlc_inject[3], respectively.
 
 It is also best to call linkoml:omlc_close[3] to shut down the
 measurement library cleanly once measurement tasks are completed, such
@@ -97,9 +102,55 @@ running its own command line option parser.
 After initialising the library, the programmer must define the
 application's 'MPs'.  Each 'MP' is defined as a typed tuple.  OML
 supports basic integer types, a double-precision floating point type,
-and a string type.  Future versions will support blobs, network
-addresses, ... etc.  An 'MP' definition is represented as an array of
-'OmlMPDef' objects, terminated by a NULL object, as shown here:
+a string type and a blob type.
+
+[[generated-register,]]
+Using the registration helper
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This is the recommended method as it is easiest.
+
+The linkoml:oml2-scaffold[1] tool can generate the definition of the
+desired measurement points, and a single registration function as part
+of the OML header ('APPNAME_oml.h' generated with the '--oml' flag).
+The registration function, *oml_register_mps*(), declares theses MPs to
+the library. It takes no argument, and initialises a structure
+*g_oml_mps_APPNAME* which contains named pointer to each measurement
+point. Taking the example from linkoml:oml2-scaffold[1],
+
+----
+defApplication('oml:man:foo', 'foo') do |a|
+  # ... Some needed code skipped here ...
+  a.defMeasurement("memory") do |m|
+    # ... Some more code skipped here ...
+  end
+
+  a.defMeasurement("cpu") do |m|
+    # ... Some more code skipped here ...
+  end
+end
+----
+
+The *oml_register_mps*() function declares and initialises a structure
+containing pointers to the 'OmlMP*'. In this example, where the
+application name is 'foo', it will be accessible as 'g_oml_mps_foo', and
+the 'OmlMP*' for 'memory' and 'cpu' as 'g_oml_mps_foo->memory' and
+'g_oml_mps_foo->cpu', respectively.
+
+This function is made available conditionally from 'APPNAME_oml.h'.
+Indeed, it requires objects which need only be allocated once, and is
+done at the same time. To make this function available, one must
+'#define' linkman:cpp[3] macro 'OML_FROM_MAIN' prior to the '#include'
+statement for 'APPNAME_oml.h'. This should be done *only in file using
+oml_register_mps()*.
+
+Registering MPs manually
+^^^^^^^^^^^^^^^^^^^^^^^^
+In case some or more 'MPs' cannot be known at compile time (e.g., a
+plugin providing its own 'MPs'), the auto-generated registration code
+cannot be used. These 'MPs' have to be defined and added manually in the
+code. An 'MP' definition is represented as an array of 'OmlMPDef'
+objects, terminated by a NULL object, as shown here:
 
 ----
 OmlMPDef mp_def [] =
@@ -151,9 +202,10 @@ measurements, and inject there results into the OML reporting path.
 Using injection helpers
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-This is the recommended method as it is easiest and much less
-error-prone. It is also more future-proof as it shields the application
-from low-level API changes.
+This is the recommended method as it is easiest and much less error-prone. It
+is also more future-proof as it shields the application from low-level API
+changes.  These helpers also provide C-compiler type-checking and proper memory
+management.
 
 The linkoml:oml2-scaffold[1] tool can generate helper injection
 functions as part of the OML header ('--oml'). Their prototype is  of
@@ -161,8 +213,15 @@ the form *oml_inject_MPNAME*('OmlMP*' mp, ...), where *MPNAME* is the
 name of the 'MP' that is passed as *mp*. The remaining arguments are
 C-typed variables constituting the sample to be injected in the 'MP'.
 
-These helpers provide C-compiler type-checking and proper memory
-management.
+Continuing with the <<generated-register,auto-generated example from above>>,
+injecting a sample in the 'memory' 'MP' can be done as
+
+----
+oml_inject_memory(g_oml_mps_foo->memory, ram, total, free, used, free_percent, used_percent);
+----
+
+where 'ram', 'total', 'free', 'used', 'free_percent' and 'used_percent' are
+assumed to be variables updated by the rest of the application code.
 
 [[manual-inject,]]
 Implementing injection code manually

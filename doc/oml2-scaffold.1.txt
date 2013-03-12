@@ -36,25 +36,32 @@ application, unfortunately.
 
 OPTIONS
 -------
-*oml2-scaffold* recognizes the following command line options:
+*oml2-scaffold* recognises the following command line options:
 
 --oml::
-Create the oml header file defining all measurement points and
-injection helper functions.
+Create OML header file 'APPNAME_oml.h' defining all measurement points,
+as well as registration and injection helper functions
+(linkoml:oml_register_mps[3] and linkoml:oml_inject_MPNAME[3]). The
+registration helper is only available when defining linkman:cpp[3] macro
+'OML_FROM_MAIN' prior to the '#include' statement for 'APPNAME_oml.h'.
+This should only be done in the file calling linkoml:oml_register_mps[3]
+(usually in the *main*() function).
 
 --opts::
-Create the popt header file for all application properties.
+Create the linkman:popt[3] header file 'APPNAME_popt.h' for
+application command-line parsing.
 
 --make::
 Create a skeleton Makefile for this application.
 
 --main::
-Create a skeleton main file for this application.
+Create skeleton main file 'APPNAME.c' for this application.
 
 -a::
 --app 'name'::
-Create a skeleton OMF application definition file for an application
-with the given 'name'.  This creates a file called 'name'.rb.
+Create a skeleton application definition file 'name.rb' for an
+application with the given 'name'. Other files generated from this
+application definition will use 'name' as 'APPNAME'.
 
 -f::
 --force::
@@ -90,7 +97,7 @@ The template language is based on Ruby syntax.  Here is a simple
 example:
 
 --------
-defApplication('omf:app:foo', 'foo') do |a|
+defApplication('oml:man:foo', 'foo') do |a|
   a.version(1,0)
   a.shortDescription = "Monitoring the system's foo"
   a.description = %{
@@ -102,14 +109,26 @@ its computers. }
   a.defProperty('mem', 'Report memory foo', ?m,
                :type => :flag, :impl => { :var_name => 'report_memory' })
 
-  a.defMeasurement("memory_foo") do |m|
-    m.defMetric('ram_foo', 'string')
-    m.defMetric('total_foo', 'uint32')
-    m.defMetric('free_foo', 'uint32')
-    m.defMetric('used_foo', 'uint32')
+  a.defMeasurement("memory") do |m|
+    m.defMetric('ram', 'string')
+    m.defMetric('total', 'uint32')
+    m.defMetric('free', 'uint32')
+    m.defMetric('used', 'uint32')
     m.defMetric('free_percent', 'double')
     m.defMetric('used_percent', 'double')
- end
+  end
+
+  a.defMeasurement("cpu") do |m|
+    m.defMetric('user', 'uint64')
+    m.defMetric('sys', 'uint64')
+    m.defMetric('nice', 'uint64')
+    m.defMetric('idle', 'uint64')
+    m.defMetric('wait', 'uint64')
+    m.defMetric('irq', 'uint64')
+    m.defMetric('soft_irq', 'uint64')
+    m.defMetric('stolen', 'uint64')
+    m.defMetric('total', 'uint64')
+  end
 end
 --------
 
@@ -121,7 +140,7 @@ mandatory, but the 'name is optional.  If the 'name' is not supplied
 then it is taken from the final component of the 'uri'.  For example,
 
 --------
-defApplication('omf:app:bar') do |a|
+defApplication('oml:man:bar') do |a|
 ...
 end
 --------
@@ -133,12 +152,12 @@ syntaxes for blocks, either using do...end as above, or the C-like
 curly brace syntax:
 
 --------
-defApplication('omf:app:bar') { |a|
+defApplication('oml:man:bar') { |a|
 ...
 }
 --------
 
-The defApplication block is given an application object as a parameter
+The 'defApplication' block is given an application object as a parameter
 (that's the do |a| part).  The application object supports a number of
 operations that are described below.
 
