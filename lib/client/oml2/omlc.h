@@ -359,11 +359,11 @@ typedef union _omlValueU {
     if (len >= _oml_get_storage_field((var), type, size)) {                   \
       _omlc_reset_storage((var), type);                                       \
       _oml_set_storage_field((var), type, ptr, xmalloc(len));                 \
+      _oml_set_storage_field((var), type, size,                               \
+          xmalloc_usable_size(_oml_get_storage_field((var), type, ptr)));     \
     }                                                                         \
     memcpy(_oml_get_storage_field((var), type, ptr), (void*)(data), (len));   \
     _oml_set_storage_field((var), type, length, (len));                       \
-    _oml_set_storage_field((var), type, size,                                 \
-        xmalloc_usable_size(_oml_get_storage_field((var), type, ptr)));       \
   } while(0)
 
 /** \see _omlc_free_storage */
