@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <errno.h>
 #include <limits.h>
 #include <popt.h>
@@ -28,6 +29,7 @@ static int fixed_size = 0;
 static int samples = -1;
 static int hex = 0;
 static int quiet = 0;
+static int interval = 0;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
@@ -35,6 +37,7 @@ struct poptOption options[] = {
   { "fixed", 'f', POPT_ARG_INT, &fixed_size, 0, "Used fixed size blobs", "SIZE" },
   { "samples", 'n', POPT_ARG_INT, &samples, 0, "Number of samples to generate. Default=forever", "SAMPLES"},
   { "hex", 'h', POPT_ARG_NONE, &hex, 0, "Generate HEX file output instead of binary", NULL},
+  { "interval", 'i', POPT_ARG_INT, &interval, 0, "Interval between tuple generation [ms]", NULL},
   { "quiet", 'q', POPT_ARG_NONE, &quiet, 0, "If set, don't print", NULL},
   { NULL, 0, 0, NULL, 0, NULL, NULL }
 };
@@ -115,6 +118,11 @@ blob_to_file (int index, void *blob, size_t n)
   close (fd);
 }
 
+double difftv(struct timeval t1, struct timeval t2)
+{
+  return (((double)(t1.tv_sec - t2.tv_sec)) + (double)(t1.tv_usec - t2.tv_usec)/1000000.);
+}
+
 static OmlMPDef mpdef [] = {
   { "label", OML_STRING_VALUE },
   { "seq", OML_UINT32_VALUE },
@@ -129,25 +137,35 @@ run (void)
 {
   int i = 0;
   void *blob = NULL;
-  size_t blob_length = 0;
+  size_t blob_length = 0, totlength = 0;
   char s[64];
+  struct timeval beg, end;
+  double deltaT;
   OmlValueU v[3];
   omlc_zero_array(v, 3);
 
+  gettimeofday(&beg, NULL);
   fprintf (stderr, "# blobgen: writing blobs:");
   for (i = 0; samples != 0; i++, samples--) {
     snprintf (s, sizeof(s)-1, "sample-%04d\n", i);
     blob = randgen (&blob_length);
     blob_to_file (i + 1, blob, blob_length);
-    fprintf (stderr, " %d (%dB)", i, blob_length);
+    totlength += blob_length;
+    fprintf (stderr, " %d (%dB)", i, (int)blob_length);
     omlc_set_string (v[0], s);
     omlc_set_int32 (v[1], i);
     omlc_set_blob (v[2], blob, blob_length);
     omlc_inject (mp, v);
+    fflush(stderr);
+    usleep(interval);
   }
+  gettimeofday(&end, NULL);
+  deltaT = difftv(end, beg);
+  fprintf (stderr, " (%d injects and %dB in %fs: %fips, %fBps).\n", i, (int)totlength, deltaT,
+      (double)i/deltaT, (double)totlength/deltaT);
+
   omlc_reset_string(v[0]);
   omlc_reset_blob(v[2]);
-  fprintf (stderr, ".\n");
 }
 
 
@@ -162,6 +180,8 @@ main (int argc, const char **argv)
 
   poptContext optcon = poptGetContext (NULL, argc, argv, options, 0);
   while ((c = poptGetNextOpt(optcon)) >= 0);
+
+  interval *= 1000; /* usleep(3) expect microseconds */
 
   run();
   omlc_close ();
