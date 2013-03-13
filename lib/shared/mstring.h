@@ -26,33 +26,27 @@
 
 #include <stdlib.h>
 
+/** A managed string */
 typedef struct
 {
-  size_t size;   ///< Current allocated size
-  size_t length; ///< Current data length (excluding '\0')
-  char*  buf;    ///< Underlying storage
+  /** Currently allocated size */
+  size_t size;
+  /** Current length of the C string */
+  size_t length;
+  /** Dynamically allocated buffer containing a nil-terminated C string */
+  char*  buf;
 } MString;
 
-MString*
-mstring_create (void);
+MString* mstring_create (void);
 
-int
-mstring_set (MString* mstr, const char* str);
+int mstring_set (MString* mstr, const char* str);
+int mstring_cat (MString* mstr, const char* str);
+int mstring_sprintf (MString *mstr, const char *fmt, ...);
 
-int
-mstring_cat (MString* mstr, const char* str);
+size_t mstring_len (MString* mstr);
+char* mstring_buf (MString* mstr);
 
-int
-mstring_sprintf (MString *mstr, const char *fmt, ...);
-
-size_t
-mstring_len (MString* mstr);
-
-char*
-mstring_buf (MString* mstr);
-
-void
-mstring_delete (MString* mstr);
+void mstring_delete (MString* mstr);
 
 #endif // MSTRING_H__
 

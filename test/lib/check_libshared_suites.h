@@ -26,6 +26,7 @@
 
 #include <check.h>
 
+extern Suite* mstring_suite (void);
 extern Suite* util_suite (void);
 extern Suite* headers_suite (void);
 

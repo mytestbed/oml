@@ -1,24 +1,21 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia Limited (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file mstring.c \brief Manipulation functions for managed strings (MString).
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ * MStrings encapsulate a variable amount of allocated space, and manage it
+ * transparently, increasing it when needed. They are allocated with
+ * mstring_create and freed with mstring_delete.  Classical manipulation such
+ * as, setting, concatenating or appending a formatted string. There also are
+ * low-level access function to get the nil-terminated C-string and its length.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * \see mstring_set, mstring_cat, mstring_sprintf, mstring_buf, mstring_len
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,144 +26,219 @@
 #include "mem.h"
 #include "mstring.h"
 
+/** Increments by which an MString's storage is increased. */
 #define DEFAULT_MSTRING_SIZE 64
 
+/** Ensure that an MString has enough space to store a string of a given
+ * length.
+ *
+ * Storage for the nil-terminator is added internally. If no space can be
+ * allocated, the previous storage is kept untouched. An additional
+ * DEFAULT_MSTRING_SIZE is allocated.
+ *
+ * \param mstr MString to manipulate
+ * \param len desired length to store
+ * \return 0 if mstr now has enough space, -1 otherwise
+ * \see xrealloc, xfree
+ */
+static int
+mstring_ensure_space(MString *mstr, size_t len)
+{
+  size_t new_size;
+  char *new;
+  if (NULL == mstr) {
+    return -1;
+  }
+
+  if (mstr->size < len + 1) { /* This means we only increase the size */
+    new_size = len + DEFAULT_MSTRING_SIZE + 1;
+    new = xrealloc (mstr->buf, new_size);
+    if (new == NULL) {
+      return -1;
+    }
+    mstr->buf = new;
+    mstr->size = new_size;
+  }
+  assert (mstr->size > len);
+
+  return 0;
+}
+
+/** Create a new MString
+ * \return a pointer to the newly allocated MString, or NULL on error
+ * \see mstring_delete, mstring_ensure_space, xmalloc, xfree
+ */
 MString*
 mstring_create (void)
 {
   MString* mstr = xmalloc (sizeof (MString));
+  memset(mstr, 0, sizeof(MString));
 
-  if (mstr)
-    {
-      mstr->buf = xmalloc (DEFAULT_MSTRING_SIZE);
-      if (mstr->buf)
-        {
-          mstr->size = DEFAULT_MSTRING_SIZE;
-          mstr->length = 0;
-          return mstr;
-        }
-      else
-        {
-          xfree (mstr);
-          return NULL;
-        }
+  if (mstr) {
+    if (mstring_ensure_space(mstr, 0) < 0) {
+      xfree (mstr);
+      mstr = NULL;
     }
-  else
-    return NULL;
+  }
+
+  return mstr;
 }
 
+/** Set the content of the MString to a given C string.
+ *
+ * The C-string is duplicated into the MString's internal storage.
+ *
+ * \param mstr MString to set
+ * \param str C string to copy into the MString
+ * \return 0 on success, -1 otherwise
+ *
+ * \see mstring_ensure_space
+ * \see strncpy(3)
+ */
 int
 mstring_set (MString* mstr, const char* str)
 {
-  if (mstr == NULL || str == NULL) return -1;
-  size_t len = strlen (str);
+  size_t len;
+  if (mstr == NULL || str == NULL) {
+    return -1;
+  }
+  len = strlen (str);
 
-  if (mstr->size < len + 1) {
-    size_t new_size = len + DEFAULT_MSTRING_SIZE + 1;
-    char* new = xrealloc (mstr->buf, new_size);
-    if (new == NULL) return -1;
-    mstr->buf = new;
-    mstr->size = new_size;
+  if(mstring_ensure_space(mstr, len) < 0) {
+    return -1;
   }
 
-  assert (mstr->size > len);
-
   strncpy (mstr->buf, str, len + 1);
-  mstr->length = len;
 
+  mstr->length = len;
   assert (mstr->length < mstr->size);
 
   return 0;
 }
 
+/** Concatenate a C string to the end of an mstring
+ *
+ * \param mstr MString to manipulate
+ * \param str C string to concatenate into the MString
+ * \return 0 on success, -1 otherwise
+ *
+ * \see mstring_ensure_space
+ * \see strncat(3)
+ */
 int
 mstring_cat (MString* mstr, const char* str)
 {
-  if (mstr == NULL || str == NULL) return -1;
-  size_t len = strlen (str);
+  size_t len;
+  if (mstr == NULL || str == NULL) {
+    return -1;
+  }
+  len = strlen (str);
 
-  if (mstr->size < mstr->length + len + 1)
-    {
-      size_t new_size = mstr->size + len + DEFAULT_MSTRING_SIZE + 1;
-      char* new = xmalloc (new_size);
-      if (new == NULL) return -1;
-
-      assert (new_size > mstr->length);
-
-      memset (new, 0, new_size);
-      strncpy (new, mstr->buf, new_size);
-
-      xfree (mstr->buf);
-      mstr->buf = new;
-      mstr->size = new_size;
-    }
-
-  assert (mstr->size > mstr->length + len);
+  if(mstring_ensure_space(mstr, mstr->length + len) < 0) {
+    return -1;
+  }
 
   strncat (mstr->buf, str, len);
-  mstr->length += len;
 
+  mstr->length += len;
   assert (mstr->length < mstr->size);
 
   return 0;
 }
 
+/** Add formatted string to the end of an MString.
+ *
+ * The contents of the MString is not overwritten, rather, the newly-formatted
+ * string is added to the end.
+ *
+ * \param mstr MString to manipulate
+ * \param fmt, ... sprintf(3)-style format string and arguments
+ * \return 0 on success, -1 otherwise
+ */
 int
 mstring_sprintf (MString *mstr, const char *fmt, ...)
 {
-  char *buf = mstr->buf + mstr->length;
-  size_t space = mstr->size - mstr->length;
+  char *buf;
+  size_t space;
   size_t n;
   va_list va;
+
+  if(NULL == mstr || NULL == fmt) {
+    return -1;
+  }
+
+  buf = mstr->buf + mstr->length;
+  space = mstr->size - mstr->length;
+
   va_start (va, fmt);
   n = vsnprintf (buf, space, fmt, va);
   if (n >= space) {
-    char *new = xrealloc (mstr->buf, mstr->length + n + 1);
-    if (!new)
+    va_end (va);
+
+    if(mstring_ensure_space(mstr, mstr->length + n) < 0) {
       return -1;
-    mstr->buf = new;
-    mstr->size = mstr->length + n + 1;
+    }
+    /* mstring_ensure_space's call to xrealloc might have moved things ... */
     buf = mstr->buf + mstr->length;
-    space = n + 1;
+    /* ... and we have more space */
+    space = mstr->size - mstr->length;
+
     va_start (va, fmt);
     n = vsnprintf (buf, space, fmt, va);
-    if (n >= space)
+    if (n >= space) {
       return -1;
+    }
   }
   va_end (va);
+
   mstr->length += n;
+  assert (mstr->length < mstr->size);
+
   return 0;
 }
 
+/** Get the current length of an MString.
+ *
+ * \param mstr MString to manipulate
+ * \return the length of the contained C string, or 0 on error
+ */
 size_t
 mstring_len (MString* mstr)
 {
-  if (mstr)
-    {
-      assert (mstr->buf && mstr->length == strlen (mstr->buf));
-      return mstr->length;
-    }
-  else
-    return 0;
+  if (mstr) {
+    assert (mstr->buf && mstr->length == strlen (mstr->buf));
+    return mstr->length;
+  }
+  return 0;
 }
 
+/** Get the C string contained in an MString
+ *
+ * \param mstr MString to manipulate
+ * \return the C string contained in the MString, or NULL on error
+ */
 char*
 mstring_buf (MString* mstr)
 {
-  if (mstr)
+  if (mstr) {
     return mstr->buf;
-  else
+  } else {
     return NULL;
+  }
 }
 
+/** Delete an MString and free its storage
+ *
+ * \param mstr MString to deallocate
+ * \see xfree
+ */
 void
 mstring_delete (MString* mstr)
 {
-  if (mstr)
-    {
-      xfree (mstr->buf);
-      xfree (mstr);
-    }
+  if (mstr) {
+    xfree (mstr->buf);
+    xfree (mstr);
+  }
 }
 
 /*

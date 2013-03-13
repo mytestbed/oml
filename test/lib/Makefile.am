@@ -34,6 +34,7 @@ check_libshared_SOURCES = \
 	check_util.h \
 	check_libshared.c \
 	check_libshared_suites.h \
+	check_libshared_mstring.c \
 	check_libshared_util.c \
 	check_libshared_headers.c
 

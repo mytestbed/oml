@@ -33,7 +33,8 @@ main (void)
   int number_failed = 0;
 
   o_set_log_file ("check_libshared_oml.log");
-  SRunner *sr = srunner_create (util_suite ());
+  SRunner *sr = srunner_create (mstring_suite ());
+  srunner_add_suite (sr, util_suite ());
   srunner_add_suite (sr, headers_suite ());
 
   srunner_run_all (sr, CK_ENV);
