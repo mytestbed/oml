@@ -14,6 +14,7 @@
 #define DATABASE_H_
 
 #include "oml2/omlc.h"
+#include "mstring.h"
 #include "table_descr.h"
 #include "schema.h"
 
@@ -88,7 +89,7 @@ typedef void (*db_adapter_release)(Database *db);
  */
 typedef int (*db_adapter_table_create)(Database *db, DbTable *table, int shallow);
 
-/** Create a metadata table 
+/** Create a metadata table
  *
  * \param db pointer to Database
  * \param name name of the database table to create
@@ -103,6 +104,14 @@ typedef int (*db_adapter_table_create_meta)(Database *db, const char *name);
  * \return 0 on success, <0 otherwise
  */
 typedef int (*db_adapter_table_free)(Database *db, DbTable *table);
+
+/** Return a string suitable to represent an unbound variable in a prepared statement.
+ *
+ * \param db pointer to Database
+ * \param order
+ * \return an xmalloc'd string to be freed by the caller, or NULL on error
+ */
+typedef char* (*db_adapter_prepared_var)(Database *db, unsigned int order);
 
 /** Insert value in the a table of a database
  *
@@ -120,7 +129,7 @@ typedef int (*db_adapter_insert)(Database *db, DbTable* table, int sender_id, in
 /** Get data from the metadata table
  *
  * The returned string should be xfree'd by the caller when no longer needed.
- * 
+ *
  * \param key key to lookup
  * \return an xmalloc'd string containing the current value for that key
  *
@@ -129,7 +138,7 @@ typedef int (*db_adapter_insert)(Database *db, DbTable* table, int sender_id, in
 typedef char* (*db_adapter_get_metadata) (Database* db, const char* key);
 
 /** Set data in the metadata table
- * 
+ *
  * \param key key to lookup
  * \param value a string to set for that key
  * \return 0 on success, -1 otherwise
@@ -194,6 +203,7 @@ struct Database{
   db_adapter_table_create table_create;           /** Pointer to function to create a table \see db_adapter_table_create*/
   db_adapter_table_create_meta table_create_meta; /** Pointer to function to create a metadata table \see db_adapter_table_create_meta */
   db_adapter_table_free table_free;               /** Pointer to function to free a table \see db_adapter_table_free */
+  db_adapter_prepared_var prepared_var;           /** Pointer to function generating variable names for prepared statements \see db_adapter_prepared_var */
   db_adapter_insert  insert;                      /** Pointer to function to insert data in a table \see db_adapter_insert */
   db_adapter_get_metadata get_metadata;           /** Pointer to function to get data from the metadata table \see db_adapter_get_metadata */
   db_adapter_set_metadata set_metadata;           /** Pointer to function to set data in the metadata table \see db_adapter_set_metadata*/
@@ -216,6 +226,9 @@ DbTable *database_find_table(Database* database, const char* name);
 DbTable *database_find_or_create_table(Database *database, struct schema *schema);
 DbTable *database_create_table (Database *database, const struct schema *schema);
 void     database_table_free(Database *database, DbTable* table);
+
+MString *database_make_sql_insert (Database *db, DbTable* table);
+
 
 #endif /*DATABASE_H_*/
 

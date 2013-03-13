@@ -19,6 +19,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include <math.h>
 
 #include "ocomm/o_log.h"
 #include "mem.h"
@@ -44,14 +45,15 @@ static struct {
   OmlValueT type;           /** OML type */
   const char * const name;  /** PostgreSQL equivalent */
 } psql_type_pair[] = {
-  { OML_LONG_VALUE,    "INT4" },
-  { OML_DOUBLE_VALUE,  "FLOAT8" },
-  { OML_STRING_VALUE,  "TEXT" },
-  { OML_BLOB_VALUE,    "BYTEA" },
-  { OML_INT32_VALUE,   "INT4" },
-  { OML_UINT32_VALUE,  "INT8" }, /* PG doesn't support unsigned types --> promote */
-  { OML_INT64_VALUE,   "INT8" },
-  { OML_UINT64_VALUE,  "BIGINT" },
+  { OML_DB_PRIMARY_KEY, "SERIAL PRIMARY KEY"}, /* We might need BIGSERIAL at some point. */
+  { OML_LONG_VALUE,     "INT4" },
+  { OML_DOUBLE_VALUE,   "FLOAT8" },
+  { OML_STRING_VALUE,   "TEXT" },
+  { OML_BLOB_VALUE,     "BYTEA" },
+  { OML_INT32_VALUE,    "INT4" },
+  { OML_UINT32_VALUE,   "INT8" }, /* PG doesn't support unsigned types --> promote */
+  { OML_INT64_VALUE,    "INT8" },
+  { OML_UINT64_VALUE,   "BIGINT" },
 };
 
 static int sql_stmt(PsqlDB* self, const char* stmt);
@@ -63,6 +65,7 @@ static int psql_stmt(Database* db, const char* stmt);
 static void psql_release(Database* db);
 static int psql_table_create (Database* db, DbTable* table, int shallow);
 static int psql_table_free (Database *database, DbTable* table);
+static char *psql_prepared_var(Database *db, unsigned int order);
 static int psql_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_stamp, OmlValue *values, int value_count);
 static char* psql_get_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key);
 static int psql_set_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key, const char* value);
@@ -75,7 +78,6 @@ static TableDescr* psql_get_table_list (Database *database, int *num_tables);
 static MString* psql_prepare_conninfo(const char *database, const char *host, const char *port, const char *user, const char *pass, const char *extra_conninfo);
 static char* psql_get_sender_id (Database* database, const char* name);
 static int psql_set_sender_id (Database* database, const char* name, int id);
-static MString* psql_make_sql_insert (DbTable* table);
 static void psql_receive_notice(void *arg, const PGresult *res);
 
 /** Prepare the conninfo string to connect to the Postgresql server.
@@ -300,6 +302,7 @@ psql_create_database(Database* db)
   db->stmt = psql_stmt;
   db->create = psql_create_database;
   db->release = psql_release;
+  db->prepared_var = psql_prepared_var;
   db->table_create = psql_table_create;
   db->table_create_meta = dba_table_create_meta;
   db->table_free = psql_table_free;
@@ -408,7 +411,7 @@ psql_table_create (Database *db, DbTable *table, int shallow)
     /* This test killed the transaction; start a new one */
     dba_reopen_transaction(db);
 
-    insert = psql_make_sql_insert (table);
+    insert = database_make_sql_insert (db, table);
     if (!insert) {
       logerror("psql:%s: Failed to build SQL INSERT INTO statement for table '%s'\n",
           db->name, table->schema->name);
@@ -458,6 +461,24 @@ psql_table_free (Database *database, DbTable *table)
     xfree (psqltable);
   }
   return 0;
+}
+
+/** Return a string suitable for an unbound variable is PostgreSQL.
+ * \see db_adapter_prepared_var
+ */
+static char*
+psql_prepared_var(Database *db, unsigned int order)
+{
+  int nchar = 1 + (int) floor(log10(order+1))+1; /* Get the number of digits */
+  char *s = xmalloc(nchar + 1);
+
+  (void)db;
+
+  if (NULL != s) {
+    snprintf(s, nchar + 1, "$%d", order);
+  }
+
+  return s;
 }
 
 /** Insert value in the PostgreSQL database.
@@ -876,49 +897,6 @@ psql_set_sender_id (Database *database, const char *name, int id)
   int ret = psql_set_key_value (database, "_senders", "name", "id", name, mstring_buf (mstr));
   mstring_delete (mstr);
   return ret;
-}
-
-/** Prepare an INSERT statement for a given PostgreSQL table
- *
- * The returned value is to be destroyed by the caller.
- *
- * \param table DbTable adapter for the target PostgreSQL table
- * \return an xmalloc'd MString containing the prepared statement, or NULL on error
- *
- * \see mstring_create, mstring_delete
- */
-static MString*
-psql_make_sql_insert (DbTable* table)
-{
-  int n = 0;
-  int max = table->schema->nfields;
-
-  if (max <= 0) {
-    logerror ("psql: Trying to insert 0 values into table '%s'\n", table->schema->name);
-    goto fail_exit;
-  }
-
-  MString* mstr = mstring_create ();
-
-  if (mstr == NULL) {
-    logerror("psql: Failed to create managed string for preparing SQL INSERT statement\n");
-    goto fail_exit;
-  }
-
-  /* Build SQL "INSERT INTO" statement */
-  n += mstring_set (mstr, "INSERT INTO \"");
-  n += mstring_cat (mstr, table->schema->name);
-  n += mstring_cat (mstr, "\" VALUES ($1, $2, $3, $4"); /* metadata columns */
-  while (max-- > 0)
-    mstring_sprintf (mstr, ", $%d", 4 + table->schema->nfields - max);
-  mstring_cat (mstr, ");");
-
-  if (n != 0) goto fail_exit;
-  return mstr;
-
- fail_exit:
-  if (mstr) mstring_delete (mstr);
-  return NULL;
 }
 
 /** Receive notices from PostgreSQL and post them as an OML log message

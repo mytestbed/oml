@@ -13,6 +13,9 @@
 #ifndef DATABASE_ADAPTER_H_
 #define DATABASE_ADAPTER_H_
 
+#include "schema.h"
+#include "database.h"
+
 int dba_table_create_from_meta (Database *db, const char *schema);
 int dba_table_create_from_schema (Database *db, const struct schema *schema);
 

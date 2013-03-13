@@ -43,13 +43,15 @@ static struct {
   OmlValueT type;           /** OML type */
   const char * const name;  /** SQLite3 equivalent */
 } sq3_type_pair [] = {
-  { OML_INT32_VALUE,  "INTEGER"  },
-  { OML_UINT32_VALUE, "UNSIGNED INTEGER" },
-  { OML_INT64_VALUE,  "BIGINT"  },
-  { OML_UINT64_VALUE, "UNSIGNED BIGINT" },
-  { OML_DOUBLE_VALUE, "REAL" },
-  { OML_STRING_VALUE, "TEXT" },
-  { OML_BLOB_VALUE,   "BLOB" },
+  { OML_DB_PRIMARY_KEY, "INTEGER PRIMARY KEY"},
+  { OML_DB_PRIMARY_KEY, "INTEGER PRIMARY KEY"},
+  { OML_INT32_VALUE,    "INTEGER"  },
+  { OML_UINT32_VALUE,   "UNSIGNED INTEGER" },
+  { OML_INT64_VALUE,    "BIGINT"  },
+  { OML_UINT64_VALUE,   "UNSIGNED BIGINT" },
+  { OML_DOUBLE_VALUE,   "REAL" },
+  { OML_STRING_VALUE,   "TEXT" },
+  { OML_BLOB_VALUE,     "BLOB" },
 };
 
 static int sql_stmt(Sq3DB* self, const char* stmt);
@@ -61,6 +63,7 @@ static int sq3_stmt(Database* db, const char* stmt);
 static void sq3_release(Database* db);
 static int sq3_table_create (Database* db, DbTable* table, int shallow);
 static int sq3_table_free (Database *database, DbTable* table);
+static char *sq3_prepared_var(Database *db, unsigned int order);
 static int sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_stamp, OmlValue *values, int value_count);
 static char* sq3_get_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key);
 static int sq3_set_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key, const char* value);
@@ -74,7 +77,6 @@ static char* sq3_get_sender_id (Database* database, const char* name);
 static int sq3_set_sender_id (Database* database, const char* name, int id);
 static int sq3_get_max_value (Database* database, const char* table, const char* column_name, const char* where_column, const char* where_value);
 static int sq3_get_max_sender_id (Database* database);
-static MString* sq3_make_sql_insert (DbTable* table);
 
 /** Work out which directory to put sqlite databases in, and set
  * sqlite_database_dir to that directory.
@@ -238,6 +240,7 @@ sq3_create_database(Database* db)
   db->table_create_meta = dba_table_create_meta;
   db->table_free = sq3_table_free;
   db->release = sq3_release;
+  db->prepared_var = sq3_prepared_var;
   db->insert = sq3_insert;
   db->add_sender_id = sq3_add_sender_id;
   db->set_metadata = sq3_set_metadata;
@@ -305,7 +308,7 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
   table->handle = sq3table;
 
   /* XXX: Should not be done here, see #1056 */
-  insert = sq3_make_sql_insert (table);
+  insert = database_make_sql_insert (db, table);
   if (!insert) {
     logerror ("sqlite:%s: Failed to build SQL INSERT INTO statement string for table '%s'\n",
              db->name, table->schema->name);
@@ -349,6 +352,27 @@ sq3_table_free (Database *database, DbTable* table)
     xfree (sq3table);
   }
   return ret;
+}
+
+/** Return a string suitable for an unbound variable is SQLite3.
+ *
+ * This is always "?"
+ *
+ * \see db_adapter_prepared_var
+ */
+static char*
+sq3_prepared_var(Database *db, unsigned int order)
+{
+  char *s = xmalloc(2);
+
+  (void)db;
+
+  if (NULL != s) {
+    *s = '?';
+    *(s+1) = 0;
+  }
+
+  return s;
 }
 
 /** Insert value in the SQLite3 database.
@@ -854,48 +878,6 @@ static int
 sq3_get_max_sender_id (Database* database)
 {
   return sq3_get_max_value (database, "_senders", "id", NULL, NULL);
-}
-
-/** Prepare an INSERT statement for a given SQLite3 table
- *
- * The returned value is to be destroyed by the caller.
- *
- * \param table DbTable adapter for the target SQLite3 table
- * \return an MString containing the prepared statement, or NULL on error
- *
- * \see mstring_create, mstring_delete
- */
-static MString*
-sq3_make_sql_insert (DbTable* table)
-{
-  MString* mstr = mstring_create ();
-  int n = 0;
-  int max = table->schema->nfields;
-
-  if (max <= 0) {
-    logerror ("sqlite: Trying to insert 0 values into table %s\n", table->schema->name);
-    goto fail_exit;
-  }
-
-  if (mstr == NULL) {
-    logerror("sqlite: Failed to create managed string for preparing SQL INSERT statement\n");
-    goto fail_exit;
-  }
-
-  /* Build SQL "INSERT INTO" statement */
-  n += mstring_set (mstr, "INSERT INTO \"");
-  n += mstring_cat (mstr, table->schema->name);
-  n += mstring_cat (mstr, "\" VALUES (?, ?, ?, ?"); /* metadata columns */
-  while (max-- > 0)
-    mstring_cat (mstr, ", ?");
-  mstring_cat (mstr, ");");
-
-  if (n != 0) goto fail_exit;
-  return mstr;
-
- fail_exit:
-  if (mstr) mstring_delete (mstr);
-  return NULL;
 }
 
 /*

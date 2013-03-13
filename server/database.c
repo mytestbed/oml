@@ -24,6 +24,7 @@
 #include "oml_util.h"
 #include "oml_value.h"
 #include "mem.h"
+#include "mstring.h"
 #include "database.h"
 #include "hook.h"
 #include "sqlite_adapter.h"
@@ -417,6 +418,75 @@ database_table_free(Database *database, DbTable *table)
     logwarn("%s: Tried to free a NULL table (or database was NULL).\n",
             (database ? database->name : "NONE"));
   }
+}
+
+/** Prepare an INSERT statement for a given table
+ *
+ * The returned value is to be destroyed by the caller.
+ *
+ * \param db Database
+ * \param table DbTable adapter for the target SQLite3 table
+ * \return an MString containing the prepared statement, or NULL on error
+ *
+ * \see mstring_create, mstring_delete
+ */
+MString*
+database_make_sql_insert (Database *db, DbTable* table)
+{
+  MString* mstr = mstring_create ();
+  int n = 0, i = 0;
+  int max = table->schema->nfields;
+  char *pvar;
+
+  if (max <= 0) {
+    logerror ("%d: Trying to insert 0 values into table %s\n",
+        db->backend_name, table->schema->name);
+    goto fail_exit;
+  }
+
+  if (mstr == NULL) {
+    logerror("%d: Failed to create managed string for preparing SQL INSERT statement\n",
+        db->backend_name);
+    goto fail_exit;
+  }
+
+  /* Build SQL "INSERT INTO" statement */
+  n += mstring_sprintf (mstr,
+      "INSERT INTO \"%s\" (\"oml_sender_id\", \"oml_seq\", \"oml_ts_client\", \"oml_ts_server\"",
+      table->schema->name);
+
+  /* Add specific column names */
+  for (i=0; i<max; i++) {
+    n += mstring_sprintf (mstr, ", \"%s\"", table->schema->fields[i].name);
+  }
+
+  /* Close column names, and add variables for the prepared statement */
+  pvar = db->prepared_var(db, 1);
+  n += mstring_sprintf (mstr, ") VALUES (%s", pvar);
+  xfree(pvar); /* XXX: Not really efficient, but we only do this rarely */
+
+  max += 4; /* Number of metadata columns we want to be able to insert */
+  for (i=2; i<=max; i++) {
+    pvar = db->prepared_var(db, i);
+    n += mstring_sprintf (mstr, ", %s", pvar);
+    xfree(pvar);
+  }
+
+  /* We're done */
+  n += mstring_cat (mstr, ");");
+
+  logdebug("%s:%s: Prepared insert statement for tables %s: %s\n",
+      db->backend_name, db->name, table->schema->name, mstring_buf(mstr));
+
+  if (n != 0) {
+    /* mstring_* return -1 on error, with no error, the sum in n should be 0 */
+    goto fail_exit;
+  }
+  return mstr;
+
+ fail_exit:
+  if (mstr) mstring_delete (mstr);
+  return NULL;
 }
 
 /** Initialise adapters for a new database

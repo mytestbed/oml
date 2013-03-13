@@ -43,6 +43,7 @@ extern "C" {
 
 typedef enum _omlValueE {
   /* Meta value types */
+  OML_DB_PRIMARY_KEY = -3,
   OML_INPUT_VALUE = -2,
   OML_UNKNOWN_VALUE = -1,
   /* Concrete value types */
@@ -54,7 +55,8 @@ typedef enum _omlValueE {
   OML_UINT32_VALUE,
   OML_INT64_VALUE,
   OML_UINT64_VALUE,
-  OML_BLOB_VALUE
+  OML_BLOB_VALUE,
+  OML_LAST_VALUE /* For easy range checks */
 } OmlValueT;
 
 #define omlc_is_integer_type(t)                             \
