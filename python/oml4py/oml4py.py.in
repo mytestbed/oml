@@ -22,46 +22,54 @@ import socket
 from time import time
 from time import sleep
 
+
 # Compatibility with Python 2 and 3's string type
 if float(sys.version[:3])<3:
-    def to_bytes(s):
-        return s
+  def to_bytes(s):
+    return s
 else:
-    def to_bytes(s):
-        return bytes(s, "UTF-8")
+  def to_bytes(s):
+    return bytes(s, "UTF-8")
+
+
+def escape(s) :
+  """
+  Escape '\\', '\t', '\r' and '\n' characters in s
+  """
+  return s.replace('\\', r'\\').replace('\t', r'\t').replace('\r', r'\r').replace('\n', r'\n')
 
 
 class OMLBase:
-    """
-    This is a Python OML class
-    """
+  """
+  This is a Python OML class
+  """
 
-    VERSION = "@VERSION@"
-    VERSION_STRING = ("OML4Py Client V@VERSION@")
-    COPYRIGHT = "Copyright 2012, NYU-Poly, Fraida Fund"
-    PROTOCOL = 3
+  VERSION = "@VERSION@"
+  VERSION_STRING = ("OML4Py Client V@VERSION@")
+  COPYRIGHT = "Copyright 2012, NYU-Poly, Fraida Fund"
+  PROTOCOL = 3
 
-    DEFAULT_HOST="localhost"
-    DEFAULT_PORT=3003
+  DEFAULT_HOST="localhost"
+  DEFAULT_PORT=3003
 
-    def _banner(self):
-        sys.stderr.write("INFO\t%s [Protocol V%d] %s\n" % (self.VERSION_STRING, self.PROTOCOL, self.COPYRIGHT))
+  def _banner(self):
+    sys.stderr.write("INFO\t%s [Protocol V%d] %s\n" % (self.VERSION_STRING, self.PROTOCOL, self.COPYRIGHT))
 
-    def __init__(self,appname,domain=None,sender=None,uri=None,expid=None):
-        self._banner()
 
-        self.oml = True
+  def __init__(self,appname,domain=None,sender=None,uri=None,expid=None):
+    self._banner()
+    self.oml = True
 
-        # Set all the instance variables
-        self.appname = appname
-        if self.appname[:1].isdigit() or '-' in self.appname or '.' in self.appname:
-          sys.stderr.write("ERROR\tInvalid app name: %s\n" %  self.appname)
-          self._disable_oml()
+    # Set all the instance variables
+    self.appname = appname
+    if self.appname[:1].isdigit() or '-' in self.appname or '.' in self.appname:
+      sys.stderr.write("ERROR\tInvalid app name: %s\n" %  self.appname)
+      self._disable_oml()
 
-        if expid is not None:
-          sys.stderr.write("WARN\t%s parameter 'expid' is getting deprecated; please use 'domain' instead\n" % self.__class__.__name__)
-          if domain is None:
-            domain = expid
+    if expid is not None:
+      sys.stderr.write("WARN\t%s parameter 'expid' is getting deprecated; please use 'domain' instead\n" % self.__class__.__name__)
+      if domain is None:
+        domain = expid
         if domain is None:
           if 'OML_DOMAIN' in os.environ.keys():
             self.domain = os.environ['OML_DOMAIN']
@@ -113,7 +121,6 @@ class OMLBase:
           self.sender = sender
 
         self.starttime = 0
-
         self.streams = 0
         self.schema = ""
         self.nextseq = {}
@@ -124,104 +131,97 @@ class OMLBase:
           self.sock.settimeout(5) 
 
 
-    def addmp(self,mpname,schema):
+  def addmp(self,mpname,schema):
  
-      if "-" in mpname or "." in mpname:
-        sys.stderr.write("ERROR\tInvalid measurement point name: %s\n" %  mpname)
-        self._disable_oml()
-
-      else:
-        # Count number of streams
-        self.streams += 1
-
-        if self.streams > 1:
-           self.schema += '\n'
-
-        str_schema = "schema: " + str(self.streams) + " " + self.appname + "_" + mpname + " " + schema
-
-        self.schema += str_schema
-        self.nextseq[mpname] = 0
-        self.streamid[mpname] = self.streams
+    if "-" in mpname or "." in mpname:
+      sys.stderr.write("ERROR\tInvalid measurement point name: %s\n" %  mpname)
+      self._disable_oml()
+    else:
+      # Count number of streams
+      self.streams += 1
+      if self.streams > 1:
+        self.schema += '\n'
+      str_schema = "schema: " + str(self.streams) + " " + self.appname + "_" + mpname + " " + schema
+      self.schema += str_schema
+      self.nextseq[mpname] = 0
+      self.streamid[mpname] = self.streams
    
 
-    def start(self):
+  def start(self):
 
-      if self.oml:        
-        # Use socket to connect to OML server
-        sys.stderr.write("INFO\tCollection URI is tcp:%s:%d\n" % (self.omlserver, self.omlport))
+    if self.oml:        
+      # Use socket to connect to OML server
+      sys.stderr.write("INFO\tCollection URI is tcp:%s:%d\n" % (self.omlserver, self.omlport))
 
-        self.starttime = int(time())
+      self.starttime = int(time())
+      header = "protocol: " + str(self.PROTOCOL) + '\n' + "experiment-id: " + str(self.domain) + '\n' + \
+          "start_time: " + str(self.starttime) + '\n' + "sender-id: " + str(self.sender) + '\n' + \
+          "app-name: " + str(self.appname) + '\n' + \
+          str(self.schema) + '\n' + "content: text" + '\n' + '\n'    
 
-        header = "protocol: " + str(self.PROTOCOL) + '\n' + "experiment-id: " + str(self.domain) + '\n' + \
-               "start_time: " + str(self.starttime) + '\n' + "sender-id: " + str(self.sender) + '\n' + \
-               "app-name: " + str(self.appname) + '\n' + \
-               str(self.schema) + '\n' + "content: text" + '\n' + '\n'    
-
-        try:
-          self.sock.connect((self.omlserver,self.omlport))
-          self.sock.settimeout(None)
-          self.sock.send(to_bytes(header))
-        except socket.error as e:
-          sys.stderr.write("ERROR\tCould not connect to OML server: %s\n" %  e)
-          self._disable_oml()
-          sys.stdout.write(header)
-      else:
-        sys.stderr.write("WARN\tOML disabled\n")
-
-
-    def close(self):
-      streamid = None
-
-      if self.oml:
-        self.sock.close()
-
-
-    def inject(self,mpname,values):
-
-      str_inject = ""
-
-      if self.oml and self.starttime == 0:
-        sys.stderr.write("ERROR\tDid not call start()\n")
+      try:
+        self.sock.connect((self.omlserver,self.omlport))
+        self.sock.settimeout(None)
+        self.sock.send(to_bytes(header))
+      except socket.error as e:
+        sys.stderr.write("ERROR\tCould not connect to OML server: %s\n" %  e)
         self._disable_oml()
+        sys.stdout.write(header)
+    else:
+      sys.stderr.write("WARN\tOML disabled\n")
 
-      timestamp = time() - self.starttime
+
+  def close(self):
+    streamid = None
+    if self.oml:
+      self.sock.close()
+
+
+  def inject(self,mpname,values):
+
+    str_inject = ""
+    if self.oml and self.starttime == 0:
+      sys.stderr.write("ERROR\tDid not call start()\n")
+      self._disable_oml()
+
+    timestamp = time() - self.starttime
+    try:
+      streamid = self.streamid[mpname]
+      seqno = self.nextseq[mpname]
+      str_inject = str(timestamp) + '\t' + str(streamid) + '\t' + str(seqno)
+    except KeyError:
+      sys.stderr.write("ERROR\tTried to inject into unknown MP '%s'\n" % mpname)
+      return
+
+    try:
+      for item in values:
+        str_inject += '\t'
+        str_inject += escape(str(item))
+      str_inject += '\n'
+      self.nextseq[mpname]+=1
+    except TypeError:
+      sys.stderr.write("ERROR\tInvalid measurement list\n")
+      return
+
+    if self.oml:
       try:
-        streamid = self.streamid[mpname]
-        seqno = self.nextseq[mpname]
-        str_inject = str(timestamp) + '\t' + str(streamid) + '\t' + str(seqno)
-      except KeyError:
-        sys.stderr.write("ERROR\tTried to inject into unknown MP '%s'\n" % mpname)
-        return
+        self.sock.send(to_bytes(str_inject))
+      except:
+        sys.stderr.write("ERROR\tCould not send injected sample\n")
+    else:
+      sys.stdout.write(str_inject)
 
-      try:
-        for item in values:
-          str_inject += '\t'
-          str_inject += str(item)
-        str_inject += '\n'
-        self.nextseq[mpname]+=1
-      except TypeError:
-        sys.stderr.write("ERROR\tInvalid measurement list\n")
-        return
-
-      if self.oml:
-        try:
-          self.sock.send(to_bytes(str_inject))
-        except:
-          sys.stderr.write("ERROR\tCould not send injected sample\n")
-
-      else:
-          sys.stdout.write(str_inject)
-
-    def _disable_oml(self):
-      if not self.oml:
-        return
-      sys.stderr.write("WARN\tDisabling OML output\n")
-      self.oml = False
+  def _disable_oml(self):
+    if not self.oml:
+      return
+    sys.stderr.write("WARN\tDisabling OML output\n")
+    self.oml = False
 
 
 # Local Variables:
-# mode: C
-# tab-width: 2
+# mode: Python
 # indent-tabs-mode: nil
+# tab-width: 2
+# python-indent: 2
 # End:
 # vim: sw=2:sts=2:expandtab
