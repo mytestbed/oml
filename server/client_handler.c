@@ -692,7 +692,7 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
           self->name, oml_value_get_type(&v[si]));
 
     } else if (strcmp(".", omlc_get_string_ptr(*oml_value_get_value(&v[si])))) {
-      logwarn("%s(bin): Metadata subject '%s' is not the root, ignoring\n",
+      logdebug("%s(bin): Metadata subject '%s' is not the root, ignoring\n",
           self->name, omlc_get_string_ptr(*oml_value_get_value(&v[si])));
 
     } else if (oml_value_get_type(&v[ki]) != OML_STRING_VALUE ) {
@@ -850,7 +850,7 @@ process_text_data_message(ClientHandler* self, char** msg, int count)
       return;
 
     } else if (strcmp(".", msg[si])) {
-      logwarn("%s(txt): Metadata subject '%s' is not the root, not processing\n",
+      logdebug("%s(txt): Metadata subject '%s' is not the root, not processing\n",
           self->name, msg[si]);
 
     } else if(process_meta(self, msg[ki], msg[vi]) <=0 ) {
