@@ -17,5 +17,6 @@ doc/omlc_start.3
 doc/omlc_zero.3
 doc/omlc_zero_array.3
 doc/oml_inject_MPNAME.3
+doc/oml_register_mps.3
 doc/OmlValueU.3
 doc/oml2_scaffold.1
