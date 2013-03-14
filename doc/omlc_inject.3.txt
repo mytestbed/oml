@@ -10,8 +10,8 @@ SYNOPSIS
 [verse]
 *#include <oml2/omlc.h>*
 [verse]
-'int' *omlc_inject*('OmlMP' *mp, 'OmlValueU' *values);
-'int' *omlc_inject_metadata*('OmlMP' *mp, 'const char' *key, 'const OmlValueU' *value, 'OmlValueT' type, 'const char' *fname);
+'int' *omlc_inject*('OmlMP'* mp, 'OmlValueU'* values); +
+'int' *omlc_inject_metadata*('OmlMP'* mp, 'const char'* key, 'const OmlValueU'* value, 'OmlValueT' type, 'const char'* fname); +
 
 DESCRIPTION
 -----------

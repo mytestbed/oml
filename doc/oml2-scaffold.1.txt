@@ -42,7 +42,7 @@ OPTIONS
 Create OML header file 'APPNAME_oml.h' defining all measurement points,
 as well as registration and injection helper functions
 (linkoml:oml_register_mps[3] and linkoml:oml_inject_MPNAME[3]). The
-registration helper is only available when defining linkman:cpp[3] macro
+registration helper is only available when defining linkman:cpp[1] macro
 'OML_FROM_MAIN' prior to the '#include' statement for 'APPNAME_oml.h'.
 This should only be done in the file calling linkoml:oml_register_mps[3]
 (usually in the *main*() function).

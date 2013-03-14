@@ -10,16 +10,16 @@ SYNOPSIS
 [verse]
 *#include <oml2/omlc.h>*
 [verse]
-'int'    *omlc_init*('const char' \*appname, 'int' \*pargc, 'const char' \*\*argv, 'o_log_fn' log_fn); +
+'int'    *omlc_init*('const char' \*appname, 'int' \*pargc, 'const char' \*argv[], 'o_log_fn' log_fn); +
 'OmlMP'* *omlc_add_mp*('const char' \*name, 'OmlMPDef' \*definition); +
 'int'    *omlc_start*('void'); +
 'void'   *omlc_inject*('OmlMP' \*mp, linkoml:OmlValueU[3] \*values); +
 'int'    *omlc_close*('void'); +
 [verse]
-*#define OML_FROM_MAIN* '/* enable oml_register_mps() and necessary storage; only in one file */'
-*#include "APPNAME_oml.h*
+*#define OML_FROM_MAIN* '// enable oml_register_mps() and necessary storage; only in one file'
+*#include "APPNAME_oml.h"*
 'inline void' *oml_register_mps*(); +
-'inline void' *oml_inject_MPNAME*('OmlMP*' mp, ...); +
+'inline void' *oml_inject_MPNAME*('OmlMP'* mp, ...); +
 
 DESCRIPTION
 -----------
@@ -140,7 +140,7 @@ the 'OmlMP*' for 'memory' and 'cpu' as 'g_oml_mps_foo->memory' and
 This function is made available conditionally from 'APPNAME_oml.h'.
 Indeed, it requires objects which need only be allocated once, and is
 done at the same time. To make this function available, one must
-'#define' linkman:cpp[3] macro 'OML_FROM_MAIN' prior to the '#include'
+'#define' linkman:cpp[1] macro 'OML_FROM_MAIN' prior to the '#include'
 statement for 'APPNAME_oml.h'. This should be done *only in file using
 oml_register_mps()*.
 

@@ -55,16 +55,16 @@ index.txt: index.tpl.txt
 	for MANPAGE in $(ALL_MAN_FILES:.txt=); do \
 		echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/* link:\1.\2.html[\1(\2)]/' >> $@; \
 		if [ "$${MANPAGE}" = "OmlValueU.3" ]; then \
-			for MANPAGE in $(OMLVALUE3_LINKS); do \
-				echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/** link:$${MANPAGE}.html[\1(\2)]/' >> $@; \
+			for LINK in $(OMLVALUE3_LINKS); do \
+				echo $${LINK} | sed "s/\(.*\)\.\([0-9]\)/** link:$${MANPAGE}.html[\1(\2)]/" >> $@; \
 			done; \
 		elif [ "$${MANPAGE}" = "omlc_inject.3" ]; then \
-			for MANPAGE in $(OMLINJECT3_LINKS); do \
-				echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/** link:$${MANPAGE}.html[\1(\2)]/' >> $@; \
+			for LINK in $(OMLCINJECT3_LINKS); do \
+				echo $${LINK} | sed "s/\(.*\)\.\([0-9]\)/** link:$${MANPAGE}.html[\1(\2)]/" >> $@; \
 			done; \
-		elif [ "$${MANPAGE}" = "liboml.3" ]; then \
-			for MANPAGE in $(LIBOML3_LINKS); do \
-				echo $${MANPAGE} | sed 's/\(.*\)\.\([0-9]\)/** link:$${MANPAGE}.html[\1(\2)]/' >> $@; \
+		elif [ "$${MANPAGE}" = "liboml2.3" ]; then \
+			for LINK in $(LIBOML3_LINKS); do \
+				echo $${LINK} | sed "s/\(.*\)\.\([0-9]\)/** link:$${MANPAGE}.html[\1(\2)]/" >> $@; \
 			done; \
 		fi; \
 	done
