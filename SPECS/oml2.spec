@@ -139,6 +139,7 @@ exit 0
 %doc %{_mandir}/man3/omlc_copy_string.3.gz
 %doc %{_mandir}/man3/omlc_init.3.gz
 %doc %{_mandir}/man3/omlc_inject.3.gz
+%doc %{_mandir}/man3/omlc_inject_metadata.3.gz
 %doc %{_mandir}/man3/omlc_reset_blob.3.gz
 %doc %{_mandir}/man3/omlc_reset_string.3.gz
 %doc %{_mandir}/man3/omlc_set_blob.3.gz
