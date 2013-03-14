@@ -5,6 +5,7 @@ doc/omlc_copy_blob.3
 doc/omlc_copy_string.3
 doc/omlc_init.3
 doc/omlc_inject.3
+doc/omlc_inject_metadata.3
 doc/omlc_reset_blob.3
 doc/omlc_reset_string.3
 doc/omlc_set_blob.3
