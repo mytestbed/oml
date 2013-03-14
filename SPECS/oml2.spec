@@ -153,4 +153,5 @@ exit 0
 %doc %{_mandir}/man3/omlc_zero.3.gz
 %doc %{_mandir}/man3/omlc_zero_array.3.gz
 %doc %{_mandir}/man3/oml_inject_MPNAME.3.gz
+%doc %{_mandir}/man3/oml_register_mps.3.gz
 %doc %{_mandir}/man3/OmlValueU.3.gz
