@@ -55,7 +55,6 @@ class OMLBase:
   def _banner(self):
     sys.stderr.write("INFO\t%s [Protocol V%d] %s\n" % (self.VERSION_STRING, self.PROTOCOL, self.COPYRIGHT))
 
-
   def __init__(self,appname,domain=None,sender=None,uri=None,expid=None):
     self._banner()
     self.oml = True
@@ -68,67 +67,69 @@ class OMLBase:
 
     if expid is not None:
       sys.stderr.write("WARN\t%s parameter 'expid' is getting deprecated; please use 'domain' instead\n" % self.__class__.__name__)
-      if domain is None:
-        domain = expid
-        if domain is None:
-          if 'OML_DOMAIN' in os.environ.keys():
-            self.domain = os.environ['OML_DOMAIN']
-          elif 'OML_EXP_ID' in os.environ.keys():
-            self.domain = os.environ['OML_EXP_ID']
-            sys.stderr.write("WARN\tOML_EXP_ID is getting deprecated; please use OML_DOMAIN instead\n")
-          else:
-            sys.stderr.write("ERROR\tNo experimental domain specified\n")
-            self._disable_oml()
-        else:
-          self.domain = domain
 
-        if uri is None:
-          if 'OML_COLLECT' in os.environ.keys():
-            uri = os.environ['OML_COLLECT']
-          elif 'OML_SERVER' in os.environ.keys():
-            uri = os.environ['OML_SERVER']
-            sys.stderr.write("WARN\tOML_SERVER is getting deprecated; please use OML_COLLECT instead\n")
-          else:
-            uri = "tcp:%s:%s" %(self.DEFAULT_HOST, self.DEFAULT_PORT)
-        uri_l = uri.split(":")
+    if domain is None:
+      domain = expid
 
-        if len(uri_l) == 1:       # host
-          self.omlserver = uri_l[0]
-          self.omlport = self.DEFAULT_PORT
-        if len(uri_l) == 2:
-          if uri_l[0] == "tcp":   # tcp:host or host:port
-            self.omlserver = uri_l[1]
-            self.omlport = self.DEFAULT_PORT
-          else:
-            self.omlserver = uri_l[0]
-            self.omlport = uri_l[1]
-        if len(uri_l) == 3:       # tcp:host:port
-          self.omlserver = uri_l[1]
-          self.omlport = uri_l[2]
-        try:
-          self.omlport = int(self.omlport)
-        except ValueError:
-          sys.stderr.write("ERROR\tCannot use '%s' as a port number\n" % self.omlport)
-          self._disable_oml()
+    if domain is None:
+      if 'OML_DOMAIN' in os.environ.keys():
+        self.domain = os.environ['OML_DOMAIN']
+      elif 'OML_EXP_ID' in os.environ.keys():
+        self.domain = os.environ['OML_EXP_ID']
+        sys.stderr.write("WARN\tOML_EXP_ID is getting deprecated; please use OML_DOMAIN instead\n")
+      else:
+        sys.stderr.write("ERROR\tNo experimental domain specified\n")
+        self._disable_oml()
+    else:
+      self.domain = domain
 
-        if sender is None:
-          try:
-            self.sender =  os.environ['OML_NAME']
-          except KeyError:
-            sys.stderr.write("ERROR\tNo sender ID specified (OML_NAME)\n")
-            self._disable_oml()
-        else:
-          self.sender = sender
+    if uri is None:
+      if 'OML_COLLECT' in os.environ.keys():
+        uri = os.environ['OML_COLLECT']
+      elif 'OML_SERVER' in os.environ.keys():
+        uri = os.environ['OML_SERVER']
+        sys.stderr.write("WARN\tOML_SERVER is getting deprecated; please use OML_COLLECT instead\n")
+      else:
+        uri = "tcp:%s:%s" %(self.DEFAULT_HOST, self.DEFAULT_PORT)
+    uri_l = uri.split(":")
 
-        self.starttime = 0
-        self.streams = 0
-        self.schema = ""
-        self.nextseq = {}
-        self.streamid = {}
-        if self.oml:        
-          # Set socket
-          self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-          self.sock.settimeout(5) 
+    if len(uri_l) == 1:       # host
+      self.omlserver = uri_l[0]
+      self.omlport = self.DEFAULT_PORT
+    if len(uri_l) == 2:
+      if uri_l[0] == "tcp":   # tcp:host or host:port
+        self.omlserver = uri_l[1]
+        self.omlport = self.DEFAULT_PORT
+      else:
+        self.omlserver = uri_l[0]
+        self.omlport = uri_l[1]
+    if len(uri_l) == 3:       # tcp:host:port
+      self.omlserver = uri_l[1]
+      self.omlport = uri_l[2]
+    try:
+      self.omlport = int(self.omlport)
+    except ValueError:
+      sys.stderr.write("ERROR\tCannot use '%s' as a port number\n" % self.omlport)
+      self._disable_oml()
+
+    if sender is None:
+      try:
+        self.sender =  os.environ['OML_NAME']
+      except KeyError:
+        sys.stderr.write("ERROR\tNo sender ID specified (OML_NAME)\n")
+        self._disable_oml()
+    else:
+      self.sender = sender
+
+    self.starttime = 0
+    self.streams = 0
+    self.schema = ""
+    self.nextseq = {}
+    self.streamid = {}
+    if self.oml:        
+      # Set socket
+      self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      self.sock.settimeout(5) 
 
 
   def addmp(self,mpname,schema):
