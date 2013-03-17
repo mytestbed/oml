@@ -16,15 +16,15 @@
 
 #include "oml2/omlc.h"
 
-extern guid_t
+extern oml_guid_t
 omlc_guid_generate();
 
 #define MAX_GUID_STRING_SZ 21
 
 extern size_t
-omlc_guid_to_string(guid_t in, char *out);
+omlc_guid_to_string(oml_guid_t in, char *out);
 
 extern ssize_t
-omlc_string_to_guid(const char *in, guid_t *out);
+omlc_string_to_guid(const char *in, oml_guid_t *out);
   
 #endif /* OML_GUID_H */

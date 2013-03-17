@@ -122,12 +122,9 @@ typedef struct _omlBlob {
 
 /** An opaque type to represent globally unique IDs.
  */
-typedef uint64_t guid_t;
+typedef uint64_t oml_guid_t;
 
-guid_t
-omlc_guid_generate();
-
-#define OMLC_GUID_NULL ((guid_t) 0)
+#define OMLC_GUID_NULL ((oml_guid_t) 0)
 
 /** Multi-typed variable container without type information.
  *
@@ -150,7 +147,7 @@ typedef union _omlValueU {
   int64_t   int64Value;
   uint64_t  uint64Value;
   OmlBlob   blobValue;
-  guid_t    guidValue;
+  oml_guid_t    guidValue;
 } OmlValueU;
 
 /** Zero out a freshly declared OmlValueU.
@@ -217,7 +214,7 @@ typedef union _omlValueU {
   ((long)(_omlc_get_intrinsic_value(var, long)))
 /** \see _omlc_get_intrinsic_value */
 #define omlc_get_guid(var) \
-  ((guid_t)(_omlc_get_intrinsic_value(var, guid)))
+  ((oml_guid_t)(_omlc_get_intrinsic_value(var, guid)))
 
 /** \see _omlc_set_intrinsic_value */
 #define omlc_set_int32(var, val) \
@@ -239,7 +236,7 @@ typedef union _omlValueU {
   _omlc_set_intrinsic_value(var, long, (long)(val))
 /** \see _omlc_set_intrinsic_value */
 #define omlc_set_guid(var, val)                            \
-  _omlc_set_intrinsic_value(var, guid, (guid_t)(val))
+  _omlc_set_intrinsic_value(var, guid, (oml_guid_t)(val))
 
 /** Get fields of an OmlValueU containing pointer to possibly dynamically allocated storage.
  *
@@ -630,6 +627,9 @@ int omlc_inject(OmlMP *mp, OmlValueU *values);
 
 /** Inject metadata (key/value) for a specific MP.  */
 int omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValueT type, const char *fname);
+
+/** Generate a new GUID */
+oml_guid_t omlc_guid_generate();
 
 // DEPRECATED
 void omlc_process(OmlMP* mp, OmlValueU* values);

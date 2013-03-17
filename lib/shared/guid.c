@@ -62,13 +62,13 @@ random_open()
 /**
  * Initialize a guid to a unique new value.
  *
- * \return in A non-NULL pointer to the guid_t to initialize.
+ * \return in A non-NULL pointer to the oml_guid_t to initialize.
  */
-guid_t
+oml_guid_t
 omlc_guid_generate()
 {
   FILE *fp = random_open();
-  guid_t out = OMLC_GUID_NULL;
+  oml_guid_t out = OMLC_GUID_NULL;
   while(OMLC_GUID_NULL == out) {
     if(fread(&out, sizeof(out), 1, fp) != 1) {
       logerror("Failed to read from %s: %s\n", random_path, sys_errlist[errno]);
@@ -81,12 +81,12 @@ omlc_guid_generate()
 /**
  * Convert a guid into a human-readable string.
  *
- * \param in The guid_t to write.
+ * \param in The oml_guid_t to write.
  * \param out A non-NULL pointer to the buffer to write into.
  * \return The number of characters written.
  */
 size_t
-omlc_guid_to_string(guid_t in, char *out)
+omlc_guid_to_string(oml_guid_t in, char *out)
 {
   assert(in);
   assert(out);
@@ -96,12 +96,12 @@ omlc_guid_to_string(guid_t in, char *out)
 /**
  * Convert a human-readable guid string into a guid.
  *
- * \param in The guid_t to write.
+ * \param in The oml_guid_t to write.
  * \param out A non-NULL pointer to the buffer to write into.
  * \return The number of characters read.
  */
 ssize_t
-omlc_string_to_guid(const char *in, guid_t *out)
+omlc_string_to_guid(const char *in, oml_guid_t *out)
 {
   assert(in);
   assert(out);

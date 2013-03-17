@@ -232,7 +232,7 @@ static char* string_values [] =
     "0123456789ABCDEF",
   };
 
-static const guid_t guid_values[] = {
+static const oml_guid_t guid_values[] = {
 	UINT64_C(0x260a42fc515c3908),
 	UINT64_C(0xd99f503f0d1fa354),
 	UINT64_C(0x476d34b3f0fad7c4),
@@ -500,7 +500,7 @@ START_TEST(test_marshal_guid)
 
   uint64_t nv = 0;
   memcpy(&nv, FIRST_VALPTR(mbuf) + 1, sizeof(nv));
-  guid_t val = (guid_t) ntohll(nv);
+  oml_guid_t val = (oml_guid_t) ntohll(nv);
   fail_if(val != guid_values[_i], "%llx != %llx\n", val, guid_values[_i]);
 }
 END_TEST
@@ -1004,7 +1004,7 @@ START_TEST(test_marshal_unmarshal_guid)
   const int GUID_LENGTH = 9;
   const int GUID_TYPE_OFFSET = 0;
   const int GUID_VALUE_OFFSET = 1;
-  const int GUID_SIZE = sizeof(guid_t);
+  const int GUID_SIZE = sizeof(oml_guid_t);
   int result;
   OmlValue value;
 
@@ -1030,7 +1030,7 @@ START_TEST(test_marshal_unmarshal_guid)
     uint64_t nv = 0;
     memcpy(&nv, valptr, GUID_SIZE);
     uint64_t hv = ntohll(nv);
-    guid_t val = (guid_t)hv;
+    oml_guid_t val = (oml_guid_t)hv;
 
     fail_if(result != 1);
     fail_if(type != GUID_T);

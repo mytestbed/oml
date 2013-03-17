@@ -400,7 +400,7 @@ static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *va
     break;
   }
   case OML_GUID_VALUE: {
-    guid_t c;
+    oml_guid_t c;
     omlc_string_to_guid(value_s, &c);
     omlc_set_guid(*value, c);
     break;

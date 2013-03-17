@@ -232,8 +232,8 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
       :blob => "void*",
       "blob" => "void*",
       # guid
-      :guid => "guid_t",
-      "guid" => "guid_t",
+      :guid => "oml_guid_t",
+      "guid" => "oml_guid_t",
     }
     var_name = (@impl[:var_name] ||= long_name)
     s.puts "  #{ctypes[opts[:type]]} #{var_name};"
@@ -269,8 +269,8 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
       # XXX see opttypes in arg_info()
       :blob => "\"\"",
       "blob" => "\"\"",
-      :guid => "guid_t",
-      "guid" => "guid_t",
+      :guid => "oml_guid_t",
+      "guid" => "oml_guid_t",
     }
     return defaults[opts[:type]]
   end
@@ -322,8 +322,8 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
       :blob => "POPT_ARG_STRING",
       "blob" => "POPT_ARG_STRING",
       # guid
-      :guid => "guid_t",
-      "guid" => "guid_t"
+      :guid => "oml_guid_t",
+      "guid" => "oml_guid_t"
     }
     return opttypes[opts[:type]]
   end
@@ -842,8 +842,8 @@ class MeasurementPoint
       :blob => "const void*",
       "blob" => "const void*",
       # Ditto for guid
-      :guid => "guid_t",
-      "guid" => "guid_t",
+      :guid => "oml_guid_t",
+      "guid" => "oml_guid_t",
     }
     sets = {
       :string => "string",
