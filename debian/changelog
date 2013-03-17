@@ -1,3 +1,9 @@
+oml2 (2.10.0rc-mytestbed1) testing; urgency=low
+
+  * New upstream release 2.10.0rc
+
+ -- Olivier Mehani <shtrom-debian@ssji.net>  Sun, 17 Mar 2013 21:48:31 +1100
+
 oml2 (2.10.0pre) precise; urgency=low
 
   * Add libocomm metapackage.
