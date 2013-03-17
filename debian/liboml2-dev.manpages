@@ -3,6 +3,7 @@ doc/omlc_add_mp.3
 doc/omlc_close.3
 doc/omlc_copy_blob.3
 doc/omlc_copy_string.3
+doc/omlc_guid_generate.3
 doc/omlc_init.3
 doc/omlc_inject.3
 doc/omlc_inject_metadata.3
@@ -10,6 +11,7 @@ doc/omlc_reset_blob.3
 doc/omlc_reset_string.3
 doc/omlc_set_blob.3
 doc/omlc_set_double.3
+doc/omlc_set_guid.3
 doc/omlc_set_int64.3
 doc/omlc_set_string.3
 doc/omlc_set_string_copy.3
