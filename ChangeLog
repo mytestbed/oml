@@ -1,3 +1,22 @@
+2013-03-17  Olivier Mehani  <olivier.mehani@nicta.com.au>
+	* OML: Version 2.10.0rc
+	* protocol: New version, 4
+		Support for user-defined metadata (units, references, etc...)
+			(#418, #748, #829)
+		Support for globally unique IDs to group tuples within or across
+			MPs (#954)
+		Support for Blob and multi-line strings in text protocol (#761, #835)
+	* liboml2: Bump in library minor to 9.0.1 to support new API for V4
+			protocol features
+	* Backend changes:
+		Extend _experiment_metadata table schema (#418)
+		Add primary keys to measurement tables (#814)
+	* Major fixes:
+		Fixed handling of zero-size and null strings/blobs (#929)
+		Fixed the handling of inactive client connections in the server, and a
+			similar issue in the client (#826)
+		Resync after erroneous message in binary mode (#791)
+
 2012-12-10  Olivier Mehani  <olivier.mehani@nicta.com.au>
 	* OML: Version 2.9.0
 	* Fix minor bugs and discrepancies since RC.
