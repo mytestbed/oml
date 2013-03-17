@@ -3,7 +3,7 @@
 %define pkgver		%{version}
 %define redmineid	792
 %define liboml2cur	9
-%define liboml2rev	0
+%define liboml2rev	1
 %define liboml2age	0
 %define libocommcur	1
 %define libocommrev	0
@@ -101,11 +101,11 @@ exit 0
 %{_libdir}/libocomm.a
 %{_libdir}/libocomm.la
 %{_libdir}/libocomm.so.%{libocommcur}
-%{_libdir}/libocomm.so.%{libocommcur}.%{libocommrev}.%{libocommage}
+%{_libdir}/libocomm.so.%{libocommcur}.%{libocommage}.%{libocommrev}
 %{_libdir}/liboml2.a
 %{_libdir}/liboml2.la
 %{_libdir}/liboml2.so.%{liboml2cur}
-%{_libdir}/liboml2.so.%{liboml2cur}.%{liboml2rev}.%{liboml2age}
+%{_libdir}/liboml2.so.%{liboml2cur}.%{liboml2age}.%{liboml2rev}
 %{_prefix}/share/oml2/oml2-server-hook.sh
 %{_prefix}/share/info/oml-user-manual.info.gz
 %doc %{_mandir}/man1/liboml2.1.gz
