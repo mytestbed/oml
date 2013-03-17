@@ -41,14 +41,16 @@
 
 #define MAX_MARSHALLED_STRING_LENGTH 254
 
-static const int LONG_T = 0x1;  // marshal.c LONG_T
+static const int LONG_T = 0x1;    // marshal.c LONG_T
 static const int DOUBLE_T = 0x2;  // marshal.c DOUBLE_T
 static const int STRING_T = 0x4;  // marshal.c STRING_T
-static const int INT32_T = 0x5;  // marshal.c INT32_T
+static const int INT32_T = 0x5;   // marshal.c INT32_T
 static const int UINT32_T = 0x6;  // marshal.c UINT32_T
-static const int INT64_T = 0x7;  // marshal.c INT64_T
+static const int INT64_T = 0x7;   // marshal.c INT64_T
 static const int UINT64_T = 0x8;  // marshal.c UINT64_T
-static const int BLOB_T = 0x9;  // marshal.c BLOB_T
+static const int BLOB_T = 0x9;    // marshal.c BLOB_T
+static const int GUID_T = 0xa;    // marshal.c GUID_T
+
 #define PACKET_HEADER_SIZE 5 // marshal.c
 
 static double double_values [] =
@@ -229,6 +231,30 @@ static char* string_values [] =
     "0123456789ABCDEF"
     "0123456789ABCDEF",
   };
+
+static const guid_t guid_values[] = {
+	UINT64_C(0x260a42fc515c3908),
+	UINT64_C(0xd99f503f0d1fa354),
+	UINT64_C(0x476d34b3f0fad7c4),
+	UINT64_C(0x8ff1a1d42ec376a4),
+	UINT64_C(0x15d8753573ebffa0),
+	UINT64_C(0xa0bfe15748f8590f),
+	UINT64_C(0xb7c8259f4120a29e),
+	UINT64_C(0xe75c8763c4e1964c),
+	UINT64_C(0x3d51cfbb2f13bba8),
+	UINT64_C(0xa16bbf3bea144dd2),
+	UINT64_C(0x811db8443b2630c0),
+	UINT64_C(0x0659e7379b9973df),
+	UINT64_C(0x398d76e0f527c258),
+	UINT64_C(0xa5b70a2f38c881de),
+	UINT64_C(0xec39e65a696ebe79),
+	UINT64_C(0xdb240600a1ad20e4),
+	UINT64_C(0xe35fb70c38023c68),
+	UINT64_C(0xcef251ecf411bfa3),
+	UINT64_C(0x7684bfeadcde2648),
+	UINT64_C(0x0222091b4aa762b0)
+};
+
 
 double relative_error (double v1, double v2)
 {
@@ -456,6 +482,29 @@ START_TEST (test_marshal_value_string)
 END_TEST
 
 #warning test_marshal_value_blob is missing
+
+START_TEST(test_marshal_guid)
+{
+  MBuffer* mbuf = mbuf_create ();
+  int initresult = marshal_init (mbuf, OMB_DATA_P);
+
+  fail_if (initresult != 0);
+  fail_if (mbuf->base == NULL);
+
+  OmlValueU v;
+  omlc_zero(v);
+  omlc_set_guid(v, guid_values[_i]);
+  int result = marshal_value(mbuf, OML_GUID_VALUE, &v);
+  fail_if(result != 1);
+  fail_if(*(FIRST_VALPTR(mbuf)) != GUID_T);
+
+  uint64_t nv = 0;
+  memcpy(&nv, FIRST_VALPTR(mbuf) + 1, sizeof(nv));
+  guid_t val = (guid_t) ntohll(nv);
+  fail_if(val != guid_values[_i], "%llx != %llx\n", val, guid_values[_i]);
+}
+END_TEST
+
 
 START_TEST (test_marshal_unmarshal_long)
 {
@@ -949,6 +998,62 @@ END_TEST
 
 #warning test_unmarshal_value_blob is missing
 
+START_TEST(test_marshal_unmarshal_guid)
+{
+  int VALUES_OFFSET = 7;
+  const int GUID_LENGTH = 9;
+  const int GUID_TYPE_OFFSET = 0;
+  const int GUID_VALUE_OFFSET = 1;
+  const int GUID_SIZE = sizeof(guid_t);
+  int result;
+  OmlValue value;
+
+  oml_value_init(&value);
+  MBuffer* mbuf = mbuf_create();
+  marshal_init(mbuf, OMB_DATA_P);
+  result = marshal_measurements(mbuf, 42, 43, 42.0);
+  fail_if(mbuf->base == NULL);
+  fail_if(result == -1);
+  VALUES_OFFSET = mbuf_fill(mbuf);
+
+  unsigned int i = 0;
+  for (i = 0; i < LENGTH (guid_values); i++) {
+    OmlValueU v;
+    omlc_guid_generate(v);
+    omlc_set_guid(v, guid_values[i]);
+
+    int result = marshal_value(mbuf, OML_GUID_VALUE, &v);
+    uint8_t* buf = &(mbuf->base[VALUES_OFFSET + i * GUID_LENGTH]);
+    int type = buf[GUID_TYPE_OFFSET];
+    uint8_t* valptr = &buf[GUID_VALUE_OFFSET];
+
+    uint64_t nv = 0;
+    memcpy(&nv, valptr, GUID_SIZE);
+    uint64_t hv = ntohll(nv);
+    guid_t val = (guid_t)hv;
+
+    fail_if(result != 1);
+    fail_if(type != GUID_T);
+    fail_if(val != v.guidValue, "%llx != %llx\n", val, v.guidValue);
+  }
+  marshal_finalize(mbuf);
+
+  OmlBinaryHeader header;
+  result = unmarshal_init(mbuf, &header);
+  fail_if(result == -1);
+  fail_unless(header.type == OMB_DATA_P);
+  for (i = 0; i < LENGTH(guid_values); i++) {
+    unmarshal_value(mbuf, &value);
+    fail_unless(oml_value_get_type(&value) == OML_GUID_VALUE);
+    fail_unless(omlc_get_guid(value.value) == guid_values[i],
+                "Unmarshalled value %llx, expected %llx\n",
+                omlc_get_guid(value.value), guid_values[i]);
+  }
+  oml_value_reset(&value);
+}
+END_TEST
+
+
 #define dumpmessage(mbuf)                                                                                   \
   do {                                                                                                      \
     uint8_t *_m = mbuf_message(mbuf), *_p = _m;                                                             \
@@ -1308,6 +1413,7 @@ marshal_suite (void)
   tcase_add_loop_test (tc_marshal, test_marshal_value_uint64, 0, LENGTH (int64_values));
   tcase_add_loop_test (tc_marshal, test_marshal_value_double, 0, LENGTH (double_values));
   tcase_add_loop_test (tc_marshal, test_marshal_value_string, 0, LENGTH (string_values));
+  tcase_add_loop_test (tc_marshal, test_marshal_guid,         0, LENGTH (guid_values));
 
   tcase_add_test (tc_marshal, test_marshal_unmarshal_long);
   tcase_add_test (tc_marshal, test_marshal_unmarshal_int32);
@@ -1316,6 +1422,7 @@ marshal_suite (void)
   tcase_add_test (tc_marshal, test_marshal_unmarshal_uint64);
   tcase_add_test (tc_marshal, test_marshal_unmarshal_double);
   tcase_add_test (tc_marshal, test_marshal_unmarshal_string);
+  tcase_add_test (tc_marshal, test_marshal_unmarshal_guid);
 
   tcase_add_test (tc_marshal, test_marshal_full);
 

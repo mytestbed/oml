@@ -24,6 +24,7 @@
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "mstring.h"
+#include "guid.h"
 #include "oml_value.h"
 #include "oml_util.h"
 #include "database.h"
@@ -54,6 +55,7 @@ static struct {
   { OML_UINT32_VALUE,   "INT8" }, /* PG doesn't support unsigned types --> promote */
   { OML_INT64_VALUE,    "INT8" },
   { OML_UINT64_VALUE,   "BIGINT" },
+  { OML_GUID_VALUE,     "BIGINT" },
 };
 
 static int sql_stmt(PsqlDB* self, const char* stmt);
@@ -565,6 +567,13 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
                            }
                            snprintf(paramValues[4+i], eblob_len, "%s", escaped_blob);
                            PQfreemem(escaped_blob);
+                           break;
+    case OML_GUID_VALUE:
+                           if(v->value.guidValue != OMLC_GUID_NULL) {
+                             sprintf(paramValues[4+i],"%" PRId64, (int64_t)(v->value.guidValue));
+                           } else {
+                             paramValues[4+i] = NULL;
+                           }
                            break;
     default:
       logerror("psql:%s: Unknown type %d in col '%s' of table '%s'; this is probably a bug\n",

@@ -24,6 +24,7 @@
 #include "mem.h"
 #include "mstring.h"
 #include "htonll.h"
+#include "guid.h"
 #include "oml_value.h"
 #include "oml_util.h"
 #include "schema.h"
@@ -52,6 +53,7 @@ static struct {
   { OML_DOUBLE_VALUE,   "REAL" },
   { OML_STRING_VALUE,   "TEXT" },
   { OML_BLOB_VALUE,     "BLOB" },
+  { OML_GUID_VALUE,     "UNSIGNED BIGINT" },
 };
 
 static int sql_stmt(Sq3DB* self, const char* stmt);
@@ -465,6 +467,14 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
                                v->value.blobValue.ptr,
                                v->value.blobValue.length,
                                SQLITE_TRANSIENT);
+      break;
+    }
+    case OML_GUID_VALUE: {
+      if(v->value.uint64Value != UINT64_C(0)) {
+        res = sqlite3_bind_int64(stmt, idx, (int64_t)(v->value.guidValue));
+      } else {
+        res = sqlite3_bind_null(stmt, idx);
+      }
       break;
     }
     default:
