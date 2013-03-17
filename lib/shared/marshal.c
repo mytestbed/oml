@@ -31,25 +31,27 @@
  * structured as follows.
  *
  * A header is first populated using marshal_init(), depending on the expected
- * length. A short header, created by marshal_header_short(), is 5 bytes.
+ * length. Both headers start with a double \ref SYNC_BYTE.
  *
+ * A short header (\ref OMB_DATA_P), created by marshal_header_short(), is 5
+ * bytes long.
  * \verbatim
  *    0                   1                   2                   3
  *    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
  *    +---------------+---------------+---------------+---------------+
- *    |   SYNC-BYTE   |   SYNC-BYTE   |  OMB_DATA_P   |   msg-len-H   |
+ *    |   SYNC_BYTE   |   SYNC_BYTE   |  OMB_DATA_P   |   msg-len-H   |
  *    +---------------+---------------+---------------+---------------+
  *    |   msg-len-L   |
  *    +-------+-------+--
  * \endverbatim
  *
- * A long header, created by marshal_header_long(), allows two more bytes for
- * the length.
+ * A long header (\ref OMB_LDATA_P), created by marshal_header_long(), allows
+ * two more bytes for the length.
  * \verbatim
  *    0                   1                   2                   3
  *    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
  *    +---------------+---------------+---------------+---------------+
- *    |   SYNC-BYTE   |   SYNC-BYTE   |  OMB_DATA_P   |   msg-len-HH  |
+ *    |   SYNC_BYTE   |   SYNC_BYTE   |  OMB_LDATA_P  |   msg-len-HH  |
  *    +---------------+---------------+---------------+---------------+
  *    |   msg-len-HL  |   msg-len-LH  |   msg-len-LL  |
  *    +---------------+---------------+---------------+--
@@ -76,20 +78,21 @@
  * marshal_values() is used to marshall the array of OmlValue; it marshalls
  * each of the with marshal_value().
  *
- * 32-bit integers (and longs) are put on the wire verbatim, in network byte
- * order.
+ * 32-bit integers (\ref INT32_T and \ref UINT32_T; and longs, \ref LONG_T)
+ * are put on the wire verbatim, in network byte order.
  * \verbatim
  *  --+---------------+---------------+---------------+---------------+
- *    |  int32-type   |  int-byte-HH  |  int-byte-HL  |  int-byte-LH  |
+ *    |  (U)INT32_T   |  int-byte-HH  |  int-byte-HL  |  int-byte-LH  |
  *  --+---------------+---------------+---------------+---------------+
  *    |  int-byte-HL  |  int-byte-LL  |
  *    +---------------+---------------+--
  * \endverbatim
  *
- * The same goes for 64-bit integers.
+ * The same goes for 64-bit integers (\ref INT64_T and \ref UINT64_T). GUIDs
+ * are marshalled in the same way, but use the \ref GUID_T type.
  * \verbatim
  *  --+---------------+---------------+---------------+---------------+
- *    |  int64-type   |  int-byte-HHH |  int-byte-HHL |  int-byte-HLH |
+ *    |  (U)INT64_T   |  int-byte-HHH |  int-byte-HHL |  int-byte-HLH |
  *  --+---------------+---------------+---------------+---------------+
  *    |  int-byte-HHL |  int-byte-HLL |  int-byte-LHL |  int-byte-LLH |
  *    +---------------+---------------+---------------+---------------+
@@ -97,8 +100,9 @@
  *    +---------------+---------------+--
  * \endverbatim
  *
- * Doubles are represented with a 4-byte mantissa \f$M\f$ and a one-byte exponent
- * \f$x\f$, so that \f$v=\frac{2^xM}{2^{30}}\f$.
+ * Doubles (\ref DOUBLE_T) are represented with a 4-byte mantissa \f$M\f$ and a
+ * one-byte exponent \f$x\f$, so that \f$v=\frac{2^xM}{2^{30}}\f$. In case the
+ * conversion fails, \ref DOUBLE_NAN is used as a type instead of \ref DOUBLE_T.
  * \verbatim
  *  --+---------------+---------------+---------------+---------------+
  *    |   DOUBLE_T    |  mant-byte-HH |  mant-byte-HL |  mant-byte-LH |
@@ -107,8 +111,8 @@
  *    +---------------+---------------+---------------+--
  * \endverbatim
  *
- * Strings and blobs are serialised as bytes, with the second byte (i.e., first
- * after the type), being their length.
+ * Strings (\ref STRING_T) and blobs (\ref BLOB_T) are serialised as bytes,
+ * with the second byte (i.e., first after the type), being their length.
  * \verbatim
  *  --+---------------+---------------+---------------+---------------+
  *    |STRING_T|BLOB_T|       n       |   1st byte    |               |
@@ -143,17 +147,28 @@
 #define BIG_S 15
 #define BIG_L 30
 
+/** Marshalled data type for a OML_LONG_VALUE */
 #define LONG_T     0x1
+/** Marshalled data type for a OML_DOUBLE_VALUE */
 #define DOUBLE_T   0x2
+/** Marshalled data type for a OML_DOUBLE_VALUE which is NaN or wasn't converted properly */
 #define DOUBLE_NAN 0x3
+/** Marshalled data type for a OML_STRING_VALUE */
 #define STRING_T   0x4
+/** Marshalled data type for a OML_INT32_VALUE */
 #define INT32_T    0x5
+/** Marshalled data type for a OML_UINT32_VALUE */
 #define UINT32_T   0x6
+/** Marshalled data type for a OML_INT64_VALUE */
 #define INT64_T    0x7
+/** Marshalled data type for a OML_UINT64_VALUE */
 #define UINT64_T   0x8
+/** Marshalled data type for a OML_BLOB_VALUE */
 #define BLOB_T     0x9
-#define GUID_T     0xa
+/** Marshalled data type for a OML_GUID_VALUE */
+#define GUID_T     0xA
 
+/** Synchronisation byte repeated twice before a new marshalled message */
 #define SYNC_BYTE 0xAA
 
 /** Size of short marshalled message headers (OMB_DATA_P); OMB_LDATA_P are 2 bytes longer */

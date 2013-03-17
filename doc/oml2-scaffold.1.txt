@@ -296,6 +296,11 @@ This field will record string data.
 *:blob*::
 This field will record binary data.
 
+*:guid*::
+This field will record a globally unique identifier allowing to group
+tuples together, or to link them accross 'MPs'. See
+linkoml:omlc_guid_generate[3] for more details.
+
 The integer types ':int32', ':uint32' ':int64', and ':uint64' are
 implemented in the application as the corresponding types from
 *stdint.h*, namely 'int32_t', 'uint32_t', 'int64_t', and 'uint64_t'
@@ -320,7 +325,7 @@ and ':integer' to map to ':int32', which developers can override using
 the '--long' switch.
 
 It is also permissible to use strings to specify the type of a metric,
-i.e. '"int32"' instead of ':int32', '"double"' instead of ':double'.
+i.e., '"int32"' instead of ':int32', '"double"' instead of ':double'.
 
 BUT I DON'T KNOW RUBY!
 ----------------------

@@ -14,6 +14,8 @@ SYNOPSIS
 'OmlMP'* *omlc_add_mp*('const char' \*name, 'OmlMPDef' \*definition); +
 'int'    *omlc_start*('void'); +
 'void'   *omlc_inject*('OmlMP' \*mp, linkoml:OmlValueU[3] \*values); +
+'int'	 *omlc_inject_metadata*('OmlMP'* mp, 'const char'* key, 'const OmlValueU'* value, 'OmlValueT' type, 'const char'* fname); +
+'oml_guid_t' *omlc_guid_generate*(); +
 'int'    *omlc_close*('void'); +
 [verse]
 *#define OML_FROM_MAIN* '// enable oml_register_mps() and necessary storage; only in one file'
@@ -53,6 +55,22 @@ Measurement::
 Second, the filters are constructed and enabled by calling
 linkoml:omlc_start[3]. Measurement can proceed, with as many calls to
 linkoml:omlc_inject[3] as required.
+
+In some cases, it is necessary to occasionaly inject metadata about one
+'MP', or one of its fields (e.g., unit or quality index of the current
+samples). The linkoml:omlc_inject_metadata[3] function can be used for
+this purpose.
+
+It is also sometimes necessary to link measurement tuples together
+(e.g., the destination IP of a packet in a network 'MP' and its
+transport protocol and port in a transport 'MP'). OML supports the
+concept of a Globally Unique ID (GUID) as a data type. It is a random
+identifier which can be generated on demand using the
+*omlc_guid_generate*() function. It returns an 'oml_guid_t', which can
+then be injected into any 'MP' with a field of type ':guid' (see
+linkoml:oml2-scaffold[1]). In case a GUID is not required for the
+injection of a specific tuple (i.e., no linkage to other measurements),
+the special value 'OMLC_GUID_NULL' can be used.
 
 For convenience, it is recommended to use linkoml:oml2-scaffold[1] to
 generate helper functions for MP registration and injection

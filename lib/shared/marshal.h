@@ -28,23 +28,23 @@
 #include "oml2/omlc.h"
 #include "mbuf.h"
 
-typedef enum _omPktType
-{
+/** Represent whether a marshalled packet is short or long */
+typedef enum {
+  /** Short packet of size \ref PACKET_HEADER_SIZE bytes */
   OMB_DATA_P = 0x1,
-  OMB_LDATA_P = 0x2
+  /** Long packet of size \ref PACKET_HEADER_SIZE + \ref STREAM_HEADER_SIZE bytes */
+  OMB_LDATA_P = 0x2,
 } OmlBinMsgType;
 
-typedef struct _omlBinaryHeader OmlBinaryHeader;
 
-struct _omlBinaryHeader
-{
+typedef struct {
     OmlBinMsgType type;
     size_t length;
     int values;
     int stream;
     int seqno;
     double timestamp;
-};
+} OmlBinaryHeader;
 
 int marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now);
 int marshal_init(MBuffer* mbuf, OmlBinMsgType msgtype);

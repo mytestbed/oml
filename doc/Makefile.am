@@ -19,6 +19,7 @@ ALL_MAN_FILES= \
 	liboml2.conf.5.txt
 
 LIBOML3_LINKS = \
+	omlc_guid_generate.3 \
 	oml_inject_MPNAME.3 \
 	oml_register_mps.3
 
@@ -30,6 +31,7 @@ OMLVALUE3_LINKS= \
 	omlc_set_int64.3 \
 	omlc_set_uint64.3 \
 	omlc_set_double.3 \
+	omlc_set_guid.3 \
 	omlc_set_string.3 \
 	omlc_set_string_copy.3 \
 	omlc_copy_string.3 \
