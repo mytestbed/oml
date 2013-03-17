@@ -67,6 +67,7 @@ Package: liboml2-9
 Section: libs
 Architecture: any
 Replaces: liboml
+Conflicts: liboml2-0
 Breaks: liboml (<< 2.4)
 Depends: libc6, libocomm1, libxml2, ${misc:Depends}
 Description: OML: The Orbit Measurement Library
