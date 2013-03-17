@@ -137,6 +137,7 @@ exit 0
 %doc %{_mandir}/man3/omlc_close.3.gz
 %doc %{_mandir}/man3/omlc_copy_blob.3.gz
 %doc %{_mandir}/man3/omlc_copy_string.3.gz
+%doc %{_mandir}/man3/omlc_guid_generate.3.gz
 %doc %{_mandir}/man3/omlc_init.3.gz
 %doc %{_mandir}/man3/omlc_inject.3.gz
 %doc %{_mandir}/man3/omlc_inject_metadata.3.gz
@@ -144,6 +145,7 @@ exit 0
 %doc %{_mandir}/man3/omlc_reset_string.3.gz
 %doc %{_mandir}/man3/omlc_set_blob.3.gz
 %doc %{_mandir}/man3/omlc_set_double.3.gz
+%doc %{_mandir}/man3/omlc_set_guid.3.gz
 %doc %{_mandir}/man3/omlc_set_int32.3.gz
 %doc %{_mandir}/man3/omlc_set_int64.3.gz
 %doc %{_mandir}/man3/omlc_set_string.3.gz
