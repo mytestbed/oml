@@ -24,4 +24,4 @@ oml2_proxy_server_SOURCES = \
 oml2_proxy_server_LDADD = \
 	$(top_builddir)/lib/ocomm/libocomm.la \
 	$(top_builddir)/lib/shared/libshared.la \
-	$(M_LIBS) $(POPT_LIBS)
+	$(M_LIBS) $(POPT_LIBS) $(PTHREAD_LIBS)
