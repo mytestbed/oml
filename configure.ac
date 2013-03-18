@@ -81,6 +81,12 @@ AC_SEARCH_LIBS([sqrt], [m],[
 AC_SEARCH_LIBS([frexp], [m], [
 		AS_IF([test "$ac_res" != "none required"],[M_LIBS="$M_LIBS $ac_res"])
 	       ])
+AC_SEARCH_LIBS([log10], [m], [
+		AS_IF([test "$ac_res" != "none required"],[M_LIBS="$M_LIBS $ac_res"])
+	       ])
+AC_SEARCH_LIBS([floor], [m], [
+		AS_IF([test "$ac_res" != "none required"],[M_LIBS="$M_LIBS $ac_res"])
+	       ])
 AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([M_LIBS], $M_LIBS)])
 LIBS=$oldLIBS
 AC_SEARCH_LIBS([pthread_create], [pthread], [

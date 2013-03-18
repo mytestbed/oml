@@ -33,6 +33,7 @@
 #include "oml2/omlc.h"
 #include "ocomm/o_log.h"
 #include "mem.h"
+#include "guid.h"
 #include "oml_value.h"
 #include "base64.h"
 #include "string_utils.h"
