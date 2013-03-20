@@ -16,6 +16,7 @@
 # Date: 08/06/2012
 #
 
+import argparse
 import sys
 import os
 import socket
@@ -59,6 +60,13 @@ class OMLBase:
     self._banner()
     self.oml = True
 
+    # process the command line
+    parser = argparse.ArgumentParser(prog=appname)
+    parser.add_argument("--oml-id", default=None, help="node identifier")
+    parser.add_argument("--oml-domain", default=None, help="experimental domain")
+    parser.add_argument("--oml-collect", default="localhost", help="URI for a remote collection point")
+    args = parser.parse_args()
+
     # Set all the instance variables
     self.appname = appname
     if self.appname[:1].isdigit() or '-' in self.appname or '.' in self.appname:
@@ -71,20 +79,23 @@ class OMLBase:
     if domain is None:
       domain = expid
 
-    if domain is None:
-      if 'OML_DOMAIN' in os.environ.keys():
-        self.domain = os.environ['OML_DOMAIN']
-      elif 'OML_EXP_ID' in os.environ.keys():
-        self.domain = os.environ['OML_EXP_ID']
-        sys.stderr.write("WARN\tOML_EXP_ID is getting deprecated; please use OML_DOMAIN instead\n")
-      else:
-        sys.stderr.write("ERROR\tNo experimental domain specified\n")
-        self._disable_oml()
-    else:
+    if domain is not None:
       self.domain = domain
+    elif args.oml_domain is not None:
+      self.domain = args.oml_domain
+    elif 'OML_DOMAIN' in os.environ.keys():
+      self.domain = os.environ['OML_DOMAIN']
+    elif 'OML_EXP_ID' in os.environ.keys():
+      self.domain = os.environ['OML_EXP_ID']
+      sys.stderr.write("WARN\tOML_EXP_ID is getting deprecated; please use OML_DOMAIN instead\n")
+    else:
+      sys.stderr.write("ERROR\tNo experimental domain specified\n")
+      self._disable_oml()
 
     if uri is None:
-      if 'OML_COLLECT' in os.environ.keys():
+      if args.oml_collect is not None:
+        uri = args.oml_collect
+      elif 'OML_COLLECT' in os.environ.keys():
         uri = os.environ['OML_COLLECT']
       elif 'OML_SERVER' in os.environ.keys():
         uri = os.environ['OML_SERVER']
@@ -96,14 +107,14 @@ class OMLBase:
     if len(uri_l) == 1:       # host
       self.omlserver = uri_l[0]
       self.omlport = self.DEFAULT_PORT
-    if len(uri_l) == 2:
+    elif len(uri_l) == 2:
       if uri_l[0] == "tcp":   # tcp:host or host:port
         self.omlserver = uri_l[1]
         self.omlport = self.DEFAULT_PORT
       else:
         self.omlserver = uri_l[0]
         self.omlport = uri_l[1]
-    if len(uri_l) == 3:       # tcp:host:port
+    elif len(uri_l) == 3:       # tcp:host:port
       self.omlserver = uri_l[1]
       self.omlport = uri_l[2]
     try:
@@ -112,14 +123,16 @@ class OMLBase:
       sys.stderr.write("ERROR\tCannot use '%s' as a port number\n" % self.omlport)
       self._disable_oml()
 
-    if sender is None:
+    if sender is not None:
+      self.sender = sender
+    elif args.oml_id is not None:
+      self.sender = args.oml_id
+    else:
       try:
         self.sender =  os.environ['OML_NAME']
       except KeyError:
         sys.stderr.write("ERROR\tNo sender ID specified (OML_NAME)\n")
         self._disable_oml()
-    else:
-      self.sender = sender
 
     self.starttime = 0
     self.streams = 0
