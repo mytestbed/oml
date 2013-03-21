@@ -16,11 +16,13 @@
 # Date: 08/06/2012
 #
 
+import argparse
 import sys
 import os
 import socket
 from time import time
 from time import sleep
+
 
 # Compatibility with Python 2 and 3's string type
 if float(sys.version[:3])<3:
@@ -29,6 +31,13 @@ if float(sys.version[:3])<3:
 else:
     def to_bytes(s):
         return bytes(s, "UTF-8")
+
+
+def escape(s) :
+  """
+  Escape '\\', '\t', '\r' and '\n' characters in s
+  """
+  return s.replace('\\', r'\\').replace('\t', r'\t').replace('\r', r'\r').replace('\n', r'\n')
 
 
 class OMLBase:
@@ -49,8 +58,14 @@ class OMLBase:
 
     def __init__(self,appname,domain=None,sender=None,uri=None,expid=None):
         self._banner()
-
         self.oml = True
+
+    # process the command line
+    parser = argparse.ArgumentParser(prog=appname)
+    parser.add_argument("--oml-id", default=None, help="node identifier")
+    parser.add_argument("--oml-domain", default=None, help="experimental domain")
+    parser.add_argument("--oml-collect", default="localhost", help="URI for a remote collection point")
+    args = parser.parse_args()
 
         # Set all the instance variables
         self.appname = appname
@@ -60,10 +75,15 @@ class OMLBase:
 
         if expid is not None:
           sys.stderr.write("WARN\t%s parameter 'expid' is getting deprecated; please use 'domain' instead\n" % self.__class__.__name__)
+
           if domain is None:
             domain = expid
-        if domain is None:
-          if 'OML_DOMAIN' in os.environ.keys():
+
+    if domain is not None:
+      self.domain = domain
+    elif args.oml_domain is not None:
+      self.domain = args.oml_domain
+    elif 'OML_DOMAIN' in os.environ.keys():
             self.domain = os.environ['OML_DOMAIN']
           elif 'OML_EXP_ID' in os.environ.keys():
             self.domain = os.environ['OML_EXP_ID']
@@ -71,11 +91,11 @@ class OMLBase:
           else:
             sys.stderr.write("ERROR\tNo experimental domain specified\n")
             self._disable_oml()
-        else:
-          self.domain = domain
 
         if uri is None:
-          if 'OML_COLLECT' in os.environ.keys():
+      if args.oml_collect is not None:
+        uri = args.oml_collect
+      elif 'OML_COLLECT' in os.environ.keys():
             uri = os.environ['OML_COLLECT']
           elif 'OML_SERVER' in os.environ.keys():
             uri = os.environ['OML_SERVER']
@@ -87,14 +107,14 @@ class OMLBase:
         if len(uri_l) == 1:       # host
           self.omlserver = uri_l[0]
           self.omlport = self.DEFAULT_PORT
-        if len(uri_l) == 2:
+    elif len(uri_l) == 2:
           if uri_l[0] == "tcp":   # tcp:host or host:port
             self.omlserver = uri_l[1]
             self.omlport = self.DEFAULT_PORT
           else:
             self.omlserver = uri_l[0]
             self.omlport = uri_l[1]
-        if len(uri_l) == 3:       # tcp:host:port
+    elif len(uri_l) == 3:       # tcp:host:port
           self.omlserver = uri_l[1]
           self.omlport = uri_l[2]
         try:
@@ -103,17 +123,18 @@ class OMLBase:
           sys.stderr.write("ERROR\tCannot use '%s' as a port number\n" % self.omlport)
           self._disable_oml()
 
-        if sender is None:
+    if sender is not None:
+      self.sender = sender
+    elif args.oml_id is not None:
+      self.sender = args.oml_id
+    else:
           try:
             self.sender =  os.environ['OML_NAME']
           except KeyError:
             sys.stderr.write("ERROR\tNo sender ID specified (OML_NAME)\n")
             self._disable_oml()
-        else:
-          self.sender = sender
 
         self.starttime = 0
-
         self.streams = 0
         self.schema = ""
         self.nextseq = {}
@@ -129,16 +150,12 @@ class OMLBase:
       if "-" in mpname or "." in mpname:
         sys.stderr.write("ERROR\tInvalid measurement point name: %s\n" %  mpname)
         self._disable_oml()
-
       else:
         # Count number of streams
         self.streams += 1
-
         if self.streams > 1:
            self.schema += '\n'
-
         str_schema = "schema: " + str(self.streams) + " " + self.appname + "_" + mpname + " " + schema
-
         self.schema += str_schema
         self.nextseq[mpname] = 0
         self.streamid[mpname] = self.streams
@@ -171,7 +188,6 @@ class OMLBase:
 
     def close(self):
       streamid = None
-
       if self.oml:
         self.sock.close()
 
@@ -179,7 +195,6 @@ class OMLBase:
     def inject(self,mpname,values):
 
       str_inject = ""
-
       if self.oml and self.starttime == 0:
         sys.stderr.write("ERROR\tDid not call start()\n")
         self._disable_oml()
@@ -196,7 +211,7 @@ class OMLBase:
       try:
         for item in values:
           str_inject += '\t'
-          str_inject += str(item)
+        str_inject += escape(str(item))
         str_inject += '\n'
         self.nextseq[mpname]+=1
       except TypeError:
@@ -208,7 +223,6 @@ class OMLBase:
           self.sock.send(to_bytes(str_inject))
         except:
           sys.stderr.write("ERROR\tCould not send injected sample\n")
-
       else:
           sys.stdout.write(str_inject)
 
@@ -220,8 +234,9 @@ class OMLBase:
 
 
 # Local Variables:
-# mode: C
-# tab-width: 2
+# mode: Python
 # indent-tabs-mode: nil
+# tab-width: 2
+# python-indent: 2
 # End:
 # vim: sw=2:sts=2:expandtab
