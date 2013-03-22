@@ -50,7 +50,9 @@ static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *va
  * \param v pointer to the OmlValue to manipulate
  * \see oml_value_array_init
  */
-void oml_value_init(OmlValue *v) {
+void
+oml_value_init(OmlValue *v)
+{
   oml_value_array_init(v, 1);
 }
 /** Initialise arrays of OmlValues.
@@ -63,7 +65,9 @@ void oml_value_init(OmlValue *v) {
  * \param n length of the array
  * \see oml_value_init
  */
-void oml_value_array_init(OmlValue *v, unsigned int n) {
+void
+oml_value_array_init(OmlValue *v, unsigned int n)
+{
   memset(v, 0, n*sizeof(OmlValue));
 }
 
@@ -73,7 +77,9 @@ void oml_value_array_init(OmlValue *v, unsigned int n) {
  * \param type new type to set
  * \see oml_value_init, oml_value_reset
  */
-void oml_value_set_type(OmlValue* v, OmlValueT type){
+void
+oml_value_set_type(OmlValue* v, OmlValueT type)
+{
   if (v->type != type) {
     oml_value_reset(v);
     v->type = type;
@@ -108,11 +114,12 @@ void oml_value_set_type(OmlValue* v, OmlValueT type){
  * \return 0 if successful, -1 otherwise
  * \see oml_value_init, omlc_copy_string, omlc_copy_blob
  */
-int oml_value_set(OmlValue *to, const OmlValueU *value, OmlValueT type) {
+int
+oml_value_set(OmlValue *to, const OmlValueU *value, OmlValueT type)
+{
   oml_value_set_type(to, type);
-  if (omlc_is_numeric_type (type)) {
-    to->value = *value;
-  } else if(omlc_is_guid_type (type)) {
+  if (omlc_is_numeric_type (type) ||
+      omlc_is_guid_type (type)) {
     to->value = *value;
   } else {
     switch (type) {
@@ -139,8 +146,11 @@ int oml_value_set(OmlValue *to, const OmlValueU *value, OmlValueT type) {
   }
   return 0;
 }
+
 /** DEPRECATED \see oml_value_set */
-int oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to) {
+int
+oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to)
+{
  logwarn("%s() is deprecated, please use oml_value_set(to, value, type) instead\n", __FUNCTION__);
  return oml_value_set(to, value, type);
 }
@@ -153,7 +163,9 @@ int oml_value_copy(OmlValueU *value, OmlValueT type, OmlValue *to) {
  * \return 0 if successful, -1 otherwise
  * \see oml_value_init, oml_value_array_reset, memset(3)
  */
-int oml_value_reset(OmlValue* v) {
+int
+oml_value_reset(OmlValue* v)
+{
   switch(v->type) {
   case OML_LONG_VALUE:
     logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
@@ -165,9 +177,11 @@ int oml_value_reset(OmlValue* v) {
   case OML_GUID_VALUE:
     /* No deep cleanup needed, memset(3) below is sufficient */
     break;
+
   case OML_STRING_VALUE:
     omlc_reset_string(v->value);
     break;
+
   case OML_BLOB_VALUE:
     omlc_reset_blob(v->value);
     break;
@@ -178,16 +192,20 @@ int oml_value_reset(OmlValue* v) {
   memset(v, 0, sizeof(OmlValue));
   return 0;
 }
+
 /** Reset array of OmlValue, cleaning any allocated memory.
  *
  * \param v pointer to the first OmlValue of the array to manipulate
  * \param n length of the array
  * \see oml_value_init
  */
-void oml_value_array_reset(OmlValue* v, unsigned int n) {
+void
+oml_value_array_reset(OmlValue* v, unsigned int n)
+{
  int i;
- for (i=0; i<n; i++)
+ for (i=0; i<n; i++) {
    oml_value_reset(&v[i]);
+ }
 }
 
 /** Deep copy an OmlValue.
@@ -197,7 +215,9 @@ void oml_value_array_reset(OmlValue* v, unsigned int n) {
  * \return 0 on success, -1 otherwise
  * \see oml_value_init, oml_value_set, oml_value_get_value, oml_value_get_type
  */
-int oml_value_duplicate(OmlValue* dst, OmlValue* src) {
+int
+oml_value_duplicate(OmlValue* dst, OmlValue* src)
+{
   return oml_value_set(dst, oml_value_get_value(src), oml_value_get_type(src));
 }
 
@@ -206,7 +226,9 @@ int oml_value_duplicate(OmlValue* dst, OmlValue* src) {
  * \param type OmlValueT type to get the representation for
  * \return a string that represent the type, or "UNKNOWN"
  */
-const char* oml_type_to_s (OmlValueT type) {
+const char*
+oml_type_to_s (OmlValueT type)
+{
   switch(type) {
   case OML_LONG_VALUE:
     logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
@@ -228,7 +250,9 @@ const char* oml_type_to_s (OmlValueT type) {
  * \param s string representing the type to get
  * \return the OmlValueT corresponding to the string, or OML_UNKNOWN_VALUE
  */
-OmlValueT oml_type_from_s (const char *s) {
+OmlValueT
+oml_type_from_s (const char *s)
+{
   static struct type_pair
   {
     OmlValueT type;
@@ -243,7 +267,7 @@ OmlValueT oml_type_from_s (const char *s) {
       { OML_DOUBLE_VALUE,  "double"  },
       { OML_STRING_VALUE,  "string"  },
       { OML_BLOB_VALUE,    "blob"    },
-      { OML_GUID_VALUE,    "guid"    }
+      { OML_GUID_VALUE,    "guid"    },
     };
   int i = 0;
   int n = sizeof (type_list) / sizeof (type_list[0]);
@@ -256,8 +280,9 @@ OmlValueT oml_type_from_s (const char *s) {
     }
   }
 
-  if (type == OML_LONG_VALUE)
+  if (type == OML_LONG_VALUE) {
     logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
+  }
 
   return type;
 }
@@ -272,7 +297,9 @@ OmlValueT oml_type_from_s (const char *s) {
  * \return a pointer to buf, or NULL on error
  * \see oml_value_ut_to_s
  */
-char *oml_value_to_s (OmlValue *value, char *buf, size_t size) {
+char*
+oml_value_to_s (OmlValue *value, char *buf, size_t size)
+{
   OmlValueU* v = oml_value_get_value(value);
   OmlValueT type = oml_value_get_type(value);
 
@@ -288,7 +315,9 @@ char *oml_value_to_s (OmlValue *value, char *buf, size_t size) {
  * \param size size of the buffer
  * \return a pointer to buf, or NULL on error
  */
-static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size) {
+static char*
+oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size)
+{
   int i, n = 0;
 
   switch (type) {
@@ -335,7 +364,9 @@ static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size
  * \return  0 on success, -1 otherwise
  * \see oml_value_init, oml_value_ut_from_s
  */
-int oml_value_from_s (OmlValue *value, const char *value_s) {
+int
+oml_value_from_s (OmlValue *value, const char *value_s)
+{
   return oml_value_ut_from_s(oml_value_get_value(value), oml_value_get_type(value), value_s);
 }
 
@@ -347,7 +378,9 @@ int oml_value_from_s (OmlValue *value, const char *value_s) {
  * \return  0 on success, -1 otherwise
  * \see oml_value_init, oml_value_ut_from_s, oml_type_from_s
  */
-int oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *value_s) {
+int
+oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *value_s)
+{
   OmlValueT type = oml_type_from_s (type_s);
   oml_value_set_type(value, type);
   return oml_value_ut_from_s(oml_value_get_value(value), type, value_s);
@@ -368,44 +401,52 @@ int oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *val
  * \see oml_value_from_s, oml_value_from_typed_s
  * \see oml_value_set_type, oml_value_reset, omlc_reset_string, omlc_reset_blob
  */
-static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s) {
+static int
+oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
+{
+  char *s;
+  ssize_t n;
+  size_t s_sz, blob_sz;
+  uint8_t *blob;
+  oml_guid_t c;
+
   switch (type) {
   case OML_LONG_VALUE:
     logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
     omlc_set_long (*value, strtol (value_s, NULL, 0));
     break;
+
   case OML_INT32_VALUE:   omlc_set_int32 (*value, strtol (value_s, NULL, 0)); break;
   case OML_UINT32_VALUE:  omlc_set_uint32 (*value, strtoul (value_s, NULL, 0)); break;
   case OML_INT64_VALUE:   omlc_set_int64 (*value, strtoll (value_s, NULL, 0)); break;
   case OML_UINT64_VALUE:  omlc_set_uint64 (*value, strtoull (value_s, NULL, 0)); break;
   case OML_DOUBLE_VALUE:  omlc_set_double (*value, strtod (value_s, NULL)); break;
-  case OML_STRING_VALUE: {
-    char *s = xmalloc(strlen(value_s)+1);
-    size_t n = backslash_decode(value_s, s);
+  case OML_STRING_VALUE:
+    s = xmalloc(strlen(value_s)+1);
+    n = backslash_decode(value_s, s);
     omlc_reset_string(*value);
     omlc_set_string(*value, s);
     omlc_set_string_size(*value,n+1);
     break;
-  }
-  case OML_BLOB_VALUE: {
+
+  case OML_BLOB_VALUE:
     omlc_reset_blob(*value);
-    ssize_t s_sz = base64_validate_string(value_s);
+    s_sz = base64_validate_string(value_s);
     if(s_sz != -1) {
-      size_t blob_sz = base64_size_blob(s_sz);
-      uint8_t *blob = xmalloc(blob_sz);
+      blob_sz = base64_size_blob(s_sz);
+      blob = xmalloc(blob_sz);
       base64_decode_string(s_sz, value_s, blob_sz, blob);
       omlc_set_blob_ptr(*value, blob);
       omlc_set_blob_length(*value, blob_sz);
       omlc_set_blob_size(*value, blob_sz);
     }
     break;
-  }
-  case OML_GUID_VALUE: {
-    oml_guid_t c;
+
+  case OML_GUID_VALUE:
     omlc_string_to_guid(value_s, &c);
     omlc_set_guid(*value, c);
     break;
-  }
+
   default:
     logerror("%s() for type '%d' not implemented to convert '%s'\n", __FUNCTION__, type, value_s);
     return -1;
@@ -424,7 +465,9 @@ static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *va
  * \param value pointer to OmlValue containing the data to cast
  * \return a double, which defaults to 0. on error
  */
-double oml_value_to_double (OmlValue *value) {
+double
+oml_value_to_double (OmlValue *value)
+{
   OmlValueU *v = oml_value_get_value(value);
   OmlValueT type = oml_value_get_type(value);
   switch (type) {
@@ -447,7 +490,9 @@ double oml_value_to_double (OmlValue *value) {
  * \param value pointer to OmlValue containing the data to cast
  * \return an integer, which defaults to 0 on error
  */
-int oml_value_to_int (OmlValue *value) {
+int
+oml_value_to_int (OmlValue *value)
+{
   OmlValueU *v = oml_value_get_value(value);
   OmlValueT type = oml_value_get_type(value);
   switch (type) {
