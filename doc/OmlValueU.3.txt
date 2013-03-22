@@ -64,7 +64,7 @@ copied in a dynamically allocated memory buffer. To avoid memory leaks,
 'omlc_reset_blob' must be used on an 'OmlValueU' which last contained
 blobs prior to reusing them for other types.
 
-The 'copy_*' variants do a deep copy of the 'OmlValue' of the relevant
+The 'copy_*' variants do a deep copy of the 'OmlValueU' of the relevant
 type, duplicating the stored data in a dynamically allocated memory
 buffer.
 
