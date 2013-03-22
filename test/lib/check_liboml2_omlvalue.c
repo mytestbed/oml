@@ -12,12 +12,15 @@
  */
 #include <check.h>
 #include <math.h>
+#include <stdint.h>
 #include <inttypes.h>
 
 #include "oml2/omlc.h"
 #include "mem.h"
 #include "oml_util.h"
 #include "oml_value.h"
+
+#define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
 
 START_TEST (test_stringU)
 {
@@ -272,6 +275,8 @@ START_TEST (test_intrinsic)
   test_i(int64, i64, PRId64);
   test_i(uint64, u64, PRIu64);
   test_i(double, d, "f");
+  test_i(bool, 0, "d");
+  test_i(bool, 1, "d");
 }
 END_TEST
 
@@ -395,6 +400,28 @@ START_TEST (test_blob)
 }
 END_TEST
 
+static struct {
+  const char* str;
+  uint8_t     b;
+} booltest[] = {
+  {NULL, 0},
+  {"f", 0},
+  {"fal", 0},
+  {"FaLsE", 0},
+  {"TrUE", 1},
+  {"TrUisM", 1},
+  {"fAlSI", 1},
+  {"fALsEiTuDe", 1},
+  {"wHaTeVeR", 1},
+};
+
+START_TEST(test_bool_loop)
+{
+  fail_unless(oml_value_string_to_bool(booltest[_i].str) == booltest[_i].b,
+      "'%s' was not resolved as bool %d", booltest[_i].str?booltest[_i].str:"(nil)", booltest[_i].b);
+}
+END_TEST
+
 Suite*
 omlvalue_suite (void)
 {
@@ -406,6 +433,7 @@ omlvalue_suite (void)
   tcase_add_test (tc_omlvalue, test_intrinsic);
   tcase_add_test (tc_omlvalue, test_string);
   tcase_add_test (tc_omlvalue, test_blob);
+  tcase_add_loop_test (tc_omlvalue, test_bool_loop, 0, LENGTH(booltest));
 
   suite_add_tcase (s, tc_omlvalue);
 

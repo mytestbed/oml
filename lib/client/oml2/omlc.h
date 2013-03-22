@@ -57,6 +57,7 @@ typedef enum _omlValueE {
   OML_UINT64_VALUE,
   OML_BLOB_VALUE,
   OML_GUID_VALUE,
+  OML_BOOL_VALUE,
   OML_LAST_VALUE /* For easy range checks */
 } OmlValueT;
 
@@ -78,6 +79,9 @@ typedef enum _omlValueE {
 #define omlc_is_guid_type(t) \
   ((t) == OML_GUID_VALUE)
 
+#define omlc_is_bool_type(t) \
+  ((t) == OML_BOOL_VALUE)
+
 #define omlc_is_integer(v) \
   omlc_is_integer_type((v).type)
 #define omlc_is_numeric(v) \
@@ -88,6 +92,8 @@ typedef enum _omlValueE {
   omlc_is_blob_type((v).type)
 #define omlc_is_guid(v) \
   omlc_is_guid_type((v).type)
+#define omlc_is_bool(v) \
+  omlc_is_bool_type((v).type)
 
 /**  Representation of a string measurement value.
  */
@@ -126,6 +132,9 @@ typedef uint64_t oml_guid_t;
 
 #define OMLC_GUID_NULL ((oml_guid_t) 0)
 
+#define OMLC_BOOL_FALSE 0
+#define OMLC_BOOL_TRUE (!0)
+
 /** Multi-typed variable container without type information.
  *
  * WARNING: OmlValueU MUST be omlc_zero()d out before use. Additionally, if the
@@ -148,6 +157,7 @@ typedef union _omlValueU {
   uint64_t  uint64Value;
   OmlBlob   blobValue;
   oml_guid_t    guidValue;
+  uint8_t   boolValue;
 } OmlValueU;
 
 /** Zero out a freshly declared OmlValueU.
@@ -215,6 +225,9 @@ typedef union _omlValueU {
 /** \see _omlc_get_intrinsic_value */
 #define omlc_get_guid(var) \
   ((oml_guid_t)(_omlc_get_intrinsic_value(var, guid)))
+/** \see _omlc_get_intrinsic_value */
+#define omlc_get_bool(var) \
+  ((_omlc_get_intrinsic_value(var, bool)) != OMLC_BOOL_FALSE)
 
 /** \see _omlc_set_intrinsic_value */
 #define omlc_set_int32(var, val) \
@@ -237,6 +250,9 @@ typedef union _omlValueU {
 /** \see _omlc_set_intrinsic_value */
 #define omlc_set_guid(var, val)                            \
   _omlc_set_intrinsic_value(var, guid, (oml_guid_t)(val))
+/** \see _omlc_set_intrinsic_value */
+#define omlc_set_bool(var, val)                            \
+  _omlc_set_intrinsic_value(var, bool, (val != OMLC_BOOL_FALSE))
 
 /** Get fields of an OmlValueU containing pointer to possibly dynamically allocated storage.
  *

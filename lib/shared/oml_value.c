@@ -37,7 +37,7 @@ static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *va
 static struct {
   OmlValueT type;
   const char * const name;
-} type_names [] = {
+} type_names[] = {
   { OML_LONG_VALUE,    "long"    },
   { OML_INT32_VALUE,   "int32"   },
   { OML_UINT32_VALUE,  "uint32"  },
@@ -47,6 +47,7 @@ static struct {
   { OML_STRING_VALUE,  "string"  },
   { OML_BLOB_VALUE,    "blob"    },
   { OML_GUID_VALUE,    "guid"    },
+  { OML_BOOL_VALUE,    "bool"    },
 };
 
 /** Initialise one OmlValues.
@@ -127,7 +128,8 @@ oml_value_set(OmlValue *to, const OmlValueU *value, OmlValueT type)
 {
   oml_value_set_type(to, type);
   if (omlc_is_numeric_type (type) ||
-      omlc_is_guid_type (type)) {
+      omlc_is_guid_type (type) ||
+      omlc_is_bool_type (type)) {
     to->value = *value;
   } else {
     switch (type) {
@@ -183,6 +185,7 @@ oml_value_reset(OmlValue* v)
   case OML_UINT64_VALUE:
   case OML_DOUBLE_VALUE:
   case OML_GUID_VALUE:
+  case OML_BOOL_VALUE:
     /* No deep cleanup needed, memset(3) below is sufficient */
     break;
 
@@ -344,6 +347,9 @@ oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size)
   case OML_GUID_VALUE:
     n += omlc_guid_to_string(omlc_get_guid(*value), buf);
     break;
+  case OML_BOOL_VALUE:
+    n += snprintf(buf, size, "%s", (omlc_get_bool(*value)==OMLC_BOOL_FALSE)?"false":"true");
+    break;
   default:
     logerror("%s() for type '%d' not implemented'\n", __FUNCTION__, type);
     return NULL;
@@ -450,6 +456,10 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
     omlc_set_guid(*value, c);
     break;
 
+  case OML_BOOL_VALUE:
+    omlc_set_bool(*value, oml_value_string_to_bool(value_s));
+    break;
+
   default:
     logerror("%s() for type '%d' not implemented to convert '%s'\n", __FUNCTION__, type, value_s);
     return -1;
@@ -511,6 +521,28 @@ oml_value_to_int (OmlValue *value)
     logerror("%s() for type '%d' not implemented'\n", __FUNCTION__, type);
   return 0;
   }
+}
+
+/** Try to read a string as a boolean
+ *
+ * Anything is True except if clearly False (which includes a NULL string).
+ *
+ * Partial matches work too: 'f', 'Fa', 'fAl' or 'FAlS' are equivalents to
+ * 'false'; longer strings starting with a variation of 'false' are true.
+ *
+ * \param value_s string to read as a boolean
+ * \return a bool representation suitable for omlc_set_bool
+ * \see omlc_set_bool
+ */
+uint8_t
+oml_value_string_to_bool(const char* value_s)
+{
+  if (NULL != value_s) {
+    return (uint8_t)(strncasecmp(value_s, "false", strlen(value_s)) != 0);
+  }
+
+  logwarn("%s: trying to convert NULL string to bool, assuming false\n", __FUNCTION__);
+  return (uint8_t)0;
 }
 
 /*

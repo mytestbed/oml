@@ -81,6 +81,8 @@ int oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *val
 double oml_value_to_double (OmlValue *value);
 int oml_value_to_int (OmlValue *value);
 
+uint8_t oml_value_string_to_bool(const char* value_s);
+
 #endif // OML_VALUE_H__
 
 /*
