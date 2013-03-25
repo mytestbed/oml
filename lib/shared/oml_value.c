@@ -41,6 +41,26 @@
 static char *oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size);
 static int oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s);
 
+/** String representation of OML types.
+ * \see oml_type_from_s, oml_type_to_s
+ */
+static struct {
+  OmlValueT type;
+  const char * const name;
+} type_names [] = {
+  { OML_LONG_VALUE,    "long"    },
+  { OML_INT32_VALUE,   "int32"   },
+  { OML_UINT32_VALUE,  "uint32"  },
+  { OML_INT64_VALUE,   "int64"   },
+  { OML_UINT64_VALUE,  "uint64"  },
+  { OML_DOUBLE_VALUE,  "double"  },
+  { OML_STRING_VALUE,  "string"  },
+  { OML_BLOB_VALUE,    "blob"    },
+  { OML_GUID_VALUE,    "guid"    },
+};
+
+#define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
+
 /** Initialise one OmlValues.
  *
  * It is *MANDATORY* to use this function before any OmlValue setting,
@@ -225,63 +245,58 @@ oml_value_duplicate(OmlValue* dst, OmlValue* src)
  *
  * \param type OmlValueT type to get the representation for
  * \return a string that represent the type, or "UNKNOWN"
+ *
+ * \see oml_value_ut_from_s
+ * \see type_names
  */
 const char*
 oml_type_to_s (OmlValueT type)
 {
-  switch(type) {
-  case OML_LONG_VALUE:
-    logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
-    return "long";
-  case OML_INT32_VALUE:   return "int32";
-  case OML_UINT32_VALUE:  return "uint32";
-  case OML_INT64_VALUE:   return "int64";
-  case OML_UINT64_VALUE:  return "uint64";
-  case OML_DOUBLE_VALUE:  return "double";
-  case OML_STRING_VALUE:  return "string";
-  case OML_BLOB_VALUE:    return "blob";
-  case OML_GUID_VALUE:    return "guid";
-  default: return "UNKNOWN";
+  int i = 0;
+  int n = LENGTH(type_names);
+  static const char unknown[] = "unknown OML type";
+  const char *name = unknown;
+
+  for (i = 0; i < n; i++) {
+    if (type_names[i].type == type) {
+      name = (const char *)type_names[i].name;
+      break;
+    }
   }
+
+  return name;
 }
+
 
 /** Convert string to an OmlValueT type.
  *
  * \param s string representing the type to get
  * \return the OmlValueT corresponding to the string, or OML_UNKNOWN_VALUE
+ *
+ * \see oml_value_ut_to_s
+ * \see type_names
  */
 OmlValueT
 oml_type_from_s (const char *s)
 {
-  static struct type_pair
-  {
-    OmlValueT type;
-    const char * const name;
-  } type_list [] =
-    {
-      { OML_LONG_VALUE,    "long"    },
-      { OML_INT32_VALUE,   "int32"   },
-      { OML_UINT32_VALUE,  "uint32"  },
-      { OML_INT64_VALUE,   "int64"   },
-      { OML_UINT64_VALUE,  "uint64"  },
-      { OML_DOUBLE_VALUE,  "double"  },
-      { OML_STRING_VALUE,  "string"  },
-      { OML_BLOB_VALUE,    "blob"    },
-      { OML_GUID_VALUE,    "guid"    },
-    };
   int i = 0;
-  int n = sizeof (type_list) / sizeof (type_list[0]);
+  int n = LENGTH(type_names);
   OmlValueT type = OML_UNKNOWN_VALUE;
 
-  for (i = 0; i < n; i++) {
-    if (strcmp (s, type_list[i].name) == 0) {
-      type = type_list[i].type;
-      break;
-    }
-  }
+  if (NULL == s) {
+    logwarn("%s(): trying to resolve a NULL type string\n", __FUNCTION__);
 
-  if (type == OML_LONG_VALUE) {
-    logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
+  } else {
+    for (i = 0; i < n; i++) {
+      if (strcmp (s, type_names[i].name) == 0) {
+        type = type_names[i].type;
+        break;
+      }
+    }
+
+    if (type == OML_LONG_VALUE) {
+      logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
+    }
   }
 
   return type;
