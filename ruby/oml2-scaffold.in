@@ -21,8 +21,8 @@
 # THE SOFTWARE.
 
 #
-# This program is taking an OMF application definition and creates
-# various files to simplify building applications which use OML.
+# This program taken an OMF application definition and creates various files to
+# simplify building applications which use OML.
 #
 
 PROG = 'oml2-scaffold'
@@ -33,9 +33,117 @@ COPYRIGHT = "Copyright 2009-2013, NICTA"
 require 'stringio'
 require 'optparse'
 
-@@integer_alias = :int32
+$integer_alias = :int32
 
+$types = {
+  :flag => {
+    #:ctype => false, # no ctype, we don't generate code for this
+    #:defval => false, # ditto
+    #:setter => false, # ditto
+    #:omltype => false, #ditto
+    :popttype => "POPT_ARG_NONE",
+    :poptctype => "int",
+    :poptdefval => "0",
+  },
+  :string => {                      # type used in the AppDescription
+    # Code generation
+    :ctype => "const char*",        # type used for OML-injectable variables of this types
+    :setter => "string",            # appended to "omlc_set_"
+    :defval => "\"foo\"",           # example argument(s) passed to injection helper, can use the variable "val"
+    :omltype => "OML_STRING_VALUE", # OML type for Measurement Point definition
+    # Command line parsing
+    :popttype => "POPT_ARG_STRING", # type used for popt(3) command-line options
+    :poptctype => "char*",          # type of the variable where popt(3) will store the value
+    :poptdefval => "\"\"",          # default value for this variable if none is specified on the CLI
+  },
+  :long => {
+    :ctype => "long*",
+    :setter => "long",
+    :defval => "(long)val",
+    :omltype => "OML_LONG_VALUE",
+    :popttype => "POPT_ARG_LONG",
+    :poptctype => "int",
+    :poptdefval => "0",
+  },
+  :int32 => {
+    :ctype => "int32_t",
+    :setter => "int32",
+    :defval => "((int32_t)-val)",
+    :omltype => "OML_INT32_VALUE",
+    :popttype => "POPT_ARG_INT",
+    :poptctype => "int",
+    :poptdefval => "0",
+  },
+  :uint32 => {
+    :ctype => "uint32_t",
+    :setter => "uint32",
+    :defval => "((uint32_t)val)",
+    :omltype => "OML_UINT32_VALUE",
+    :popttype => "POPT_ARG_INT",
+    :poptctype => "unsigned int",
+    :poptdefval => "0",
+  },
+  :int64 => {
+    :ctype => "int64_t",
+    :setter => "int64",
+    :defval => "((int64_t)-val)",
+    :omltype => "OML_INT64_VALUE",
+    :popttype => "POPT_ARG_INT",
+    :poptctype => "int",
+    :poptdefval => "0",
+  },
+  :uint64 => {
+    :ctype => "uint64_t",
+    :setter => "uint64",
+    :defval => "((uint64_t)val)",
+    :omltype => "OML_UINT64_VALUE",
+    :popttype => "POPT_ARG_INT",
+    :poptctype => "unsigned int",
+    :poptdefval => "0",
+  },
+  :double => {
+    :ctype => "double",
+    :setter => "double",
+    :defval => "1.0/val",
+    :omltype => "OML_DOUBLE_VALUE",
+    :popttype => "POPT_ARG_DOUBLE",
+    :poptctype => "double",
+    :poptdefval => "0.",
+  },
+  :blob => {
+    :ctype => "const void*",
+    :setter => "blob",
+    :defval => "NULL, 0",
+    :omltype => "OML_BLOB_VALUE",
+    #:popttype => false, # no blob on the command line
+    #:poptctype => false,
+    #:poptdefval => false,
+  },
+  :guid => {
+    :ctype => "oml_guid_t",
+    :setter => "guid",
+    :defval => "OMLC_GUID_NULL",
+    :omltype => "OML_GUID_VALUE",
+    #:popttype => false, # no GUID on the command line
+    #:poptctype => false,
+    #:poptdefval => false,
+  },
+}
+# List the currently supported types, without including backward compatibility
+# elements
+$ctypes = $types.keys.select { |k| k != :long && !$types[k][:ctype].nil? }
+$popttypes = $types.keys.select { |k| !$types[k][:popttype].nil? }
+# Backward-compatible mappings for deprecated types
+# :integer and :int are added in run(), after the command-line parsing
+$types[:float] = $types[:double]
+$types[:real] = $types[:double]
+
+
+## The real logic of oml2-scaffold.
+# Parse the command line arguments, and decide what to do
+# \see AppDefinition, AppDefinition::template, Property, MeasurementPoint, Metric
 def run()
+  $stderr.puts "INFO\t#{VERSION_STRING} #{COPYRIGHT}"
   if File.basename($PROGRAM_NAME) == 'oml2_scaffold'
     old = File.basename($PROGRAM_NAME)
     new = old.gsub('_', '-')
@@ -66,11 +174,11 @@ Generate C code for an OML application from an application definition file
   end
   opts.on('-l', "--long",
       "Alias :int and :integer to underlying :long") do
-    @@integer_alias = :long
+    $integer_alias = :long
   end
   opts.on('-i', "--int32",
       "Alias :int and :integer and :long to underyling :int32 (default)") do
-    @@integer_alias = :int32
+    $integer_alias = :int32
   end
   opts.on(nil, "--oml",
       "Create the oml header file defining all measurement points") do
@@ -112,6 +220,10 @@ Generate C code for an OML application from an application definition file
   end
   app_file = rest[0]
 
+  # Backward-compatible mappings for deprecated integer types, others are set above
+  $types[:integer] = $types[$integer_alias]
+  $types[:int] = $types[$integer_alias]
+
   if create_app
     if app_file
       $stderr.puts "ERROR\tDon't specify app_file when asking to create one"
@@ -129,7 +241,7 @@ Generate C code for an OML application from an application definition file
       end
     end
     $stderr.puts "INFO\tCreated #{app_file}"
-    $stderr.puts "INFO\tYou can now generate a skeleton makefile with '#{$PROGRAM_NAME} --main #{app_file}' and its associated Makefile with '#{$PROGRAM_NAME} --make #{app_file}'"
+    $stderr.puts "INFO\tYou can now generate a skeleton main file with '#{$PROGRAM_NAME} --main #{app_file}' and its associated Makefile with '#{$PROGRAM_NAME} --make #{app_file}'"
     AppDefinition.remove ad
   end
 
@@ -192,177 +304,203 @@ Generate C code for an OML application from an application definition file
   end
 end
 
+## A representation of a command-line option and the associated popt(3) code generation
 class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
 
-  def write_opts_t(s)
-    # FIXME: Duplicated code
-    if @@integer_alias == :long
-      integerval = "long"
-      integertype = "long"
-    else
-      integerval = "int32";
-      integertype = "int32_t";
-    end
-    ctypes = {
-      :flag => "int",
-      "flag" => "int",
-      :string => "char*",
-      "string" => "char*",
-      :long => "long",
-      "long" => "long",
-      :integer => "int",
-      "integer" => "int",
-      :int => "int",
-      "int" => "int",
-      :int32 => "int",
-      "int32" => "int",
-      :uint32 => "unsigned int",
-      "uint32" => "unsigned int",
-      :int64 => "int",
-      "int64" => "int",
-      :uint64 => "unsigned int",
-      "uint64" => "unsigned int",
-      :double => "double",
-      "double" => "double",
-      # XXX: Deprecated
-      :float => "double",
-      "float" => "double",
-      :real => "double",
-      "real" => "double",
-      :blob => "void*",
-      "blob" => "void*",
-      # guid
-      :guid => "oml_guid_t",
-      "guid" => "oml_guid_t",
-    }
-    var_name = (@impl[:var_name] ||= long_name)
-    s.puts "  #{ctypes[opts[:type]]} #{var_name};"
+  ## Parse a defProperty
+  # \param long_name long option (assumed to be preceded with "--")
+  # \param descr human-readable description
+  # \param letter_name short option (assumed to be preceded with "-")
+  # \param opts hash containing at least { :impl => {:var_name => NAME}, } defining the variable to update with the value from the command line
+  # \return a Property instance
+  #
+  # Option :letter_name can be empty
+  # If :impl[:var_name] is not specified, use the value of :long_name
+  # If :impl[:popt_val] is specified, override the default value for this type
+  def initialize(long_name, descr, letter_name, opts = {})
+    super
+
+    # default to int32 if the type is not specified XXX: should be noisy
+    type = (opts[:type] || :int32).to_sym
+    opts[:type] = type
+
+    # store the variable name
+    @impl = opts[:impl] || {}
+    @impl[:var_name] ||= long_name
   end
 
-  def default_value()
-    defaults = {
-      :flag => "0",
-      "flag" => "0",
-      :string => "\"\"",
-      "string" => "\"\"",
-      :long => "0",
-      "long" => "0",
-      :integer => "0",
-      "integer" => "0",
-      :int => "0",
-      "int" => "0",
-      :int32 => "0",
-      "int32" => "0",
-      :uint32 => "0",
-      "uint32" => "0",
-      :int64 => "0",
-      "int64" => "0",
-      :uint64 => "0",
-      "uint64" => "0",
-      :double => "0.",
-      "double" => "0.",
-      # XXX: Deprecated
-      :float => "0.",
-      "float" => "0.",
-      :real => "0.",
-      "real" => "0.",
-      # XXX see opttypes in arg_info()
-      :blob => "\"\"",
-      "blob" => "\"\"",
-      :guid => "oml_guid_t",
-      "guid" => "oml_guid_t",
-    }
-    return defaults[opts[:type]]
+  ## Output code to define the variable containing the :impl[:var_name] CLI option
+  # \param stream stream to write code to
+  def write_opts_t(stream)
+    stream.puts "  #{$types[opts[:type]][:poptctype]} #{@impl[:var_name]};"
   end
 
+  ## Generate the popt(3) API call to define this command-line option
   def popt_def()
     a = []
     a << "\"#{long_name}\""
-    a << (letter_name ? "'#{'%c' % letter_name}'" : 'NULL')
-    a << arg_info
-    a << "&g_opts_storage.#{@impl[:var_name] || long_name}"
-    if (val = @impl[:popt_val])
-      a << "\'#{val}\'"
-    else
-      a << 0
-    end
+    a << (letter_name ? "'#{'%c' % letter_name}'" : '0')
+    a << "#{$types[opts[:type]][:popttype]}"
+    a << "&g_opts_storage.#{@impl[:var_name]}"
+    a << "#{popt_defval}"
     a << "\"#{descr}\""
     a << "\"#{opts[:unit]}\"" if opts[:unit]
     "  { #{a.join(', ')}},"
   end
 
-  def arg_info()
-    opttypes = {
-      :flag => "POPT_ARG_NONE",
-      "flag" => "POPT_ARG_NONE",
-      :string => "POPT_ARG_STRING",
-      "string" => "POPT_ARG_STRING",
-      :long => "POPT_ARG_LONG",
-      "long" => "POPT_ARG_LONG",
-      :integer => "POPT_ARG_INT",
-      "integer" => "POPT_ARG_INT",
-      :int => "POPT_ARG_INT",
-      "int" => "POPT_ARG_INT",
-      :int32 => "POPT_ARG_INT",
-      "int32" => "POPT_ARG_INT",
-      :uint32 => "POPT_ARG_INT",
-      "uint32" => "POPT_ARG_INT",
-      :int64 => "POPT_ARG_INT",
-      "int64" => "POPT_ARG_INT",
-      :uint64 => "POPT_ARG_INT",
-      "uint64" => "POPT_ARG_INT",
-      :double => "POPT_ARG_DOUBLE",
-      "double" => "POPT_ARG_DOUBLE",
-      # XXX: Deprecated
-      :float => "POPT_ARG_DOUBLE",
-      "float" => "POPT_ARG_DOUBLE",
-      :real => "POPT_ARG_DOUBLE",
-      "real" => "POPT_ARG_DOUBLE",
-      # XXX: Not sure what we can do with it so far
-      :blob => "POPT_ARG_STRING",
-      "blob" => "POPT_ARG_STRING",
-      # guid
-      :guid => "oml_guid_t",
-      "guid" => "oml_guid_t"
-    }
-    return opttypes[opts[:type]]
+  ## Get the default value for this property
+  # \return imlp[:popt_val] if defined, or the default value for the type otherwise
+  def popt_defval
+    if (val = @impl[:popt_val])
+      # XXX: If #{val} cannot be graciously cast to an int, the compiler will cry
+      "\'#{val}\'"
+    else
+      "0"
+    end
+  end
+end
+
+## A single metric, and associated code generation
+class Metric < Struct.new(:name, :type, :opts)
+  # Keep track of the deprecation warning we already displayed (one for each type)
+  @@warnings = Hash.new
+
+  ## Define a single Metric
+  # \param name identifier of the metric (field name)
+  # \param type type of the metric (Ruby/AppDef typology)
+  # \param opts optional arguments; none are really supported right now...
+  # \return a Metric
+  def initialize(name, type, opts = {})
+    super
+
+    self.type = type.to_sym
   end
 
-  def initialize(long_name, descr, letter_name, opts = {})
-    super
-    type = (opts[:type] || :int).to_sym
-    type = :int if type == :integer
-    opts[:type] = type
-    @impl = opts[:impl] || {}
+  ## Return the C type for a Ruby/AppDef type, issuing deprecation warning if needed.
+  def c_type
+    case type
+    when :int, :integer
+      if $integer_alias == :long and @@warnings[type] == nil
+        $stderr.write("WARN\tCommand line switch --long makes :#{type} an alias for :long, but :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead")
+        @@warnings[type] = true
+      end
+    when :long
+      if @@warnings[type] == nil
+        $stderr.write("WARN\tType :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead")
+        @@warnings[type] = true
+      end
+    when :float, :real
+      if @@warnings[type] == nil
+        $stderr.write("WARN\tType #{type} is deprecated; new applications should use :double instead")
+        @@warnings[type] = true
+      end
+    end
+
+    # Catch errors in case the type does not exist
+    begin
+      $types[type][:ctype]
+    rescue
+      $stderr.write("ERROR\tUnknown type #{type}")
+      exit -1
+    end
+  end
+end
+
+## A representation of a Measurement Point and the associated code generation
+class MeasurementPoint
+  attr_reader :name
+
+  ## Initialise a Measurement point
+  # \param name identifier for this MP
+  # \param block block defining one of more Metric using defMetric
+  # \return a MeasurementPoint
+  def initialize(name, &block)
+    @name = name
+    @ms = []
+    if block
+      block.call(self)
+    end
+  end
+
+  ## Implementation of defMetric, simply instantiate the Metric with the same arguments
+  # \see Metric::initialize
+  def defMetric(name, type, opts = {})
+    @ms << Metric.new(name, type, opts)
+  end
+
+  ## Write MP definition out into a stream
+  # \param stream stream to write header snippet into
+  # \see Metric::c_type
+  def write_oml_h(stream)
+    stream.puts "static OmlMPDef oml_#{@name}_def[] = {"
+    @ms.each do |m|
+      stream.puts "  {\"#{m.name}\", #{$types[m.type][:omltype]}},"
+    end
+    stream.puts "  {NULL, (OmlValueT)0}"
+    stream.puts "};"
+  end
+
+  ## Write MP injection helper function into a stream
+  # \param stream stream to write header snippet into
+  # \see Metric::c_type
+  def write_oml_helper_function(stream)
+    stream.print "static inline void
+oml_inject_#{@name}(OmlMP* mp"
+    @ms.each do |m|
+      stream.print ", #{m.c_type} #{m.name}"
+      # Blobs injection helpers also need to know the size of the blob
+      if m.type == :blob || m.type == "blob"
+	stream.print ", size_t #{m.name}_len"
+      end
+    end
+    stream.puts ")\n{"
+    stream.puts "  OmlValueU v[#{@ms.length}];\n\n"
+    stream.puts "  omlc_zero_array(v, #{@ms.length});\n\n"
+    i = 0
+    @ms.each do |m|
+      stream.print "  omlc_set_#{$types[m.type][:setter]}(v[#{i}], #{m.name}"
+      if m.type == :blob || m.type == "blob"
+	stream.print ", #{m.name}_len"
+      end
+      stream.puts ");"
+      i = i + 1
+    end
+    stream.puts "\n  omlc_inject(mp, v);\n\n"
+    i = 0
+    @ms.each do |m|
+      # Strings and blobs need to be reset (Metric already converts string types "blah" to keywords :blah
+      if m.type == :string || m.type == :blob
+	stream.puts "  omlc_reset_#{$types[m.type][:setter]}(v[#{i}]);"
+      end
+      i = i + 1
+    end
+    stream.puts "}\n\n"
+  end
+
+  ## Write an example injection code
+  # \param stream stream to write code snippet into
+  def write_inject_example(stream)
+    stream.print "    oml_inject_#{@name}(oml_mps->#{@name}"
+    i = 0
+    @ms.each do |m|
+      stream.print ", #{$types[m.type][:defval]}"
+      i = i + 1
+    end
+    stream.print ");\n"
   end
 end
 
 
+## The definition of an application
 class AppDefinition
   @@instances = []
 
-  def self.remove (app_def)
-    @@instances.delete app_def
-  end
-
-  def self.each(&block)
-    @@instances.each &block
-  end
-
   attr_accessor :uri, :name, :shortDescription, :description, :path
 
-  def version(major, minor = 0, revision = 0)
-    @version = [major, minor, revision]
-  end
-
-  def defProperty(long_name, descr, letter_name, opts = {})
-    @properties << Property.new(long_name, descr, letter_name, opts)
-  end
-
-  def defMeasurement(name, &block)
-    @mps << MeasurementPoint.new(name, &block)
-  end
-
+  ## Initialise a new application
+  # \param uri URI identifying both the application and its localisation in the filesystem (for OMF, use ':' as path component separators)
+  # \param name short name for the application
+  # \param block other definitions (various parameters, defProperty and defMeasurement)
   def initialize(uri, name, &block)
     @uri = uri
     @name = name || @uri.split(':')[-1]
@@ -372,46 +510,106 @@ class AppDefinition
     block.call(self) if block
   end
 
-  def write_oml_decl(s)
-    @mps.each do |mp|
-      s.puts ""
-      mp.write_oml_h(s)
-    end
+  ## Remove an application from the class property listing them
+  # XXX: Is it ever used?
+  def self.remove (app_def)
+    @@instances.delete app_def
   end
 
+  ## Process a specific block of code for each instance
+  def self.each(&block)
+    @@instances.each &block
+  end
+
+  ## Define the version of an application
+  # \param major major version
+  # \param minor minor version, defaults to 0
+  # \param revision revision, default to 0
+  def version(major, minor = 0, revision = 0)
+    @version = [major, minor, revision]
+  end
+
+
+  ## Instanciate a Property
+  # \see Property::initialize
+  def defProperty(long_name, descr, letter_name, opts = {})
+    @properties << Property.new(long_name, descr, letter_name, opts)
+  end
+
+  ## Instanciate a MeasurementPoint
+  # \see MeasurementPoint::initialize
+  def defMeasurement(name, &block)
+    @mps << MeasurementPoint.new(name, &block)
+  end
+
+  # *_oml.h code generation
+
+  ## Traverse the list of MPs, and write their C *declaration* into a stream
+  # \param stream stream to write header snippet into
   def write_oml_mps_t(s)
     @mps.each do |mp|
       s.puts "  OmlMP* #{mp.name};"
     end
   end
 
-  def write_oml_register(s)
+  ## Traverse the list of MPs, and write their C *definition* into a stream
+  # \param stream stream to write header snippet into
+  # \see MeasurementPoint::write_oml_h
+  def write_oml_decl(stream)
+    @mps.each do |mp|
+      stream.puts ""
+      mp.write_oml_h(stream)
+    end
+  end
+
+  ## Write MP registration helper into a stream
+  # \param stream stream to write header snippet into
+  def write_oml_register(stream)
     @mps.each do |mp|
       n = mp.name
-      s.puts "  g_oml_mps_#{template(:app_cstring)}->#{n} = omlc_add_mp(\"#{n}\", oml_#{n}_def);"
+      stream.puts "  g_oml_mps_#{template(:app_cstring)}->#{n} = omlc_add_mp(\"#{n}\", oml_#{n}_def);"
     end
   end
 
-  def write_oml_helper_functions(s)
+  ## Traverse the list of MPs, and write their injection helper into a stream
+  # \param stream stream to write header snippet into
+  # \see MeasurementPoint::write_oml_helper_function
+  def write_oml_helper_functions(stream)
     @mps.each do |mp|
-      mp.write_oml_helper_function(s)
+      mp.write_oml_helper_function(stream)
     end
   end
 
-  def write_opts_default(s)
+  # *_opt.h code generation
+
+  ## Prepare a list of default values for the command line argument
+  #
+  # This is used to give initial values to the global structure containing
+  # command-line parameter values.
+  #
+  # \param stream stream to write header snippet into
+  # \see Property::popt_defval
+  def write_opts_default(stream)
     a = []
     @properties.each do |p|
-      a << p.default_value()
+      a << p.popt_defval()
     end
-    s.write a.join(', ')
+    stream.write a.join(', ')
   end
 
-  def write_opts_options(s)
+  ## Write popt(3) declaration for each command line option into a stream
+  # \param stream stream to write header snippet into
+  # \see Property::popt_def
+  def write_opts_options(stream)
     @properties.each do |p|
-      s.puts p.popt_def()
+      stream.puts p.popt_def()
     end
   end
 
+  ## Prepare template code
+  # \param name name of the template to write
+  # \return a string with the template code
+  # \see AppDefinition::write_opts_default, AppDefinition::write_opts_options, AppDefinition::write_oml_decl, AppDefinition::write_oml_mps_t, AppDefinition::write_oml_register, AppDefinition::write_oml_helper_functions, Property::write_opts_t
   def template(name)
     s = StringIO.new
     case name
@@ -420,12 +618,12 @@ class AppDefinition
     when :app_cstring
       return @name.gsub("-", "_")
     when :app_urn
-      return "#{ENV['USER'] || 'xxx'}:app:#{@name}"
+      return "#{ENV['USER'] || 'XXX'}:app:#{@name}"
     when :app_path
       return @path
     when :options_t
       @properties.each do |p|
-    p.write_opts_t(s)
+	p.write_opts_t(s)
       end
     when :options_default
       write_opts_default(s)
@@ -445,6 +643,9 @@ class AppDefinition
     s.string
   end
 
+  ## Write some boilerplate text
+  # \param stream stream to write in, defaults to STDOUT
+  # \param notice additional text to add on the second line, defaults to "Please do not edit."
   def write_file_header(stream = $stdout, notice="Please do not edit.")
     stream.puts %Q|/*
  * This file was automatically generated by #{PROG} #{VERSION}
@@ -453,6 +654,9 @@ class AppDefinition
  */|
   end
 
+  ## Write the header containing OML-related declaration and helpers
+  # \param stream stream to write in, defaults to STDOUT
+  # \see AppDefinition::template
   def write_oml_h(stream = $stdout)
     hdrsentinel = template(:app_cstring).upcase
     write_file_header(stream)
@@ -491,8 +695,8 @@ oml_register_mps()
 
 #else
 /*
- * Not included from the main source,
- * only declare the global pointer to the MPs
+ * Not included from the main source, only declare the global pointer
+ * to the MPs and injection helpers.
  */
 
 extern oml_mps_t* g_oml_mps_#{template(:app_cstring)};
@@ -500,7 +704,6 @@ extern oml_mps_t* g_oml_mps_#{template(:app_cstring)};
 #endif /* OML_FROM_MAIN */
 
 #{template(:oml_helpers)}
-
 /* Compatibility with old applications */
 #ifndef g_oml_mps
 # define g_oml_mps	g_oml_mps_#{template(:app_cstring)}
@@ -514,6 +717,9 @@ extern oml_mps_t* g_oml_mps_#{template(:app_cstring)};
 |
   end
 
+  ## Write the header containing popt(3)-related code
+  # \param stream stream to write in, defaults to STDOUT
+  # \see AppDefinition::template
   def write_opts_h(stream = $stdout)
     hdrsentinel = template(:app_cstring).upcase
     write_file_header(stream)
@@ -558,6 +764,9 @@ struct poptOption options[] = {
 |
   end
 
+  ## Write example Makefile
+  # \param stream stream to write in, defaults to STDOUT
+  # \see AppDefinition::template
   def write_makefile(stream = $stdout)
     stream.puts %Q?# This file was automatically generated by #{PROG} #{VERSION}
 PROGRAM = #{template(:app_name)}
@@ -608,17 +817,20 @@ $(PROGRAM)_oml.h: $(PROGRAM).rb
 ?
   end
 
+  ## Write example main file
+  # \param stream stream to write in, defaults to STDOUT
+  # \see AppDefinition::template
   def write_main(stream = $stdout)
     write_file_header(stream, "Please edit to suit your needs; the run() function should contain application code.")
     stream.puts %Q|
 #include <unistd.h> /* Needed for sleep(3) in run() */
-
-#define USE_OPTS
 #include <popt.h>
+#include <oml2/omlc.h>
+
+#define USE_OPTS /* Include command line parsing code*/
 #include "#{template(:app_name)}_popt.h"
 
-#include <oml2/omlc.h>
-#define OML_FROM_MAIN
+#define OML_FROM_MAIN /* Define storage for some global variables; #define this in only one file */
 #include "#{template(:app_name)}_oml.h"
 
 #include "config.h"
@@ -674,6 +886,9 @@ main(int argc, const char *argv[])
 |
   end
 
+  ## Write example configuration header
+  # \param stream stream to write in, defaults to STDOUT
+  # \see AppDefinition::template
   def write_config(stream = $stdout)
     write_file_header(stream, "")
     stream.puts %Q|
@@ -688,6 +903,9 @@ main(int argc, const char *argv[])
 |
   end
 
+  ## Write example application definition
+  # \param stream stream to write in, defaults to STDOUT
+  # \see AppDefinition::template
   def write_app_def(stream = $stdout, app_file="[FILENAME]")
     stream.puts %@# This file was automatically generated by #{PROG} #{VERSION}
 
@@ -709,12 +927,33 @@ is doing and useful for.
         :type => :int, :unit => 'seconds',
         :impl => { :var_name => 'delay' })
 
+  # Example of all supported command-line argument types; see popt(3) for more details
+#{
+  a = []
+  $popttypes.each do |t|
+    a << "  app.defProperty('#{t}_var', 'Command line option of type #{t}', nil, # no short option
+        :type => :#{t}, :impl => { :var_name => 'var#{t}' })"
+  end
+  a.join("\n")
+  }
+
   # Declare measurement points; generate OML injection helpers with
   #  #{PROG} --oml #{app_file}
   app.defMeasurement("sensor") do |mp|
-    mp.defMetric('val', 'int32')
-    mp.defMetric('inverse', 'double')
-    mp.defMetric('name', 'string')
+    mp.defMetric('val', :int32)
+    mp.defMetric('inverse', :double)
+    mp.defMetric('name', :string)
+  end
+
+  # Declare a giant Measurement Point showing all supported types
+  app.defMeasurement("example") do |mp|
+#{
+  a = []
+  $ctypes.each do |t|
+    a << "    mp.defMetric('#{t}_field', :#{t})"
+  end
+  a.join("\n")
+  }
   end
 
 end
@@ -727,232 +966,15 @@ end
   end
 end
 
-class Metric < Struct.new(:name, :type, :opts)
-
-  @@warnings = Hash.new
-
-  def c_type
-    case type.to_sym
-    when :int, :integer
-      if @@integer_alias == :long and @@warnings[type.to_sym] == nil
-        $stderr.write("WARN\tCommand line switch --long makes :#{type.to_sym} an alias for :long, but :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead")
-        @@warnings[type.to_sym] = true
-      end
-    when :long
-      if @@warnings[type.to_sym] == nil
-        $stderr.write("WARN\tType :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead")
-        @@warnings[type.to_sym] = true
-      end
-    end
-
-    case type.to_sym
-    when :string
-      "OML_STRING_VALUE"
-    when :int, :integer
-      case @@integer_alias
-      when :long
-        "OML_LONG_VALUE"
-      when :int32
-        "OML_INT32_VALUE"
-      end
-    when :long
-      case @@integer_alias
-      when :long
-        "OML_LONG_VALUE"
-      when :int32
-        "OML_INT32_VALUE"
-      end
-    when :float, :double, :real
-      "OML_DOUBLE_VALUE"
-    when :int32
-      "OML_INT32_VALUE"
-    when :uint32
-      "OML_UINT32_VALUE"
-    when :int64
-      "OML_INT64_VALUE"
-    when :uint64
-      "OML_UINT64_VALUE"
-    when :blob
-      "OML_BLOB_VALUE"
-    when :guid
-      "OML_GUID_VALUE"
-    else
-      $stderr.write("ERROR\tUnknown type #{type}")
-      exit -1
-    end
-  end
-end
-
-class MeasurementPoint
-  attr_reader :name
-
-  def defMetric(name, type, opts = {})
-    @ms << Metric.new(name, type, opts)
-  end
-
-  def initialize(name, &block)
-    @name = name
-    @ms = []
-    if block
-      block.call(self)
-    end
-  end
-
-  def write_oml_h(stream)
-    stream.puts "static OmlMPDef oml_#{@name}_def[] = {"
-    @ms.each do |m|
-      stream.puts "  {\"#{m.name}\", #{m.c_type}},"
-    end
-    stream.puts "  {NULL, (OmlValueT)0}"
-    stream.puts "};"
-  end
-
-  def write_oml_helper_function(stream)
-    # FIXME: Duplicated code
-    if @@integer_alias == :long
-      integerval = "long"
-      integertype = "long"
-    else
-      integerval = "int32";
-      integertype = "int32_t";
-    end
-    ctypes = {
-      # We know we don't modify these
-      :string => "const char*",
-      "string" => "const char*",
-      :long => "long",
-      "long" => "long",
-      :integer => integertype,
-      "integer" => integertype,
-      :int32 => "int32_t",
-      "int32" => "int32_t",
-      :uint32 => "uint32_t",
-      "uint32" => "uint32_t",
-      :int64 => "int64_t",
-      "int64" => "int64_t",
-      :uint64 => "uint64_t",
-      "uint64" => "uint64_t",
-      :double => "double",
-      "double" => "double",
-      :float => "double",
-      "float" => "double",
-      :real => "double",
-      "real" => "double",
-      # Ditto
-      :blob => "const void*",
-      "blob" => "const void*",
-      # Ditto for guid
-      :guid => "oml_guid_t",
-      "guid" => "oml_guid_t",
-    }
-    sets = {
-      :string => "string",
-      "string" => "string",
-      :long => "long",
-      "long" => "long",
-      :integer => integerval,
-      "integer" => integerval,
-      :int32 => "int32",
-      "int32" => "int32",
-      :uint32 => "uint32",
-      "uint32" => "uint32",
-      :int64 => "int64",
-      "int64" => "int64",
-      :uint64 => "uint64",
-      "uint64" => "uint64",
-      :double => "double",
-      "double" => "double",
-      :float => "double",
-      "float" => "double",
-      :real => "double",
-      "real" => "double",
-      :blob => "blob",
-      "blob" => "blob",
-      :guid => "guid",
-      "guid" => "guid"
-    }
-
-    stream.print "static inline void
-oml_inject_#{@name}(OmlMP* mp"
-    @ms.each do |m|
-      stream.print ", #{ctypes[m.type]} #{m.name}"
-      if m.type == :blob || m.type == "blob"
-	stream.print ", size_t #{m.name}_len"
-      end
-    end
-    stream.puts ")\n{"
-    stream.puts "  OmlValueU v[#{@ms.length}];\n\n"
-    stream.puts "  omlc_zero_array(v, #{@ms.length});\n\n"
-    i = 0
-    @ms.each do |m|
-      stream.print "  omlc_set_#{sets[m.type]}(v[#{i}], #{m.name}"
-      if m.type == :blob || m.type == "blob"
-	stream.print ", #{m.name}_len"
-      end
-      stream.puts ");"
-      i = i + 1
-    end
-    stream.puts "\n  omlc_inject(mp, v);\n\n"
-    i = 0
-    @ms.each do |m|
-      if m.type == :string || m.type == "string" || m.type == :blob || m.type == "blob"
-	stream.puts "  omlc_reset_#{sets[m.type]}(v[#{i}]);"
-      end
-      i = i + 1
-    end
-    stream.puts "}\n\n"
-  end
-
-  def write_inject_example(stream)
-    if @@integer_alias == :long
-      integerval = "val"
-    else
-      integerval = "(int32_t)-val";
-    end
-    vals = {
-      :string => '"foo"',
-      "string" => '"foo"',
-      :long => "val",
-      "long" => "val",
-      :integer => integerval,
-      "integer" => integerval,
-      :int32 => "(int32_t)-val",
-      "int32" => "(int32_t)-val",
-      :uint32 => "(uint32_t)val",
-      "uint32" => "(uint32_t)val",
-      :int64 => "(int64_t)-val",
-      "int64" => "(int64_t)-val",
-      :uint64 => "(uint64_t)val",
-      "uint64" => "(uint64_t)val",
-      :double => "1.0 / val",
-      "double" => "1.0 / val",
-      :float => "1.0 / val",
-      "float" => "1.0 / val",
-      :real => "1.0 / val",
-      "real" => "1.0 / val",
-      :blob => 'NULL, 0',
-      "blob" => 'NULL, 0',
-      :guid => "OMLC_GUID_NULL",
-      "guid" => "OMLC_GUID_NULL",
-    }
-
-    stream.print "    oml_inject_#{@name}(oml_mps->#{@name}"
-    i = 0
-    @ms.each do |m|
-      stream.print ", #{vals[m.type]}"
-      i = i + 1
-    end
-    stream.print ");\n"
-  end
-
-
-end
-
-
+## Handle DSL defApplication by passing creating a new AppDefinition instance
+# \see AppDefinition::initialize
 def defApplication(uri, name = nil, &block)
   AppDefinition.new(uri, name, &block)
 end
 
 run
 
-# vim: sw=2
+# Local Variables:
+# mode:ruby
+# End:
+# vim: ft=ruby:sw=2
