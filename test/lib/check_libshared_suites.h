@@ -29,6 +29,7 @@
 extern Suite* mstring_suite (void);
 extern Suite* util_suite (void);
 extern Suite* headers_suite (void);
+extern Suite* marshal_suite (void);
 
 #endif /* CHECK_LIBOML2_SUITES_H__ */
 

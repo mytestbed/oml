@@ -18,7 +18,6 @@ extern Suite* bswap_suite (void);
 extern Suite* cbuf_suite (void);
 extern Suite* filters_suite (void);
 extern Suite* log_suite (void);
-extern Suite* marshal_suite (void);
 extern Suite* mbuf_suite (void);
 extern Suite* omlvalue_suite (void);
 extern Suite* string_utils_suite (void);

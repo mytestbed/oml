@@ -36,6 +36,7 @@ main (void)
   SRunner *sr = srunner_create (mstring_suite ());
   srunner_add_suite (sr, util_suite ());
   srunner_add_suite (sr, headers_suite ());
+  srunner_add_suite (sr, marshal_suite ());
 
   srunner_run_all (sr, CK_ENV);
   number_failed += srunner_ntests_failed (sr);

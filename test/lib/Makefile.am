@@ -20,7 +20,6 @@ check_liboml2_SOURCES = \
 	check_liboml2_cbuf.c \
 	check_liboml2_filters.c \
 	check_liboml2_log.c \
-	check_liboml2_marshal.c \
 	check_liboml2_mbuf.c \
 	check_liboml2_omlvalue.c \
 	check_liboml2_suites.h \
@@ -36,7 +35,8 @@ check_libshared_SOURCES = \
 	check_libshared_suites.h \
 	check_libshared_mstring.c \
 	check_libshared_util.c \
-	check_libshared_headers.c
+	check_libshared_headers.c \
+	check_libshared_marshal.c
 
 check_liboml2_CFLAGS = $(CHECK_CFLAGS)
 check_libshared_CFLAGS = $(CHECK_CFLAGS)
