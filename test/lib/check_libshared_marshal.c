@@ -1045,6 +1045,7 @@ START_TEST (test_marshal_full)
   double d = M_PI, d2;
   long l = d32;
   char s[] = "I am both a string AND a blob... Go figure.";
+  oml_guid_t guid = omlc_guid_generate();
   void *b = (void*)s, *p;
   int len = strlen(s), count=0;
   uint8_t *msg, offset;
@@ -1263,6 +1264,24 @@ START_TEST (test_marshal_full)
       "b mismatch");
   offset+=len;
 
+  /* Marshall and verify GUID */
+  oml_value_set_type(&v, OML_GUID_VALUE);
+  omlc_set_guid(*oml_value_get_value(&v), guid);
+  marshal_values(mbuf, &v, 1);
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of elements not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == GUID_T,
+      "guid type not set properly; got %d instead of %d at offset %d",
+      msg[offset], GUID_T, offset);
+  offset++;
+  p = &msg[offset];
+  fail_unless(ntohll(*(oml_guid_t*)p) == guid,
+      "guid not set properly; got %d instead of %" PRIu64 " at offset %d",
+      ntohll(*(oml_guid_t*)p), (uint64_t)guid, offset);
+  offset+=sizeof(oml_guid_t);
+
   fail_unless(marshal_finalize(mbuf) == 1);
 
   dumpmessage(mbuf);
@@ -1385,6 +1404,15 @@ START_TEST (test_marshal_full)
   fail_if(strncmp(omlc_get_blob_ptr(*oml_value_get_value(&va[offset])), b, len),
       "Read blob at offset %d: mismatch",
       offset);
+  offset++;
+
+  /* Verify unmarshalled GUID */
+  fail_unless(oml_value_get_type(&va[offset]) == OML_GUID_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_GUID_VALUE));
+  fail_unless(omlc_get_guid(*oml_value_get_value(&va[offset])) == guid,
+      "Read value at offset %d: got %" PRIu64 " instead of %" PRIu64 "",
+      offset, omlc_get_guid(*oml_value_get_value(&va[offset])), (uint64_t)guid);
   offset++;
 
   free(va);
