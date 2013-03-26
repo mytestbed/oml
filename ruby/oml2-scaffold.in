@@ -128,6 +128,15 @@ $types = {
     #:poptctype => false,
     #:poptdefval => false,
   },
+  :bool => {
+    :ctype => "uint8_t",
+    :setter => "bool",
+    :defval => "(val%5)",
+    :omltype => "OML_BOOL_VALUE",
+    #:popttype => false, # no GUID on the command line
+    #:poptctype => false,
+    #:poptdefval => false,
+  },
 }
 # List the currently supported types, without including backward compatibility
 # elements
