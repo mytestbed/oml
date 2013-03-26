@@ -613,6 +613,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
  }
 
   case OML_GUID_VALUE: {
+    /* FIXME: Wrap with UINT64 marshalling, just change the type */
     uint64_t nv64;
     uint8_t buf[GUID_T_SIZE+1];
     buf[0] = GUID_T;
@@ -626,8 +627,23 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     break;
   }
 
+  case OML_BOOL_VALUE: {
+    uint8_t buf;
+    if (!omlc_get_bool(*val)) {
+      buf = BOOL_FALSE_T;
+    } else {
+      buf = BOOL_TRUE_T;
+    }
+    if (-1 == mbuf_write(mbuf, &buf, 1)) {
+      logerror("Failed to marshal OML_BOOL_VALUE (mbuf_write())\n");
+      mbuf_reset_write(mbuf);
+      return 0;
+    }
+    break;
+  }
+
  default:
-   logerror("Unsupported value type '%d'\n", val_type);
+   logerror("%s: Unsupported value type '%d'\n", __FUNCTION__, val_type);
    return 0;
  }
 
@@ -983,8 +999,15 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
     break;
   }
 
+  case BOOL_FALSE_T:
+  case BOOL_TRUE_T:
+               oml_value_set_type(value, OML_BOOL_VALUE);
+               omlc_set_bool(*oml_value_get_value(value),
+                   (type == BOOL_TRUE_T)?OMLC_BOOL_TRUE:OMLC_BOOL_FALSE);
+               break;
+
     default:
-      logerror("Unsupported value type '%d'\n", type);
+      logerror("%s: Unsupported value type '%d'\n", __FUNCTION__, type);
       return 0;
   }
 
