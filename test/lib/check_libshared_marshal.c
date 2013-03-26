@@ -51,6 +51,8 @@ static const int INT64_T = 0x7;       // marshal.c INT64_T
 static const int UINT64_T = 0x8;      // marshal.c UINT64_T
 static const int BLOB_T = 0x9;        // marshal.c BLOB_T
 static const int GUID_T = 0xa;        // marshal.c GUID_T
+static const int BOOL_FALSE_T = 0xb;  // marshal.c BOOL_FALSE_T
+static const int BOOL_TRUE_T = 0xc;   // marshal.c BOOL_TRUE_T
 
 #define PACKET_HEADER_SIZE 5 // marshal.c
 
@@ -251,6 +253,11 @@ static const oml_guid_t guid_values[] = {
   UINT64_C(0x0222091b4aa762b0)
 };
 
+static const uint8_t bool_values[] = {
+  0,
+  1,
+  2,
+};
 
 double
 relative_error (double v1, double v2)
@@ -496,6 +503,29 @@ START_TEST(test_marshal_guid)
   memcpy(&nv, FIRST_VALPTR(mbuf) + 1, sizeof(nv));
   oml_guid_t val = (oml_guid_t) ntohll(nv);
   fail_if(val != guid_values[_i], "%llx != %llx\n", val, guid_values[_i]);
+}
+END_TEST
+
+START_TEST(test_marshal_bool)
+{
+  MBuffer* mbuf = mbuf_create ();
+  int initresult = marshal_init (mbuf, OMB_DATA_P);
+
+  fail_if (initresult != 0);
+  fail_if (mbuf->base == NULL);
+
+  OmlValueU v;
+  omlc_zero(v);
+  omlc_set_bool(v, bool_values[_i]);
+  int result = marshal_value(mbuf, OML_BOOL_VALUE, &v);
+  fail_if(result != 1);
+  fail_if(*(FIRST_VALPTR(mbuf)) != BOOL_TRUE_T && *(FIRST_VALPTR(mbuf)) != BOOL_FALSE_T);
+
+  uint8_t val = (uint8_t) *FIRST_VALPTR(mbuf);
+  fail_if((val == BOOL_FALSE_T && bool_values[_i]) ||
+      (val == BOOL_TRUE_T && !bool_values[_i]),
+      "%d and %d do not have the same truth value",
+      (val==BOOL_TRUE_T)?1:((val==BOOL_FALSE_T)?0:-1), bool_values[_i]);
 }
 END_TEST
 
@@ -1025,6 +1055,63 @@ START_TEST(test_marshal_unmarshal_guid)
 }
 END_TEST
 
+START_TEST (test_marshal_unmarshal_bool)
+{
+  int VALUES_OFFSET = 7;
+  const int BOOL_LENGTH = 1;
+  const int BOOL_VALUE_OFFSET = 0;
+  uint8_t val;
+  int result;
+  OmlValue value;
+
+  oml_value_init(&value);
+
+  MBuffer* mbuf = mbuf_create ();
+  marshal_init (mbuf, OMB_DATA_P);
+  result = marshal_measurements (mbuf, 42, 43, 42.0);
+
+  fail_if (mbuf->base == NULL);
+  fail_if (result == -1);
+
+  VALUES_OFFSET = mbuf_fill (mbuf);
+
+  unsigned int i = 0;
+  for (i = 0; i < LENGTH (bool_values); i++) {
+      OmlValueU v;
+      omlc_zero(v);
+      omlc_set_bool(v, bool_values[i]);
+      int result = marshal_value (mbuf, OML_BOOL_VALUE, &v);
+
+      uint8_t* buf = &mbuf->base[VALUES_OFFSET + i * BOOL_LENGTH];
+      uint8_t* valptr = &buf[BOOL_VALUE_OFFSET];
+
+      fail_if (result != 1);
+      fail_unless (BOOL_FALSE_T == *valptr || BOOL_TRUE_T == *valptr);
+  }
+
+  marshal_finalize (mbuf);
+
+  OmlBinaryHeader header;
+  result = unmarshal_init (mbuf, &header);
+  fail_if (result == -1);
+
+  fail_unless (header.type == OMB_DATA_P);
+
+  for (i = 0; i < LENGTH (bool_values); i++) {
+      unmarshal_value (mbuf, &value);
+
+      fail_unless (oml_value_get_type(&value) == OML_BOOL_VALUE);
+      val = omlc_get_bool(*oml_value_get_value(&value));
+      fail_unless ((val && bool_values[i]) ||
+          (!val && !bool_values[i]),
+          "%d (shouldn't be -1) and %d do not have the same truth value",
+          (BOOL_TRUE_T==val)?1:((BOOL_FALSE_T==val)?0:-1), bool_values[_i]);
+  }
+
+  oml_value_reset(&value);
+}
+END_TEST
+
 
 #define dumpmessage(mbuf)                                                                                   \
   do {                                                                                                      \
@@ -1047,6 +1134,7 @@ START_TEST (test_marshal_full)
   long l = d32;
   char s[] = "I am both a string AND a blob... Go figure.";
   oml_guid_t guid = omlc_guid_generate();
+  uint8_t bfalse = OMLC_BOOL_FALSE, btrue = OMLC_BOOL_TRUE, bval;
   void *b = (void*)s, *p;
   int len = strlen(s), count=0;
   uint8_t *msg, offset;
@@ -1283,6 +1371,34 @@ START_TEST (test_marshal_full)
       ntohll(*(oml_guid_t*)p), (uint64_t)guid, offset);
   offset+=sizeof(oml_guid_t);
 
+  /* Marshall and verify BOOL FALSE */
+  oml_value_set_type(&v, OML_BOOL_VALUE);
+  omlc_set_bool(*oml_value_get_value(&v), bfalse);
+  marshal_values(mbuf, &v, 1);
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of elements not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == BOOL_FALSE_T,
+      "bool type not set properly; got %d instead of %d at offset %d",
+      msg[offset], BOOL_FALSE_T, offset);
+  offset++;
+  /* The bool type already contains the value */
+
+  /* Marshall and verify BOOL TRUE */
+  oml_value_set_type(&v, OML_BOOL_VALUE);
+  omlc_set_bool(*oml_value_get_value(&v), btrue);
+  marshal_values(mbuf, &v, 1);
+  count++;
+  fail_unless(msg[5] == count,
+      "Number of elements not set properly; got %d instead of %d",
+      msg[5], count);
+  fail_unless(msg[offset] == BOOL_TRUE_T,
+      "bool type not set properly; got %d instead of %d at offset %d",
+      msg[offset], BOOL_TRUE_T, offset);
+  offset++;
+  /* The bool type already contains the value */
+
   fail_unless(marshal_finalize(mbuf) == 1);
 
   dumpmessage(mbuf);
@@ -1416,6 +1532,26 @@ START_TEST (test_marshal_full)
       offset, omlc_get_guid(*oml_value_get_value(&va[offset])), (uint64_t)guid);
   offset++;
 
+  /* Verify unmarshalled BOOL FALSE */
+  fail_unless(oml_value_get_type(&va[offset]) == OML_BOOL_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_BOOL_VALUE));
+  bval = omlc_get_bool(*oml_value_get_value(&va[offset]));
+  fail_unless(!bval && !bfalse,
+      "Read value at offset %d: got truth value %" PRIu8 " instead of %" PRIu8 "",
+      offset, bval, bfalse);
+  offset++;
+
+  /* Verify unmarshalled BOOL TRUE */
+  fail_unless(oml_value_get_type(&va[offset]) == OML_BOOL_VALUE,
+      "Read value at offset %d: got invalid type %s instead of %s",
+      offset, oml_type_to_s(oml_value_get_type(&va[offset])), oml_type_to_s(OML_BOOL_VALUE));
+  bval = omlc_get_bool(*oml_value_get_value(&va[offset]));
+  fail_unless(bval && btrue,
+      "Read value at offset %d: got truth value %" PRIu8 " instead of %" PRIu8 "",
+      offset, bval, btrue);
+  offset++;
+
   free(va);
   mbuf_destroy(mbuf);
 }
@@ -1439,6 +1575,7 @@ marshal_suite (void)
   tcase_add_loop_test (tc_marshal, test_marshal_value_double, 0, LENGTH (double_values));
   tcase_add_loop_test (tc_marshal, test_marshal_value_string, 0, LENGTH (string_values));
   tcase_add_loop_test (tc_marshal, test_marshal_guid,         0, LENGTH (guid_values));
+  tcase_add_loop_test (tc_marshal, test_marshal_bool,         0, LENGTH (bool_values));
 
   tcase_add_test (tc_marshal, test_marshal_unmarshal_long);
   tcase_add_test (tc_marshal, test_marshal_unmarshal_int32);
@@ -1448,6 +1585,7 @@ marshal_suite (void)
   tcase_add_test (tc_marshal, test_marshal_unmarshal_double);
   tcase_add_test (tc_marshal, test_marshal_unmarshal_string);
   tcase_add_test (tc_marshal, test_marshal_unmarshal_guid);
+  tcase_add_test (tc_marshal, test_marshal_unmarshal_bool);
 
   /* Do the full marshalling/unmarshalling test, types above should also be tested there */
   tcase_add_test (tc_marshal, test_marshal_full);

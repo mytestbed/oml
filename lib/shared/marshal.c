@@ -110,6 +110,15 @@
  *    +---------------+---------------+---------------+--
  * \endverbatim
  *
+ * Boolean values are only encoded as one byte, with a different type depending
+ * on there truth value (\ref BOOL_FALSE_T or \ref BOOL_TRUE_T
+ *
+ * \verbatim
+ *  --+---------------+--
+ *    |  BOOL_xxx_T   |
+ *  --+---------------+--
+ * \endverbatim
+ *
  * \see marshal_init, marshal_header_short, marshal_header_long, marshal_measurements, marshal_values, marshal_finalize
  */
 #include <math.h>
@@ -153,6 +162,10 @@
 #define BLOB_T     0x9
 /** Marshalled data type for a OML_GUID_VALUE */
 #define GUID_T     0xA
+/** Marshalled data type for a False OML_BOOL_VALUE */
+#define BOOL_FALSE_T  0xB
+/** Marshalled data type for a True OML_BOOL_VALUE */
+#define BOOL_TRUE_T   0xC
 
 /** Synchronisation byte repeated twice before a new marshalled message */
 #define SYNC_BYTE 0xAA
