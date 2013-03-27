@@ -33,6 +33,7 @@
 /** Create a new table description
  *
  * The caller should xfree the returned value when no longer needed.
+ * The schema argument is kept verbatim (no copy). XXX: It should be copied internally.
  *
  * \param name name of the table
  * \param schema MP schema of the table
@@ -99,6 +100,8 @@ table_descr_array_free (TableDescr* tables, int n)
 }
 
 /** Deallocate a TableDescr linked list
+ *
+ * Also free the encapsulated schema structures.
  *
  * \param tables head of the list
  */

@@ -168,11 +168,14 @@ typedef int (*db_add_sender_id)(Database* db, const char* sender_id);
 
 /** Get a list of tables
  *
+ * The list of tables should also include _experiment_metadata and _senders,
+ * even though they might not be defined with a schema string.
+ *
  * The caller should xfree the returned values when no longer needed.
  *
  * \param db Database to list tables of
- * \param[out] num_tables pointer to an integer where the number of tables will be written
- * \return a linked list of TableDescr of length *num_tables
+ * \param[out] num_tables pointer to an integer where the number of tables will be written, set to -1 on error
+ * \return a linked list of TableDescr of length *num_tables, or NULL
  *
  * \see table_descr_new, table_descr_list_free
  */

@@ -803,78 +803,139 @@ static TableDescr*
 psql_get_table_list (Database *database, int *num_tables)
 {
   PsqlDB *self = database->handle;
-  const char *stmt_tablename =
-    "SELECT tablename FROM pg_tables WHERE tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql%';";
-  PGresult *res;
-  TableDescr *tables = NULL;
-  int rows, cols, i;
+  TableDescr *tables = NULL, *t = NULL;
+  const char *table_stmt = "SELECT tablename FROM pg_tables WHERE tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql%';";
+  const char *tablename, *meta;
+  const char *ptable_stmt = "OMLGetTableList";
+  const char *schema_stmt = "SELECT value FROM _experiment_metadata WHERE key='table_' || $1;"; /* || is a concatenation */
+  const char *pschema_stmt = "OMLGetTableSchema";
+  const int paramFormats[] = {0};
+  PGresult *res = NULL, *schema_res = NULL;
+  struct schema *schema;
+  int have_meta = 0;
+  int i, nrows;
 
-  *num_tables = -1;
-  res = PQexec (self->conn, stmt_tablename);
+  /* Get a list of table names */
+  res = PQprepare(self->conn, ptable_stmt, table_stmt, 0, NULL);
+  if (PQresultStatus (res) != PGRES_COMMAND_OK) {
+    logerror("psql:%s: Could not prepare statement %s from '%s': %s", /* PQerrorMessage strings already have '\n'  */
+        database->name, ptable_stmt, table_stmt, PQerrorMessage(self->conn));
+    goto fail_exit;
+  }
+  PQclear (res);
+
+  /* Check if the _experiment_metadata table exists */
+  res = PQexecPrepared (self->conn, ptable_stmt, 0, NULL, 0, NULL, 0);
   if (PQresultStatus (res) != PGRES_TUPLES_OK) {
-    logerror("psql:%s: Couldn't get list of tables: %s", /* PQerrorMessage strings already have '\n'  */
-        database->name, PQerrorMessage (self->conn));
+    logerror("psql:%s: Could not get list of tables with '%s': %s", /* PQerrorMessage strings already have '\n'  */
+        database->name, table_stmt, PQerrorMessage(self->conn));
+    goto fail_exit;
+  }
+
+  nrows = PQntuples (res);
+  i = -1;
+  do {
+    i++; /* Equivalent to sqlite3_step */
+    if(i < nrows) { /* Equivalent to an SQLITE_ROW return */
+      if (strcmp (PQgetvalue (res, i, 0), "_experiment_metadata") == 0) {
+        logdebug("psql:%s: Found table %s\n",
+            database->name, PQgetvalue (res, i, 0));
+        have_meta = 1;
+      }
+    }
+  } while (i < nrows && !have_meta);
+
+  *num_tables = 0; /* In case !have_meta, we want it to be 0; also, we need it that way for later */
+
+  if(!have_meta) {
+    logdebug("psql:%s: _experiment_metadata table not found\n", database->name);
+    /* XXX: This is probably a new database, don't exit in error */
     PQclear (res);
     return NULL;
   }
-  rows = PQntuples (res);
-  cols = PQnfields (res);
 
-  if (cols < 1) {
-    return NULL;
+  /* Get schema for all tables */
+  schema_res = PQprepare(self->conn, pschema_stmt, schema_stmt, 1, NULL);
+  if (PQresultStatus (schema_res) != PGRES_COMMAND_OK) {
+    logerror("psql:%s: Could not prepare statement %s from '%s': %s", /* PQerrorMessage strings already have '\n'  */
+        database->name, pschema_stmt, schema_stmt, PQerrorMessage(self->conn));
+    goto fail_exit;
   }
+  PQclear (schema_res);
 
-  int have_meta = 0;
-  for (i = 0; i < rows && !have_meta; i++) {
-    if (strcmp (PQgetvalue (res, i, 0), "_experiment_metadata") == 0) {
-      have_meta = 1;
-    }
-  }
+  i = -1; /* Equivalent to sqlite3_reset; assume nrows is still valid */
+  do {
+    t = NULL;
 
-  if(!have_meta) {
-    logdebug("psql:%s: No metadata found\n", database->name);
-  }
+    i++; /* Equivalent to sqlite3_step */
+    if(i < nrows) { /* Equivalent to an SQLITE_ROW return */
+      tablename = PQgetvalue (res, i, 0);
 
-  *num_tables = 0;
+      if(!strcmp (tablename, "_senders")) {
+        /* Create a phony entry for the _senders table some
+         * server/database.c:database_init() doesn't try to create it */
+        t = table_descr_new (tablename, NULL);
 
-  for (i = 0; i < rows; i++) {
-    char *val = PQgetvalue (res, i, 0);
-    logdebug("psql:%s: Found table '%s'\n", database->name, val);
-    MString *str = mstring_create ();
-    TableDescr *t = NULL;
-
-    if (have_meta) {
-      mstring_sprintf (str, "SELECT value FROM _experiment_metadata WHERE key='table_%s';", val);
-      PGresult *schema_res = PQexec (self->conn, mstring_buf (str));
-      if (PQresultStatus (schema_res) != PGRES_TUPLES_OK) {
-        logdebug("psql:%s: Couldn't get schema for table '%s' (skipping): %s", /* PQerrorMessage strings already have '\n'  */
-            database->name, val, PQerrorMessage (self->conn));
-        mstring_delete (str);
-        continue;
-      }
-      int rows = PQntuples (schema_res);
-      if (rows == 0) {
-        logdebug("psql:%s: Metadata for table '%s' found but empty\n", database->name, val);
-        t = table_descr_new (val, NULL); // Don't know the schema for this table
       } else {
-        logdebug("psql:%s: Stored schema for table '%s': %s\n", database->name, val, PQgetvalue (schema_res, 0, 0));
-        struct schema *schema = schema_from_meta (PQgetvalue (schema_res, 0, 0));
-        t = table_descr_new (val, schema);
-      }
-      PQclear (schema_res);
-      mstring_delete (str);
-    } else {
-      t = table_descr_new (val, NULL);
-    }
+        /* If it's *not* the _senders table, get its schema from the metadata table */
+        logdebug("psql:%s:%s: Trying to find schema for table %s: %s\n",
+            database->name, __FUNCTION__, tablename,
+            schema_stmt);
 
-    if (t) {
+        schema_res = PQexecPrepared (self->conn, pschema_stmt, 1, &tablename, NULL, paramFormats, 0);
+        if (PQresultStatus (schema_res) != PGRES_TUPLES_OK) {
+          logerror("psql:%s: Could not get schema for table %s: %s", /* PQerrorMessage strings already have '\n'  */
+              database->name, tablename, PQerrorMessage(self->conn));
+          goto fail_exit;
+        }
+
+        meta = PQgetvalue (schema_res, 0, 0); /* We should only have one result row */
+        schema = schema_from_meta(meta);
+        PQclear(schema_res);
+
+        if (!schema) {
+          logerror("psql:%s: Could not parse schema '%s' (stored in DB) for table %s\n",
+              database->name, meta, tablename);
+          goto fail_exit;
+        }
+
+        t = table_descr_new (tablename, schema);
+        if (!t) {
+          logerror("psql:%s: Could create table descrition for table %s\n",
+              database->name, tablename);
+          goto fail_exit;
+        }
+        schema = NULL; /* The pointer has been copied in t (see table_descr_new);
+                          we don't want to free it twice in case of error */
+      }
+
       t->next = tables;
       tables = t;
       (*num_tables)++;
     }
-  }
+  } while (i < nrows);
+
+  PQclear(res);
 
   return tables;
+
+fail_exit:
+  if (tables) {
+    table_descr_list_free(tables);
+  }
+
+  if (schema) {
+    schema_free(schema);
+  }
+  if (schema_res) {
+   PQclear(schema_res);
+  }
+  if (res) {
+   PQclear(res);
+  }
+
+  *num_tables = -1;
+  return NULL;
 }
 
 /** Get the sender_id for a given name in the _senders table.

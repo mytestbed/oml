@@ -529,6 +529,7 @@ database_init (Database *database)
     }
   }
 
+  /* Create default tables if they are not already present in the 'tables' list */
   const char *meta_tables [] = { "_senders", "_experiment_metadata" };
   size_t j;
   for (j = 0; j < LENGTH(meta_tables); j++) {

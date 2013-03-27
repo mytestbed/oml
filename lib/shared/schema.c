@@ -21,7 +21,7 @@
 #include "schema.h"
 #include "oml_util.h"
 
-/* * Parse a schema field like '<name>:<type>' into a struct schema_field.
+/** Parse a schema field like '<name>:<type>' into a struct schema_field.
  *
  * \param meta nil-terminated string to parse
  * \param len length to parse in the string
@@ -58,14 +58,14 @@ schema_field_from_meta (const char *meta, size_t len, struct schema_field *field
   return -1;
 }
 
-/* * Parse a schema metadata line from client headers.
+/** Parse a schema metadata line from client headers.
  *
  * Schema meta lines look like:
  *  schema: <n> <name> <field_name1>:<field_type1> <field_name2>:<field_type2> ...
  * We get everything from the first colon ':' onwards in "meta" parameter.
  *
  * \param meta nil-terminated string to parse
- * \return a pointer to an xmalloc'd struct schema, to be freed by the caller, or NULL
+ * \return a pointer to an xmalloc'd struct schema, to be freed by the caller, or NULL on error (e.g., meta is NULL)
  *
  * \see schema_field_from_meta
  */

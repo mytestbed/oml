@@ -319,8 +319,8 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
 
   if (sqlite3_prepare_v2(sq3db->conn, mstring_buf(insert), -1,
                          &sq3table->insert_stmt, 0) != SQLITE_OK) {
-    logerror("sqlite:%s: Could not prepare statement: %s\n",
-        db->name, sqlite3_errmsg(sq3db->conn));
+    logerror("sqlite:%s: Could not prepare statement '%s': %s\n",
+        db->name, mstring_buf(insert), sqlite3_errmsg(sq3db->conn));
     goto fail_exit;
   }
 
@@ -708,70 +708,138 @@ static TableDescr*
 sq3_get_table_list (Database *database, int *num_tables)
 {
   Sq3DB *self = database->handle;
-  TableDescr* tables = NULL;
-  const char* stmt = "SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name;";
-  char* errmsg;
-  char** result;
-  int i = 0, j = 0, n = 0;
-  int nrows, ncols;
-  int name_col = -1, schema_col = -1;
-  int ret = sqlite3_get_table (self->conn, stmt, &result, &nrows, &ncols, &errmsg);
+  TableDescr *tables = NULL, *t = NULL;
+  const char *table_stmt = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;";
+  const char *tablename, *meta;
+  const char *schema_stmt = "SELECT value FROM _experiment_metadata WHERE key='table_%s';";
+  MString *schema_stmt_ms = NULL;
+  sqlite3_stmt *ptable_stmt = NULL, *pschema_stmt = NULL;
+  struct schema *schema;
+  int res, have_meta = 0;
+
+  /* Get a list of table names */
+  if (sqlite3_prepare_v2(self->conn, table_stmt, -1, &ptable_stmt, NULL) != SQLITE_OK) {
+    logerror("sqlite:%s: Could not prepare statement '%s': %s\n",
+        database->name, table_stmt, sqlite3_errmsg(self->conn));
+    goto fail_exit;
+  }
+
+  /* Check if the _experiment_metadata table exists */
+  do {
+    res = sqlite3_step(ptable_stmt);
+    if (res == SQLITE_ROW) {
+      if(strcmp ((const char*)sqlite3_column_text(ptable_stmt, 0), "_experiment_metadata") == 0) {
+        logdebug("sqlite:%s: Found table %s\n",
+            database->name, sqlite3_column_text(ptable_stmt, 0));
+        have_meta = 1;
+      }
+    }
+  } while (res == SQLITE_ROW && !have_meta);
+
+  *num_tables = 0; /* In case !have_meta, we want it to be 0; also, we need it that way for later */
+
+  if(!have_meta) {
+    logdebug("sqlite:%s: _experiment_metadata table not found\n", database->name);
+    /* XXX: This is probably a new database, don't exit in error */
+    sqlite3_finalize(ptable_stmt);
+    return NULL;
+  }
+
+  /* Get schema for all tables */
+  if(sqlite3_reset(ptable_stmt) != SQLITE_OK) {
+    logwarn("sqlite:%s: Could not reset statement '%s' to traverse results again: %s\n",
+        database->name, table_stmt, sqlite3_errmsg(self->conn));
+    /* The _experiment_metadata table is often (always?) at the beginning of the list,
+     * so we try to recover gracefully from this issue by ignoring it */
+  }
+
+  schema_stmt_ms = mstring_create();
+  do {
+    t = NULL;
+    mstring_set(schema_stmt_ms, "");
+
+    res = sqlite3_step(ptable_stmt);
+    if (res == SQLITE_ROW) {
+      tablename = (const char*)sqlite3_column_text(ptable_stmt, 0);
+
+      if(!strcmp (tablename, "_senders")) {
+        /* Create a phony entry for the _senders table some
+         * server/database.c:database_init() doesn't try to create it */
+        t = table_descr_new (tablename, NULL);
+
+      } else {
+        mstring_sprintf(schema_stmt_ms, schema_stmt, tablename); /* XXX: Could a prepared statement do this concatenation? */
+        /* If it's *not* the _senders table, get its schema from the metadata table */
+        logdebug("sqlite:%s:%s: Trying to find schema for table %s: %s\n",
+            database->name, __FUNCTION__, tablename,
+            mstring_buf(schema_stmt_ms));
+
+        if (sqlite3_prepare_v2(self->conn, mstring_buf(schema_stmt_ms),
+              -1, &pschema_stmt, NULL) != SQLITE_OK) {
+          logerror("sqlite:%s: Could not prepare statement '%s': %s\n",
+              database->name, mstring_buf(schema_stmt_ms), sqlite3_errmsg(self->conn));
+          goto fail_exit;
+        }
+
+        if(sqlite3_step(pschema_stmt) != SQLITE_ROW) {
+          logerror("sqlite:%s: Could not get schema for table %s: %s\n",
+              database->name, tablename, sqlite3_errmsg(self->conn));
+          goto fail_exit;
+        }
+
+        meta = (const char*)sqlite3_column_text(pschema_stmt, 0); /* We should only have one result row */
+        schema = schema_from_meta(meta);
+        sqlite3_finalize(pschema_stmt);
+        pschema_stmt = NULL; /* Avoid double-finalisation in case of error */
+
+        if (!schema) {
+          logerror("sqlite:%s: Could not parse schema '%s' (stored in DB) for table %s\n",
+              database->name, meta, tablename);
+          goto fail_exit;
+        }
+
+        t = table_descr_new (tablename, schema);
+        if (!t) {
+          logerror("sqlite:%s: Could create table descrition for table %s\n",
+              database->name, tablename);
+          goto fail_exit;
+        }
+        schema = NULL; /* The pointer has been copied in t (see table_descr_new);
+                          we don't want to free it twice in case of error */
+      }
+
+      t->next = tables;
+      tables = t;
+      (*num_tables)++;
+    }
+  } while (res == SQLITE_ROW);
+
+  mstring_delete(schema_stmt_ms);
+  sqlite3_finalize(pschema_stmt);
+
+  return tables;
+
+fail_exit:
+  if (tables) {
+    table_descr_list_free(tables);
+  }
+
+  if (schema) {
+    schema_free(schema);
+  }
+  if (pschema_stmt) {
+   sqlite3_finalize(pschema_stmt);
+  }
+  if (schema_stmt_ms) {
+    mstring_delete(schema_stmt_ms);
+  }
+
+  if (ptable_stmt) {
+   sqlite3_finalize(ptable_stmt);
+  }
 
   *num_tables = -1;
-  if (ret != SQLITE_OK) {
-    logerror("sqlite:%s: Error in SELECT statement '%s': %s\n",
-        database->name, stmt, errmsg);
-    sqlite3_free (errmsg);
-    return NULL;
-  }
-
-  if (ncols == 0 || nrows == 0) {
-    logdebug("sqlite:%s: Table list empty; need to create tables\n", database->name);
-    sqlite3_free_table (result);
-    *num_tables = 0;
-    return NULL;
-  }
-
-  for (i = 0; i < ncols; i++) {
-    if (strcasecmp(result[i], "name") == 0) {
-      name_col = i;
-    }
-    if (strcasecmp (result[i], "sql") == 0) {
-      schema_col = i;
-    }
-  }
-
-  if (name_col == -1 || schema_col == -1) {
-    logerror("sqlite:%s: Couldn't get the 'name' or 'schema' column index from list of tables\n",
-        database->name);
-    sqlite3_free_table (result);
-    *num_tables = 0;
-    return NULL;
-  }
-
-  for (i = name_col + ncols, j = schema_col + ncols;
-       i < (nrows + 1) * ncols;
-       i += ncols, j+= ncols, n++) {
-    TableDescr *t;
-    /* Don't try to treat the _senders table as a measurement table. */
-    if (strcmp (result[i], "_senders") == 0) {
-      t = table_descr_new (result[i], NULL);
-    } else {
-      struct schema *schema = schema_from_sql (result[j], sq3_type_to_oml);
-      if (!schema) {
-        logwarn ("sqlite:%s: Failed to create table '%s': error parsing schema '%s'; not created by OML?\n",
-            database->name, result[i], result[j]);
-        continue;
-      }
-      t = table_descr_new (result[i], schema);
-    }
-    t->next = tables;
-    tables = t;
-  }
-
-  sqlite3_free_table (result);
-  *num_tables = n;
-  return tables;
+  return NULL;
 }
 
 /** Get the sender_id for a given name in the _senders table.
