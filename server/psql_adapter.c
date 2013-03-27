@@ -56,6 +56,7 @@ static struct {
   { OML_INT64_VALUE,    "INT8" },
   { OML_UINT64_VALUE,   "BIGINT" },
   { OML_GUID_VALUE,     "BIGINT" },
+  { OML_BOOL_VALUE,     "BOOLEAN" },
 };
 
 static int sql_stmt(PsqlDB* self, const char* stmt);

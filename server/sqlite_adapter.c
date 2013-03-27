@@ -54,6 +54,9 @@ static struct {
   { OML_STRING_VALUE,   "TEXT" },
   { OML_BLOB_VALUE,     "BLOB" },
   { OML_GUID_VALUE,     "UNSIGNED BIGINT" },
+  { OML_BOOL_VALUE,     "INTEGER" }, /* See [0]: "SQLite does not have a separate Boolean storage class.
+                                        Instead, Boolean values are stored as integers 0 (false) and 1 (true)."
+                                        [0] https://www.sqlite.org/datatype3.html */
 };
 
 static int sql_stmt(Sq3DB* self, const char* stmt);
