@@ -312,6 +312,8 @@ process_schema(ClientHandler* self, char* value)
 
 /** \privatesection Process a single key/value pair contained in the header.
  *
+ * XXX: This function actively does text protocol interpretation, see #1088
+ *
  * \param self ClientHandler
  * \param key key
  * \param value value

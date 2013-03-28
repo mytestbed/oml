@@ -379,6 +379,7 @@ sq3_prepared_var(Database *db, unsigned int order)
 
 /** Insert value in the SQLite3 database.
  * \see db_adapter_insert
+ * XXX: This function actively does text protocol interpretation, see #1088
  */
 static int
 sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_stamp, OmlValue *values, int value_count)
@@ -444,39 +445,56 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
     int res;
     int idx = i + 5;
     switch (schema->fields[i].type) {
-    case OML_DOUBLE_VALUE: res = sqlite3_bind_double(stmt, idx, v->value.doubleValue); break;
-    case OML_LONG_VALUE:   res = sqlite3_bind_int(stmt, idx, (int)v->value.longValue); break;
-    case OML_INT32_VALUE:  res = sqlite3_bind_int(stmt, idx, (int32_t)v->value.int32Value); break;
-    case OML_UINT32_VALUE: res = sqlite3_bind_int(stmt, idx, (uint32_t)v->value.uint32Value); break;
-    case OML_INT64_VALUE:  res = sqlite3_bind_int64(stmt, idx, (int64_t)v->value.int64Value); break;
-    case OML_UINT64_VALUE:
-      {
-        if (v->value.uint64Value > (uint64_t)9223372036854775808u)
-          logwarn("sqlite:%s: Trying to store value %" PRIu64 " (>2^63) in column '%s' of table '%s', this might lead to a loss of resolution\n", db->name, (uint64_t)v->value.uint64Value, schema->fields[i].name, table->schema->name);
-        res = sqlite3_bind_int64(stmt, idx, (uint64_t)v->value.uint64Value);
-        break;
-      }
-    case OML_STRING_VALUE:
-      {
-        res = sqlite3_bind_text (stmt, idx, omlc_get_string_ptr(*oml_value_get_value(v)),
-                                 -1, SQLITE_TRANSIENT);
-        break;
-      }
-    case OML_BLOB_VALUE: {
-      res = sqlite3_bind_blob (stmt, idx,
-                               v->value.blobValue.ptr,
-                               v->value.blobValue.length,
-                               SQLITE_TRANSIENT);
+    case OML_DOUBLE_VALUE:
+      res = sqlite3_bind_double(stmt, idx, omlc_get_double(*oml_value_get_value(v)));
       break;
-    }
-    case OML_GUID_VALUE: {
-      if(v->value.uint64Value != UINT64_C(0)) {
-        res = sqlite3_bind_int64(stmt, idx, (int64_t)(v->value.guidValue));
+    case OML_LONG_VALUE:
+      res = sqlite3_bind_int(stmt, idx, (int)omlc_get_long(*oml_value_get_value(v)));
+      break;
+
+    case OML_INT32_VALUE:
+      res = sqlite3_bind_int(stmt, idx, (int32_t)omlc_get_int32(*oml_value_get_value(v)));
+      break;
+    case OML_UINT32_VALUE:
+      res = sqlite3_bind_int(stmt, idx, (uint32_t)omlc_get_uint32(*oml_value_get_value(v)));
+      break;
+    case OML_INT64_VALUE:
+      res = sqlite3_bind_int64(stmt, idx, (int64_t)omlc_get_int64(*oml_value_get_value(v)));
+      break;
+    case OML_UINT64_VALUE:
+      if (omlc_get_uint64(*oml_value_get_value(v)) > (uint64_t)9223372036854775808u) {
+        logwarn("sqlite:%s: Trying to store value %" PRIu64 " (>2^63) in column '%s' of table '%s', this might lead to a loss of resolution\n",
+            db->name, (uint64_t)omlc_get_uint64(*oml_value_get_value(v)), schema->fields[i].name, table->schema->name);
+      }
+
+      res = sqlite3_bind_int64(stmt, idx, (uint64_t)omlc_get_uint64(*oml_value_get_value(v)));
+      break;
+
+    case OML_STRING_VALUE:
+      res = sqlite3_bind_text (stmt, idx, omlc_get_string_ptr(*oml_value_get_value(v)),
+          -1, SQLITE_TRANSIENT);
+      break;
+
+    case OML_BLOB_VALUE:
+      res = sqlite3_bind_blob (stmt, idx,
+          omlc_get_blob_ptr(*oml_value_get_value(v)),
+          omlc_get_blob_length(*oml_value_get_value(v)),
+          SQLITE_TRANSIENT);
+      break;
+
+    case OML_GUID_VALUE:
+      if(omlc_get_guid(*oml_value_get_value(v)) != UINT64_C(0)) {
+        res = sqlite3_bind_int64(stmt, idx, (int64_t)(omlc_get_guid(*oml_value_get_value(v))));
       } else {
         res = sqlite3_bind_null(stmt, idx);
       }
       break;
-    }
+
+    case OML_BOOL_VALUE:
+      res = sqlite3_bind_int(stmt, idx, (int)omlc_get_bool(*oml_value_get_value(v)));
+      break;
+      break;
+
     default:
       logerror("sqlite:%s: Unknown type %d in col '%s' of table '%s; this is probably a bug'\n",
           db->name, schema->fields[i].type, schema->fields[i].name, table->schema->name);

@@ -140,6 +140,7 @@ owt_header_done(OmlWriter* writer)
 static int
 owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
 {
+  char *enc;
   OmlTextWriter* self = (OmlTextWriter*)writer;
   MBuffer* mbuf;
   if ((mbuf = self->mbuf) == NULL) {
@@ -151,45 +152,75 @@ owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
   for (i = 0; i < value_count; i++, v++) {
     int res;
     switch (oml_value_get_type(v)) {
-    case OML_LONG_VALUE: {
-      res = mbuf_print(mbuf, "\t%" PRId32, oml_value_clamp_long (v->value.longValue));
+    case OML_LONG_VALUE:
+      res = mbuf_print(mbuf, "\t%" PRId32, oml_value_clamp_long (omlc_get_long(*oml_value_get_value(v))));
       break;
-    }
-    case OML_INT32_VALUE:  res = mbuf_print(mbuf, "\t%" PRId32,  v->value.int32Value);  break;
-    case OML_UINT32_VALUE: res = mbuf_print(mbuf, "\t%" PRIu32,  v->value.uint32Value); break;
-    case OML_INT64_VALUE:  res = mbuf_print(mbuf, "\t%" PRId64,  v->value.int64Value);  break;
-    case OML_UINT64_VALUE: res = mbuf_print(mbuf, "\t%" PRIu64,  v->value.uint64Value); break;
-    case OML_DOUBLE_VALUE: res = mbuf_print(mbuf, "\t%f",  v->value.doubleValue); break;
-    case OML_STRING_VALUE: {
-      if(v->value.stringValue.ptr && 0 < v->value.stringValue.length) {
-        char *enc = alloca(backslash_encode_size(omlc_get_string_size(v->value)));
+
+    case OML_INT32_VALUE:
+      res = mbuf_print(mbuf, "\t%" PRId32,
+          omlc_get_int32(*oml_value_get_value(v)));
+      break;
+    case OML_UINT32_VALUE:
+      res = mbuf_print(mbuf, "\t%" PRIu32,
+          omlc_get_uint32(*oml_value_get_value(v)));
+      break;
+    case OML_INT64_VALUE:
+      res = mbuf_print(mbuf, "\t%" PRId64,
+          omlc_get_int64(*oml_value_get_value(v)));
+      break;
+    case OML_UINT64_VALUE:
+      res = mbuf_print(mbuf, "\t%" PRIu64,
+          omlc_get_uint64(*oml_value_get_value(v)));
+      break;
+
+    case OML_DOUBLE_VALUE:
+      res = mbuf_print(mbuf, "\t%f",
+          omlc_get_double(*oml_value_get_value(v)));
+      break;
+
+    case OML_STRING_VALUE:
+      if(omlc_get_string_ptr(*oml_value_get_value(v)) &&
+          0 < omlc_get_string_length(*oml_value_get_value(v))) {
+        enc = xmalloc(backslash_encode_size(omlc_get_string_size(v->value)));
         backslash_encode(omlc_get_string_ptr(v->value), enc);
         res = mbuf_print(mbuf, "\t%s", enc);
+        xfree(enc);
+
       } else {
         logwarn ("Attempting to send NULL or empty string; string of length 0 will be sent\n");
         res = mbuf_print(mbuf, "\t");
       }
       break;
-    }
+
     case OML_BLOB_VALUE: {
-      if(v->value.blobValue.ptr && 0 < v->value.blobValue.length) {
-        char *enc = alloca(base64_size_string(v->value.blobValue.length));
-        base64_encode_blob(v->value.blobValue.length, v->value.blobValue.ptr, enc);
+      if(omlc_get_blob_ptr(*oml_value_get_value(v)) &&
+          0 < omlc_get_blob_length(*oml_value_get_value(v))) {
+        enc = xmalloc(base64_size_string(omlc_get_blob_length(*oml_value_get_value(v))));
+        base64_encode_blob(omlc_get_blob_length(*oml_value_get_value(v)), omlc_get_blob_ptr(*oml_value_get_value(v)), enc);
         res = mbuf_print(mbuf, "\t%s", enc);
+        xfree(enc);
+
       } else {
         logwarn ("Attempting to send NULL or empty blob; blob of length 0 will be sent\n");
         res = mbuf_print(mbuf, "\t");
       }
       break;
     }
+
     case OML_GUID_VALUE:
-      res = mbuf_print(mbuf, "\t%" PRIu64, v->value.guidValue);
+      res = mbuf_print(mbuf, "\t%" PRIu64, omlc_get_guid(*oml_value_get_value(v)));
       break;
+
+    case OML_BOOL_VALUE:
+      res = mbuf_print(mbuf, "\t%c", (omlc_get_bool(*oml_value_get_value(v))!=OMLC_BOOL_FALSE)?'T':'F');
+      break;
+
     default:
       res = -1;
-      logerror( "Unsupported value type '%d'\n", oml_value_get_type(v));
+      logerror("%s: Unsupported value type '%d'\n", __FUNCTION__, oml_value_get_type(v));
       return 0;
     }
+
     if (res < 0) {
       mbuf_reset_write(mbuf);
       self->mbuf = NULL;
