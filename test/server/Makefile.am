@@ -70,6 +70,8 @@ CLEANFILES = \
 	log.txt \
 	text-test.sq3 \
 	text-test.sq3-journal \
+	text-test-types.sq3 \
+	text-test-types.sq3-journal \
 	text-flex-test.sq3 \
 	text-flex-test.sq3-journal \
 	text-meta-test.sq3 \

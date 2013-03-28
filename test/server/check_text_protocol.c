@@ -29,6 +29,7 @@
 #include <libgen.h>
 
 #include "ocomm/o_log.h"
+#include "oml_util.h"
 #include "mem.h"
 #include "mbuf.h"
 #include "database.h"
@@ -134,6 +135,99 @@ START_TEST(test_text_insert)
       "Invalid size in 2nd row: expected `%d', got `%d'",
       d2, sqlite3_column_int(stmt, 2));
 
+  database_release(db);
+}
+END_TEST
+
+#define MAXTYPETESTNAME 15
+static struct {
+ char *name;        /* name of this test, no longer than MAXTYPETESTNAME */
+ char *proto_type;  /* type for schema */
+ char *rep;         /* representation */
+ char *exp;         /* expected database contents */
+} type_tests[] = {
+  /* 123456789012345 <- No longer than that */
+  { "int32", "int32", "-2147483647", "-2147483647"},                      /* INT32_MIN+1 */
+  { "uint32", "uint32", "2147483647", "2147483647"},                      /* UINT32_MAX */
+  { "int64", "int64", "-9223372036854775807", "-9223372036854775807"},    /* INT32_MIN+1 */
+  { "uint64", "uint64", "9223372036854775807", "9223372036854775807"},
+  { "double", "double", "13.37", "13.37"},                                /* Leetness */
+  { "string", "string", "string", "string"},
+  { "stringNULL", "string", "", ""},
+  { "blob", "blob", "YWJjZGU=", "abcde"}, /* see test/lib/check_liboml2_base64.c:test_round_trip */
+  { "blobNULL", "blob", "", ""},
+  { "guid", "guid", "9223372036854775807", "9223372036854775807"},        /* Yup, they are uint64 */
+};
+
+START_TEST(test_text_types)
+{
+  ClientHandler *ch;
+  Database *db;
+  sqlite3_stmt *stmt;
+  SockEvtSource source;
+
+  char *domain = "text-test-types";
+  char dbname[sizeof(domain)+3];
+  char tablebase[] = "text_type_";
+  char table[sizeof(tablebase)+MAXTYPETESTNAME+1];
+  double time1 = 1.096202;
+  int d1 = 3319660544;
+
+  char h[200];
+  char s[50];
+  char select[200];
+
+  int rc = -1;
+
+  o_set_log_level(2);
+  logdebug("%s\n", __FUNCTION__);
+
+  snprintf(dbname, sizeof(dbname), "%s.sq3", domain);
+  snprintf(table, sizeof(table), "%s%s", tablebase, type_tests[_i].name);
+
+  /* Remove pre-existing databases */
+  unlink(dbname);
+
+  snprintf(h, sizeof(h),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\nschema: 1 %s val:%s\n\n",
+      domain, basename(__FILE__), __FUNCTION__, table, type_tests[_i].proto_type);
+  snprintf(s, sizeof(s), "%f\t1\t%d\t%s\n", time1, 1, type_tests[_i].rep);
+  snprintf(select, sizeof(select), "select val from %s;", table);
+
+  memset(&source, 0, sizeof(SockEvtSource));
+  source.name = "text types socket";
+  ch = check_server_prepare_client_handler("test_text_types", &source);
+  fail_unless(ch->state == C_HEADER);
+
+  logdebug("Processing text protocol for type %s\n", type_tests[_i].proto_type);
+  /* Process the header */
+  client_callback(&source, ch, h, strlen(h));
+
+  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
+  fail_unless(ch->content == C_TEXT_DATA);
+  fail_if(ch->database == NULL);
+  fail_if(ch->sender_id == 0);
+  fail_if(ch->sender_name == NULL);
+  fail_if(ch->app_name == NULL);
+
+  /* Process the first sample */
+  client_callback(&source, ch, s, strlen(s));
+
+  database_release(ch->database);
+  check_server_destroy_client_handler(ch);
+
+  logdebug("Checking recorded data in %s\n", dbname);
+  /* Open database */
+  db = database_find(domain);
+  fail_if(db == NULL || ((Sq3DB*)(db->handle))->conn == NULL , "Cannot open SQLite3 database");
+  rc = sqlite3_prepare_v2(((Sq3DB*)(db->handle))->conn, select, -1, &stmt, 0);
+  fail_unless(rc == 0, "Preparation of statement `%s' failed; rc=%d", select, rc);
+
+  rc = sqlite3_step(stmt);
+  fail_unless(rc == SQLITE_ROW, "Statement `%s' failed; rc=%d", select, rc);
+  fail_if(strcmp((const char *)sqlite3_column_text(stmt, 0), type_tests[_i].exp),
+      "%s: Invalid %s in data: expected `%s', got `%s'",
+      type_tests[_i].name, type_tests[_i].proto_type,
+      type_tests[_i].exp, sqlite3_column_text(stmt, 0));
   database_release(db);
 }
 END_TEST
@@ -444,6 +538,7 @@ text_protocol_suite (void)
 
   TCase* tc_text_insert = tcase_create ("Text insert");
   tcase_add_test (tc_text_insert, test_text_insert);
+  tcase_add_loop_test (tc_text_insert, test_text_types, 0, LENGTH (type_tests));
   suite_add_tcase (s, tc_text_insert);
 
   TCase* tc_text_flex = tcase_create ("Text flexibility");
