@@ -147,6 +147,10 @@ static struct {
   { "blob", "blob", "YWJjZGU=", "abcde"}, /* see test/lib/check_liboml2_base64.c:test_round_trip */
   { "blobNULL", "blob", "", ""},
   { "guid", "guid", "9223372036854775807", "9223372036854775807"},        /* Yup, they are uint64 */
+  { "boolF", "bool", "FaLsE", "0"},
+  { "bool1", "bool", "1", "1"},
+  { "bool2", "bool", "2", "1"},
+  { "bool0", "bool", "0", "1"}, /* that's right, the conversion is done by the OmlValue, see oml_value.c:oml_value_string_to_bool */
 };
 
 START_TEST(test_text_types)
