@@ -30,6 +30,7 @@
 #include <check.h>
 
 #include "oml2/omlc.h"
+#include "oml_util.h"
 #include "htonll.h"
 #include "oml_value.h"
 #include "marshal.h"

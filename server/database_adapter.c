@@ -8,10 +8,11 @@
  * in the License.
  */
 /** \file database_adapter.h
- * \brief Generic functions for database adapters.
+ * \brief Generic functions for database adapters
  */
 #include <string.h>
 
+#include "oml_util.h"
 #include "schema.h"
 #include "database.h"
 #include "database_adapter.h"
@@ -31,8 +32,6 @@ static struct {
     .schema = NULL,
   },
 };
-
-#define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
 
 /** Create a table in the specified database following the given schema string
  *

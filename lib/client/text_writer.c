@@ -7,10 +7,9 @@
  * using this software you accept the terms and the liability disclaimer
  * in the License.
  */
-
-/*!\file text_writer.c
-  \brief Implements a writer which stores results in a local file.
-*/
+/** \file text_writer.c
+ * \brief Implements a writer which stores results in a local file.
+ */
 
 #include <alloca.h>
 #include <stdio.h>
