@@ -8,7 +8,7 @@
  * in the License.
  */
 /** \file  check_liboml2_api.c
- * \brief Test the user-visible OML API
+ * \brief Test the user-visible OML API.
  */
 #include <string.h>
 #include <check.h>
@@ -204,8 +204,6 @@ api_suite (void)
 
   return s;
 }
-
-
 
 /*
  Local Variables:
