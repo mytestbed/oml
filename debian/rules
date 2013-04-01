@@ -51,6 +51,13 @@ install: build
 
 	# Install the binaries into debian/tmp
 	$(MAKE) DESTDIR=$(CURDIR)/debian/tmp install
+	$(MAKE) -C example/liboml2 \
+		SCAFFOLD="$(CURDIR)/debian/tmp/usr/bin/oml2-scaffold" \
+		BINDIR="$(CURDIR)/debian/tmp/usr/bin" \
+		CFLAGS="-I$(CURDIR)/debian/tmp/usr/include" \
+		LDFLAGS="-L$(CURDIR)/debian/tmp/usr/lib" \
+		LIBS="-loml2 -locomm -lpopt -lm" \
+		install
 
 	# Make directories for all debian packages
 	mkdir -p $(CURDIR)/debian/oml2-server/usr/bin
@@ -58,6 +65,7 @@ install: build
 	mkdir -p $(CURDIR)/debian/oml2-server/usr/share/oml2-server
 	mkdir -p $(CURDIR)/debian/oml2-proxy-server/usr/bin
 	mkdir -p $(CURDIR)/debian/oml2-proxycon/usr/bin
+	mkdir -p $(CURDIR)/debian/oml2-generator/usr/bin
 	mkdir -p $(CURDIR)/debian/liboml2-9/usr/lib
 	mkdir -p $(CURDIR)/debian/liboml2-9/usr/share/liboml2
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/include
@@ -80,6 +88,9 @@ install: build
 
 	# Build the oml2-proxycon package
 	mv $(CURDIR)/debian/tmp/usr/bin/oml2-proxycon $(CURDIR)/debian/oml2-proxycon/usr/bin
+
+	# Build the oml2-generator package
+	mv $(CURDIR)/debian/tmp/usr/bin/generator $(CURDIR)/debian/oml2-generator/usr/bin/oml2-generator
 
 	# Build the liboml2-dev package
 	mv $(CURDIR)/debian/tmp/usr/include/oml2 $(CURDIR)/debian/liboml2-dev/usr/include/

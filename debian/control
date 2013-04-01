@@ -10,6 +10,7 @@ Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
 Depends: ${misc:Depends}, libc6, libsqlite3-0, libpq5, libpopt0, libocomm1 (= ${Source-Version}), adduser
+Suggests: oml2-example
 Description: OML measurement server
  The OML server accepts connections from client applications and
  stores measurements that they transmit in a database.  Currently the
@@ -39,6 +40,20 @@ Description: OML proxy server control script
  OML proxy server via its socket control interface.  Allows users to PAUSE
  and RESUME transmission to the downstream server.
 
+Package: oml2-example
+Architecture: any
+Depends: oml2-generator (= ${Source-Version})
+Description: Example OML application (metapackage)
+ This metapackage pulls in an example OML application, useful to test server
+ and reporting chains setups.
+
+Package: oml2-generator
+Architecture: any
+Depends: ${misc:Depends}, libc6, libpopt0, liboml2-9 (= ${Source-Version}), libocomm1 (= ${Source-Version})
+Description: Example OML sine wave generator
+ A simple OML-instrumented sine wave generator, useful to test server and
+ reporting chains setups.
+
 Package: liboml2-dev
 Section: libdevel
 Architecture: any
@@ -55,7 +70,7 @@ Package: liboml2
 Section: libs
 Architecture: any
 Depends: liboml2-9 (= ${Source-Version})
-Description: OML: The Orbit Measurement Library (metapackage)
+Description: OML: The O? Measurement Library (metapackage)
  This metapackage pulls in the latest stable version of liboml2.
  .
  This library allows application writers to define customizable
@@ -69,7 +84,8 @@ Architecture: any
 Replaces: liboml
 Breaks: liboml (<< 2.4)
 Depends: libc6, libocomm1, libxml2, ${misc:Depends}
-Description: OML: The Orbit Measurement Library
+Suggests: oml2-example
+Description: OML: The O? Measurement Library
  This library allows application writers to define customizable
  measurement points in their applications to record measurements
  either to file, or to an OML server over the network (see the
@@ -88,7 +104,7 @@ Package: libocomm
 Section: libs
 Architecture: any
 Depends: libocomm1 (= ${Source-Version})
-Description: OComm:  Orbit Communications Library (metapackage)
+Description: OComm:  O? Communications Library (metapackage)
  This metapackage pulls in the latest stable version of libocomm.
  .
  This library provides a poll-based event loop and a set of functions
@@ -100,6 +116,6 @@ Architecture: any
 Replaces: liboml
 Breaks: liboml (<< 2.4)
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: OComm:  Orbit Communications Library
+Description: OComm:  O? Communications Library
  This library provides a poll-based event loop and a set of functions
  for doing event-based socket communication.
