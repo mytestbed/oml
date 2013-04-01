@@ -105,7 +105,7 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
 int
 omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValueT type, const char *fname)
 {
-  int i, ret = -1;
+  int ret = -1;
 
   OmlValueU v[3];
   omlc_zero_array(v, 3);
@@ -134,14 +134,13 @@ omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValu
       /* XXX: At the moment, MS are named as APPNAME_MPNAME.
        * Be consistent with it here, until #1055 is addressed */
       mstring_sprintf(subject, "%s_%s", omlc_instance->app_name, mp->name);
-      if (NULL != fname) {
-        /* Make sure fname exists in this MP */
-        /* XXX: This should probably be done in another function (returning the OmlMPDef? */
-        for (i = 0; (i < mp->param_count) && strcmp(mp->param_defs[i].name, fname); i++);
-        if (i >= mp->param_count) {
+      if (fname) {
+        if (find_mp_field(fname, mp) < 0) {
           logwarn("Field %s not found in MP %s, not reporting\n", fname, mp->name);
+
         } else {
           mstring_sprintf(subject, ".%s", fname);
+
         }
       }
     /* } */

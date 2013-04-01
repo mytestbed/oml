@@ -772,21 +772,28 @@ find_mp (const char *name)
   return mp;
 }
 
-/**
- * @brief Find a named field of an MP.
+/** \Find a named field of an MP.
+ * \param name name of the field to look up
+ * \param mp OmlMP to look for the field
  *
- * @param name name of the field to look up.
- * @return a valid index into the OmlMP's param_defs array, or -1 if not found.
+ * If either parameter is NULL, act as if the field wasn't found.
+ *
+ * \return a valid index into the OmlMP's param_defs array, or -1 if not found
  */
 int
 find_mp_field (const char *name, OmlMP *mp)
 {
   size_t i;
+  if (NULL == name || NULL == mp) { return -1; }
   size_t len = mp->param_count;
   OmlMPDef *fields = mp->param_defs;
-  for (i = 0; i < len; i++)
-    if (strcmp (name, fields[i].name) == 0)
+  for (i = 0; i < len; i++) {
+    logdebug("Searching MP %s for field '%s', found '%s'\n",
+        mp->name, name, fields[i].name);
+    if (strcmp (name, fields[i].name) == 0) {
       return i;
+    }
+  }
   return -1;
 }
 
