@@ -1,28 +1,15 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*!\file net_writer.c
-  \brief Implements a writer which sends results over the network
-*/
+/** \file text_writer.c
+ * \brief Serialise OML samples using the binary protocol \ref binprotocol.
+ */
 
 #include <stdlib.h>
 #include <stdlib.h>
@@ -42,38 +29,47 @@
 #define DEF_PROTOCOL "tcp"
 #define DEF_PORT 3003
 
-/**
- * \struct OmlNetWriter
- * \brief a structure that send the data to the server
- */
+/** An OmlWriter using the binary marshalling functions \ref binprotocol */
+typedef struct OmlBinWriter {
 
-typedef struct {
+  /*
+   * Fields from OmlWriter interface
+   */
 
+  /** \see OmlWriter::meta */
   oml_writer_meta meta;
+  /** \see OmlWriter::header_done */
   oml_writer_header_done header_done;
-
-  //! Called before and after writing individual
-  // filter results with 'out'
+  /** \see OmlWriter::row_start */
   oml_writer_row_start row_start;
+  /** \see OmlWriter::row_end */
   oml_writer_row_end row_end;
-
-  //! Writing a result.
+  /** \see OmlWriter::out */
   oml_writer_out out;
-
+  /** \see OmlWriter::close */
   oml_writer_close close;
-
+  /** \see OmlWriter::next */
   OmlWriter* next;
 
-  /**********************/
+  /*
+   * Fields specific to the OmlBinWriter
+   */
 
+  /** Buffered writer into which the serialised data is written */
   BufferedWriterHdl bufferedWriter;
-  MBuffer* mbuf;        /* Pointer to active buffer from bufferedWriter */
+  /** Currently active MBuffer of the bufferedWriter chain */
+  MBuffer* mbuf;
 
+  /** Output stream to write into, through teh bufferedWriter */
   OmlOutStream* out_stream;
 
-  int        is_enabled;
-  OmlBinMsgType msgtype; /* Type of messages to generate */
-} OmlBinProtoWriter;
+  /** Set to 1 when the writer is ready to use */
+  int is_enabled;
+
+  /* Type of messages to generate */
+  OmlBinMsgType msgtype;
+
+} OmlBinWriter;
 
 static int owb_meta(OmlWriter* writer, char* str);
 static int owb_header_done(OmlWriter* writer);
@@ -81,26 +77,26 @@ static int owb_header_done(OmlWriter* writer);
 static int owb_row_start(OmlWriter* writer, OmlMStream* ms, double now);
 static int owb_row_cols(OmlWriter* writer, OmlValue* values, int value_count);
 static int owb_row_end(OmlWriter* writer, OmlMStream* ms);
+
 static OmlWriter *owb_close(OmlWriter* writer);
 
-
-
-/**
- * \brief Create a new +OmlWriter+
- * \param protocol the transport protocol
- * \param location the host and the port number of the server
- * \return a new +OmlWriter+
+/** Create a new OmlBinWriter
+ * \param out_stream OmlOutStream into which the data should be written
+ *
+ * \return a pointer to the new OmlBinWriter cast as an OmlWriter
+ *
+ * \see BufferedWriter
  */
 OmlWriter*
-bin_writer_new(
-  OmlOutStream* out_stream
-) {
+bin_writer_new(OmlOutStream* out_stream)
+{
   assert(out_stream != NULL);
 
-  OmlBinProtoWriter* self = (OmlBinProtoWriter *)xmalloc(sizeof(OmlBinProtoWriter));
-  memset(self, 0, sizeof(OmlBinProtoWriter));
+  OmlBinWriter* self = (OmlBinWriter *)xmalloc(sizeof(OmlBinWriter));
+  memset(self, 0, sizeof(OmlBinWriter));
 
-  self->bufferedWriter = bw_create(out_stream->write, out_stream, omlc_instance->max_queue, 0);
+  self->bufferedWriter = bw_create(out_stream->write, out_stream,
+      omlc_instance->max_queue, 0);
   self->out_stream = out_stream;
 
   self->meta = owb_meta;
@@ -115,18 +111,18 @@ bin_writer_new(
   return (OmlWriter*)self;
 }
 
-/**
- * \brief Definition of the write_meta function of the oml net writer
- * \param writer the net writer that will send the data to the server
- * \param str the string to send
- * \return 1 if the socket is not open, 0 if successful
+/** Function called whenever some header metadata needs to be added.
+ * \see oml_writer_meta
+ *
+ * XXX: Code duplication with owt_meta in the OmlTextWriter (#1101)
  */
-static int owb_meta(
-  OmlWriter* writer,
-  char* str
-) {
-  OmlBinProtoWriter* self = (OmlBinProtoWriter*)writer;
-  if (self->bufferedWriter == NULL) return 0;
+static int
+owb_meta(OmlWriter* writer, char* str)
+{
+  OmlBinWriter* self = (OmlBinWriter*)writer;
+  if (self->bufferedWriter == NULL) {
+    return 0;
+  }
 
   MString *mstr = mstring_create();
   mstring_set (mstr, str);
@@ -136,77 +132,75 @@ static int owb_meta(
   return 1;
 }
 
-/**
- * \brief finish the writing of the first information
- * \param writer the writer that write this information
- * \return
+/** Function called to finalise meta header
+ * \see oml_writer_header_done
  */
-static int owb_header_done(
-  OmlWriter* writer
-) {
+static int
+owb_header_done(OmlWriter* writer)
+{
   return (owb_meta(writer, "content: binary") && owb_meta(writer, ""));
 }
 
-/**
- * \fn static int row_cols(OmlWriter* writer, OmlValue*  values, int value_count)
- * \brief marshal and then transfer the values
- * \param writer pointer to writer instance
- * \param values type of sample
- * \param value_count size of above array
- * \return 0 if sucessful 1 otherwise
+/** Function called for every result value in a measurement tuple (sample)
+ * \see oml_writer_out
+ * \see marshal_values
  */
-static int owb_row_cols(
-  OmlWriter* writer,
-  OmlValue*  values,
-  int        value_count
-) {
-  OmlBinProtoWriter* self = (OmlBinProtoWriter*)writer;
+static int
+owb_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
+{
+  OmlBinWriter* self = (OmlBinWriter*)writer;
   MBuffer* mbuf;
-  if ((mbuf = self->mbuf) == NULL) return 0; /* previous use of mbuf failed */
+  if ((mbuf = self->mbuf) == NULL) {
+    return 0; /* previous use of mbuf failed */
+  }
 
   int cnt = marshal_values(mbuf, values, value_count);
   return cnt == value_count;
 }
 
-/** Prepare a new marshalled message with sequence and time information in the writer's Mbuffer.
+/** Function called after all items in a tuple have been sent
+ * \see oml_writer_row_start
  *
- * This acquires a lock on the BufferedWriter (bw_get_write_buf(..., exclusive=1)).
+ * Prepare a new marshalled message with sequence and time information in the
+ * writer's Mbuffer.
  *
- * \param writer pointer to OmlWriter to write the data out on
- * \param ms pointer to OmlMStream outputting the data
- * \param now current timestamp
- * \return 1
+ * This acquires a lock on the BufferedWriter (bw_get_write_buf(...,
+ * exclusive=1)).
+ *
  * \see BufferedWriter, bw_get_write_buf, marshal_init, marshal_measurements
  * \see gettimeofday(3)
  */
-static int owb_row_start(OmlWriter* writer, OmlMStream* ms, double now)
+static int
+owb_row_start(OmlWriter* writer, OmlMStream* ms, double now)
 {
-  OmlBinProtoWriter* self = (OmlBinProtoWriter*)writer;
+  OmlBinWriter* self = (OmlBinWriter*)writer;
   assert(self->bufferedWriter != NULL);
 
   MBuffer* mbuf;
-  if ((mbuf = self->mbuf = bw_get_write_buf(self->bufferedWriter, 1)) == NULL)
+  if ((mbuf = self->mbuf = bw_get_write_buf(self->bufferedWriter, 1)) == NULL) {
     return 0;
+  }
 
   marshal_init (mbuf, self->msgtype);
   marshal_measurements(mbuf, ms->index, ms->seq_no, now);
   return 1;
 }
 
-/** Finalise the marshalled message and output it on the writer.
+/** Function called after all items in a tuple have been sent
+ * \see oml_writer_row_end
  *
  * This releases the lock on the BufferedWriter.
  *
- * \param writer pointer to OmlWriter to write the data out on
- * \param ms pointer to OmlMStream outputting the data
- * \return 1
- * \see BufferedWriter,bw_unlock_buf, marshal_finalize
+ * \see BufferedWriter, bw_unlock_buf, marshal_finalize
  */
-static int owb_row_end(OmlWriter* writer, OmlMStream* ms) {
+static int
+owb_row_end(OmlWriter* writer, OmlMStream* ms) {
   (void)ms;
-  OmlBinProtoWriter* self = (OmlBinProtoWriter*)writer;
+  OmlBinWriter* self = (OmlBinWriter*)writer;
   MBuffer* mbuf;
-  if ((mbuf = self->mbuf) == NULL) return 0; /* previous use of mbuf failed */
+  if ((mbuf = self->mbuf) == NULL) {
+    return 0; /* previous use of mbuf failed */
+  }
 
   marshal_finalize(self->mbuf);
   if (marshal_get_msgtype (self->mbuf) == OMB_LDATA_P)
@@ -219,24 +213,19 @@ static int owb_row_end(OmlWriter* writer, OmlMStream* ms) {
   return 1;
 }
 
-/** Close the binary writer and free data structures.
- *
- * This function is designed so it can be used in a while loop to clean up the
- * entire linked list:
- *
- *   while( (w=w->close(w)) );
- *
- * \param writer pointer to the writer to close
- * \return w->next (can be null)
+/** Function called to close the writer and free its allocated objects.
+ * \see oml_writer_close
  */
-static OmlWriter *owb_close(OmlWriter* writer)
+static OmlWriter*
+owb_close(OmlWriter* writer)
 {
   OmlWriter *next;
 
-  if(!writer)
+  if(!writer) {
     return NULL;
+  }
 
-  OmlBinProtoWriter *self = (OmlBinProtoWriter*) writer;
+  OmlBinWriter *self = (OmlBinWriter*) writer;
 
   next = self->next;
 
@@ -246,7 +235,6 @@ static OmlWriter *owb_close(OmlWriter* writer)
 
   return next;
 }
-
 
 /*
  Local Variables:

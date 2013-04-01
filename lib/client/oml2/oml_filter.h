@@ -1,24 +1,14 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file oml_filter.h
+ * \brief Abstract interface for filters.
  */
 #ifndef OML_FILTER_H_
 #define OML_FILTER_H_
@@ -30,7 +20,7 @@
 extern "C" {
 #endif
 
-struct _omlFilter;
+struct OmlFilter;
 
 /** Filter instance creation function.
  *
@@ -51,7 +41,7 @@ typedef void* (*oml_filter_create)(OmlValueT type, OmlValue* result);
  * \param value new value of the parameter, as a pointer to an OmlValue
  * \return 0 on success, -1 otherwise
  */
-typedef int (*oml_filter_set)(struct _omlFilter* filter, const char* name, OmlValue* value);
+typedef int (*oml_filter_set)(struct OmlFilter* filter, const char* name, OmlValue* value);
 
 /** Function called whenever a new sample is to be delivered to the filter.
  *
@@ -59,7 +49,7 @@ typedef int (*oml_filter_set)(struct _omlFilter* filter, const char* name, OmlVa
  * \param value new sample, as a pointer to an OmlValue
  * \return 0 on success, -1 otherwise
  */
-typedef int (*oml_filter_input)(struct _omlFilter* filter, OmlValue* value);
+typedef int (*oml_filter_input)(struct OmlFilter* filter, OmlValue* value);
 
 
 /** Function called whenever aggregated output is requested from the filter.
@@ -69,7 +59,7 @@ typedef int (*oml_filter_input)(struct _omlFilter* filter, OmlValue* value);
  * \param writer pointor to an OmlWriter in charge of outputting the aggregated sample
  * \return 0 on success, -1 otherwise
  */
-typedef int (*oml_filter_output)(struct _omlFilter* filter, struct _omlWriter* writer);
+typedef int (*oml_filter_output)(struct OmlFilter* filter, struct OmlWriter* writer);
 
 /** Optional function returning metainformation for complex outputs.
  *
@@ -88,10 +78,10 @@ typedef int (*oml_filter_output)(struct _omlFilter* filter, struct _omlWriter* w
  * \return 0 on success, -1 otherwise
  * \see omlf_register_filter, OmlFilterDef
  */
-typedef int (*oml_filter_meta)(struct _omlFilter* filter, int index_offset, char** namePtr, OmlValueT* type);
+typedef int (*oml_filter_meta)(struct OmlFilter* filter, int index_offset, char** namePtr, OmlValueT* type);
 
 /** Definition of a filter's output element. */
-typedef struct _omlFilterDef {
+typedef struct OmlFilterDef {
   /* Name of the filter output element */
   const char* name;
 
@@ -106,7 +96,7 @@ typedef struct _omlFilterDef {
  *
  * \see OmlFilterDef, oml_filter_create, oml_filter_set, oml_filter_input, oml_filter_output
  */
-typedef struct _omlFilter {
+typedef struct OmlFilter {
   /** Name of the filter (suffix for the aggregated output's name) */
   char name[64];
 
@@ -139,7 +129,7 @@ typedef struct _omlFilter {
   OmlValue *result;
 
   /** Filters are stored in a linked list for a given MP */
-  struct _omlFilter* next;
+  struct OmlFilter* next;
 } OmlFilter;
 
 /** Register a new filter type.

@@ -5,7 +5,7 @@
 @c %**end of header
 
 @copying
-Copyright @copyright{} 2009-11, NICTA
+Copyright @copyright{} 2009-2013, NICTA
 
 Locked Bag 9013 @*
 Alexandria NSW 1430 @*
@@ -931,7 +931,7 @@ Struct representing the definition of a filter's output, defined as
 follows:
 
 @example
-typedef struct _omlFilterDef
+typedef struct OmlFilterDef
 @{
         const char* name;
         OmlValueT   type;

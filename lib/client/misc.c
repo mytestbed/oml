@@ -1,30 +1,18 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*!\file misc.c
-  \brief Implements various common utility functions
-*/
+/** \file misc.c
+ * \brief Implements various common utility functions (XXX: Only mutex lock/unlock).
+ */
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <pthread.h>
 #include <errno.h>
 #include <string.h>
@@ -33,40 +21,36 @@
 #include "ocomm/o_log.h"
 #include "client.h"
 
-/**
- * \brief lock of the measurement point mutex
- * \param mp the measurement point
+/** Lock a measurement point mutex
+ * \param mp OmlMP to lock
  * \return 0 if successful, -1 otherwise
+ * \see mp_unlock, oml_lock
  */
 int
-mp_lock(
-  OmlMP* mp
-) {
+mp_lock(OmlMP* mp)
+{
   return oml_lock(mp->mutexP, mp->name);
 }
 
-/**
- * \brief unlock of the measurement point mutex
- * \param mp the measurement point
+/** Unlock a measurement point mutex
+ * \param mp OmlMP to unlock
+ * \see mp_lock, oml_unlock
  */
 void
-mp_unlock(
-  OmlMP* mp
-) {
+mp_unlock(OmlMP* mp)
+{
   oml_unlock(mp->mutexP, mp->name);
 }
 
-/**
- * \brief locks a mutex
- * \param mutexP Pointer to mutex
- * \param mutexName Name of mutex. Used for error reporting inly.
+/** Lock a mutex
+ * \param mutexP pointer to mutex lock
+ * \param mutexName name of mutex; used for error reporting only
  * \return 0 if successful, -1 otherwise
+ * \see oml_unlock
  */
 int
-oml_lock(
-  pthread_mutex_t* mutexP,
-  const char* mutexName
-) {
+oml_lock(pthread_mutex_t* mutexP, const char* mutexName)
+{
   if (mutexP) {
     if (pthread_mutex_lock(mutexP)) {
       logwarn("%s: Couldn't get mutex lock (%s)\n",
@@ -77,21 +61,33 @@ oml_lock(
   return 0;
 }
 
-/**
- * \brief unlocks a mutex
- * \param mutexP Pointer to mutex
- * \param mutexName Name of mutex. Used for error reporting inly.
+/** Unock a mutex
+ * \param mutexP pointer to mutex to unlock
+ * \param mutexName name of mutex; used for error reporting only
+ * \see oml_lock
  */
 void
-oml_unlock(
-  pthread_mutex_t* mutexP,
-  const char* mutexName
-) {
+oml_unlock(pthread_mutex_t* mutexP, const char* mutexName)
+{
   if (mutexP) {
     if (pthread_mutex_unlock(mutexP)) {
       logwarn("%s: Couldn't unlock mutex (%s)\n",
           mutexName, strerror(errno));
     }
+  }
+}
+
+/** Try to obtain a lock on the BufferedWriter until it succeeds
+ * \param mutexP pointer to mutex to unlock
+ * \param mutexName name of mutex; used for error reporting only
+ * \see oml_lock, oml_unlock
+ */
+void
+oml_lock_persistent(pthread_mutex_t* mutexP, const char* mutexName)
+{
+  while (oml_lock(mutexP, mutexName)) {
+    logwarn("Cannot get lock in %s; will try again soon.\n", mutexName);
+    sleep(1);
   }
 }
 

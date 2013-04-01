@@ -96,7 +96,7 @@ START_TEST (test_api_app_name_spaces)
 }
 END_TEST
 
-START_TEST (test_api_validate_mp_name)
+START_TEST (test_api_validate_name)
 {
   int res = validate_name (names_vector[_i].name);
   if (names_vector[_i].is_valid_name) {
@@ -107,7 +107,7 @@ START_TEST (test_api_validate_mp_name)
 }
 END_TEST
 
-START_TEST (test_api_mp_name_spaces)
+START_TEST (test_api_name_spaces)
 {
   OmlMPDef def [] =
     {
@@ -194,8 +194,8 @@ api_suite (void)
   TCase* tc_api_names = tcase_create("ApiNames");
 
   tcase_add_loop_test (tc_api_names, test_api_app_name_spaces, 0, LENGTH(names_vector));
-  tcase_add_loop_test (tc_api_names, test_api_validate_mp_name, 0, LENGTH(names_vector));
-  tcase_add_loop_test (tc_api_names, test_api_mp_name_spaces, 0, LENGTH(names_vector));
+  tcase_add_loop_test (tc_api_names, test_api_validate_name, 0, LENGTH(names_vector));
+  tcase_add_loop_test (tc_api_names, test_api_name_spaces, 0, LENGTH(names_vector));
   suite_add_tcase (s, tc_api_names);
 
   TCase* tc_api_func = tcase_create("ApiFunctions");

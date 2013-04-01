@@ -305,7 +305,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 OmlMP*
 omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 {
-  if (omlc_instance == NULL) return NULL;
+  if (omlc_instance == NULL) { return NULL; }
   if (!validate_name (mp_name)) {
     logerror("Found illegal MP name '%s'.  MP will not be created\n", mp_name);
     return NULL;
@@ -513,9 +513,7 @@ omlc_close(void)
   return 0;
 }
 
-/**
- * @brief print the possible OML parameters
- */
+/** Print the possible OML command line parameters */
 static void
 usage(void)
 
@@ -655,12 +653,11 @@ parse_dest_uri (const char *uri, const char **protocol, const char **path, const
     return -1;
 }
 
-/**
- * @brief Creates either a file writer or a network writer
- * @param uri the option file or server and the output
- * @param encoding the encoding to use for the stream output, either
- * SE_Text or SE_Binary.
- * @return a writer
+/** Create either a file writer or a network writer
+ * \param uri collection URI
+ * \param encoding StreamEncoding to use for the output, either SE_Text or SE_Binary
+ *
+ * \return a pointer to the new OmlWriter, or NULL on error
  */
 OmlWriter*
 create_writer(const char* uri, enum StreamEncoding encoding)
@@ -793,13 +790,10 @@ find_mp_field (const char *name, OmlMP *mp)
   return -1;
 }
 
-/**
- * @brief Create an MString containing a comma-separated list of the
- * fields of the MP.
+/** Create an MString containing a comma-separated list of the fields of the MP.
  *
- * @param mp the MP to summarize
- * @return the fields summary for mp.  The caller is repsonsible for
- * calling mstring_delete() to deallocate the returned MString.
+ * \param mp OmlMP to summarize
+ * \return the fields summary for mp.  The caller is repsonsible for calling mstring_delete() to deallocate the returned MString.
  */
 MString*
 mp_fields_summary (OmlMP *mp)
@@ -820,7 +814,6 @@ mp_fields_summary (OmlMP *mp)
 
   return s;
 }
-
 
 /** Find a named MStream among the streams attached to an MP.
  *
@@ -876,11 +869,7 @@ find_mstream (const char *name)
  * \return the new measurement stream, or NULL if an error occurred.
  */
 OmlMStream*
-create_mstream (const char *name,
-                OmlMP* mp,
-                OmlWriter* writer,
-                double sample_interval,
-                int sample_thres)
+create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_interval, int sample_thres)
 {
   if (!mp || !writer)
     return NULL;
@@ -963,8 +952,9 @@ destroy_ms(OmlMStream *ms)
   OmlMStream *next;
   OmlFilter *ft;
 
-  if(!ms)
+  if(!ms) {
     return NULL;
+  }
 
   logdebug("Destroying MS %s at %p\n", ms->table_name, ms);
 
@@ -977,12 +967,10 @@ destroy_ms(OmlMStream *ms)
 
   return next;
 }
-/**
+
+/** Loop through registered measurment points and define sample based filters with sampling rate '1' and 'FIRST' filters
  *
- * @brief Loop through registered measurment points and define sample
- * based filters with sampling rate '1' and 'FIRST' filters
- *
- * @return 0 if successful -1 otherwise
+ * \return 0 if successful, -1 otherwise
  */
 static int
 default_configuration(void)
@@ -1008,20 +996,22 @@ default_configuration(void)
   }
   return 0;
 }
-/**
- * @brief create the default filters
- * @param mp the associated measurement point
- * @param ns the associated measurement stream
+
+/** Create the default filters
+ * \param mp OmlMP to add filters to
+ * \param ns OmlMStream associated to mp
  */
 void
 create_default_filters(OmlMP *mp, OmlMStream *ms)
 {
-  if(!mp || !ms)
+  int j;
+
+  if(!mp || !ms) {
     return;
+  }
 
   int param_count = mp->param_count;
 
-  int j;
   OmlFilter* prev = NULL;
   for (j = 0; j < param_count; j++) {
     OmlMPDef def = mp->param_defs[j];
@@ -1038,12 +1028,12 @@ create_default_filters(OmlMP *mp, OmlMStream *ms)
     }
   }
 }
-/**
- * @brief Create a new filter for the measurement associated with the stream
- * @param def the oml definition
- * @param ms the stream to filter
- * @param index the index in the measurement point
- * @return a new filter
+
+/** Create a new filter for the measurement associated with the stream
+ * \param def OmlMPDef of the MP for which to create a filter
+ * \param ms OmlMStream in which the filter outputs its samples
+ * \param index index of the field to filter within this MP
+ * \return a new filter
  */
 OmlFilter*
 create_default_filter(OmlMPDef *def, OmlMStream *ms, int index)
@@ -1061,9 +1051,13 @@ create_default_filter(OmlMPDef *def, OmlMStream *ms, int index)
   OmlFilter* f = create_filter(fname, name, type, index);
   return f;
 }
-/**
- * @brief write the meta data for the application
- * @return 0 if successful
+
+/** Output the headers on all streams
+ *
+ * The OmlWriter associated with each stream is in charge of remembering them,
+ * and resending them in case of a disconnection
+ *
+ * \return 0 if successful
  */
 static int
 write_meta(void)
@@ -1101,11 +1095,12 @@ write_meta(void)
 }
 
 
-/**
- * @brief Write the different schemas of the application
- * @param ms the stream definition
- * @param index the index in the measurement points
- * @return 0 if successful
+/** Write the different schemas of the application
+ *
+ * \param ms the stream definition
+ * \param index the index in the measurement points, used to initialias OmlMStream::index
+ *
+ * \return 0 if successful
  */
 #define DEFAULT_SCHEMA_LENGTH 512
 static int

@@ -1,24 +1,17 @@
 /*
- * Copyright 2011-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2011-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file oml_out_stream.h
+ * \brief Abstract interface for output streams.
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * Various writers, and particularly the BufferedWriter, use this interface to
+ * output data into a stream (e.g., file or socket).
  */
 
 #ifndef OML_OUT_STREAM_H_
@@ -26,42 +19,41 @@
 
 #include <stdint.h>
 
-struct _omlOutStream;
-
-/*! Called to write a chunk to the lower level out stream
- *
- * Return number of sent bytes on success, -1 otherwise
- */
-typedef size_t (*oml_outs_write_f)(
-  struct _omlOutStream* outs,
-  uint8_t* buffer,
-  size_t   length,
-  uint8_t* header,
-  size_t   header_length
-);
-
-/*! Called to close the stream.
- *
- * Return 0 on success, -1 otherwise
- */
-typedef int
-(*oml_outs_close_f)(
-  struct _omlOutStream* writer //! pointer to writer instance
-);
-
-typedef struct _omlOutStream {
-  oml_outs_write_f write;
-  oml_outs_close_f close;
-} OmlOutStream;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-OmlOutStream*
-create_stream(
-  char* serverUri
+struct OmlOutStream;
+
+/** Write a chunk into the lower level out stream
+ *
+ * \param outs OmlOutStream to write into
+ * \param buffer pointer to the beginning of the data to write
+ * \param length length of data to read from buffer
+ * \param header pointer to the beginnig of header data to write
+ * \param header_length length of header data to write
+ *
+ * XXX: Why are header and normal data separate?
+ *
+ * \return the number of sent bytes on success, -1 otherwise
+ */
+typedef size_t (*oml_outs_write_f)(struct OmlOutStream* outs, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length
 );
+
+/** Close an OmlOutStream
+ *
+ * \param writer OmlOutStream to close
+ * \return 0 on success, -1 otherwise
+ */
+typedef int (*oml_outs_close_f)(struct OmlOutStream* writer);
+
+/** A low-level output stream */
+typedef struct OmlOutStream {
+  /** Pointer to a function in charge of writing into the stream \see oml_outs_write_f */
+  oml_outs_write_f write;
+  /** Pointer to a function in charge of closing the stream \see oml_outs_close_f */
+  oml_outs_close_f close;
+} OmlOutStream;
 
 #ifdef __cplusplus
 }

@@ -501,7 +501,7 @@ typedef struct _omlValue {
  *
  * An array of these create a full measurement point.
  * \see omlc_add_mp, OmlMP */
-typedef struct _omlMPDef
+typedef struct OmlMPDef
 {
     /** Name of the field */
     const char* name;
@@ -512,7 +512,7 @@ typedef struct _omlMPDef
 } OmlMPDef;
 
 /* Forward declaration, see below */
-struct _omlMStream;
+struct OmlMStream;
 
 /** Definition of a Measurement Point.
  *
@@ -522,7 +522,7 @@ struct _omlMStream;
  *
  * \see omlc_inject, OmlMStream, omlc_add_mp, OmlMP
  */
-typedef struct _omlMP
+typedef struct OmlMP
 {
     /** Name of this MP */
     const char* name;
@@ -536,7 +536,7 @@ typedef struct _omlMP
     int         table_count;
 
     /** Linked list of MSs */
-    struct _omlMStream* streams;
+    struct OmlMStream* streams;
 #define firstStream streams
 
     /** Set to 1 if this MP is active (i.e., there is at least one MS) */
@@ -548,13 +548,13 @@ typedef struct _omlMP
     pthread_mutex_t  mutex;
 
     /** Next MP in the instance's linked list */
-    struct _omlMP*   next;
+    struct OmlMP*   next;
 
 } OmlMP;
 
 /* Forward declaration from oml_filter.h */
-struct _omlFilter;   // can't include oml_filter.h yet
-struct _omlWriter;   // forward declaration
+struct OmlFilter;   // can't include oml_filter.h yet
+struct OmlWriter;   // forward declaration
 
 /** Definition of a Measurement Stream.
  *
@@ -567,7 +567,7 @@ struct _omlWriter;   // forward declaration
  *
  * \see OmlMP, OmlWriter, OmlFilter, omlc_inject
  */
-typedef struct _omlMStream
+typedef struct OmlMStream
 {
     /** Name of this stream (and, usually, the database table it get stored in) */
     char table_name[64];
@@ -580,7 +580,7 @@ typedef struct _omlMStream
 
 
     /** Linked list of the filters associated to this MS */
-    struct _omlFilter* filters;
+    struct OmlFilter* filters;
 #define firstFilter filters
 
     /** Index of this stream */
@@ -603,10 +603,10 @@ typedef struct _omlMStream
     pthread_t  filter_thread;
 
     /** Outputting function */
-    struct _omlWriter* writer;
+    struct OmlWriter* writer;
 
     /** Next MS in this MP's linked list */
-    struct _omlMStream* next;
+    struct OmlMStream* next;
 
     /** Output's sequence number for the metadata associated to this stream */
     long meta_seq_no;

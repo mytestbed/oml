@@ -72,9 +72,9 @@ typedef struct OmlClient {
 /** Global OmlClient instance */
 extern OmlClient* omlc_instance;
 
-// init.c
+/* from init.c */
 
-OmlMP * find_mp (const char *name);
+OmlMP *find_mp (const char *name);
 int find_mp_field (const char *name, OmlMP *mp);
 OmlMStream *find_mstream (const char *name);
 OmlMStream *find_mstream_in_mp (const char *name, OmlMP *mp);
@@ -87,74 +87,42 @@ OmlMP *destroy_mp(OmlMP *mp);
 OmlMStream *create_mstream( const char * name, OmlMP* mp, OmlWriter* writer, double sample_interval, int sample_thres);
 OmlMStream *destroy_ms(OmlMStream *ms);
 
-void
-create_default_filters(
-    OmlMP*      mp,
-    OmlMStream* ms
-);
+void create_default_filters(OmlMP* mp, OmlMStream* ms);
+OmlFilter* create_default_filter(OmlMPDef* def, OmlMStream* ms, int index);
 
-OmlFilter*
-create_default_filter(
-    OmlMPDef*   def,
-    OmlMStream* ms,
-    int         index
-);
+/* from filter.c */
 
-// filter.c
+void filter_engine_start(OmlMStream* mp);
+extern int filter_process(OmlMStream* mp);
 
-void
-filter_engine_start(
-  OmlMStream* mp
-);
+/* from misc.c */
 
-// misc.c
+int mp_lock(OmlMP* mp);
+void mp_unlock(OmlMP* mp);
 
-int
-mp_lock(
-  OmlMP* mp
-);
+int oml_lock(pthread_mutex_t* mutexP, const char* mutexName);
+void oml_unlock(pthread_mutex_t* mutexP, const char* mutexName);
+void oml_lock_persistent(pthread_mutex_t* mutexP, const char* mutexName);
 
-void
-mp_unlock(
-  OmlMP* mp
-);
+/* from (bin|text)_writer.c */
 
-int
-oml_lock(
-  pthread_mutex_t* mutexP,
-  const char* mutexName
-);
+extern OmlWriter *text_writer_new(OmlOutStream* out_stream);
+extern OmlWriter *bin_writer_new(OmlOutStream* out_stream);
 
-void
-oml_unlock(
-  pthread_mutex_t* mutexP,
-  const char* mutexName
-);
+/* from file_stream.c */
 
+extern OmlOutStream *file_stream_new(const char *file);
 
-
-extern OmlWriter*
-text_writer_new(OmlOutStream* out_stream);
-
-extern OmlWriter*
-bin_writer_new(OmlOutStream* out_stream);
-
-extern OmlOutStream*
-file_stream_new(const char *file);
 int file_stream_set_buffered(OmlOutStream* hdl, int buffered);
-int file_stream_get_buffered(OmlOutStream* hdl); 
+int file_stream_get_buffered(OmlOutStream* hdl);
 
-extern OmlOutStream*
-net_stream_new(const char *transport, const char *hostname, const char *port);
+/* from net_stream.c */
 
-extern int
-filter_process(OmlMStream* mp);
+extern OmlOutStream *net_stream_new(const char *transport, const char *hostname, const char *port);
 
-const char*
-validate_app_name (const char* name);
+/* from validate.c */
 
-const char*
-validate_mp_name (const char* name);
+const char *validate_app_name (const char* name);
 
 #endif /*CLIENT_H_*/
 

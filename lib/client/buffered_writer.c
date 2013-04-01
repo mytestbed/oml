@@ -1,28 +1,15 @@
 /*
- * Copyright 2011-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2011-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*!\file buffered_socket.c
-  \brief Implements a non-blocking, self-draining FIFO queue.
-*/
+/** \file buffered_writer.c
+ * \brief Implements a non-blocking, self-draining FIFO queue using threads.
+ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -38,64 +25,80 @@
 #include "client.h"
 #include "buffered_writer.h"
 
+/** Default target size in each MBuffer of the chain */
 #define DEF_CHAIN_BUFFER_SIZE 1024
 
-typedef struct _bufChain {
+/** A circular chain of buffers */
+typedef struct BufferChain {
 
-  struct _bufChain*  next;        //! Link to next buffer
+  /** Link to the next buffer in the chain */
+  struct BufferChain*  next;
 
-  MBuffer* mbuf;         //! expandable storage
+  /** MBuffer used for storage */
+  MBuffer* mbuf;
+  /** Target maximal size of mbuf for that link */
   size_t   targetBufSize;
 
-  int   reading;                //! set to 1 when reader is processing this chain
+  /** Set to 1 when the reader is processing this buffer */
+  int   reading;
 } BufferChain;
 
-typedef struct {
-  int  active;      //! true if buffer is active, false kills thread
+/** A writer reading from a BufferChain */
+typedef struct BufferedWriter {
+  /** Set to !0 if buffer is active; 0 kills the thread */
+  int  active;
 
-  long chainsAvailable;         //! Number of chains which can still be allocated
-  size_t chainLength;           //! Length of buffer in each chain
+  /** Number of links which can still be allocated */
+  long chainsAvailable;
+  /** Target size of MBuffer in each link */
+  size_t chainLength;
 
-  oml_outs_write_f  writeFunc;        //! Function to drain buffer - can block
-  OmlOutStream*     writeFuncHdl;     //! Opaque handler to above function
+  /** Function called to write the buffer out, can be blocking */
+  oml_outs_write_f  writeFunc;
+  /** Opaque handler to writeFunc */
+  OmlOutStream*     writeFuncHdl;
 
+  /** Chain where the data gets stored until it's pushed out */
+  BufferChain* writerChain;
+  /** Immutable entry into the chain */
+  BufferChain* firstChain;
 
-  BufferChain* writerChain; //! Chain to write/push to
-  BufferChain* firstChain;  //! Immutable entry into the chain
+  /** Buffer holding protocol headers */
+  MBuffer*     meta_buf;
 
-  MBuffer*     meta_buf; //! Buffer holding the meta data
-
-  pthread_mutex_t lock;         //! Mutex to protect this struct
+  /** Mutex protecting the object */
+  pthread_mutex_t lock;
+  /** Semaphore for this object */
   pthread_cond_t semaphore;
-  pthread_t  readerThread;  //! Thread for reading the queue and writing to socket
+  /** Thread in charge of reading the queue and writing the data out */
+  pthread_t  readerThread;
 
 } BufferedWriter;
-
 
 static BufferChain* getNextWriteChain(BufferedWriter* self, BufferChain* current);
 static BufferChain* createBufferChain(BufferedWriter* self);
 static int destroyBufferChain(BufferedWriter* self);
 static void* threadStart(void* handle);
 static int processChain(BufferedWriter* self, BufferChain* chain);
-static void oml_lock_persistent(BufferedWriter* self);
 
-
-/**
- * \fn BufferedWriterHdl* buffSocket_create(long queueCapacity)
- * \brief Create a BufferedWriter instance
- * \param queueCapaity the max. size of the internal queue
- * \param chunkSize the size of buffer space allocated at a time, set to 0 for default
- * \return an instance pointer if success, NULL if not.
+/** Create a BufferedWriter instance
+ * \param writeFunc oml_outs_write_f function in charge of draining the buffer, can block
+ * \param writeFuncHdl opaque OmlOutStream handler to writeFunc
+ * \param queueCapaity maximal size of the internal queue
+ * \param chunkSize size of buffer space allocated at a time, set to 0 for default
+ *
+ * \return an instance pointer if successful, NULL otherwise
  */
 BufferedWriterHdl
-bw_create(
-  oml_outs_write_f  writeFunc,        //! Function to drain buffer - can block
-  OmlOutStream*     writeFuncHdl,     //! Opaque handler to above function
-  long  queueCapacity,    /* size of queue before dropping stuff */
-  long  chunkSize
-) {
+bw_create(oml_outs_write_f writeFunc, OmlOutStream* writeFuncHdl, long  queueCapacity, long  chunkSize)
+{
+  if (writeFunc == NULL || writeFuncHdl == NULL ||
+      queueCapacity < 0 || chunkSize < 0) {
+    return NULL;
+  }
+
   BufferedWriter* self = (BufferedWriter*)xmalloc(sizeof(BufferedWriter));
-  if (self ==NULL) return NULL;
+  if (self == NULL) { return NULL; }
   memset(self, 0, sizeof(BufferedWriter));
 
   self->writeFunc = writeFunc;
@@ -127,7 +130,6 @@ bw_create(
   self->active = 1;
   pthread_create(&self->readerThread, &tattr, threadStart, (void*)self);
 
-
   return (BufferedWriterHdl)self;
 }
 
@@ -135,19 +137,20 @@ bw_create(
  *
  * \param instance handle (i.e., pointer) to a BufferedWriter
  */
-void bw_close(BufferedWriterHdl instance) {
+void
+bw_close(BufferedWriterHdl instance)
+{
   BufferedWriter *self = (BufferedWriter*)instance;
 
-  if(!self)
-    return;
+  if(!self) { return; }
 
-  if (oml_lock (&self->lock, "bw_close")) return;
+  if (oml_lock (&self->lock, __FUNCTION__)) { return; }
   self->active = 0;
 
   loginfo ("Waiting for buffered queue reader thread to drain...\n");
 
   pthread_cond_signal (&self->semaphore);
-  oml_unlock (&self->lock, "bw_close");
+  oml_unlock (&self->lock, __FUNCTION__);
   //  pthread_cond_destroy(&self->semaphore, NULL);
   switch (pthread_join (self->readerThread, NULL)) {
   case 0:
@@ -171,85 +174,81 @@ void bw_close(BufferedWriterHdl instance) {
   xfree(self);
 }
 
-/**
- * \fn bw_push(BufferedWriterHdl* buffSocket, void* chunk, long chunkSize)
- * \brief Add a chunk to the end of the queue.
+/** Add a chunk to the end of the queue.
  * \param instance BufferedWriter handle
  * \param chunk Pointer to chunk to add
  * \param chunkSize size of chunk
  * \return 1 if success, 0 otherwise
  */
 int
-bw_push(
-  BufferedWriterHdl instance,
-  uint8_t*  chunk,
-  size_t size
-) {
+bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
+{
   BufferedWriter* self = (BufferedWriter*)instance;
-  if (oml_lock(&self->lock, "bw_push")) return 0;
-  if (!self->active) return 0;
+  if (oml_lock(&self->lock, __FUNCTION__)) { return 0; }
+  if (!self->active) { return 0; }
 
   BufferChain* chain = self->writerChain;
-  if (chain == NULL) return 0;
+  if (chain == NULL) { return 0; }
 
   if (chain->mbuf->wr_remaining < size) {
     chain = self->writerChain = getNextWriteChain(self, chain);
   }
 
-  if (mbuf_write(chain->mbuf, chunk, size) < 0)
+  if (mbuf_write(chain->mbuf, chunk, size) < 0) {
     return 0;
+  }
 
   pthread_cond_signal(&self->semaphore);
 
-//  oml_unlock(&chain->lock, "bw_push");
-  oml_unlock(&self->lock, "bw_push");
+  oml_unlock(&self->lock, __FUNCTION__);
   return 1;
 }
 
-/**
- * \fn bw_push_meta(BufferedWriterHdl* buffSocket, void* chunk, long chunkSize)
- * \brief Add a chunk to the end of the meta description.
+/** Add a chunk to the end of the header buffer.
  *
  * \param instance BufferedWriter handle
- * \param chunk Pointer to chunk to add
+ * \param chunk pointer to chunk to add
  * \param chunkSize size of chunk
+ *
  * \return 1 if success, 0 otherwise
  */
 int
-bw_push_meta(
-  BufferedWriterHdl instance,
-  uint8_t*  chunk,
-  size_t size
-) {
+bw_push_meta(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
+{
   BufferedWriter* self = (BufferedWriter*)instance;
   int result = 0;
 
-  if (oml_lock(&self->lock, "bw_push")) return 0;
-  if (!self->active) return 0;
+  if (oml_lock(&self->lock, __FUNCTION__)) { return 0; }
+  if (!self->active) { return 0; }
 
   if (mbuf_write(self->meta_buf, chunk, size) > 0) {
     result = 1;
     pthread_cond_signal(&self->semaphore);
   }
-  oml_unlock(&self->lock, "bw_push_meta");
+  oml_unlock(&self->lock, __FUNCTION__);
   return result;
 }
 
-/**
- * \brief Return an MBuffer with exclusive write access
- * \return MBuffr instance if success, NULL otherwise
+/** Return an MBuffer with (optional) exclusive write access
+ *
+ * If exclusive access is required, the caller is in charge of releasing the
+ * lock with bw_unlock_buf.
+ *
+ * \param instance BufferedWriter handle
+ * \param exclusive indicate whether the entire BufferedWriter should be locked
+ *
+ * \return an MBuffer instance if success to write in, NULL otherwise
+ * \see bw_unlock_buf
  */
 MBuffer*
-bw_get_write_buf(
-  BufferedWriterHdl instance,
-  int exclusive
-) {
+bw_get_write_buf(BufferedWriterHdl instance, int exclusive)
+{
   BufferedWriter* self = (BufferedWriter*)instance;
-  if (oml_lock(&self->lock, "bw_get_write_buf")) return 0;
-  if (!self->active) return 0;
+  if (oml_lock(&self->lock, __FUNCTION__)) { return 0; }
+  if (!self->active) { return 0; }
 
   BufferChain* chain = self->writerChain;
-  if (chain == NULL) return 0;
+  if (chain == NULL) { return 0; }
 
   MBuffer* mbuf = chain->mbuf;
   if (mbuf_write_offset(mbuf) >= chain->targetBufSize) {
@@ -257,39 +256,41 @@ bw_get_write_buf(
     mbuf = chain->mbuf;
   }
   if (! exclusive) {
-    oml_unlock(&self->lock, "bw_get_write_buf");
+    oml_unlock(&self->lock, __FUNCTION__);
   }
   return mbuf;
 }
 
 
-/**
- * \brief Return and unlock MBuffer
+/** Return and unlock MBuffer
+ * \param instance BufferedWriter handle for which a buffer was previously obtained through bw_get_write_buf
+ *
+ * \see bw_get_write_buf
  */
 void
 bw_unlock_buf(BufferedWriterHdl instance)
 {
   BufferedWriter* self = (BufferedWriter*)instance;
   pthread_cond_signal(&self->semaphore); /* assume we locked for a reason */
-  oml_unlock(&self->lock, "bw_unlock_buf");
+  oml_unlock(&self->lock, __FUNCTION__);
 }
 
-// This function finds the next empty write chain, sets +self->writeChain+ to
-// it and returns.
-//
-// We only use the next one if it is empty. If not, we
-// essentially just filled up the last chain and wrapped
-// around to the socket reader. In that case, we either create a new chain
-// if the overall buffer can still grow, or we drop the data from the current one.
-//
-// This assumes that the current thread holds the +self->lock+ and the lock on
-// the +self->writeChain+.
-//
+/** Find the next empty write chain, sets self->writeChain to it and returns it.
+ *
+ * We only use the next one if it is empty. If not, we essentially just filled
+ * up the last chain and wrapped around to the socket reader. In that case, we
+ * either create a new chain if the overall buffer can still grow, or we drop
+ * the data from the current one.
+ *
+ * This assumes that the current thread holds the self->lock and the lock on
+ * the self->writeChain.
+ *
+ * \param self BufferedWriter pointer
+ * \param current BufferChain to use or from which to find the next
+ * \return a BufferChain in which data can be stored
+ */
 BufferChain*
-getNextWriteChain(
-  BufferedWriter* self,
-  BufferChain* current
-) {
+getNextWriteChain(BufferedWriter* self, BufferChain* current) {
   assert(current != NULL);
   BufferChain* nextBuffer = current->next;
   assert(nextBuffer != NULL);
@@ -323,14 +324,17 @@ getNextWriteChain(
   return resChain;
 }
 
+/** Initialise a BufferChain for a BufferedWriter.
+ * \param self BufferedWriter pointer
+ * \return a pointer to the newly-created BufferChain, or NULL on error
+ */
 BufferChain*
-createBufferChain(
-  BufferedWriter* self
-) {
+createBufferChain(BufferedWriter* self)
+{
   //  BufferChain* chain = (BufferChain*)malloc(sizeof(BufferChain) + self->chainLength);
 
   MBuffer* buf = mbuf_create2(self->chainLength, (size_t)(0.1 * self->chainLength));
-  if (buf == NULL) return NULL;
+  if (buf == NULL) { return NULL; }
 
   BufferChain* chain = (BufferChain*)xmalloc(sizeof(BufferChain));
   if (chain == NULL) {
@@ -364,8 +368,9 @@ int
 destroyBufferChain(BufferedWriter* self) {
   BufferChain *chain, *start;
 
-  if (!self)
+  if (!self) {
     return -1;
+  }
 
   /* BufferChain is a circular buffer */
   start = self->firstChain;
@@ -380,10 +385,9 @@ destroyBufferChain(BufferedWriter* self) {
 }
 
 
-/**
- * \fn static void* threadStart(void* handle)
- * \brief start the filter thread
+/** Writing thread
  * \param handle the stream to use the filters on
+ * \return NULL on error; this function should not return
  */
 static void*
 threadStart(void* handle)
@@ -411,17 +415,21 @@ threadStart(void* handle)
   return NULL;
 }
 
-// return 1 if chain has been fully sent, 0 otherwise
+/** Process the chain and send data
+ * \param selfBufferedWriter to process
+ * \param chain link of the chain to process
+ *
+ * \return 1 if chain has been fully sent, 0 otherwise
+ * \see oml_outs_write_f
+ */
 int
-processChain(
-  BufferedWriter* self,
-  BufferChain* chain
-) {
+processChain(BufferedWriter* self, BufferChain* chain)
+{
   uint8_t* buf = mbuf_rdptr(chain->mbuf);
   size_t size = mbuf_message_offset(chain->mbuf) - mbuf_read_offset(chain->mbuf);
   size_t sent = 0;
   chain->reading = 1;
-  oml_unlock(&self->lock, "processChain"); /* don't keep lock while transmitting */
+  oml_unlock(&self->lock, __FUNCTION__); /* don't keep lock while transmitting */
   MBuffer* meta = self->meta_buf;
 
   while (size > sent) {
@@ -442,7 +450,7 @@ processChain(
     }
   }
   // get lock back to see what happened while we were busy
-  oml_lock_persistent(self);
+  oml_lock_persistent(&self->lock, __FUNCTION__);
   mbuf_read_skip(chain->mbuf, sent);
   if (mbuf_write_offset(chain->mbuf) == mbuf_read_offset(chain->mbuf)) {
     // seem to have sent everything so far, reset chain
@@ -452,17 +460,6 @@ processChain(
     return 1;
   }
   return 0;
-}
-
-// Get lock and keep on retrying if it fails
-void
-oml_lock_persistent(
-  BufferedWriter* self
-) {
-  while (oml_lock(&self->lock, "bufferedWriter")) {
-    o_log (O_LOG_WARN, "Having problems obtaining lock in buffered writer. Will try again soon.\n");
-    sleep(1);
-  }
 }
 
 /*
