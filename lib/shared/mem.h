@@ -20,6 +20,15 @@ size_t xmemfreed();
 char *xmemsummary ();
 void xmemreport (int loglevel);
 
+/* Duplicate nil-terminated string
+ *
+ * \param str string to copy in the new xchunk
+ * \return the newly allocated xchunk, or NULL
+ * \see xstrndup
+ * \see strndup(3), strlen(3)
+ */
+#define xstrdup(str)  xstrndup((str), strlen((str)))
+
 #endif /* MEM_H__ */
 
 /*
