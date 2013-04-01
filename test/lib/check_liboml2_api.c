@@ -140,7 +140,7 @@ OmlMP *mp;
 
 START_TEST(test_api_basic)
 {
-  OmlMP *mp;
+  OmlMP *mp1, *mp2;
   OmlValueU value;
 
   o_set_log_level (2);
@@ -159,15 +159,20 @@ START_TEST(test_api_basic)
 
   fail_if(omlc_init("app", &argc, argv, NULL), "Error initialising OML");
 
-  mp = omlc_add_mp("MP", mpdef);
-  fail_if(mp == NULL, "Failed to add MP before omlc_start");
+  mp1 = omlc_add_mp("MP1", mpdef);
+  fail_if(mp1 == NULL, "Failed to add MP1 before omlc_start");
 
-  fail_unless(omlc_inject(mp, &value),
+  fail_unless(omlc_inject(mp1, &value),
       "omlc_inject() succeeded before omlc_start was called");
 
   fail_if(omlc_start(), "Error starting OML");
-  fail_if(omlc_inject(mp, &value),
+  fail_if(omlc_inject(mp1, &value),
       "omlc_inject() failed after omlc_start was called");
+
+  mp2 = omlc_add_mp("MP2", mpdef);
+  fail_if(mp2 == NULL, "Failed to add MP2 after omlc_start");
+  fail_if(omlc_inject(mp2, &value),
+      "omlc_inject() failed for second MP");
 
   fail_if(omlc_close(), "Error closing OML");
 }
@@ -203,8 +208,8 @@ START_TEST(test_api_metadata)
   fail_if(omlc_start(), "Error starting OML");
 
   /* Test argument validation */
-  fail_unless(-1 == omlc_inject_metadata(NULL, "k", &value, type, NULL),
-      "omlc_inject_metadata accepted a NULL MP");
+  fail_if(-1 == omlc_inject_metadata(NULL, "k", &value, type, NULL),
+      "omlc_inject_metadata refused a NULL MP");
   fail_unless(-1 == omlc_inject_metadata(mp, NULL, &value, type, NULL),
       "omlc_inject_metadata accepted a NULL key");
   fail_unless(-1 == omlc_inject_metadata(mp, "k", NULL, type, NULL),
