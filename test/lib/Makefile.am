@@ -61,6 +61,8 @@ CLEANFILES = \
 	check_liboml2_oml.log \
 	check_liboml2_log.log \
 	check_libshared_oml.log \
+	test_api_basic \
+	test_api_metadata \
 	test_fw_create_buffered
 
 STDDEV = $(srcdir)/stddev.py

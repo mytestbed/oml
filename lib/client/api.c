@@ -63,8 +63,13 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
   OmlMStream* ms;
   OmlValue v;
 
-  if (omlc_instance == NULL) return -1;
-  if (mp == NULL || values == NULL) return -1;
+  if (NULL == omlc_instance || omlc_instance->start_time <= 0) {
+    logerror("Cannot inject samples prior to calling omlc_init and omlc_start\n");
+    return -1;
+  }
+  if (mp == NULL || values == NULL) {
+    return -1;
+  }
 
   oml_value_init(&v);
 
@@ -111,8 +116,8 @@ omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValu
   omlc_zero_array(v, 3);
   MString *subject = mstring_create();
 
-  if (omlc_instance == NULL) {
-    logerror("Cannot inject metadata until omlc_start has been called\n");
+  if (NULL == omlc_instance || omlc_instance->start_time <= 0) {
+    logerror("Cannot inject metadata prior to calling omlc_init and omlc_start\n");
 
   } else if (!mp || !key || !value) {
     logwarn("Trying to inject metadata with missing mp, key and/or value\n");

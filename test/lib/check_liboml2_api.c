@@ -13,6 +13,7 @@
 #include <string.h>
 #include <check.h>
 
+#include "ocomm/o_log.h"
 #include "oml2/omlc.h"
 #include "oml_util.h"
 #include "oml_value.h"
@@ -131,58 +132,100 @@ START_TEST (test_api_name_spaces)
 }
 END_TEST
 
+OmlMPDef mpdef [] = {
+  { "label", OML_STRING_VALUE },
+  { NULL, (OmlValueT)0 }
+};
+OmlMP *mp;
 
+START_TEST(test_api_basic)
+{
+  OmlMP *mp;
+  OmlValueU value;
+
+  o_set_log_level (2);
+  logdebug("%s\n", __FUNCTION__);
+
+  /* XXX: Yuck */
+  const char* argv[] = {
+    "--oml-id", __FUNCTION__,
+    "--oml-domain", __FILE__,
+    "--oml-collect", "file:test_api_basic",
+    "--oml-log-level", "2"};
+  int argc = 8;
+
+  omlc_zero(value);
+  omlc_set_string(value, "1337");
+
+  fail_if(omlc_init("app", &argc, argv, NULL), "Error initialising OML");
+
+  mp = omlc_add_mp("MP", mpdef);
+  fail_if(mp == NULL, "Failed to add MP before omlc_start");
+
+  fail_unless(omlc_inject(mp, &value),
+      "omlc_inject() succeeded before omlc_start was called");
+
+  fail_if(omlc_start(), "Error starting OML");
+  fail_if(omlc_inject(mp, &value),
+      "omlc_inject() failed after omlc_start was called");
+
+  fail_if(omlc_close(), "Error closing OML");
+}
+END_TEST
 
 START_TEST(test_api_metadata)
 {
-  OmlMPDef mpdef [] =
-    {
-      { "label", OML_INT32_VALUE },
-      { NULL, (OmlValueT)0 }
-    };
   OmlMP *mp;
   OmlValueU value;
   OmlValueT type = OML_STRING_VALUE;
   omlc_zero(value);
+  omlc_set_string(value, "1337");
 
- /* XXX: Yuck */
- const char* argv[] = {"--oml-id", __FUNCTION__, "--oml-domain", __FILE__, "--oml-collect", "file:/dev/null"};
- int argc = 6;
+  o_set_log_level (2);
+  logdebug("%s\n", __FUNCTION__);
 
- fail_if(omlc_init("app", &argc, argv, NULL), "Error initialising OML");
- mp = omlc_add_mp("MP", mpdef);
- fail_if(mp == NULL, "Failed to add MP");
+  /* XXX: Yuck */
+  const char* argv[] = {
+    "--oml-id", __FUNCTION__,
+    "--oml-domain", __FILE__,
+    "--oml-collect", "file:test_api_metadata",
+    "--oml-log-level", "2"};
+  int argc = 8;
 
- fail_unless(-1 == omlc_inject_metadata(NULL, "k", &value, type, NULL),
-     "omlc_inject_metadata accepted to work before omlc_start()");
+  fail_if(omlc_init("app", &argc, argv, NULL), "Error initialising OML");
 
- fail_if(omlc_start(), "Error starting OML");
+  mp = omlc_add_mp("MP", mpdef);
+  fail_if(mp == NULL, "Failed to add MP");
 
- /* Test argument validation */
- fail_unless(-1 == omlc_inject_metadata(NULL, "k", &value, type, NULL),
-     "omlc_inject_metadata accepted a NULL MP");
- fail_unless(-1 == omlc_inject_metadata(mp, NULL, &value, type, NULL),
-     "omlc_inject_metadata accepted a NULL key");
- fail_unless(-1 == omlc_inject_metadata(mp, "k", NULL, type, NULL),
-     "omlc_inject_metadata accepted a NULL value");
+  fail_unless(-1 == omlc_inject_metadata(NULL, "k", &value, type, NULL),
+      "omlc_inject_metadata accepted to work before omlc_start()");
 
- omlc_set_string(value, "value");
- fail_unless(0 == omlc_inject_metadata(mp, "k", &value, type, NULL),
-     "omlc_inject_metadata refused valid metadata");
- fail_unless(0 == omlc_inject_metadata(mp, "k", &value, type, "label"),
-     "omlc_inject_metadata refused metadata for an existing field");
- omlc_reset_string(value);
+  fail_if(omlc_start(), "Error starting OML");
 
- for (type = OML_INPUT_VALUE; type <= OML_BLOB_VALUE; type++) {
-   if (type != OML_STRING_VALUE) {
-     fail_unless(-1 == omlc_inject_metadata((OmlMP *)-1, "k", &value, type, NULL),
-         "omlc_inject_metadata accepted a non-string value type");
-   }
- }
+  /* Test argument validation */
+  fail_unless(-1 == omlc_inject_metadata(NULL, "k", &value, type, NULL),
+      "omlc_inject_metadata accepted a NULL MP");
+  fail_unless(-1 == omlc_inject_metadata(mp, NULL, &value, type, NULL),
+      "omlc_inject_metadata accepted a NULL key");
+  fail_unless(-1 == omlc_inject_metadata(mp, "k", NULL, type, NULL),
+      "omlc_inject_metadata accepted a NULL value");
 
- fail_if(omlc_close(), "Error closing OML");
+  omlc_set_string(value, "value");
+  fail_unless(0 == omlc_inject_metadata(mp, "k", &value, type, NULL),
+      "omlc_inject_metadata refused valid metadata");
+  fail_unless(0 == omlc_inject_metadata(mp, "k", &value, type, "label"),
+      "omlc_inject_metadata refused metadata for an existing field");
 
- omlc_reset_string(value);
+  for (type = OML_INPUT_VALUE; type <= OML_BLOB_VALUE; type++) {
+    if (type != OML_STRING_VALUE) {
+      fail_unless(-1 == omlc_inject_metadata(NULL, "k", &value, type, NULL),
+          "omlc_inject_metadata accepted a non-string value type");
+    }
+  }
+
+  omlc_reset_string(value);
+
+  fail_if(omlc_close(), "Error closing OML");
 }
 END_TEST
 
@@ -199,6 +242,7 @@ api_suite (void)
   suite_add_tcase (s, tc_api_names);
 
   TCase* tc_api_func = tcase_create("ApiFunctions");
+  tcase_add_test(tc_api_func, test_api_basic);
   tcase_add_test(tc_api_func, test_api_metadata);
   suite_add_tcase (s, tc_api_func);
 

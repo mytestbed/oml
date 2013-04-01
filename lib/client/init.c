@@ -432,8 +432,9 @@ omlc_start()
     }
   }
   install_close_handler();
-  if (write_meta() == -1)
+  if (write_meta() == -1) {
     return -1;
+  }
   return 0;
 }
 
