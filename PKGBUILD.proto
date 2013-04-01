@@ -72,6 +72,15 @@ build() {
 package() {
 	cd "${srcdir}/${_builddir}"
 	make DESTDIR="${pkgdir}/" install
+	# XXX: We can only build the example application when we can find everything else
+	make -C example/liboml2 \
+		BINDIR="${pkgdir}/usr/bin" \
+		SCAFFOLD="${pkgdir}/usr/bin/oml2-scaffold" \
+		CFLAGS="-I${pkgdir}/usr/include" \
+		LDFLAGS="-L${pkgdir}/usr/lib" \
+		LIBS="-loml2 -locomm -lpopt -lm" \
+		install
+	mv ${pkgdir}/usr/bin/generator ${pkgdir}/usr/bin/oml2-generator
 	install -D -m 0644 ${srcdir}/${_builddir}/COPYING \
 		${pkgdir}/usr/share/licenses/${pkgname}/COPYING
 	install -D -m 0755 ${startdir}/oml2-server.rc ${pkgdir}/etc/rc.d/oml2-server
