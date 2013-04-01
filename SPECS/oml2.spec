@@ -17,7 +17,7 @@
 %define debug_package %{nil}
 
 BuildRoot:              %{_tmppath}/%{name}-%{version}-build
-Summary:                OML: The Orbit Measurement Library
+Summary:                OML: The O? Measurement Library
 License:                MIT
 URL:                    http://oml.mytestbed.net
 Name:                   %{name}
@@ -66,6 +66,14 @@ make %{?_smp_mflags}
 
 %install
 make DESTDIR=%{buildroot} install-strip
+make -C example/liboml2 \
+	     SCAFFOLD="%{buildroot}/usr/bin/oml2-scaffold" \
+	     BINDIR="%{buildroot}/usr/bin" \
+	     CFLAGS="-I%{buildroot}/usr/include" \
+	     LDFLAGS="-L%{buildroot}%{_libdir}" \
+	     LIBS="-loml2 -locomm -lpopt -lm" \
+	     install
+mv %{buildroot}/usr/bin/generator %{buildroot}/usr/bin/oml2-generator
 mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
 cp $RPM_SOURCE_DIR/init.d-oml2-server $RPM_BUILD_ROOT/etc/rc.d/init.d/oml2-server
 mkdir -p $RPM_BUILD_ROOT/usr/lib/systemd/system
@@ -120,6 +128,7 @@ exit 0
 %{_libdir}/liboml2.so
 %{_libdir}/libocomm.so
 %{_prefix}/include
+%{_prefix}/bin/oml2-generator
 %{_prefix}/bin/oml2_scaffold
 %{_prefix}/bin/oml2-scaffold
 %{_prefix}/share/oml2/liboml2/Makefile
