@@ -67,6 +67,15 @@ typedef struct OmlClient {
   int         max_queue;
   /** Default wire encoding for network streams */
   enum StreamEncoding default_encoding;
+
+  /* XXX: Move these fields up where they belong
+   * next time the library changes major */
+  /** Index of the next stream to create */
+  int next_ms_idx; /* XXX: after last_mpoint */
+
+  /** Default writer used when no configuration is provided by --oml-collect */
+  OmlWriter*  default_writer; /* XXX: after first_writer */
+
 } OmlClient;
 
 /** Global OmlClient instance */

@@ -119,8 +119,8 @@ omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValu
   if (NULL == omlc_instance || omlc_instance->start_time <= 0) {
     logerror("Cannot inject metadata prior to calling omlc_init and omlc_start\n");
 
-  } else if (!mp || !key || !value) {
-    logwarn("Trying to inject metadata with missing mp, key and/or value\n");
+  } else if (!key || !value) {
+    logwarn("Trying to inject metadata with missing key and/or value\n");
 
   } else if (! validate_name(key)) {
     logerror("%s is an invalid metadata key name\n", key);
@@ -129,13 +129,12 @@ omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValu
     logwarn("Currently, only OML_STRING_VALUE are valid as metadata value\n");
 
   } else {
-    assert(mp->name);
-
     mstring_set (subject, ".");
-    /* We don't support NULL MPs just yet, but this might come;
-     * this is for future-proofness when we lift the !mp test above.
-    if(NULL != mp ) {
-     */
+    if(NULL == mp) {
+      logdebug("%s: supplied MP is NULL, assuming experiment metadata\n",
+          __FUNCTION__);
+
+    } else {
       /* XXX: At the moment, MS are named as APPNAME_MPNAME.
        * Be consistent with it here, until #1055 is addressed */
       mstring_sprintf(subject, "%s_%s", omlc_instance->app_name, mp->name);
@@ -148,7 +147,7 @@ omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValu
 
         }
       }
-    /* } */
+    }
     omlc_set_string(v[0], mstring_buf(subject));
     omlc_set_string(v[1], key); /* We're not sure where this one comes from, so duplicate it */
     omlc_copy_string(v[2], *value);

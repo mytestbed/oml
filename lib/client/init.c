@@ -52,6 +52,8 @@ OmlMP *schema0;
 static void usage(void);
 static void print_filters(void);
 static int  default_configuration(void);
+static int default_mp_configuration(OmlMP *mp);
+static char *schemastr_from_mpdef(OmlMPDef *mpdef);
 static int  write_meta(void);
 static int  write_schema(OmlMStream* ms, int index);
 static void termination_handler(int signum);
@@ -284,6 +286,8 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
  * The returned OmlMP must be the first argument in every omlc_inject() call
  * for this specific measurement point.
  *
+ * XXX: The supplied name is not checked for existence.
+ *
  * The MP's input structure is defined by the mp_def parameter, it should be
  * initialised as this example shows.
  * \code {.c}
@@ -305,6 +309,13 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 OmlMP*
 omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 {
+  int pc = 0;
+  char *schemastr;
+  MString *meta;
+  OmlValueU v;
+
+  omlc_zero(v);
+
   if (omlc_instance == NULL) { return NULL; }
   if (!validate_name (mp_name)) {
     logerror("Found illegal MP name '%s'.  MP will not be created\n", mp_name);
@@ -316,7 +327,6 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 
   mp->name = mp_name;
   mp->param_defs = mp_def;
-  int pc = 0;
   OmlMPDef* dp = mp_def;
   while (dp != NULL && dp->name != NULL) {
     if (dp->param_types == OML_LONG_VALUE) {
@@ -337,6 +347,41 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
   }
   mp->param_count = pc;
   mp->active = 1;  // True if there is an attached MS.
+
+  if(omlc_instance->start_time > 0) {
+    /* omlc_start has already been called, declare MP through schema0 */
+    meta = mstring_create();
+    schemastr = schemastr_from_mpdef(mp_def);
+
+    /* Unlike how we manage schema0, we do prepend the application name to the
+     * MP name, even when declared after the start. This is mostly because that
+     * concatenation happens anyway on the client side, when creating the
+     * default filter configuration, and we don't want too many discrepancies
+     * between the client and servers views at this stage. See #1055. */
+    mstring_sprintf(meta, "%d %s_%s%s",
+        omlc_instance->next_ms_idx, omlc_instance->app_name, mp_name, schemastr);
+    xfree(schemastr);
+
+    logdebug("omlc_start already called, adding MP through schema 0: %s\n",
+        mstring_buf(meta));
+
+    omlc_set_string(v, mstring_buf(meta));
+    omlc_inject_metadata(NULL, "schema", &v, OML_STRING_VALUE, NULL);
+    omlc_reset_string(v);
+
+    mstring_delete(meta);
+
+    if (default_mp_configuration(mp)) {
+      logerror("Failed to create default filters for MP %s\n", mp_name);
+      xfree(mp);
+      return NULL;
+    }
+
+    /* At this stage, we only have one stream set up, and we now its index */
+    mp->streams->index = omlc_instance->next_ms_idx++;
+
+  }
+
   if (NULL == omlc_instance->mpoints) {
     omlc_instance->mpoints = mp;
   } else {
@@ -498,16 +543,18 @@ int
 omlc_close(void)
 {
 
-  if (omlc_instance == NULL) return -1;
+  if (omlc_instance == NULL) {
+    return -1;
+  }
 
   OmlWriter* w = omlc_instance->first_writer;
   OmlMP* mp = omlc_instance->mpoints;
-  omlc_instance = NULL;
 
   while( (mp = destroy_mp(mp)) );
   while( (w =  w->close(w)) );
 
   xfree(omlc_instance);
+  omlc_instance = NULL;
 
   xmemreport(O_LOG_DEBUG);
 
@@ -983,24 +1030,46 @@ destroy_ms(OmlMStream *ms)
 static int
 default_configuration(void)
 {
-  OmlWriter* writer;
-  if ((writer = create_writer(omlc_instance->collection_uri,
-                              omlc_instance->default_encoding)) == NULL) {
-    return -1;
+  OmlMP *mp;
+
+  if (NULL == omlc_instance->default_writer) {
+    if ((omlc_instance->default_writer =
+          create_writer(omlc_instance->collection_uri,
+            omlc_instance->default_encoding)
+        ) == NULL) {
+      return -1;
+    }
   }
 
-  int sample_count = omlc_instance->sample_count;
-  if (sample_count == 0)
-    sample_count = omlc_instance->sample_count = 1;
-  double sample_interval = omlc_instance->sample_interval;
+  if (0 == omlc_instance->sample_count) {
+    omlc_instance->sample_count = 1;
+  }
 
-  OmlMP* mp = omlc_instance->mpoints;
+  mp = omlc_instance->mpoints;
   while (mp != NULL) {
-    mp->streams = create_mstream (NULL, mp, writer, sample_interval, sample_count );
-    create_default_filters(mp, mp->streams);
-    if (sample_interval > 0)
-      filter_engine_start(mp->streams);
+    default_mp_configuration(mp);
     mp = mp->next;
+  }
+  return 0;
+}
+
+/** Set the default filter configuration for a single MP
+ * \param mp OmlMP for which to set the filter configuration
+ * \return 0 if successful, -1 otherwise
+ */
+static int
+default_mp_configuration(OmlMP *mp)
+{
+  if(NULL == omlc_instance || NULL == mp) {
+    return -1;
+  }
+  mp->streams = create_mstream (NULL, mp,
+      omlc_instance->default_writer,
+      omlc_instance->sample_interval,
+      omlc_instance->sample_count );
+  create_default_filters(mp, mp->streams);
+  if (omlc_instance->sample_interval > 0) {
+    filter_engine_start(mp->streams);
   }
   return 0;
 }
@@ -1060,6 +1129,38 @@ create_default_filter(OmlMPDef *def, OmlMStream *ms, int index)
   return f;
 }
 
+/** Generate the schema string describing an OmlMPDef
+ *
+ *  The generated schema starts with a space, so it can be directly
+ *  concatenated to, e.g., the MS name.
+ *
+ * \param mpdef OmlMPDef to describe
+ * \return an xmalloc'd string representation of the schema of OmlMPDef, to be xfree'd by the caller, or NULL on error
+ * \see xmalloc, xfree
+ */
+static char*
+schemastr_from_mpdef(OmlMPDef *mpdef)
+{
+  char *schema_str;
+  MString *schema_mstr;
+  OmlMPDef *dp = mpdef;
+  if (!mpdef && mpdef->name !=NULL) {
+    return NULL;
+  }
+
+  schema_mstr = mstring_create();
+
+  while (dp != NULL && dp->name != NULL) {
+    mstring_sprintf(schema_mstr, " %s:%s", dp->name,
+        oml_type_to_s(dp->param_types));
+    dp++;
+  }
+
+  schema_str = xstrdup(mstring_buf(schema_mstr)); /* XXX perhaps a bit too many memory allocations here... */
+  mstring_delete(schema_mstr);
+  return schema_str;
+}
+
 /** Output the headers on all streams
  *
  * The OmlWriter associated with each stream is in charge of remembering them,
@@ -1094,6 +1195,7 @@ write_meta(void)
     }
     mp = mp->next;
   }
+  omlc_instance->next_ms_idx = index;
 
   writer = omlc_instance->first_writer;
   for (; writer != NULL; writer = writer->next) {
