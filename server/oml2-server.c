@@ -261,7 +261,10 @@ static void on_connect(Socket* new_sock, void* handle)
 
 int main(int argc, char **argv)
 {
-  int c, i;
+  int c;
+#ifdef HAVE_LIBPQ
+  int i;
+#endif
 
   poptContext optCon = poptGetContext(NULL, argc, (const char**) argv, options, 0);
 
