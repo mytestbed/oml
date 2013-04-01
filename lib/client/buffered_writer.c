@@ -206,26 +206,52 @@ bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
 
 /** Add a chunk to the end of the header buffer.
  *
+ * This function tries to acquire the lock on the BufferedWriter, and releases
+ * it when done.
+ *
  * \param instance BufferedWriter handle
  * \param chunk pointer to chunk to add
  * \param chunkSize size of chunk
  *
  * \return 1 if success, 0 otherwise
+ *
+ * \see _bw_push_meta
  */
 int
 bw_push_meta(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
 {
   BufferedWriter* self = (BufferedWriter*)instance;
-  int result = 0;
+  int result;
 
   if (oml_lock(&self->lock, __FUNCTION__)) { return 0; }
+  result = _bw_push_meta(instance, chunk, size);
+  oml_unlock(&self->lock, __FUNCTION__);
+
+  return result;
+}
+
+/** Add a chunk to the end of the header buffer.
+ * \see bw_push_meta
+ *
+ * This function is the same as bw_push_meta except it assumes that the lock is
+ * already acquired.
+ */
+int
+_bw_push_meta(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
+{
+  BufferedWriter* self = (BufferedWriter*)instance;
+  int result = 0;
+
   if (!self->active) { return 0; }
 
   if (mbuf_write(self->meta_buf, chunk, size) > 0) {
     result = 1;
-    pthread_cond_signal(&self->semaphore);
+    /* XXX: There is no point in signalling the semaphore as the
+     * writer will not be able to do anything with the new data.
+     *
+     * Also, it puts everything in a deadlock otherwise */
+    /* pthread_cond_signal(&self->semaphore); */
   }
-  oml_unlock(&self->lock, __FUNCTION__);
   return result;
 }
 

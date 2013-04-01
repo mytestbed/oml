@@ -269,10 +269,33 @@ owt_row_end(OmlWriter* writer, OmlMStream* ms)
   int res;
   if ((res = mbuf_write(mbuf, (uint8_t*)"\n", 1)) != 0) {
     mbuf_reset_write(mbuf);
+
   } else {
     // success, lock in message
+    if (0 == ms->index) {
+      /* This is schema0, also push the data into the meta_buf
+       * to be replayed after a disconnection.
+       *
+       * At the moment, the oml_outs_write_f takes header information as a
+       * whole, but does not push more once it has sent the initial block. Its
+       * two last parameters are only used to resend the entirety of the headers
+       * when a disconnection does occur, nothing before.
+       *
+       * We therefore send the extra piece of data the normal way, but also
+       * record it, separately, in the meta_buf
+       *
+       * XXX: This logic should be in higher layer levels, but given the current
+       * implementation, with some of it already spread down into the
+       * OmlOutStream (oml_outs_write_f), this require a much bigger refactoring.
+       * It is also duplicated with the OmlBinWriter (see #1101).
+       */
+      _bw_push_meta(self->bufferedWriter,
+          mbuf_message(self->mbuf), mbuf_message_length(self->mbuf));
+    }
+
     mbuf_begin_write (mbuf);
   }
+
   self->mbuf = NULL;
   bw_unlock_buf(self->bufferedWriter);
   return res == 0;

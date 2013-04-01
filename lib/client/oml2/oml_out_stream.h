@@ -30,8 +30,8 @@ struct OmlOutStream;
  * \param outs OmlOutStream to write into
  * \param buffer pointer to the beginning of the data to write
  * \param length length of data to read from buffer
- * \param header pointer to the beginnig of header data to write
- * \param header_length length of header data to write
+ * \param header pointer to the beginning of header data to write in case of disconnection
+ * \param header_length length of header data to write in case of disconnection
  *
  * XXX: Why are header and normal data separate?
  *
