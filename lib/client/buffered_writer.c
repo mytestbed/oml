@@ -429,7 +429,6 @@ processChain(BufferedWriter* self, BufferChain* chain)
   size_t size = mbuf_message_offset(chain->mbuf) - mbuf_read_offset(chain->mbuf);
   size_t sent = 0;
   chain->reading = 1;
-  oml_unlock(&self->lock, __FUNCTION__); /* don't keep lock while transmitting */
   MBuffer* meta = self->meta_buf;
 
   while (size > sent) {
@@ -443,6 +442,8 @@ processChain(BufferedWriter* self, BufferChain* chain)
        * chain and try to resend everything - this is especially important
        * if the underlying stream needs to reopen and resync.
        */
+      /* XXX: Should we really do that? How about returning 0 and letting
+       * threadStart call us again?. See #1104 */
       mbuf_reset_read(chain->mbuf);
       size = mbuf_message_offset(chain->mbuf) - mbuf_read_offset(chain->mbuf);
       sent = 0;
@@ -450,7 +451,6 @@ processChain(BufferedWriter* self, BufferChain* chain)
     }
   }
   // get lock back to see what happened while we were busy
-  oml_lock_persistent(&self->lock, __FUNCTION__);
   mbuf_read_skip(chain->mbuf, sent);
   if (mbuf_write_offset(chain->mbuf) == mbuf_read_offset(chain->mbuf)) {
     // seem to have sent everything so far, reset chain
