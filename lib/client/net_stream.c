@@ -1,28 +1,15 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*!\file net_stream.c
-  \brief Implements an out stream which sends measurement tuples over the network
-*/
+/**\file net_stream.c
+ * \brief Implements an OmlOutStream stream which sends measurement tuples over the network
+ */
 
 #include <assert.h>
 #include <string.h>
@@ -41,35 +28,56 @@
 
 #define REATTEMP_INTERVAL 10    //! Seconds to wait before attempting to reach server again
 
-typedef struct _omlNetOutStream {
+/** OmlOutStream writing out to an OComm Socket */
+typedef struct OmlNetOutStream {
 
+  /*
+   * Fields from OmlOutStream interface
+   */
+
+  /** \see OmlOutStream::write, oml_outs_write_f */
   oml_outs_write_f write;
+  /** \see OmlOutStream::close, oml_outs_close_f */
   oml_outs_close_f close;
 
- //----------------------------
-  FILE* f;                      /* File to write result to */
+  /*
+   * Fields specific to the OmlNetOutStream
+   */
 
+  /** File to write result to
+   * XXX: This is a Network implementation, what is this field used for?
+   * Not removing to avoid altering the layout of the structure
+   */
+  FILE* f;
+
+  /** OComm Socket in which the data is writte */
   Socket*    socket;
 
+  /** Protocol used to establish the connection */
   const char*       protocol;
+  /** Host to connect to */
   const char*       host;
+  /** Port to connect to */
   int         port;
 
-  char  storage;                /* ALWAYS last. Holds parsed server URI string and extends
-                                 * beyond this structure, see +_new+ function. */
-  int   header_written;         // True if header has been written to file
+  /** Old storage, no longer used, kept for compatibility */
+  char  storage;
+
+  /** True if header has been written to the stream \see open_socket*/
+  int   header_written;
+
 } OmlNetOutStream;
 
 static int open_socket(OmlNetOutStream* self);
 static size_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
 static int net_stream_close(OmlOutStream* hdl);
-static size_t socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length);
+static ssize_t socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length);
 
-/**
- * \fn OmlOutStream* net_stream_new(char* serverURI)
- * \brief Create a new out stream for sending over the network
- * \param serverURI URI of communicating peer
- * \return a new +OmlOutStream+ instance
+/** Create a new out stream for sending over the network
+ * \param transport string representing the protocol used to establish the connection
+ * \param hostname string representing the host to connect to
+ * \param port string representing the port to connect to
+ * \return a new OmlOutStream instance
  */
 OmlOutStream*
 net_stream_new(const char *transport, const char *hostname, const char *port)
@@ -78,12 +86,11 @@ net_stream_new(const char *transport, const char *hostname, const char *port)
   OmlNetOutStream* self = (OmlNetOutStream *)malloc(sizeof(OmlNetOutStream));
   memset(self, 0, sizeof(OmlNetOutStream));
 
-  //  memcpy(&self->storage, serverURI, uriSize);
   self->protocol = (const char*)xstrndup (transport, strlen (transport));
   self->host = (const char*)xstrndup (hostname, strlen (hostname));
   self->port = atoi (port);
 
-  logdebug("Net_stream: connecting to host %s://%s:%d\n",
+  logdebug("OmlNetOutStream: connecting to host %s://%s:%d\n",
           self->protocol, self->host, self->port);
   socket_set_non_blocking_mode(0);
 
@@ -98,15 +105,12 @@ net_stream_new(const char *transport, const char *hostname, const char *port)
   return (OmlOutStream*)self;
 }
 
-/**
- * \brief Called to close the socket
- * \param writer the netwriter to close the socket in
- * \return 0
+/** Called to close the socket
+ * \see oml_outs_close_f
  */
 static int
-net_stream_close(
-  OmlOutStream* stream
-) {
+net_stream_close(OmlOutStream* stream)
+{
   OmlNetOutStream* self = (OmlNetOutStream*)stream;
 
   if (self->socket != 0) {
@@ -116,17 +120,33 @@ net_stream_close(
   return 0;
 }
 
+/** Signal handler
+ * \param signum received signal number
+ */
 static void
-termination_handler(int signum)
+signal_handler(int signum)
 {
   // SIGPIPE is handled by disabling the writer that caused it.
   if (signum == SIGPIPE) {
-    logwarn("Net_stream: caught SIGPIPE\n");
+    logwarn("OmlNetOutStream: caught SIGPIPE\n");
   }
 }
 
-static int open_socket(OmlNetOutStream* self)
+/** Open an OComm Socket with the parameters of this OmlNetOutStream
+ *
+ * This function tries to register a signal handler to catch closed sockets
+ * (SIGPIPE), but sometimes doesn't (XXX: the conditions need to be clarified).
+ *
+ * \param self OmlNetOutStream containing the parameters
+ * \return 1 on success, 0 on error
+ *
+ * \see signal_handler
+ */
+static int
+open_socket(OmlNetOutStream* self)
 {
+  struct sigaction new_action, old_action;
+
   if(self->socket) {
     socket_free(self->socket);
     self->socket = NULL;
@@ -140,43 +160,45 @@ static int open_socket(OmlNetOutStream* self)
     self->socket = sock;
     self->header_written = 0;
   } else {
-    logerror("Net_stream: unsupported transport protocol '%s'\n", self->protocol);
+    logerror("OmlNetOutStream: unsupported transport protocol '%s'\n", self->protocol);
     return 0;
   }
 
   // Catching SIGPIPE signals if the associated socket is closed
   // TODO: Not exactly sure if this is completely right for all application situations.
-  struct sigaction new_action, old_action;
-
-  new_action.sa_handler = termination_handler;
+  new_action.sa_handler =signal_handler;
   sigemptyset (&new_action.sa_mask);
   new_action.sa_flags = 0;
 
   sigaction (SIGPIPE, NULL, &old_action);
-  if (old_action.sa_handler != SIG_IGN)
+  /* XXX: Shouldn't we set up the handler ONLY if the old one is SIG_IGN? */
+  if (old_action.sa_handler != SIG_IGN) {
     sigaction (SIGPIPE, &new_action, NULL);
+  }
 
   return 1;
 }
 
+/** Called to write into the socket
+ * \see oml_outs_write_f
+ *
+ * If the connection needs to be re-established, header is sent first, then buffer,
+ *
+ * \see \see open_socket, socket_write
+ */
 static size_t
-net_stream_write(
-  OmlOutStream* hdl,
-  uint8_t* buffer,
-  size_t  length,
-  uint8_t* header,
-  size_t   header_length
-) {
+net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length)
+{
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;
 
   while (self->socket == NULL) {
-    loginfo ("Net_stream: attempting to connect to server at %s://%s:%d\n",
+    loginfo ("OmlNetOutStream: attempting to connect to server at %s://%s:%d\n",
              self->protocol, self->host, self->port);
     if (!open_socket(self)) {
-      logwarn("Net_stream: connection attempt failed, sleeping for %ds\n", REATTEMP_INTERVAL);
+      logwarn("OmlNetOutStream: connection attempt failed, sleeping for %ds\n", REATTEMP_INTERVAL);
       sleep(REATTEMP_INTERVAL);
     } else {
-      logdebug("Net_stream: connection to %s://%s:%d successful\n",
+      logdebug("OmlNetOutStream: connection to %s://%s:%d successful\n",
              self->protocol, self->host, self->port);
     }
   }
@@ -189,7 +211,7 @@ net_stream_write(
       // to deal with and we assume it doesn't happen.
       if (count > 0) {
         // PANIC
-        logerror("Net_stream: only wrote parts of the header; this might cause problem later on\n");
+        logerror("OmlNetOutStream: only wrote parts of the header; this might cause problem later on\n");
       }
       return 0;
     }
@@ -199,16 +221,22 @@ net_stream_write(
   return count;
 }
 
-static size_t
-socket_write(
-  OmlNetOutStream* self,
-  uint8_t* buffer,
-  size_t  length
-) {
+/** Do the actual writing into the OComm Socket, with error handling
+ * \param self OmlNetOutStream through which the data should be written
+ * \param buffer data to write
+ * \param length length of the data to write
+ *
+ * \return the size of data written, or -1 on error
+ *
+ * \see write(3)
+ */
+static ssize_t
+socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length)
+{
   int result = socket_sendto(self->socket, (char*)buffer, length);
 
   if (result == -1 && socket_is_disconnected (self->socket)) {
-    logwarn ("Net_stream: connection to server at %s://%s:%d was lost\n",
+    logwarn ("OmlNetOutStream: connection to server at %s://%s:%d was lost\n",
              self->protocol, self->host, self->port);
     self->socket = NULL;      // Server closed the connection
   }
