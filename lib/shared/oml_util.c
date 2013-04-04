@@ -1,24 +1,14 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file oml_util.c
+ * \brief Various utility functions, mainly strings and memory-buffer related.
  */
 #include <stdio.h> // For snprintf
 #include <stdlib.h>
@@ -117,31 +107,62 @@ const char* find_charn(const char *str, char c, int len)
  */
 char* to_octets(unsigned char *buf, int len)
 {
-  const int octet_width = 3;
+  const int octet_width = 2;
   const int columns = 16;
-  const int rows = len / columns + 2; /* Integer division, and first line */
-  char *out = xmalloc (1 + rows * (octet_width * columns + 8)); /* Each row has 8 non-data characters (numbers and spaces) */
+  len = (len>0xff)?0xff:len; /* Limit the output to something manageable */
+  const int rows = len / columns + 2; /* Integer division plus first line */
+  /* Each row has 7 non-data characters (numbers and spaces), one more space, and columns*ASCII characters, plus a '\n' */
+  const int rowlength = (octet_width * columns + 7 + 1 + columns + 1);
+  const int outlength = rows * rowlength + 1;
+  char *out = xmalloc (outlength);
+  char strrep[columns + 1];
   int n = 0, i, col, rw=0;
+
+  strrep[columns] = 0;
 
   if(out) {
     /* Don't forget nil-terminator in snprintf's size */
-    n += snprintf(out, columns * octet_width + 9, "   0 1 2 3  4 5 6 7   8 9 a b  c d e f\n%2x ", rw++);
-    for (i = 0, col = 1; i < len; i++, col++) {
-      n += snprintf(&out[n], octet_width + 1, "%02x", (unsigned int)buf[i]);
+    n += snprintf(out, outlength - n, "   0 1 2 3  4 5 6 7   8 9 a b  c d e f  0123456789abcdef\n%2x ", rw++);
+    for (i = 0; i < len; i++) {
+      col = i % columns;
 
-      /* Add some spacing for readability */
-      if (col >= columns) {
-        n += snprintf(&out[n], 5, "\n%2x ", rw++);
-        col = 0;
-      } else if (col > 0) {
-        if(0 == (col % 8)) {
-          n += snprintf(&out[n], 3, "  ");
-        } else if (0 == (col % 4)) {
-          n += snprintf(&out[n], 2, " ");
-        }
+      if (i == 0) {
+        while(0); /* Do nothing */
+
+      } else if (col == 0) {
+        n += snprintf(&out[n], outlength - n,  " %s\n%2x ", strrep, rw++);
+
+        /* Add some spacing for readability */
+      } else if(0 == (col % 8)) {
+        n += snprintf(&out[n], outlength - n, "  ");
+
+      } else if (0 == (col % 4)) {
+        n += snprintf(&out[n], outlength - n, " ");
+      }
+
+      n += snprintf(&out[n], outlength - n, "%02x", (unsigned int)buf[i]);
+      if (isprint(buf[i])) {
+        strrep[col] = buf[i];
+      } else {
+        strrep[col] = '.';
       }
     }
+    if(col != 0) {
+      while(++col<columns) {
+        /* Add padding to align ASCII output */
+        if (0 == (col % 8)) {
+          n += snprintf(&out[n], outlength - n, "    ");
+        } else if (0 == (col % 4)) {
+          n += snprintf(&out[n], outlength - n, "   ");
+        } else {
+          n += snprintf(&out[n], outlength - n, "  ");
+        }
+      }
+      strrep[col] = 0;
+      n += snprintf(&out[n], outlength - n, " %s", strrep);
+    }
   }
+  out[outlength - 1] = 0;
 
   return out;
 }
