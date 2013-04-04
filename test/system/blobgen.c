@@ -176,9 +176,6 @@ run (void)
   OmlValueU v[3];
   omlc_zero_array(v, 3);
 
-  /* XXX: Need to wait some time in order not to confuse... something? See #1072. */
-  usleep(1000000);
-
   /* Piggyback on v[0] which should later contain a string */
   omlc_set_string(v[0], "v1");
   omlc_inject_metadata(mp, "k1", &v[0], OML_STRING_VALUE, NULL);
