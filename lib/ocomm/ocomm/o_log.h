@@ -1,30 +1,15 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*! \file o_log.h
-  \brief Header file for generic log functions
-  \author Max Ott (max@winlab.rutgers.edu)
+/**\file log.c
+ * \brief Logging functions prototypes.
  */
-
 
 #ifndef O_LOG_H
 #define O_LOG_H
@@ -62,62 +47,53 @@ extern "C" {
  * \param log_level log level for the message
  * \param format format string
  * \param ... arguments for the format string
+ *
+ * \see o_set_log
  */
 typedef void (*o_log_fn)(int log_level, const char* format, ...);
-/** The o_vlog_fn function pointer is for vararg-based log functions.
- *
- * A typical function will check that the log_level is larger than the
- * o_log_level, then report the message by creating a string from the format
- * and varargs.
- *
- * \code{.c}
- * if (level > o_log_level) return;
- * vfprintf(stderr, format, va);
- * \endcode
- *
- * This function will then be used on calls to o_vlog()
- *
- * \param log_level log level for the message
- * \param format format string
- * \param va vararg list
- */
-typedef void (*o_vlog_fn)(int log_level, const char* format, va_list va);
 
-/** Current logging function.
- * The default function internally parses the format string and arguments as a
- * vararg, and calls the associated o_vlog_fn which does the actual work.
+/** Log a message following the current logging parameters.
+ *
+ * Output will be rate-limited, and timestamped (except on stderr).
+ * One should however use the convenience functions logerror(), logwarn(),
+ * loginfo() and logdebug() for user-facing code.
+ *
+ * \param level log level for the message
+ * \param fmt format string
+ * \param ... format string arguments
+ *
+ * \see logerror, logwarn, loginfo, logdebug
+ * \see o_set_log_file, o_set_log_level, o_set_log, o_set_simplified_logging
  */
-extern o_log_fn o_log;
-/** Current vararg logging function.
- * The default function does the actually message outputting job.
- */
-extern o_vlog_fn o_vlog;
+void o_log(int level, const char* fmt, ...);
 
-/** Set the format-based log function if non NULL, or the default one */
+/** Direct the log stream to the named file.
+ * \param name name of the file to write log into (if '-' or NULL, defaults to stderr)
+ */
+void o_set_log_file(char* name);
+
+/** Set the log level below which messages should be displayed.
+ * \param level log level
+ * \see o_log, o_log_level
+ */
+void o_set_log_level(int level);
+
+/** Set the format string-based log function if non NULL, or o_log_simplified
+ * \param log_fn function to use for logging
+ * \return the current logging function
+ */
 o_log_fn o_set_log(o_log_fn log_fn);
-/** Set the vararg-based vlog function if non NULL, or the default one */
-o_vlog_fn o_set_vlog(o_vlog_fn vlog_fn);
 
-/*! \fn void o_set_log_file(char* name)
-  \brief Set the file to send log messages to, '-' for stdout
-  \param name Name of logfile
-*/
-void
-o_set_log_file(char* name);
-
-/*! \fn void o_set_log_level(int level)
-  \brief Set the level at which to print log message.
-  \param level Level at which to start printing log messages
-*/
-void
-o_set_log_level(int level);
-
+/** Reset the logging function to the internal default */
 void o_set_simplified_logging (void);
 
-
+/** Convenience function logging at level O_LOG_ERROR. */
 void logerror (const char *fmt, ...);
+/** Convenience function logging at level O_LOG_WARN. */
 void logwarn (const char *fmt, ...);
+/** Convenience function logging at level O_LOG_INFO. */
 void loginfo (const char *fmt, ...);
+/** Convenience function logging at level O_LOG_DEBUG. */
 void logdebug (const char *fmt, ...);
 
 #ifdef __cplusplus
