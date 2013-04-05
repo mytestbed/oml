@@ -1,26 +1,15 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/** Public API of the OML client library. */
+/** \file omlc.h
+ * \brief Public API of the OML client library.
+ */
 
 #ifndef OML_OMLC_H_
 #define OML_OMLC_H_
@@ -32,16 +21,11 @@
 #include <pthread.h>
 #include <ocomm/o_log.h>
 
-/** Declaration from internal "mem.h" */
-void *xmalloc (size_t size);
-void xfree (void *ptr);
-size_t xmalloc_usable_size(void *ptr);
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum _omlValueE {
+typedef enum OmlValueT {
   /* Meta value types */
   OML_DB_PRIMARY_KEY = -3,
   OML_INPUT_VALUE = -2,
@@ -70,7 +54,7 @@ typedef enum _omlValueE {
 
 #define omlc_is_numeric_type(t)                             \
   ((omlc_is_integer_type(t)) ||                             \
-  ((t) == OML_DOUBLE_VALUE))
+   ((t) == OML_DOUBLE_VALUE))
 
 #define omlc_is_string_type(t) \
   ((t) == OML_STRING_VALUE)
@@ -95,39 +79,36 @@ typedef enum _omlValueE {
 #define omlc_is_bool(v) \
   omlc_is_bool_type((v).type)
 
-/**  Representation of a string measurement value.
- */
-typedef struct _omlString {
-  /** pointer to a nul-terminated C string */
+/**  Representation of a string measurement value.  */
+typedef struct OmlString {
+  /** Pointer to a nil-terminated C string */
   char *ptr;
 
-  /** length of string */
+  /** Length of string pointed to by ptr */
   size_t length;
 
-  /** size of the allocated underlying storage (>= length + 1) */
+  /** Size of the allocated underlying storage in ptr (>= length + 1) */
   size_t size;
 
-  /** true if ptr references const storage */
-  int   is_const;
+  /** True if ptr references const storage */
+  int is_const;
 
 } OmlString;
 
-/**  Representation of a blob measurement value.
- */
-typedef struct _omlBlob {
-  /** pointer to blob data storage */
+/**  Representation of a blob measurement value.  */
+typedef struct OmlBlob {
+  /** Pointer to blob data storage */
   void *ptr;
 
-  /** length of the blob */
+  /** Length of the blob pointed to by ptr */
   size_t length;
 
-  /** size of the allocated underlying storage (>= length) */
+  /** Size of the allocated underlying storage in ptr (>= length) */
   size_t size;
 
 } OmlBlob;
 
-/** An opaque type to represent globally unique IDs.
- */
+/** An opaque type to represent globally unique IDs.  */
 typedef uint64_t oml_guid_t;
 
 #define OMLC_GUID_NULL ((oml_guid_t) 0)
@@ -147,7 +128,7 @@ typedef uint64_t oml_guid_t;
  * \see omlc_zero, omlc_zero_array, omlc_reset_string, omlc_reset_blob
  * \see oml_value_init, oml_value_array_init, oml_value_reset, oml_value_array_reset
  */
-typedef union _omlValueU {
+typedef union OmlValueU {
   long      longValue;
   double    doubleValue;
   OmlString stringValue;
@@ -159,6 +140,14 @@ typedef union _omlValueU {
   oml_guid_t    guidValue;
   uint8_t   boolValue;
 } OmlValueU;
+
+/* Declarations from internal "mem.h", to be used in the macros below
+ * 
+ * DO NOT USE DIRECTLY IN CLIENT APPLICATIONS!
+ */
+void *xmalloc (size_t size);
+void xfree (void *ptr);
+size_t xmalloc_usable_size(void *ptr);
 
 /** Zero out a freshly declared OmlValueU.
  *
@@ -184,7 +173,7 @@ typedef union _omlValueU {
  * \param var OmlValueU to manipulate
  * \param type type of data contained in the OmlValueU
  * \return the value
- * \see omlc_get_int32, omlc_get_uint32, omlc_get_int64, omlc_get_uint64, omlc_get_double
+ * \see omlc_get_int32, omlc_get_uint32, omlc_get_int64, omlc_get_uint64, omlc_get_double, omlc_get_guid, omlc_get_bool
  */
 #define _omlc_get_intrinsic_value(var, type) \
   ((var).type ## Value)
@@ -199,7 +188,7 @@ typedef union _omlValueU {
  * \param type type of data contained in the OmlValueU
  * \param val value to store in the OmlValueU
  * \return the new value (val)
- * \see omlc_set_int32, omlc_set_uint32, omlc_set_int64, omlc_set_uint64, omlc_set_double
+ * \see omlc_set_int32, omlc_set_uint32, omlc_set_int64, omlc_set_uint64, omlc_set_double, omlc_set_guid, omlc_get_bool
  */
 #define _omlc_set_intrinsic_value(var, type, val) \
   ((var).type ## Value = (val))
@@ -270,8 +259,7 @@ typedef union _omlValueU {
 #define _oml_get_storage_field(var, type, field) \
   ((var).type ## Value.field)
 
-/** Set fields of an OmlValueU containing pointer to possibly dynamically
- * allocated storage.
+/** Set fields of an OmlValueU containing pointer to possibly dynamically allocated storage.
  *
  * DO NOT USE THIS MACRO DIRECTLY!
  *
@@ -288,7 +276,6 @@ typedef union _omlValueU {
  */
 #define _oml_set_storage_field(var, type, field, val) \
   ((var).type ## Value.field = (val))
-
 
 /** \see _oml_get_storage_field */
 #define omlc_get_string_ptr(var) \
@@ -374,8 +361,7 @@ typedef union _omlValueU {
     _oml_set_storage_field((var), type, length, 0);       \
   } while(0)
 
-/** Copy data into the dedicated storage of an OmlValueU, allocating memory if
- * needed.
+/** Copy data into the dedicated storage of an OmlValueU, allocating memory if needed.
  *
  * DO NOT USE THIS MACRO DIRECTLY!
  *
@@ -503,7 +489,7 @@ typedef union _omlValueU {
  *
  * \see oml_value_init, oml_value_array_init, oml_value_reset,oml_value_array_reset
  */
-typedef struct _omlValue {
+typedef struct OmlValue {
   /** Type of value */
   OmlValueT type;
 
@@ -517,13 +503,12 @@ typedef struct _omlValue {
  *
  * An array of these create a full measurement point.
  * \see omlc_add_mp, OmlMP */
-typedef struct OmlMPDef
-{
-    /** Name of the field */
-    const char* name;
+typedef struct OmlMPDef {
+  /** Name of the field */
+  const char* name;
 
-    /** Type of the field */
-    OmlValueT  param_types;
+  /** Type of the field */
+  OmlValueT  param_types;
 
 } OmlMPDef;
 
@@ -538,33 +523,32 @@ struct OmlMStream;
  *
  * \see omlc_inject, OmlMStream, omlc_add_mp, OmlMP
  */
-typedef struct OmlMP
-{
-    /** Name of this MP */
-    const char* name;
+typedef struct OmlMP {
+  /** Name of this MP */
+  const char* name;
 
-    /** Array of the fields of this MP */
-    OmlMPDef*   param_defs;
-    /** Length of the param_defs (i.e., number of fields) */
-    int         param_count;
+  /** Array of the fields of this MP */
+  OmlMPDef*   param_defs;
+  /** Length of the param_defs (i.e., number of fields) */
+  int         param_count;
 
-    /** Number of MSs associated to this MP */
-    int         table_count;
+  /** Number of MSs associated to this MP */
+  int         table_count;
 
-    /** Linked list of MSs */
-    struct OmlMStream* streams;
+  /** Linked list of MSs */
+  struct OmlMStream* streams;
 #define firstStream streams
 
-    /** Set to 1 if this MP is active (i.e., there is at least one MS) */
-    int         active;
+  /** Set to 1 if this MP is active (i.e., there is at least one MS) */
+  int         active;
 
-    /** Mutex for the streams list */
-    pthread_mutex_t* mutexP;
-    /** Mutex for this storage */
-    pthread_mutex_t  mutex;
+  /** Mutex for the streams list */
+  pthread_mutex_t* mutexP;
+  /** Mutex for this storage */
+  pthread_mutex_t  mutex;
 
-    /** Next MP in the instance's linked list */
-    struct OmlMP*   next;
+  /** Next MP in the instance's linked list */
+  struct OmlMP*   next;
 
 } OmlMP;
 
@@ -583,49 +567,48 @@ struct OmlWriter;   // forward declaration
  *
  * \see OmlMP, OmlWriter, OmlFilter, omlc_inject
  */
-typedef struct OmlMStream
-{
-    /** Name of this stream (and, usually, the database table it get stored in) */
-    char table_name[64];
+typedef struct OmlMStream {
+  /** Name of this stream (and, usually, the database table it get stored in) */
+  char table_name[64];
 
-    /** MP associated to this stream */
-    OmlMP* mp;
+  /** MP associated to this stream */
+  OmlMP* mp;
 
-    /** Current output values */
-    OmlValue** values;
+  /** Current output values */
+  OmlValue** values;
 
 
-    /** Linked list of the filters associated to this MS */
-    struct OmlFilter* filters;
+  /** Linked list of the filters associated to this MS */
+  struct OmlFilter* filters;
 #define firstFilter filters
 
-    /** Index of this stream */
-    int index;
+  /** Index of this stream */
+  int index;
 
-    /** Number of samples received in the last window */
-    int sample_size;
-    /** Number of samples to receive before producing an output (if > 1)*/
-    int sample_thres;
+  /** Number of samples received in the last window */
+  int sample_size;
+  /** Number of samples to receive before producing an output (if > 1)*/
+  int sample_thres;
 
-    /** Interval between periodic reporting [s] */
-    double sample_interval;
+  /** Interval between periodic reporting [s] */
+  double sample_interval;
 
-    /** Output's sequence number (i.e., number of samples produced so far */
-    long seq_no;
+  /** Output's sequence number (i.e., number of samples produced so far */
+  long seq_no;
 
-    /** Condition variable for sample-mode filter (XXX: Never used) */
-    pthread_cond_t  condVar;
-    /** Filtering thread */
-    pthread_t  filter_thread;
+  /** Condition variable for sample-mode filter (XXX: Never used) */
+  pthread_cond_t  condVar;
+  /** Filtering thread */
+  pthread_t  filter_thread;
 
-    /** Outputting function */
-    struct OmlWriter* writer;
+  /** Outputting function */
+  struct OmlWriter* writer;
 
-    /** Next MS in this MP's linked list */
-    struct OmlMStream* next;
+  /** Next MS in this MP's linked list */
+  struct OmlMStream* next;
 
-    /** Output's sequence number for the metadata associated to this stream */
-    long meta_seq_no;
+  /** Output's sequence number for the metadata associated to this stream */
+  long meta_seq_no;
 
 } OmlMStream;
 
@@ -647,7 +630,7 @@ int omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, Oml
 /** Generate a new GUID */
 oml_guid_t omlc_guid_generate();
 
-// DEPRECATED
+/* DEPRECATED \ee omlc_inject */
 void omlc_process(OmlMP* mp, OmlValueU* values);
 
 /**  Terminate all open connections. */
