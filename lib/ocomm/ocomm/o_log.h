@@ -78,6 +78,13 @@ void o_set_log_file(char* name);
  */
 void o_set_log_level(int level);
 
+/** Test if a given log level is currently active
+ * \param level log level
+ * \return 0 if inactive, 1 otherwise
+ * \see o_set_log_level
+ */
+int o_log_level_active(int log_level);
+
 /** Set the format string-based log function if non NULL, or o_log_simplified
  * \param log_fn function to use for logging
  * \return the current logging function

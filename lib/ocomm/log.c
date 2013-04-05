@@ -82,6 +82,18 @@ o_set_log_level (int level)
   o_log_level = level;
 }
 
+/** Test if a given log level is currently active
+ * \param level log level
+ * \return 0 if inactive, 1 otherwise
+ * \see o_set_log_level
+ */
+int
+o_log_level_active(int log_level)
+{
+  if (log_level <= o_log_level) { return 1; }
+  return 0;
+}
+
 /** Set the format string-based log function if non NULL, or o_log_simplified
  * \param log_fn function to use for logging
  * \return the current logging function
@@ -163,7 +175,7 @@ o_vlog(int log_level, const char* fmt, va_list va)
   static uint64_t exponent = INIT_LOG_EXPONENT;
   time_t now;
 
-  if (log_level > o_log_level) { return; }
+  if (!o_log_level_active(log_level)) { return; }
 
   time(&now);
 
