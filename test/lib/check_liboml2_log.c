@@ -44,15 +44,15 @@ START_TEST (test_log_rate)
   }
 
   for (i=0;i<(1<<4);i++) {
-    usleep(500000);
-    o_log(O_LOG_ERROR, "1/2 second\n");
+    usleep(333333);
+    o_log(O_LOG_ERROR, "1/3 second\n");
   }
 
   for (i=0;i<(1<<2);i++) {
     usleep(2000000);
     o_log(O_LOG_ERROR, "2 seconds\n");
   }
-  
+
   /* Roughly test that the log is not gigantic (>10k).
    *
    * The log file is line-buffered, so most should already have been written

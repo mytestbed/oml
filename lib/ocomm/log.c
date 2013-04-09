@@ -134,17 +134,28 @@ o_set_simplified_logging (void)
 static void
 _o_log(time_t now, int level, char *msg)
 {
+  const int label_max = LENGTH(log_labels)-1;
+  int label_index;
   struct tm* ltime;
-  char now_str[20];
+  char now_str[20], dbglvl[] = { 0, 0 };
+
+  label_index = level - O_LOG_ERROR; /* O_LOG_ERROR is negative */
+  label_index = (label_index < 0) ? 0 : label_index;
+  label_index = (label_index > label_max) ? label_max : label_index;
+
+  if (level > O_LOG_DEBUG) {
+    *dbglvl = '0' + (level - O_LOG_INFO);
+  }
 
   if (o_log_simplified == o_log_function && stderr == logfile) {
-    o_log_function(level, "%s", msg);
+  /* This logic should clearly go into o_log_simplified,
+   * but as it is variadic, we have little option to manipulate its parameters */
+    o_log_function(level, "%s%s\t%s", log_labels[label_index], dbglvl, msg);
 
   } else {
     ltime = localtime(&now);
-
     strftime(now_str, 20, "%b %d %H:%M:%S", ltime);
-    o_log_function(level, "%s %s", now_str, msg);
+    o_log_function(level, "%s %s%s\t%s", now_str, log_labels[label_index], dbglvl ,msg);
   }
 }
 
@@ -170,7 +181,7 @@ o_vlog(int log_level, const char* fmt, va_list va)
 {
   static char b1[LOG_BUF_LEN], b2[LOG_BUF_LEN], *new_log=NULL, *last_log=NULL, *tmp;
   static int last_level = O_LOG_INFO;
-  static time_t last_time = (time_t)-1;
+  static time_t last_time = (time_t)0;
   static uint64_t nseen = 0;
   static uint64_t exponent = INIT_LOG_EXPONENT;
   time_t now;
@@ -185,49 +196,53 @@ o_vlog(int log_level, const char* fmt, va_list va)
     *b2=0;
     new_log = b1;
     last_log = b2;
-    last_time = now - 2*MAX_MESSAGE_RATE;
   }
 
   vsnprintf(new_log, LOG_BUF_LEN, fmt, va);
 
-  if (difftime(now, last_time) < MAX_MESSAGE_RATE || nseen > 0) {
-    if (!strncmp(new_log, last_log, LOG_BUF_LEN) &&
-        /* Same message */
-        log_level == log_level) {
+  if (difftime(now, last_time) < MAX_MESSAGE_RATE &&
+      !strncmp(new_log, last_log, LOG_BUF_LEN) &&
+      /* Same message and level at too high a rate */
+      log_level == log_level) {
 
-      if(++nseen > exponent) {
-        snprintf(new_log, LOG_BUF_LEN,
-            "Last message repeated %" PRIu64 " time%s\n", nseen, nseen>1?"s":"");
-        _o_log(now, log_level, new_log);
-
-        last_time = now;
-        nseen = 0;
-
-        if (exponent < (1ul<<63)) { exponent <<= 1; }
-      }
-
-      return;
-
-    } else if (nseen >0) {
-      /* Give a final count of all the previously unreported similar messages before printing the new one */
+    if(++nseen > exponent) {
       snprintf(new_log, LOG_BUF_LEN,
-          "Last message repeated %" PRIu64 " time%s\n", nseen, nseen>1?"s":"");
-      _o_log(last_time, last_level, new_log);
+          "Message repeated %" PRIu64 " time%s: %s", nseen, nseen>1?"s":"", last_log);
+      _o_log(now, log_level, new_log);
+
+      last_time = now;
+      nseen = 0;
+
+      if (exponent < (1ul<<63)) { exponent <<= 1; }
+    }
+
+  } else {
+      /* Give a final count of all the previously unreported
+       * similar messages before printing the new one */
+    if (nseen > 1) {
+      snprintf(last_log, LOG_BUF_LEN,
+          "Previous message repeated %" PRIu64 " times\n", nseen);
+      _o_log(last_time, last_level, last_log);
+
+    } else if (nseen > 0) {
+      /* If it was only repeated once, simply show it */
+      _o_log(last_time, last_level, last_log);
 
     }
+
+    /* New message */
+    _o_log(now, log_level, new_log);
+
+    last_time = now;
+    last_level = log_level;
+    nseen = 0;
+    exponent = INIT_LOG_EXPONENT;
+
+    tmp = new_log;
+    new_log = last_log;
+    last_log = tmp;
+
   }
-
-  /* New message */
-  _o_log(now, log_level, new_log);
-
-  last_time = now;
-  last_level = log_level;
-  nseen = 0;
-  exponent = INIT_LOG_EXPONENT;
-
-  tmp = new_log;
-  new_log = last_log;
-  last_log = tmp;
 }
 
 /** Simplified logging function (default)
@@ -240,25 +255,9 @@ o_vlog(int log_level, const char* fmt, va_list va)
 static void
 o_log_simplified(int level, const char* format, ...)
 {
-  const int label_max = LENGTH(log_labels)-1;
-  int label_index;
-  int debug_level;
   va_list va;
 
   if (!logfile) { logfile = stderr; }
-
-  label_index = level - O_LOG_ERROR; /* O_LOG_ERROR is negative */
-  label_index = (label_index < 0) ? 0 : label_index;
-  label_index = (label_index > label_max) ? label_max : label_index;
-
-  fprintf (logfile, "%-5s", log_labels[label_index]);
-  if (level > O_LOG_DEBUG) {
-    debug_level = level - O_LOG_INFO;
-    fprintf (logfile, "%-2d\t", debug_level);
-
-  } else {
-    fprintf (logfile, "\t");
-  }
 
   va_start(va, format);
   vfprintf(logfile, format, va);
