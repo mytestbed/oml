@@ -716,6 +716,7 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 static int
 process_bin_message(ClientHandler* self, MBuffer* mbuf)
 {
+  char *out;
   int res;
   OmlBinaryHeader header;
 
@@ -723,8 +724,12 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
   if(res>0) {
     logwarn("%s(bin): Skipped %d bytes of data searching for a new message\n", self->name, res);
   } else if (res == -1 && mbuf_rd_remaining(mbuf)>=2) {
-    logdebug("%s(bin): No message found in binary packet; packet follows\n%s\n", self->name,
-        to_octets(mbuf_rdptr(mbuf), mbuf_rd_remaining(mbuf)));
+    logdebug("%s(bin): No message found in binary packet", self->name);
+    if(o_log_level_active(O_LOG_DEBUG4)) {
+      out = to_octets(mbuf_rdptr(mbuf), mbuf_rd_remaining(mbuf));
+      logdebug("%s(bin): Packet follows\n%s", self->name, out);
+      xfree(out);
+    }
     return 0;
   }
 
@@ -939,6 +944,7 @@ process_text_message(ClientHandler* self, MBuffer* mbuf)
   void
 client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
 {
+  char *in;
   ClientHandler* self = (ClientHandler*)handle;
   MBuffer* mbuf = self->mbuf;
 
@@ -946,6 +952,13 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
       source->name,
       client_state_to_s (self->state),
       buf_size);
+
+  if(o_log_level_active(O_LOG_DEBUG4)) {
+    in = to_octets(buf, buf_size);
+    logdebug("%s(%s): Received new packet\n%s\n",
+        source->name, client_state_to_s (self->state), in);
+    xfree(in);
+  }
 
   int result = mbuf_write (mbuf, buf, buf_size);
 

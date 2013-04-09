@@ -205,6 +205,11 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
 
   size_t count;
   if (! self->header_written) {
+    if(o_log_level_active(O_LOG_DEBUG4)) {
+      char *out = to_octets(header, header_length);
+      logdebug("%s: Sending header %s\n", __FUNCTION__, out);
+      xfree(out);
+    }
     if ((count = socket_write(self, header, header_length)) < header_length) {
       // TODO: This is not completely right as we end up rewriting the same header
       // if we can only partially write it. At this stage we think this is too hard
@@ -216,6 +221,11 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
       return 0;
     }
     self->header_written = 1;
+  }
+  if(o_log_level_active(O_LOG_DEBUG4)) {
+    char *out = to_octets(buffer, length);
+    logdebug("%s: Sending data %s\n", __FUNCTION__, out);
+    xfree(out);
   }
   count = socket_write(self, buffer, length);
   return count;
