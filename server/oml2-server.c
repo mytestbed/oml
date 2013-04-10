@@ -311,8 +311,9 @@ int main(int argc, char **argv)
 
   logging_setup (logfile_name, log_level);
 
-  if (c < -1)
+  if (c < -1) {
     die ("%s: %s\n", poptBadOption (optCon, POPT_BADOPTION_NOALIAS), poptStrerror (c));
+  }
 
   loginfo(V_STRING, VERSION);
   loginfo("OML Protocol V%d--%d\n", MIN_PROTOCOL_VERSION, MAX_PROTOCOL_VERSION);
@@ -324,15 +325,15 @@ int main(int argc, char **argv)
   Socket* server_sock;
   server_sock = socket_server_new("server", listen_port, on_connect, NULL);
 
-  if (!server_sock)
+  if (!server_sock) {
     die ("Failed to create listening socket on port %d\n", listen_port);
+  }
 
   drop_privileges (uidstr, gidstr);
 
   /* Important that this comes after drop_privileges(). */
-  if(database_setup_backend(dbbackend)){
-      logerror("Failed to setup database backend '%s'\n", dbbackend);
-      exit(EXIT_FAILURE);
+  if(database_setup_backend(dbbackend)) {
+      die("Failed to setup database backend '%s'\n", dbbackend);
   }
 
   signal_setup();
