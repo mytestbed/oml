@@ -36,6 +36,7 @@ static const char* const log_labels[] = {
   "DEBUG"
 };
 
+static void _o_log_real(int log_level, const char *fmt, ...);
 static void o_log_simplified(int level, const char* format, ...);
 
 /** Logfile to which messages are directed \see o_log_simplified */
@@ -43,6 +44,8 @@ static FILE* logfile = NULL;
 /** Log level below which messages are shown \see O_LOG_ERROR, O_LOG_WARN, O_LOG_INFO, O_LOG_DEBUG, O_LOG_DEBUG2, O_LOG_DEBUG3, O_LOG_DEBUG4*/
 int o_log_level = O_LOG_INFO;
 
+/* XXX: This is needed for backward compatibility with <=2.9 */
+o_log_fn o_log = _o_log_real;
 /** The current logging function. \see _o_log, o_log */
 o_log_fn o_log_function = o_log_simplified;
 
@@ -278,7 +281,8 @@ o_log_simplified(int level, const char* format, ...)
  * \see o_set_log_file, o_set_log_level, o_set_log, o_set_simplified_logging
  * \see o_vlog, o_log_simplified
  */
-void o_log(int log_level, const char *fmt, ...) {
+static void
+_o_log_real(int log_level, const char *fmt, ...) {
   va_list va;
   va_start (va, fmt);
   o_vlog (log_level, fmt, va);
