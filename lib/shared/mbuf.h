@@ -68,7 +68,7 @@ uint8_t* mbuf_rdptr (MBuffer* mbuf);
 uint8_t* mbuf_wrptr (MBuffer* mbuf);
 
 size_t mbuf_length (MBuffer* mbuf);
-size_t mbuf_remaining (MBuffer* mbuf) __attribute__((deprecated ("mbuf_remaining is deprecated, use mbuf_rd_remaining instead")));
+size_t mbuf_remaining (MBuffer* mbuf) __attribute__((deprecated));
 size_t mbuf_rd_remaining (MBuffer* mbuf);
 size_t mbuf_wr_remaining (MBuffer* mbuf);
 size_t mbuf_fill (MBuffer* mbuf);
