@@ -52,7 +52,7 @@ void client_callback(SockEvtSource* source, void* handle, void* buf, int buf_siz
       (mbuf_buffer(mbuf)),                                                          \
       (mbuf_message(mbuf)),                                                         \
       (mbuf_rdptr(mbuf)),                                                           \
-      to_octets(mbuf_message(mbuf), mbuf_remaining(mbuf)))
+      to_octets(mbuf_message(mbuf), mbuf_rd_remaining(mbuf)))
 
 START_TEST(test_find_sync)
 {
@@ -145,7 +145,7 @@ START_TEST(test_binary_resync)
   marshal_values(mbuf, &v, 1);
   marshal_finalize(mbuf);
   printmbuf(mbuf);
-  client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_remaining(mbuf));
+  client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_rd_remaining(mbuf));
 
   logdebug("Sending second sample for an invalid table, in two steps\n");
   oml_value_set_type(&v, OML_UINT32_VALUE);
@@ -159,14 +159,14 @@ START_TEST(test_binary_resync)
   printmbuf(mbuf);
   fail_if(ch->state == C_PROTOCOL_ERROR, "An incomplete sample confused the client_handler");
   printmbuf(mbuf);
-  client_callback(&source, ch, mbuf_buffer(mbuf)+5, mbuf_remaining(mbuf)-5);
+  client_callback(&source, ch, mbuf_buffer(mbuf)+5, mbuf_rd_remaining(mbuf)-5);
   printmbuf(mbuf);
   fail_if(ch->state == C_PROTOCOL_ERROR, "A sample for a non existing stream confused the client_handler");
 
   logdebug("Sending some noise\n");
   mbuf_clear(mbuf);
   mbuf_write(mbuf, (uint8_t*)"BRuit", 6);
-  client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_remaining(mbuf));
+  client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_rd_remaining(mbuf));
   fail_if(ch->state == C_PROTOCOL_ERROR, "Some more noise disturbed the client_handler");
 
   logdebug("Sending third sample, in two steps\n");
@@ -180,7 +180,7 @@ START_TEST(test_binary_resync)
   printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), 5);
   fail_if(ch->state == C_PROTOCOL_ERROR, "An incomplete sample after resync confused the client_handler");
-  client_callback(&source, ch, mbuf_buffer(mbuf)+5, mbuf_remaining(mbuf)-5);
+  client_callback(&source, ch, mbuf_buffer(mbuf)+5, mbuf_rd_remaining(mbuf)-5);
 
   fail_unless(ch->state == C_BINARY_DATA, "The client handler didn't manage to recover");
 

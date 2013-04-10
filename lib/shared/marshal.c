@@ -735,7 +735,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
 
   result = mbuf_read (mbuf, header_str, 3);
   if (result == -1) {
-    return mbuf_remaining (mbuf) - 3;
+    return mbuf_rd_remaining (mbuf) - 3;
   }
 
   if (! (header_str[0] == SYNC_BYTE && header_str[1] == SYNC_BYTE)) {
@@ -751,7 +751,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
     uint16_t nv16 = 0;
     result = mbuf_read (mbuf, (uint8_t*)&nv16, sizeof (uint16_t));
     if (result == -1) {
-      n = mbuf_remaining (mbuf) - 2;
+      n = mbuf_rd_remaining (mbuf) - 2;
       mbuf_reset_read (mbuf);
       return n;
     }
@@ -761,7 +761,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
     uint32_t nv32 = 0;
     result = mbuf_read (mbuf, (uint8_t*)&nv32, sizeof (uint32_t));
     if (result == -1) {
-      n = mbuf_remaining (mbuf) - 4;
+      n = mbuf_rd_remaining (mbuf) - 4;
       mbuf_reset_read (mbuf);
       return n;
     }
@@ -771,7 +771,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
     return 0;
   }
 
-  int extra = mbuf_remaining (mbuf) - header->length;
+  int extra = mbuf_rd_remaining (mbuf) - header->length;
   if (extra < 0) {
     mbuf_reset_read (mbuf);
     return extra;
@@ -779,7 +779,7 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
 
   result = mbuf_read (mbuf, stream_header_str, LENGTH (stream_header_str));
   if (result == -1) {
-      n = mbuf_remaining (mbuf) - LENGTH (stream_header_str);
+      n = mbuf_rd_remaining (mbuf) - LENGTH (stream_header_str);
       mbuf_reset_read (mbuf);
       return n;
   }
@@ -876,7 +876,7 @@ unmarshal_values(
 int
 unmarshal_value(MBuffer *mbuf, OmlValue *value)
 {
-  if (mbuf_remaining(mbuf) == 0) {
+  if (mbuf_rd_remaining(mbuf) == 0) {
       o_log(O_LOG_ERROR, "Tried to unmarshal a value from the buffer, but didn't receive enough data to do that\n");
       return 0;
   }
@@ -970,7 +970,7 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
       }
 
       size_t len = ntohl (n_len);
-      size_t remaining = mbuf_remaining (mbuf);
+      size_t remaining = mbuf_rd_remaining (mbuf);
 
       if (len > remaining) {
         logerror ("Failed to unmarshal OML_BLOB_VALUE data:  not enough data available "

@@ -30,24 +30,6 @@
 
 #define DEF_BUF_SIZE 512
 #define DEF_MIN_BUF_RESIZE (size_t)(0.1 * DEF_BUF_SIZE)
-/*
- *  mbuf->base : base address of the underlying storage
- *
- *  mbuf->length : number of bytes allocated for underlying storage
- *
- *  mbuf->fill : number of bytes filled with data
- *
- *  mbuf->wr_remaining : remaining space left to write into (between fill and end of allocated space)
- *
- *  mbuf->rd_remaining : number of bytes of valid data left to read (difference between mbuf->wrptr and mbuf->rdptr)
- *
- *  mbuf->rdptr : When reading the buffer, pointer to the next byte to be read
- *
- *  mbuf->wrptr : When writing the buffer, pointer to the next byte to be written
- *
- *  mbuf->msgptr : When reading the buffer, pointer to the base of the start of the current message
- *
- */
 
 static void
 mbuf_check_invariant (MBuffer* mbuf)
@@ -151,15 +133,40 @@ mbuf_length (MBuffer* mbuf)
 }
 
 /** Get the remaining amount of data to read in MBuffer
+ * XXX: Use mbuf_rd_remaining instead
+ */
+inline size_t
+mbuf_remaining (MBuffer* mbuf)
+{
+  return mbuf_rd_remaining(mbuf);
+}
+
+/** Get the remaining amount of data to read in MBuffer
+ *
+ * XXX: Shall we use rd_remaining directly?
  *
  * \param mbuf MBuffer to manipulate
  * \return the number of unread bytes in the buffer
  */
 size_t
-mbuf_remaining (MBuffer* mbuf)
+mbuf_rd_remaining (MBuffer* mbuf)
 {
   return mbuf->wrptr - mbuf->rdptr;
 }
+
+/** Get the remaining amount of data to write in MBuffer
+ *
+ * XXX: Shall we use wr_remaining directly?
+ *
+ * \param mbuf MBuffer to manipulate
+ * \return the number of unread bytes in the buffer
+ */
+size_t
+mbuf_wr_remaining (MBuffer* mbuf)
+{
+  return mbuf->wrptr - mbuf->rdptr;
+}
+
 
 /** Get the currently occupied size of the MBuffer.
  *

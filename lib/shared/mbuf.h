@@ -27,23 +27,35 @@
 #include <stdint.h>
 #include <stdarg.h>
 
-typedef struct _mbuffer
+typedef struct MBuffer
 {
-  uint8_t* base;             //! Underlying storage
-  size_t   length;           //! size of allocated buffer
-  size_t   wr_remaining;     //! Number of bytes unfilled.
-  size_t   rd_remaining;     //! Number of data bytes remaining to be read
-  size_t   fill;             //! number of bytes 'valid' data (number of bytes filled)
+  /** Underlying storage */
+  uint8_t* base;
+  /** size of allocated buffer */
+  size_t   length;
+  /** Number of bytes unfilled \see mbuf_wr_remaining */
+  size_t   wr_remaining;
+  /** Number of data bytes remaining to be read \see mbuf_rd_remaining*/
+  size_t   rd_remaining;
+  /** number of bytes 'valid' data (number of bytes filled) \see mbuf_fill */
+  size_t   fill;
 
-  uint8_t* rdptr;            //! Pointer at which to read the next byte from the buffer
-  uint8_t* wrptr;            //! Pointer at which to write the next byte into the buffer
-  uint8_t* msgptr;           //! Begining of message if more than one in buffer
+  /** Pointer at which to read the next byte from the buffer \see mbuf_rdptr */
+  uint8_t* rdptr;
+  /** Pointer at which to write the next byte into the buffer \see mbuf_wrptr*/
+  uint8_t* wrptr;
+  /** Begining of message if more than one in buffer \see mbuf_message */
+  uint8_t* msgptr;
 
-  size_t   min_resize;       //! Mnimum increase in buffer size on resize
-  uint8_t  resized;          //! Keeps track on how much initial buffer got extended
-  uint8_t  allow_resizing;   //! If true, allow resizing, otherwise fail
+  /** Mnimum increase in buffer size on resize */
+  size_t   min_resize;
+  /** Keeps track on how much initial buffer got extended */
+  uint8_t  resized;
+  /** If true, allow resizing, otherwise fail */
+  uint8_t  allow_resizing;
 
-  struct _mbuffer* next;     //! Supports chaining together of MBuffer instances
+  /** Supports chaining together of MBuffer instances */
+  struct MBuffer* next;
 } MBuffer;
 
 MBuffer* mbuf_create (void);
@@ -56,7 +68,9 @@ uint8_t* mbuf_rdptr (MBuffer* mbuf);
 uint8_t* mbuf_wrptr (MBuffer* mbuf);
 
 size_t mbuf_length (MBuffer* mbuf);
-size_t mbuf_remaining (MBuffer* mbuf);
+size_t mbuf_remaining (MBuffer* mbuf) __attribute__((deprecated ("mbuf_remaining is deprecated, use mbuf_rd_remaining instead")));
+size_t mbuf_rd_remaining (MBuffer* mbuf);
+size_t mbuf_wr_remaining (MBuffer* mbuf);
 size_t mbuf_fill (MBuffer* mbuf);
 size_t mbuf_fill_excluding_msg (MBuffer* mbuf);
 size_t mbuf_read_offset (MBuffer* mbuf);

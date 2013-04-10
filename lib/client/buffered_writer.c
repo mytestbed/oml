@@ -190,7 +190,7 @@ bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
   BufferChain* chain = self->writerChain;
   if (chain == NULL) { return 0; }
 
-  if (chain->mbuf->wr_remaining < size) {
+  if (mbuf_wr_remaining(chain->mbuf) < size) {
     chain = self->writerChain = getNextWriteChain(self, chain);
   }
 
@@ -296,7 +296,7 @@ getNextWriteChain(BufferedWriter* self, BufferChain* current) {
   assert(nextBuffer != NULL);
 
   BufferChain* resChain = NULL;
-  if (mbuf_remaining(nextBuffer->mbuf) == 0) {
+  if (mbuf_rd_remaining(nextBuffer->mbuf) == 0) {
     // It's empty, we can use it
     mbuf_clear2(nextBuffer->mbuf, 0);
     resChain = nextBuffer;

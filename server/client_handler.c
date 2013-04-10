@@ -722,9 +722,9 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
   res = bin_find_sync(mbuf);
   if(res>0) {
     logwarn("%s(bin): Skipped %d bytes of data searching for a new message\n", self->name, res);
-  } else if (res == -1 && mbuf_remaining(mbuf)>=2) {
+  } else if (res == -1 && mbuf_rd_remaining(mbuf)>=2) {
     logdebug("%s(bin): No message found in binary packet; packet follows\n%s\n", self->name,
-        to_octets(mbuf_rdptr(mbuf), mbuf_remaining(mbuf)));
+        to_octets(mbuf_rdptr(mbuf), mbuf_rd_remaining(mbuf)));
     return 0;
   }
 
@@ -732,10 +732,10 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
   if (res == 0) {
     logwarn("%s(bin): Could not find message header\n", self->name);
     return 0;
-  } else if (res < 0 && mbuf->fill>0) {
+  } else if (res < 0 && mbuf_fill(mbuf)>0) {
     // not enough data
     logdebug("%s(bin): Not enough data (%dB) for a new measurement yet (at least %dB missing)\n",
-        self->name, mbuf_remaining(mbuf), -res);
+        self->name, mbuf_rd_remaining(mbuf), -res);
     return 0;
   }
   switch (header.type) {
@@ -995,7 +995,7 @@ process:
   // move remaining buffer content to beginning
   mbuf_repack_message (mbuf);
   logdebug("%s: Buffer repacked to %d bytes\n",
-      source->name, mbuf->fill);
+      source->name, mbuf_fill(mbuf));
 }
 /**
  * \brief Call back function when the status of the socket change

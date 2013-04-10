@@ -60,7 +60,7 @@ int bin_find_sync (MBuffer *mbuf)
   int len, offset = -1;
   uint8_t *buf, *sync_pos;
 
-  len = mbuf_remaining (mbuf);
+  len = mbuf_rd_remaining (mbuf);
   if (len < 2) {
     /* Optimisation: get out early */
     return -1;
@@ -128,7 +128,7 @@ bin_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
 
   mbuf_begin_read (mbuf);
 
-  if (mbuf_remaining (mbuf) < 3) {
+  if (mbuf_rd_remaining (mbuf) < 3) {
     return 0; // Not enough data to determine packet type
   }
 
@@ -157,7 +157,7 @@ bin_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
     return -1; // Unknown packet type
   }
 
-  if (mbuf_remaining (mbuf) < length)
+  if (mbuf_rd_remaining (mbuf) < length)
     return 0; /* Not enough bytes for the full message */
 
   // Now get the count and index
