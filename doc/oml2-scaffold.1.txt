@@ -97,37 +97,38 @@ The template language is based on Ruby syntax.  Here is a simple
 example:
 
 --------
-defApplication('oml:man:foo', 'foo') do |a|
-  a.version(1,0)
-  a.shortDescription = "Monitoring the system's foo"
-  a.description = %{
+defApplication('oml:man:foo', 'foo') do |app|
+  app.version(1,0)
+  app.shortDescription = "Monitoring the system's foo"
+  app.description = %{
 'foo' is an application to measure the 'foo' of a network and
 its computers. }
+  app.path = "/PATH/TO/BINARY"
 
-  a.defProperty('cpu', 'Report CPU foo', ?c,
+  app.defProperty('cpu', 'Report CPU foo', ?c,
                :type => :flag, :impl => { :var_name => 'report_cpu' })
-  a.defProperty('mem', 'Report memory foo', ?m,
+  app.defProperty('mem', 'Report memory foo', ?m,
                :type => :flag, :impl => { :var_name => 'report_memory' })
 
-  a.defMeasurement("memory") do |m|
-    m.defMetric('ram', 'string')
-    m.defMetric('total', 'uint32')
-    m.defMetric('free', 'uint32')
-    m.defMetric('used', 'uint32')
-    m.defMetric('free_percent', 'double')
-    m.defMetric('used_percent', 'double')
+  app.defMeasurement("memory") do |mp|
+    mp.defMetric('ram', 'string')
+    mp.defMetric('total', 'uint32')
+    mp.defMetric('free', 'uint32')
+    mp.defMetric('used', 'uint32')
+    mp.defMetric('free_percent', 'double')
+    mp.defMetric('used_percent', 'double')
   end
 
-  a.defMeasurement("cpu") do |m|
-    m.defMetric('user', 'uint64')
-    m.defMetric('sys', 'uint64')
-    m.defMetric('nice', 'uint64')
-    m.defMetric('idle', 'uint64')
-    m.defMetric('wait', 'uint64')
-    m.defMetric('irq', 'uint64')
-    m.defMetric('soft_irq', 'uint64')
-    m.defMetric('stolen', 'uint64')
-    m.defMetric('total', 'uint64')
+  app.defMeasurement("cpu") do |mp|
+    mp.defMetric('user', 'uint64')
+    mp.defMetric('sys', 'uint64')
+    mp.defMetric('nice', 'uint64')
+    mp.defMetric('idle', 'uint64')
+    mp.defMetric('wait', 'uint64')
+    mp.defMetric('irq', 'uint64')
+    mp.defMetric('soft_irq', 'uint64')
+    mp.defMetric('stolen', 'uint64')
+    mp.defMetric('total', 'uint64')
   end
 end
 --------
@@ -161,7 +162,7 @@ The 'defApplication' block is given an application object as a parameter
 (that's the do |a| part).  The application object supports a number of
 operations that are described below.
 
-a.version(major, minor = 0, revision = 0)
+app.version(major, minor = 0, revision = 0)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The 'version' command specifies the application's version number.  The
@@ -170,7 +171,7 @@ be integers.  The version information is output as a string in the
 file 'version.h'.  As an example, the following version declaration:
 
 --------
-a.version(2, 4, 0)
+app.version(2, 4, 0)
 --------
 
 will result in a 'version.h' file containing the following C
@@ -180,19 +181,26 @@ preprocessor #define:
 #define VERSION "2.4.0"
 --------
 
-a.shortDescription = <string>
+app.shortDescription = <string>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This should be a one-line description of the application.
 
-a.description = <string>
+app.description = <string>
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 This should be a longer description of the application.  It can use
 Ruby's multi-line string syntaxes to allow a string that breaks over
 multiple lines, as in the example above.
 
-a.defProperty(long_name, descr, letter_name, opts = {})
+app.path = <string>
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is the path where the application is expected to be installed. This
+is particularly useful when generationg the Makefile with the '--make'
+option. OMF also uses this information.
+
+app.defProperty(long_name, descr, letter_name, opts = {})
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The 'defProperty' command provides a way to describe the options that
@@ -260,7 +268,7 @@ tells linkman:popt[3] to not return when it parses this option, but to go on
 and parse the next one instead. Most users can omit the ':popt_val'
 key safely.
 
-a.defMeasurement(name)
+app.defMeasurement(name)
 ~~~~~~~~~~~~~~~~~~~~~~
 The 'defMeasurement' command defines a new, named measurement point.
 (For more information about what a measurement point is, see
@@ -269,7 +277,7 @@ takes a single parameter, the MP itself; this block is used to
 define the fields of the measurement point.  Each field is defined
 using the 'defMetric' command.
 
-m.defMetric(name, type)
+mp.defMetric(name, type)
 ~~~~~~~~~~~~~~~~~~~~~~~
 'defMetric' defines a single field of a measurement point.  Each field
 must have a 'name' and a 'type'.  The 'type' must be a string equal to

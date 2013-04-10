@@ -137,13 +137,13 @@ the library. It takes no argument, and initialises a structure
 point. Taking the example from linkoml:oml2-scaffold[1],
 
 ----
-defApplication('oml:man:foo', 'foo') do |a|
+defApplication('oml:man:foo', 'foo') do |app|
   # ... Some needed code skipped here ...
-  a.defMeasurement("memory") do |m|
+  app.defMeasurement("memory") do |mp|
     # ... Some more code skipped here ...
   end
 
-  a.defMeasurement("cpu") do |m|
+  app.defMeasurement("cpu") do |mp|
     # ... Some more code skipped here ...
   end
 end

@@ -629,6 +629,10 @@ class AppDefinition
     when :app_urn
       return "#{ENV['USER'] || 'XXX'}:app:#{@name}"
     when :app_path
+      if @path.nil?
+	$stderr.puts "ERROR\tApplication path is empty; did you specify 'app.path'?"
+	exit -1
+      end
       return @path
     when :options_t
       @properties.each do |p|
