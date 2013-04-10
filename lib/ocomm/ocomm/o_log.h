@@ -65,7 +65,8 @@ typedef void (*o_log_fn)(int log_level, const char* format, ...);
  * \see logerror, logwarn, loginfo, logdebug
  * \see o_set_log_file, o_set_log_level, o_set_log, o_set_simplified_logging
  */
-void o_log(int level, const char* fmt, ...);
+/* XXX: This is needed for backward compatibility with <=2.9 */
+extern o_log_fn o_log;
 
 /** Direct the log stream to the named file.
  * \param name name of the file to write log into (if '-' or NULL, defaults to stderr)
