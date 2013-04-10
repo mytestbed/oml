@@ -68,7 +68,7 @@ sq3_extract() {
 	keys=$(sqlite3 $db 'SELECT key FROM _experiment_metadata' 2>>${dir}/db.log)
 	for k in $keys; do
 		echo -n " $k"
-		sqlite3 $db "SELECT subject, value FROM _experiment_metadata WHERE key='$k'" > ${dir}/s$k.meta 2>>${dir}/db.log
+		sqlite3 $db "SELECT subject, value FROM _experiment_metadata WHERE key='$k'" | uniq > ${dir}/s$k.meta 2>>${dir}/db.log
 	done
 	echo "." >&2
 }
@@ -114,7 +114,7 @@ pg_extract() {
 	for k in $keys; do
 		echo -n " $k"
 		${PGPATH}/psql ${PSQL_OPTS} -c "SELECT subject, value FROM _experiment_metadata WHERE key='$k'" \
-			> ${dir}/s$k.meta 2>>${dir}/db.log
+			| uniq > ${dir}/s$k.meta 2>>${dir}/db.log
 	done
 	echo "." >&2
 }
