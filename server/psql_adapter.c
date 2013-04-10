@@ -42,10 +42,7 @@ char *pg_conninfo = DEFAULT_PG_CONNINFO;
 /** Mapping between OML and PostgreSQL data types
  * \see psql_type_to_oml, psql_oml_to_type
  */
-static struct {
-  OmlValueT type;           /** OML type */
-  const char * const name;  /** PostgreSQL equivalent */
-} psql_type_pair[] = {
+static db_typemap psql_type_pair[] = {
   { OML_DB_PRIMARY_KEY, "SERIAL PRIMARY KEY"}, /* We might need BIGSERIAL at some point. */
   { OML_LONG_VALUE,     "INT4" },
   { OML_DOUBLE_VALUE,   "FLOAT8" },

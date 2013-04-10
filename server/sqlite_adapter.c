@@ -40,10 +40,7 @@ char *sqlite_database_dir = NULL;
 /** Mapping between OML and SQLite3 data types
  * \see sq3_type_to_oml, sq3_oml_to_type
  */
-static struct {
-  OmlValueT type;           /** OML type */
-  const char * const name;  /** SQLite3 equivalent */
-} sq3_type_pair [] = {
+static db_typemap sq3_type_pair [] = {
   { OML_DB_PRIMARY_KEY, "INTEGER PRIMARY KEY"},
   { OML_DB_PRIMARY_KEY, "INTEGER PRIMARY KEY"},
   { OML_INT32_VALUE,    "INTEGER"  },

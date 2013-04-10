@@ -217,6 +217,14 @@ struct Database{
   struct Database* next;                          /** Pointer to the next database in the linked list */
 };
 
+/** A typemapping between OML types and their representation in the database backend */
+typedef struct db_typemap {
+  /** OML type */
+  OmlValueT type;
+  /** Database equivalent */
+  const char * const name;
+} db_typemap;
+
 
 int database_setup_backend (const char* backend);
 db_adapter_create database_create_function (const char *backend);
