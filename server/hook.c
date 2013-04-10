@@ -33,12 +33,15 @@
 #define HOOK_C_
 #include "hook.h"
 
-char* hook = NULL; /** Character string containing the name of the event hook program (or script) to instantiate. */
-int hookpipe[] = {-1, -1}; /** Pipes to/from event hook. 
-                            * The semantics are the same as pipe(3):
-                            * read in hookpipe[0], write in hookpipe[1]
-                            */
-static int hookpid = -1; /** PID of the event hook script */
+/** Character string containing the name of the event hook program (or script) to instantiate. */
+char* hook = NULL;
+/** Pipes to/from event hook.
+ * The semantics are the same as pipe(3):
+ * read in hookpipe[0], write in hookpipe[1]
+ */
+static int hookpipe[] = {-1, -1};
+/** PID of the event hook script */
+static int hookpid = -1;
 
 /** Clean up the pipes openned for the event hook */
 static void

@@ -30,17 +30,23 @@
 /** Represent one field in a schema */
 struct schema_field
 {
-  char *name;     /** Name of the field */
-  OmlValueT type; /** Type of the field */
+  /** Name of the field */
+  char *name;
+  /** Type of the field */
+  OmlValueT type;
 };
 
 /** Represent the fields of a schema */
 struct schema
 {
-  char *name;                   /** Name of the schema */
-  struct schema_field *fields;  /** Array of struct schema_field */
-  int nfields;                  /** Number of elements in nfields */
-  int index;                    /** Schema index as set by the sender */
+  /** Name of the schema */
+  char *name;
+  /** Array of struct schema_field */
+  struct schema_field *fields;
+  /** Number of elements in nfields */
+  int nfields;
+  /** Schema index as set by the sender */
+  int index;
 };
 
 /* These types should match those in server/database.h */

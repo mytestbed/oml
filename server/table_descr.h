@@ -29,9 +29,12 @@
 /** Structure describing a measurement table */
 typedef struct TableDescr
 {
-  char* name;               /** Name of the MS/table */
-  struct schema *schema;    /** Schemam of the MS */
-  struct TableDescr* next;  /** Pointer to the next element in the linked list */
+  /** Name of the MS/table */
+  char* name;
+  /** Schemam of the MS */
+  struct schema *schema;
+  /** Pointer to the next element in the linked list */
+  struct TableDescr* next;
 } TableDescr;
 
 TableDescr* table_descr_new (const char* name, struct schema* schema);

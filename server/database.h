@@ -183,38 +183,63 @@ typedef TableDescr* (*db_adapter_get_table_list) (Database* db, int *num_tables)
 
 /** One measurement table in a Database */
 struct DbTable {
-  struct schema*  schema; /** Schema for that table */
-  void*           handle; /** Opaque pointer to database implementation handle */
-  struct DbTable* next;   /** Pointer to the next table in the linked list */
+  /** Schema for that table */
+  struct schema*  schema;
+  /** Opaque pointer to database implementation handle */
+  void*           handle;
+  /** Pointer to the next table in the linked list */
+  struct DbTable* next;
 };
 
 /** An open and active database, with manipulations functions from its backend */
 struct Database{
-  char       name[MAX_DB_NAME_SIZE];  /** Name of this database */
-  char       *backend_name;           /** Name of the backend for this database */
+  /** Name of this database */
+  char       name[MAX_DB_NAME_SIZE];
+  /** Name of the backend for this database */
+  char       *backend_name;
 
-  int        ref_count;               /** Number of active clients */
-  DbTable*   first_table;             /** Pointer to the first data table */
-  time_t     start_time;              /** Experiment start time */
-  void*      handle;                  /** Opaque pointer to database implementation handle */
+  /** Number of active clients */
+  int        ref_count;
+  /** Pointer to the first data table */
+  DbTable*   first_table;
+  /** Experiment start time */
+  time_t     start_time;
+  /** Opaque pointer to database implementation handle */
+  void*      handle;
 
-  db_adapter_oml_to_type o2t;                     /** Pointer to OML-to-native type conversion function */
-  db_adapter_type_to_oml t2o;                     /** Pointer to native-to-OML type conversion function */
-  db_adapter_stmt stmt;                           /** Pointer to low-level function to execute a given SQL statement \see db_adapter_stmt */
-  db_adapter_create create;                       /** Pointer to function to create a new database \see db_adapter_create */
-  db_adapter_release release;                     /** Pointer to function to release from one client \see db_adapter_release */
-  db_adapter_table_create table_create;           /** Pointer to function to create a table \see db_adapter_table_create*/
-  db_adapter_table_create_meta table_create_meta; /** Pointer to function to create a metadata table \see db_adapter_table_create_meta */
-  db_adapter_table_free table_free;               /** Pointer to function to free a table \see db_adapter_table_free */
-  db_adapter_prepared_var prepared_var;           /** Pointer to function generating variable names for prepared statements \see db_adapter_prepared_var */
-  db_adapter_insert  insert;                      /** Pointer to function to insert data in a table \see db_adapter_insert */
-  db_adapter_get_metadata get_metadata;           /** Pointer to function to get data from the metadata table \see db_adapter_get_metadata */
-  db_adapter_set_metadata set_metadata;           /** Pointer to function to set data in the metadata table \see db_adapter_set_metadata*/
-  db_adapter_get_uri get_uri;                     /** Pointer to function to get a URI to this database \see db_adapter_get_uri */
-  db_add_sender_id   add_sender_id;               /** Pointer to function to add a new sender to the _senders table \see db_add_sender_id */
-  db_adapter_get_table_list get_table_list;       /** Pointer to function to get a list of tables \see db_adapter_get_table_list */
+  /** Pointer to OML-to-native type conversion function */
+  db_adapter_oml_to_type o2t;
+  /** Pointer to native-to-OML type conversion function */
+  db_adapter_type_to_oml t2o;
+  /** Pointer to low-level function to execute a given SQL statement \see db_adapter_stmt */
+  db_adapter_stmt stmt;
+  /** Pointer to function to create a new database \see db_adapter_create */
+  db_adapter_create create;
+  /** Pointer to function to release from one client \see db_adapter_release */
+  db_adapter_release release;
+  /** Pointer to function to create a table \see db_adapter_table_create*/
+  db_adapter_table_create table_create;
+  /** Pointer to function to create a metadata table \see db_adapter_table_create_meta */
+  db_adapter_table_create_meta table_create_meta;
+  /** Pointer to function to free a table \see db_adapter_table_free */
+  db_adapter_table_free table_free;
+  /** Pointer to function generating variable names for prepared statements \see db_adapter_prepared_var */
+  db_adapter_prepared_var prepared_var;
+  /** Pointer to function to insert data in a table \see db_adapter_insert */
+  db_adapter_insert  insert;
+  /** Pointer to function to get data from the metadata table \see db_adapter_get_metadata */
+  db_adapter_get_metadata get_metadata;
+  /** Pointer to function to set data in the metadata table \see db_adapter_set_metadata*/
+  db_adapter_set_metadata set_metadata;
+  /** Pointer to function to get a URI to this database \see db_adapter_get_uri */
+  db_adapter_get_uri get_uri;
+  /** Pointer to function to add a new sender to the _senders table \see db_add_sender_id */
+  db_add_sender_id   add_sender_id;
+  /** Pointer to function to get a list of tables \see db_adapter_get_table_list */
+  db_adapter_get_table_list get_table_list;
 
-  struct Database* next;                          /** Pointer to the next database in the linked list */
+  /** Pointer to the next database in the linked list */
+  struct Database* next;
 };
 
 /** A typemapping between OML types and their representation in the database backend */
