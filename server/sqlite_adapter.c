@@ -811,7 +811,7 @@ sq3_get_table_list (Database *database, int *num_tables)
         pschema_stmt = NULL; /* Avoid double-finalisation in case of error */
 
         if (!schema) {
-          logerror("sqlite:%s: Could not parse schema '%s' (stored in DB) for table %s\n",
+          logerror("sqlite:%s: Could not parse schema '%s' (stored in DB) for table %s; is your database from an oml2-server<2.10?\n",
               database->name, meta, tablename);
           goto fail_exit;
         }

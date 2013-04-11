@@ -821,6 +821,7 @@ psql_get_table_list (Database *database, int *num_tables)
     goto fail_exit;
   }
   PQclear (res);
+  res = NULL;
 
   /* Check if the _experiment_metadata table exists */
   res = PQexecPrepared (self->conn, ptable_stmt, 0, NULL, 0, NULL, 0);
@@ -860,6 +861,7 @@ psql_get_table_list (Database *database, int *num_tables)
     goto fail_exit;
   }
   PQclear (schema_res);
+  schema_res = NULL;
 
   i = -1; /* Equivalent to sqlite3_reset; assume nrows is still valid */
   do {
@@ -890,9 +892,10 @@ psql_get_table_list (Database *database, int *num_tables)
         meta = PQgetvalue (schema_res, 0, 0); /* We should only have one result row */
         schema = schema_from_meta(meta);
         PQclear(schema_res);
+        schema_res = NULL;
 
         if (!schema) {
-          logerror("psql:%s: Could not parse schema '%s' (stored in DB) for table %s\n",
+          logerror("psql:%s: Could not parse schema '%s' (stored in DB) for table %s; is your database from an oml2-server<2.10?\n",
               database->name, meta, tablename);
           goto fail_exit;
         }
@@ -912,8 +915,6 @@ psql_get_table_list (Database *database, int *num_tables)
       (*num_tables)++;
     }
   } while (i < nrows);
-
-  PQclear(res);
 
   return tables;
 
