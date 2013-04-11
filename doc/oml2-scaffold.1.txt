@@ -226,10 +226,11 @@ for the hash:
 If ':type' is omitted then ':int' is assumed.  The ':type' option
 should be one of:
 
-':flag';;
+':boolean';;
 This property is a flag that can be represented as a boolean value; it
 does not require an argument.  For instance, a '-q' option for
-enabling a quiet mode of operation could use the ':flag' option.
+enabling a quiet mode of operation could use the ':boolean' option.
+':flag' is a deprecated OMF-incompatible synonym.
 
 ':string';;
 This property accepts a string argument.
@@ -308,6 +309,9 @@ This field will record binary data.
 This field will record a globally unique identifier allowing to group
 tuples together, or to link them accross 'MPs'. See
 linkoml:omlc_guid_generate[3] for more details.
+
+*:boolean*::
+This field will record a boolean value.
 
 The integer types ':int32', ':uint32' ':int64', and ':uint64' are
 implemented in the application as the corresponding types from

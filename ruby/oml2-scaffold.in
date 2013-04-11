@@ -36,11 +36,11 @@ require 'optparse'
 $integer_alias = :int32
 
 $types = {
-  :flag => {
-    #:ctype => false, # no ctype, we don't generate code for this
-    #:defval => false, # ditto
-    #:setter => false, # ditto
-    #:omltype => false, #ditto
+  :boolean => {
+    :ctype => "uint8_t",
+    :setter => "bool",
+    :defval => "(val%5)",
+    :omltype => "OML_BOOL_VALUE",
     :popttype => "POPT_ARG_NONE",
     :poptctype => "int",
     :poptdefval => "0",
@@ -128,15 +128,6 @@ $types = {
     #:poptctype => false,
     #:poptdefval => false,
   },
-  :bool => {
-    :ctype => "uint8_t",
-    :setter => "bool",
-    :defval => "(val%5)",
-    :omltype => "OML_BOOL_VALUE",
-    #:popttype => false, # no GUID on the command line
-    #:poptctype => false,
-    #:poptdefval => false,
-  },
 }
 # List the currently supported types, without including backward compatibility
 # elements
@@ -146,7 +137,7 @@ $popttypes = $types.keys.select { |k| !$types[k][:popttype].nil? }
 # :integer and :int are added in run(), after the command-line parsing
 $types[:float] = $types[:double]
 $types[:real] = $types[:double]
-
+$types[:flag] = $types[:boolean]
 
 ## The real logic of oml2-scaffold.
 # Parse the command line arguments, and decide what to do
@@ -335,7 +326,7 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
 
     # store the variable name
     @impl = opts[:impl] || {}
-    @impl[:var_name] ||= long_name
+    @impl[:var_name] ||= long_name.gsub(/-/, '_')
   end
 
   ## Output code to define the variable containing the :impl[:var_name] CLI option
@@ -393,14 +384,22 @@ class Metric < Struct.new(:name, :type, :opts)
         $stderr.puts "WARN\tCommand line switch --long makes :#{type} an alias for :long, but :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead"
         @@warnings[type] = true
       end
+
     when :long
       if @@warnings[type] == nil
         $stderr.puts "WARN\tType :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead"
         @@warnings[type] = true
       end
+
     when :float, :real
       if @@warnings[type] == nil
         $stderr.puts "WARN\tType #{type} is deprecated; new applications should use :double instead"
+        @@warnings[type] = true
+      end
+
+    when :flag
+      if @@warnings[type] == nil
+        $stderr.puts "WARN\tType #{type} is deprecated and incompatible with OMF; new applications should use :boolean instead"
         @@warnings[type] = true
       end
     end
@@ -791,7 +790,7 @@ BINDIR = $(DESTDIR)#{File.dirname(template(:app_path))}/
 
 CFLAGS = -Wall -Werror -g -I. # -I/usr/local/include
 LDFLAGS = # -L/usr/local/lib
-LIBS = -loml2 -lpopt
+LIBS = -loml2 -locomm -lpopt
 
 SCAFFOLD = #{$PROGRAM_NAME}
 
@@ -871,7 +870,10 @@ main(int argc, const char *argv[])
 {
   int c;
 
-  omlc_init("#{template(:app_name)}", &argc, argv, NULL);
+  if(omlc_init("#{template(:app_name)}", &argc, argv, NULL)) {
+    logerror("Could not initialise OML\\n");
+    return -1;
+  }
 
   /* Parse command line arguments */
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0); /* options is defined in #{template(:app_name)}_popt.h */
@@ -879,13 +881,16 @@ main(int argc, const char *argv[])
 
   /* Initialise measurement points */
   oml_register_mps(); /* Defined in #{template(:app_name)}_oml.h */
-  omlc_start();
+  if(omlc_start()) {
+    logerror("Could not start OML\\n");
+    return -1;
+  }
 
   run(g_opts, g_oml_mps_#{template(:app_cstring)}); /* Do some work and injections, see above */
 
   omlc_close();
 
-  return(0);
+  return 0;
 }
 
 /*
