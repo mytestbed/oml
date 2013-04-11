@@ -35,11 +35,6 @@ oml4py-egg oml4py-push:
 	$(MAKE) -C python/ $@
 endif
 
-if BUILD_GEM
-oml4r-gem oml4r-push:
-	$(MAKE) -C ruby/ $@
-endif
-
 if ENABLE_PACKAGING
 
 PKG_PACKAGES=

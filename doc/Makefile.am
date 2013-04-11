@@ -105,7 +105,6 @@ define README-mdfy
 		-e 's^\([^/]\)README^\1[README](@ref index)^g' \
 		-e 's^INSTALL^[&](@ref install)^g' \
 		-e 's^example/liboml2/README^[&](@ref example)^' \
-		-e 's/OML4R/[&](@ref oml4rdoc)/g' \
 		-e 's/OML4Py/[&](@ref oml4pydoc)/g' \
 		-e '/^    /!s^\(\(lib\)\?[Oo]ml[-.a-zA-Z1-9]\+\)(\([0-9]\))^[&](http://oml.mytestbed.net/doc/oml/$(OML_BASE_VER)/\1.\3.html)^g'
 endef

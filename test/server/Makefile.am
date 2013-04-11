@@ -5,9 +5,6 @@ if HAVE_CHECK
 TESTS = check_server
 if HAVE_RUBY_MIN_1_8_7
 TESTS += msggen.rb
-if HAVE_RUBY_MIN_1_9
-TESTS += issue610.rb
-endif
 endif
 TESTS_ENVIRONMENT=TOPBUILDDIR=$(top_builddir)
 check_PROGRAMS = msgloop check_server
@@ -63,7 +60,7 @@ AM_CPPFLAGS = \
 	-D PKG_LOCAL_STATE_DIR=\".\" \
 	-DOML_TEST
 
-EXTRA_DIST = msggen.rb issue610.rb.in
+EXTRA_DIST = msggen.rb
 CLEANFILES = \
 	check_server_oml.log \
 	dummy.bin \
@@ -81,6 +78,4 @@ CLEANFILES = \
 	binary-flex-test.sq3 \
 	binary-flex-test.sq3-journal \
 	binary-meta-test.sq3 \
-	binary-meta-test.sq3-journal \
-	issue610.sq3 \
-	issue610.sq3-journal
+	binary-meta-test.sq3-journal

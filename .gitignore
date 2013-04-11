@@ -67,7 +67,6 @@ server/oml2-server
 ruby/oml2-scaffold
 python/oml4py/PKG-INFO
 python/oml4py/dist/
-ruby/oml4r/lib/oml4r.rb
 python/oml4py/oml4py.py
 python/oml4py/setup.py
 test/lib/stddev_0.c

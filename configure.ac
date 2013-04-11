@@ -285,51 +285,15 @@ AX_WITH_PROG([RUBY],[ruby])
 AX_PROG_RUBY_VERSION([1.8.7],
 		     [
 		      missing_rubyge187=no
-		      dnl $ruby_version is defined by AX_PROG_RUBY_VERSION prior to running this
-		      AX_COMPARE_VERSION([1.9],[le],[$ruby_version],[missing_rubyge19=no],[
-					  AC_MSG_WARN([No Ruby>=1.9 found; some tests will be skipped])
-					  missing_rubyge19=yes
-					  ])
-		      AS_IF([test "x$enable_packaging" != "xno"],[
-			     AX_WITH_PROG([GEM],[gem])
-			     AX_WITH_PROG([RAKE],[rake])
-			     AS_IF([test -z "$GEM"],[
-				    AC_MSG_WARN([Ruby found, but not the corresponding gem utility; the OML4r gem will not be built])
-				   ],
-				   [test -z "$RAKE"],
-				   [
-				    AC_MSG_WARN([Ruby found, but not the corresponding rake utility; the OML4r gem will not be built])
-				   ],
-				   dnl Hack to avoid nesting AS_IFs:
-				   dnl We actually do the bundler check befor telling the user
-				   [ ${GEM} list | grep -q "^bundler\s" ],
-				   [
-				    AC_MSG_CHECKING(whether the bundler gem is available)
-				    have_bundler=yes
-				    AC_MSG_RESULT([${have_bundler}])
-				    AC_MSG_NOTICE([The OML4R gem will be built])
-				    build_gem=yes
-				   ],
-				   [
-				    AC_MSG_CHECKING(whether the bundler gem is available)
-				    have_bundler=no
-				    AC_MSG_RESULT([${have_bundler}])
-				    AC_MSG_WARN([The OML4r gem will not be built; you can run \`gem install bundler' and rerun configure to fix this issue])
-				   ]
-			   )
-		      ])
 		     ],
 		     [
-		      AC_MSG_WARN([No Ruby>=1.8.7 found; the OML4r gem will not be built, and some tests will be skipped])
+		      AC_MSG_WARN([No Ruby>=1.8.7 found; some tests will be skipped])
 		      missing_rubyge187=yes
-		      missing_rubyge19=yes
 		      AS_IF([test "x$enable_android" = "xyes"],
 			    [AC_MSG_WARN([The Android source package will not contain a working example-oml2, please do not distribute it])])
 		     ]
 		    )
 AM_CONDITIONAL([HAVE_RUBY_MIN_1_8_7], [test x"${missing_rubyge187}" != xyes])
-AM_CONDITIONAL([HAVE_RUBY_MIN_1_9], [test x"${missing_rubyge19}" != xyes])
-AM_CONDITIONAL([BUILD_GEM], [test x$build_gem = xyes])
 
 missing_check=""
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [], [missing_check="yes"])
@@ -399,19 +363,15 @@ AC_CONFIG_FILES([Makefile
 		 python/oml4py/setup.py
 		 ruby/Makefile
 		 ruby/oml2-scaffold
-		 ruby/oml4r/lib/oml4r.rb
 		 server/Makefile
 		 proxy_server/Makefile
 		 doc/Makefile
 		 example/Makefile
 		 test/Makefile
 		 test/lib/Makefile
-		 test/ruby/Makefile
 		 test/server/Makefile
-		 test/server/issue610.rb
 		 test/system/Makefile
 		 ])
-AC_CONFIG_COMMANDS([issue610-exec], [chmod a+x test/server/issue610.rb])
 dnl Copy source files for the  in VPATH so setup.py is happy
 AS_IF([test x$srcdir != x. && test x$have_python = xyes],
       [AC_CONFIG_COMMANDS([oml4py-vpath-copy],
@@ -425,26 +385,8 @@ AS_IF([test x$srcdir != x. && test x$have_python = xyes],
 			  ],[srcdir=$srcdir])
 ])
 AC_CONFIG_COMMANDS([oml4py-setup-exec], [chmod a+x python/oml4py/setup.py])
-dnl Copy source files for the Gem in VPATH so rake is happy
-AS_IF([test x$srcdir != x. && test x$build_gem = xyes],
-      [AC_CONFIG_COMMANDS([oml4r-vpath-copy],
-			  [mkdir -p ruby/oml4r/lib/oml4r && \
-			   for file in \
-				   ruby/oml4r/Rakefile \
-				   ruby/oml4r/lib/oml4r/oml4r-wlanconfig.rb \
-				   ruby/oml4r/lib/oml4r/oml4r-simple-example.rb \
-				   ruby/oml4r/README.md \
-				   ruby/oml4r/oml4r.gemspec \
-				   ruby/oml4r/LICENSE \
-				   ruby/oml4r/Gemfile \
-				   ruby/oml4r/.yardopts \
-			  ; do
-			  ln -f $srcdir/${file} ./${file}; done
-			  ],[srcdir=$srcdir])
-])
 dnl If the above command has copied files, let {python,ruby}/Makefile.am know that they have to be cleaned up
 AM_CONDITIONAL([CLEANUP_OML4PY_SRC], [test x$srcdir != x. && test x$have_python = xyes])
-AM_CONDITIONAL([CLEANUP_OML4R_GEM_SRC], [test x$srcdir != x. && test x$build_gem = xyes])
 
 AS_IF([test "x$missing_check" != "x"],
    [AC_MSG_WARN([could not find the `check' package, required for running unit tests. This will not stop OML from building, but it will cause `make check' to do nothing. Install the `check' package (http://check.sourceforge.net) if you wish to run the unit tests.])])
