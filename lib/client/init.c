@@ -49,6 +49,9 @@ static OmlMPDef _experiment_metadata[] = {
 };
 OmlMP *schema0;
 
+/** A function pointer suitable for sigaction(3) */
+typedef void(*sighandler) (int);
+
 static void usage(void);
 static void print_filters(void);
 static int  default_configuration(void);
@@ -57,7 +60,7 @@ static char *schemastr_from_mpdef(OmlMPDef *mpdef);
 static int  write_meta(void);
 static int  write_schema(OmlMStream* ms, int index);
 static void termination_handler(int signum);
-static void install_close_handler(void);
+static void install_close_handler(sighandler sig_hdl);
 static void setup_features(const char * const features);
 
 static char *default_uri(const char *app_name, const char *name, const char *domain);
@@ -476,7 +479,7 @@ omlc_start()
       return -3;
     }
   }
-  install_close_handler();
+  install_close_handler(termination_handler);
   if (write_meta() == -1) {
     return -1;
   }
@@ -491,41 +494,49 @@ static void
 termination_handler(int signum)
 {
   // SIGPIPE is handled by disabling the writer that caused it.
-  if (signum != SIGPIPE)
-  {
+  if (signum != SIGPIPE) {
     logdebug("Closing OML (%d)\n", signum);
     omlc_close();
     exit(-1 * signum);
   }
 }
 
-/** Register a signal handler calling omlc_close on SIGINT, SIGHUP, SIGTERM, and SIGPIPE
+/** Register a signal handler on SIGINT, SIGHUP, SIGTERM, and SIGPIPE
+ *
+ * \param sig_hdl sighandler to register
+ *
+ * Use SIG_DFL as sig_hdl to restore the default behaviour.
+ *
  * \see omlc_start, termination_handler */
 static void
-install_close_handler(void)
+install_close_handler(sighandler sig_hdl)
 {
   struct sigaction new_action, old_action;
 
   /* Set up the structure to specify the new action. */
-  new_action.sa_handler = termination_handler;
+  new_action.sa_handler = sig_hdl;
   sigemptyset (&new_action.sa_mask);
   new_action.sa_flags = 0;
 
   sigaction (SIGINT, NULL, &old_action);
-  if (old_action.sa_handler != SIG_IGN)
+  if (old_action.sa_handler != SIG_IGN) {
     sigaction (SIGINT, &new_action, NULL);
+  }
 
   sigaction (SIGHUP, NULL, &old_action);
-  if (old_action.sa_handler != SIG_IGN)
+  if (old_action.sa_handler != SIG_IGN) {
     sigaction (SIGHUP, &new_action, NULL);
+  }
 
   sigaction (SIGTERM, NULL, &old_action);
-  if (old_action.sa_handler != SIG_IGN)
+  if (old_action.sa_handler != SIG_IGN) {
     sigaction (SIGTERM, &new_action, NULL);
+  }
 
   sigaction (SIGPIPE, NULL, &old_action);
-  if (old_action.sa_handler != SIG_IGN)
+  if (old_action.sa_handler != SIG_IGN) {
     sigaction (SIGPIPE, &new_action, NULL);
+  }
 }
 
 /** Terminate all open connections.
@@ -549,6 +560,8 @@ omlc_close(void)
 
   OmlWriter* w = omlc_instance->first_writer;
   OmlMP* mp = omlc_instance->mpoints;
+
+  install_close_handler(SIG_DFL);
 
   while( (mp = destroy_mp(mp)) );
   while( (w =  w->close(w)) );
