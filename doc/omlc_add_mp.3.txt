@@ -18,10 +18,11 @@ DESCRIPTION
 *omlc_add_mp* registers the definition of a new 'Measurement Point' (MP)
 with the OML client API and returns a handle to it.  An 'MP'  accepts
 typed tuples as input.  For most cases, it is recommended to use
-linkoml:oml-scaffold[1] to generate code in charge of declaring and
-registering 'MPs'. This creates the linkoml:oml_register_mps[3]
-function.  The following describes how to manually declare and add MPs,
-much in the same way as linkoml:oml_register_mps[3] does.
+linkoml:oml2-scaffold[1] to generate code in charge of declaring and
+registering 'MPs'. This creates the
+linkomlalias:oml_register_mps[liboml2,3] function.  The following
+describes how to manually declare and add MPs, much in the same way as
+linkomlalias:oml_register_mps[liboml2,3] does.
 
 The 'definition' parameter of *omlc_add_mp*() defines this tuple. It
 must be an array of 'OmlMPDef' objects, terminated with a sentinel.

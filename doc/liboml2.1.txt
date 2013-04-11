@@ -85,7 +85,7 @@ collection URI (see link:#_uri_format[URI FORMAT] below). If using the
 *tcp* scheme, it is sent to the named linkoml:oml2-server[1], for
 storage in an SQL database, while  using the *file* or *flush* schemes
 will create a local file with the given name containing OML text mode
-protocol which can later on be stream (e.g., using linkman:netcat[1]) to an
+protocol which can later on be stream (e.g., using linkman:nc[1]) to an
 *oml2-server*. Measurement points are created with a 'schema', as above,
 a schema being an ordered list of (name, type) pairs.
 

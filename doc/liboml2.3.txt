@@ -13,13 +13,14 @@ SYNOPSIS
 'int'    *omlc_init*('const char' \*appname, 'int' \*pargc, 'const char' \*argv[], 'o_log_fn' log_fn); +
 'OmlMP'* *omlc_add_mp*('const char' \*name, 'OmlMPDef' \*definition); +
 'int'    *omlc_start*('void'); +
-'void'   *omlc_inject*('OmlMP' \*mp, linkoml:OmlValueU[3] \*values); +
+'void'   *omlc_inject*('OmlMP' \*mp, OmlValueU \*values); +
 'int'	 *omlc_inject_metadata*('OmlMP'* mp, 'const char'* key, 'const OmlValueU'* value, 'OmlValueT' type, 'const char'* fname); +
 'oml_guid_t' *omlc_guid_generate*(); +
 'int'    *omlc_close*('void'); +
 [verse]
 *#define OML_FROM_MAIN* '// enable oml_register_mps() and necessary storage; only in one file'
 *#include "APPNAME_oml.h"*
+[verse]
 'inline void' *oml_register_mps*(); +
 'inline void' *oml_inject_MPNAME*('OmlMP'* mp, ...); +
 
@@ -48,8 +49,8 @@ file or a measurement server (see linkoml:oml2-server[1]).
 
 A program using OML can therefore be divided into two stages:
 
-Initialisation::
-First the library is initialised and measurement points are defined.
+Initialisation:: First the library is initialised and measurement points
+are defined.
 
 Measurement::
 Second, the filters are constructed and enabled by calling
@@ -58,8 +59,8 @@ linkoml:omlc_inject[3] as required.
 
 In some cases, it is necessary to occasionaly inject metadata about one
 'MP', or one of its fields (e.g., unit or quality index of the current
-samples). The linkoml:omlc_inject_metadata[3] function can be used for
-this purpose.
+samples). The linkomlalias:omlc_inject_metadata[omlc_inject,3] function
+can be used for this purpose.
 
 It is also sometimes necessary to link measurement tuples together
 (e.g., the destination IP of a packet in a network 'MP' and its
@@ -247,12 +248,12 @@ Implementing injection code manually
 
 The linkoml:omlc_inject[3] function accepts an 'MP' handle and a vector
 of linkoml:OmlValueU[3] objects. These values MUST always be initialised
-first with linkoml:omlc_zero[3] or linkoml:omlc_zero_array[3]. The
+first with linkomlalias:omlc_zero[OmlValueU,3] or linkomlalias:omlc_zero_array[OmlValueU,3]. The
 programmer should first load up the vector with new values to be
 measured using the *omlc_set_** macros, and then call
 linkoml:omlc_inject[3]. If string or blobs were affected to some of the
 linkoml:OmlValueU[3], these have to be reset with
-linkoml:omlc_reset_string[3] or linkoml:omlc_reset_blob[3] so any
+linkomlalias:omlc_reset_string[OmlValueU,3] or linkomlalias:omlc_reset_blob[OmlValueU,3] so any
 allocated memory is properly cleared. For instance, here is how a
 measurement injection might look for the 'MP' definition above:
 
@@ -304,17 +305,19 @@ OML Types
 OML uses an opaque data structure, linkoml:OmlValueU[3] to store
 arbitrary data types. This structure can contain chunks of allocated
 memory and should therefore be properly initialised before use (with the
-linkoml:omlc_zero[3] and linkoml:omlc_zero_array[3] functions.
+linkomlalias:omlc_zero[OmlValueU,3] and linkomlalias:omlc_zero_array[OmlValueU,3] functions.
 
 OML defines the following types and setters:
 
-* OML_INT32_VALUE (linkoml:omlc_set_int32[3])
-* OML_UINT32_VALUE (linkoml:omlc_set_uint32[3])
-* OML_INT64_VALUE (linkoml:omlc_set_int64[3])
-* OML_UINT64_VALUE (linkoml:omlc_set_uint64[3])
-* OML_DOUBLE_VALUE (linkoml:omlc_set_double[3])
-* OML_STRING_VALUE (linkoml:omlc_set_string[3], linkoml:omlc_reset_string[3])
-* OML_BLOB_VALUE (linkoml:omlc_set_blob[3], linkoml:omlc_reset_blob[3])
+* 'OML_INT32_VALUE' (linkomlalias:omlc_set_int32[OmlValueU,3])
+* 'OML_UINT32_VALUE' (linkomlalias:omlc_set_uint32[OmlValueU,3])
+* 'OML_INT64_VALUE' (linkomlalias:omlc_set_int64[OmlValueU,3])
+* 'OML_UINT64_VALUE' (linkomlalias:omlc_set_uint64[OmlValueU,3])
+* 'OML_DOUBLE_VALUE' (linkomlalias:omlc_set_double[OmlValueU,3])
+* 'OML_STRING_VALUE' (linkomlalias:omlc_set_string[OmlValueU,3], linkomlalias:omlc_reset_string[OmlValueU,3])
+* 'OML_BLOB_VALUE' (linkomlalias:omlc_set_blob[OmlValueU,3], linkomlalias:omlc_reset_blob[OmlValueU,3])
+* 'OML_GUID_VALUE' (linkomlalias:omlc_set_guid[OmlValueU,3])
+* 'OML_BOOL_VALUE' (linkomlalias:omlc_set_bool[OmlValueU,3])
 
 Each of the first four integer types maps to an underlying equivalent
 type from the C standard header linkman:stdint.h[0].  These types should
@@ -325,23 +328,43 @@ be used in calls to the *omlc_set_** macros.  They are:
 * 'int64_t'
 * 'uint64_t'
 
-The OML_DOUBLE_VALUE type maps to an underlying C double.
+The 'OML_DOUBLE_VALUE' type maps to an underlying C double.
 
-The OML_STRING_VALUE maps to a nil-terminated C string. Memory will be
+The 'OML_STRING_VALUE' maps to a nil-terminated C string. Memory will be
 dynamically allocated (or reused) when a value of this type is set to an
 linkoml:OmlValueU[3].
 
-The OML_BLOB_VALUE maps to an arbitrary block of binary data, of a given
-size. It is handled in a way similar to OML_STRING_VALUE, save for the
+The 'OML_BLOB_VALUE' maps to an arbitrary block of binary data, of a given
+size. It is handled in a way similar to 'OML_STRING_VALUE', save for the
 nil-termination and automatic size calculation.
 
-*liboml2* currently also defines an OML_LONG_VALUE that maps to a C
+The 'OML_GUID_VALUE' type can be used to create logical groups of
+samples, either within the same 'MP', or across 'MPs'. For example,
+parameters from the IP and TCP headers of a TCP packet should be
+reported in separate 'MPs' (as not all IP packets have TCP payload).
+However, it is desirable to link these tuples together. Adding an
+'OML_GUID_VALUE' field in both 'MPs', which can be filled with the same
+GUID returned linkomlalias:omlc_guid_generate[liboml2,3] would allow to
+join the relevant information about this packet at a later time, during
+analysis.  Similarly, if multiple samples in an 'MP' belong to the same
+logical group (e.g., an array), they can be linked using the same
+mechanism, by adding an 'OML_GUID_VALUE' field to that 'MP', and
+generating a new 'oml_guid_t' every time a new group needs to be
+created. To fill 'OML_GUID_VALUE' fields where grouping is not needed, a
+default 'NULL' value is available as 'OMLC_GUID_NULL'.
+
+The 'OML_BOOL_VALUE' simply encapsulate a boolean value. Anything that is
+not 0 is assumed to be true. There is however no guarantee that a
+non-zero boolean will retain the actual (integral) value which was used
+to set it, beyond its logical truth value.
+
+*liboml2* currently also defines an 'OML_LONG_VALUE' that maps to a C
 'long' type, but this type is deprecated because it can change size
-between 32-bit and 64-bit platforms. It will be removed from the API
-when OML3 is released. The library internally clamps OML_LONG_VALUE 'MP'
-fields to the most positive and negative values that will fit in an
+between 32-bit and 64-bit platforms. It will be removed from the API at
+some point in the future. The library internally clamps 'OML_LONG_VALUE'
+'MP' fields to the most positive and negative values that will fit in an
 'int32_t' object before sending them to the linkoml:oml2-server[1] or a
-local measurement file. OML_LONG_VALUE should not be used in new
+local measurement file. 'OML_LONG_VALUE' should not be used in new
 applications.
 
 Building
@@ -475,9 +498,11 @@ Whenever linkoml:OmlValueU[3], or arrays thereof, are declared, they
 MUST be properly initialised prior to any use. Not doing so might result
 in cryptic segmentation faults, or weird ghostly data being collected.
 Refer to <<manual-inject,Implementing injection code manually>> and the
-<<example,example>> above to see where calls to linkoml:omlc_zero[3] (or
-linkoml:omlc_zero_array[3]), and linkoml:omlc_reset_string[3] and
-linkoml:omlc_reset_blob[3] should be added to your code.
+<<example,example>> above to see where calls to
+linkomlalias:omlc_zero[OmlValueU,3] (or
+linkomlalias:omlc_zero_array[OmlValueU,3]), and
+linkomlalias:omlc_reset_string[OmlValueU,3] and
+linkomlalias:omlc_reset_blob[OmlValueU,3] should be added to your code.
 
 Additionally, omlc_set_const_string() is deprecated, as it did not have
 much significance. The string is now always duplicated into separate

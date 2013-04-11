@@ -41,10 +41,11 @@ OPTIONS
 --oml::
 Create OML header file 'APPNAME_oml.h' defining all measurement points,
 as well as registration and injection helper functions
-(linkoml:oml_register_mps[3] and linkoml:oml_inject_MPNAME[3]). The
-registration helper is only available when defining linkman:cpp[1] macro
-'OML_FROM_MAIN' prior to the '#include' statement for 'APPNAME_oml.h'.
-This should only be done in the file calling linkoml:oml_register_mps[3]
+(linkomlalias:oml_register_mps[liboml2,3] and
+linkomlalias:oml_inject_MPNAME[liboml2,3]). The registration helper is
+only available when defining linkman:cpp[1] macro 'OML_FROM_MAIN' prior
+to the '#include' statement for 'APPNAME_oml.h'.  This should only be
+done in the file calling linkomlalias:oml_register_mps[liboml2,3]
 (usually in the *main*() function).
 
 --opts::
@@ -106,9 +107,9 @@ its computers. }
   app.path = "/PATH/TO/BINARY"
 
   app.defProperty('cpu', 'Report CPU foo', ?c,
-               :type => :flag, :impl => { :var_name => 'report_cpu' })
+               :type => :boolean, :impl => { :var_name => 'report_cpu' })
   app.defProperty('mem', 'Report memory foo', ?m,
-               :type => :flag, :impl => { :var_name => 'report_memory' })
+               :type => :boolean, :impl => { :var_name => 'report_memory' })
 
   app.defMeasurement("memory") do |mp|
     mp.defMetric('ram', 'string')
@@ -285,7 +286,9 @@ must have a 'name' and a 'type'.  The 'type' must be a string equal to
 one of the following, which correspond with the defined OML types:
 
 *:int32*::
-This field will record 32-bit signed integer data.
+This field will record 32-bit signed integer data. ':long' is a
+deprecated synonym. ':int' and ':integer' also map to this type, but
+their use is not recommended.
 
 *:uint32*::
 This field will record 32-bit unsigned integer data.
@@ -298,6 +301,8 @@ This field will record 64-bit unsigned integer data.
 
 *:double*::
 This field will record floating point data in C 'double' format.
+':float' and ':real' are deprecated synonyms.
+
 
 *:string*::
 This field will record string data.
@@ -308,7 +313,7 @@ This field will record binary data.
 *:guid*::
 This field will record a globally unique identifier allowing to group
 tuples together, or to link them accross 'MPs'. See
-linkoml:omlc_guid_generate[3] for more details.
+linkomlalias:omlc_guid_generate[liboml2,3] for more details.
 
 *:boolean*::
 This field will record a boolean value.
