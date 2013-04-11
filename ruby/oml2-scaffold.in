@@ -390,17 +390,17 @@ class Metric < Struct.new(:name, :type, :opts)
     case type
     when :int, :integer
       if $integer_alias == :long and @@warnings[type] == nil
-        $stderr.write("WARN\tCommand line switch --long makes :#{type} an alias for :long, but :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead")
+        $stderr.puts "WARN\tCommand line switch --long makes :#{type} an alias for :long, but :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead"
         @@warnings[type] = true
       end
     when :long
       if @@warnings[type] == nil
-        $stderr.write("WARN\tType :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead")
+        $stderr.puts "WARN\tType :long is deprecated; new applications should use :int32, :uint32, :int64, :uint64 instead"
         @@warnings[type] = true
       end
     when :float, :real
       if @@warnings[type] == nil
-        $stderr.write("WARN\tType #{type} is deprecated; new applications should use :double instead")
+        $stderr.puts "WARN\tType #{type} is deprecated; new applications should use :double instead"
         @@warnings[type] = true
       end
     end
@@ -409,7 +409,7 @@ class Metric < Struct.new(:name, :type, :opts)
     begin
       $types[type][:ctype]
     rescue
-      $stderr.write("ERROR\tUnknown type #{type}")
+      $stderr.puts "ERROR\tUnknown type #{type}"
       exit -1
     end
   end
