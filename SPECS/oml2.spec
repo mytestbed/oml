@@ -16,96 +16,154 @@
 # error: Could not open %files file /home/abuild/rpmbuild/BUILD/oml2-2.9.0rpmtest/debugfiles.list: No such file or directory
 %define debug_package %{nil}
 
-BuildRoot:              %{_tmppath}/%{name}-%{version}-build
-Summary:                OML: The O? Measurement Library
-License:                MIT
-URL:                    http://oml.mytestbed.net
-Name:                   %{name}
-Version:                %{version}
-Release:                1
-Source:			http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{version}.tar.gz
-Source1:		init.d-oml2-server
-Source2:		oml2-server.service
-Packager:               Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
-Prefix:                 /usr
-Group:                  System/Libraries
-Conflicts:              liboml liboml-dev oml-server
-Requires:		libxml2
-Requires:		popt
-Requires:		sqlite
-BuildRequires:		asciidoc
-BuildRequires:		make
-BuildRequires:		libxml2-devel
-BuildRequires:		popt-devel
-BuildRequires:		sqlite-devel
-BuildRequires:		texinfo
+BuildRoot:      %{_tmppath}/%{name}-%{version}-build
+Summary:        OML: The full O? Measurement Library and tools (transitional metapackage)
+License:        MIT
+URL:            http://oml.mytestbed.net
+Name:           %{name}
+Version:        %{version}
+Release:        1
+Source:		http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{version}.tar.gz
+Source1:	init.d-oml2-server
+Source2:	oml2-server.service
+Packager:       Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
+Prefix:         /usr
+Group:          System/Libraries
+Requires:	liboml2
+Requires:	oml2-server
+BuildRequires:	asciidoc
+BuildRequires:	make
+BuildRequires:	libxml2-devel
+BuildRequires:	popt-devel
+BuildRequires:	sqlite-devel
+BuildRequires:	postgresql-devel
+BuildRequires:	texinfo
 
 %description
+This is a transitional metapackage installing the liboml2 and oml2-server
+packages.
+
+%package devel
+Summary:	OML library (liboml2) development headers (transitional metapackage)
+Group:		Development/Libraries
+Requires:	oml2
+Requires:	liboml2-devel
+
+%description devel
+This is a transitional metapackage installing the liboml2-devel package.
+
+#
+# The real packages start here
+#
+%package -n liboml2
+Summary:        OML: The O? Measurement Library and client tools
+Group:          System/Libraries
+Provides:	libocomm
+Obsoletes:      liboml
+Requires:	popt
+Requires:	libxml2
+
+%description -n liboml2
 This library allows application writers to define customizable
 measurement points in their applications to record measurements
 either to file, or to an OML server over the network.
 
-The package also contains the OML server, proxy server and
-proxy server control script.
+The package also contains and example sine generator and the OML proxy
+server and its control script.
 
-%package devel
-Summary:	liboml2 development headers
-Group:		System/Libraries
-Provides:	oml2-devel
+
+%package -n liboml2-devel
+Summary:	OML library (liboml2) development headers
+Group:		Development/Libraries
+Provides:	libocomm-devel
+Obsoletes:      liboml-dev
+Requires:	liboml2
+Requires:	popt-devel
+Requires:	libxml2-devel
+BuildRequires:	sqlite-devel
+BuildRequires:	postgresql-devel
 Requires:	ruby
 
-%description devel
+%description -n liboml2-devel
 This package contains necessary header files for liboml2 development.
+
+
+%package server
+Summary:        OML's measurements collection server
+Group:		System/Daemons
+Provides:	oml2-server oml-server
+Obsoletes:	oml-server
+Requires:	liboml2
+Requires:	popt
+Requires:	sqlite
+Requires:	postgresql-libs
+
+%description server
+The OML server accepts connections from client applications and stores
+measurements that they transmit in a database.  Currently the SQLite3
+database is supported.  The server understands both binary and text
+protocols on the same TCP port.
+
 
 %prep
 %setup -q
 
 %build
-./configure --prefix=%{_prefix} --sbindir=%{_sbindir} --mandir=%{_mandir} --libdir=%{_libdir} --sysconfdir=%{_sysconfdir} --enable-doc --disable-doxygen-doc --without-python --localstatedir=/var/lib
+%configure --enable-doc --disable-doxygen-doc --with-pgsql --without-python --localstatedir=/var/lib
 make %{?_smp_mflags}
 
 %install
 make DESTDIR=%{buildroot} install-strip
 make -C example/liboml2 \
-	     SCAFFOLD="%{buildroot}/usr/bin/oml2-scaffold" \
-	     BINDIR="%{buildroot}/usr/bin" \
-	     CFLAGS="-I%{buildroot}/usr/include" \
+	     SCAFFOLD="%{buildroot}%{_prefix}/bin/oml2-scaffold" \
+	     BINDIR="%{buildroot}%{_prefix}/bin" \
+	     CFLAGS="-I%{buildroot}%{_prefix}/include" \
 	     LDFLAGS="-L%{buildroot}%{_libdir}" \
 	     LIBS="-loml2 -locomm -lpopt -lm" \
 	     install
-mv %{buildroot}/usr/bin/generator %{buildroot}/usr/bin/oml2-generator
+mv %{buildroot}%{_prefix}/bin/generator %{buildroot}%{_prefix}/bin/oml2-generator
 mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
 cp $RPM_SOURCE_DIR/init.d-oml2-server $RPM_BUILD_ROOT/etc/rc.d/init.d/oml2-server
-mkdir -p $RPM_BUILD_ROOT/usr/lib/systemd/system
-cp $RPM_SOURCE_DIR/oml2-server.service $RPM_BUILD_ROOT/usr/lib/systemd/system
-rm -f %{buildroot}/usr/share/info/dir
+mkdir -p $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+cp $RPM_SOURCE_DIR/oml2-server.service $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+rm -f %{buildroot}%{_prefix}/share/info/dir
+echo "oml2 metapackage installed" > %{buildroot}%{_prefix}/share/oml2/oml2.meta
+echo "oml2-devel metapackage installed" > %{buildroot}%{_prefix}/share/oml2/oml2-devel.meta
 
 %clean
 rm -rf %{buildroot}
 
-%post
+%post server
 /sbin/chkconfig --add oml2-server
 /sbin/chkconfig oml2-server on
 
-%preun
+%preun server
 if [ "$1" = 0 ]; then
    /sbin/chkconfig oml2-server off
-   /etc/init.d/oml2-server stop
+   /bin/systemctl stop oml2-server.service
    /sbin/chkconfig --del oml2-server
 fi
 exit 0
 
-%postun
+%postun server
 if [ "$1" -ge 1 ]; then
-    /etc/init.d/oml2-server restart
+   /bin/systemctl restart oml2-server.service
 fi
 exit 0
 
 %files
 %defattr(-,root,root,-)
+%{_prefix}/share/oml2/oml2.meta
+
+%files devel
+%defattr(-,root,root,-)
+%{_prefix}/share/oml2/oml2-devel.meta
+
+%files -n liboml2
+%defattr(-,root,root,-)
+%{_prefix}/bin/oml2-generator
 %{_prefix}/bin/oml2-proxycon
 %{_prefix}/bin/oml2-proxy-server
-%{_prefix}/bin/oml2-server
 %{_libdir}/libocomm.a
 %{_libdir}/libocomm.la
 %{_libdir}/libocomm.so.%{libocommcur}
@@ -118,17 +176,13 @@ exit 0
 %{_prefix}/share/info/oml-user-manual.info.gz
 %doc %{_mandir}/man1/liboml2.1.gz
 %doc %{_mandir}/man1/oml2-proxy-server.1.gz
-%doc %{_mandir}/man1/oml2-server.1.gz
 %doc %{_mandir}/man5
-%dir /var/lib/oml2
-%attr(0755,root,root) /etc/rc.d/init.d/oml2-server
-/usr/lib/systemd/system/oml2-server.service
 
-%files devel
+%files -n liboml2-devel
+%defattr(-,root,root,-)
 %{_libdir}/liboml2.so
 %{_libdir}/libocomm.so
 %{_prefix}/include
-%{_prefix}/bin/oml2-generator
 %{_prefix}/bin/oml2_scaffold
 %{_prefix}/bin/oml2-scaffold
 %{_prefix}/share/oml2/liboml2/Makefile
@@ -167,3 +221,11 @@ exit 0
 %doc %{_mandir}/man3/oml_inject_MPNAME.3.gz
 %doc %{_mandir}/man3/oml_register_mps.3.gz
 %doc %{_mandir}/man3/OmlValueU.3.gz
+
+%files server
+%defattr(-,root,root,-)
+%doc %{_mandir}/man1/oml2-server.1.gz
+%dir /var/lib/oml2
+%{_prefix}/bin/oml2-server
+%attr(0755,root,root) /etc/rc.d/init.d/oml2-server
+/usr/lib/systemd/system/oml2-server.service
