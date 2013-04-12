@@ -164,10 +164,6 @@ AC_ARG_ENABLE([packaging],
 				   [
 				    AC_MSG_RESULT([none])
 				    gitistag=no
-
-				    AC_MSG_CHECKING([closest Git tag])
-				    gittag=`${GIT} describe --abbrev=0 2>/dev/null`
-				    AC_MSG_RESULT([$gittag])
 				   ])
 
 			    AC_ARG_ENABLE([android],
@@ -177,7 +173,7 @@ AC_ARG_ENABLE([packaging],
 							  [enable_android=yes])
 			    AS_IF([test "x$enable_android" == "xyes"],
 				   OML_GIT_SEARCH_TREEISH([Android],
-							 [gitandref],
+							 [gitandref], [$gitistag],
 							 [android/$gittag,
 							  origin/android/$gittag,
 							  android/$gitbranch,
@@ -194,7 +190,7 @@ AC_ARG_ENABLE([packaging],
 							[],
 							[AC_SUBST([MAKEPKG_FLAGS_ADD],[--nodeps])])
 				    OML_GIT_SEARCH_TREEISH([ArchLinux],
-							  [gitarchref],
+							  [gitarchref], [$gitistag],
 							  [archlinux/$gittag,
 							   origin/archlinux/$gittag,
 							   archlinux/$gitbranch,
@@ -211,7 +207,7 @@ AC_ARG_ENABLE([packaging],
 							[],
 							[AC_SUBST([DPKG_BUILDPACKAGE_FLAGS_ADD],[-d])])
 				    OML_GIT_SEARCH_TREEISH([Debian],
-							  [gitdebref],
+							  [gitdebref], [$gitistag],
 							  [debian/$gittag,
 							   origin/debian/$gittag,
 							   debian/$gitbranch,
@@ -227,7 +223,7 @@ AC_ARG_ENABLE([packaging],
 							[],
 							[AC_SUBST([RPMBUILD_FLAGS_ADD],[--nodeps])])
 				    OML_GIT_SEARCH_TREEISH([RPM],
-							  [gitrpmref],
+							  [gitrpmref], [$gitistag],
 							  [rpm/$gittag,
 							   origin/rpm/$gittag,
 							   rpm/$gitbranch,
