@@ -1,3 +1,9 @@
+oml2 (2.10.0rc2-mytestbed1) precise; urgency=low
+
+  * New upstream release 2.10.0rc2
+
+ -- Olivier Mehani <olivier.mehani@nicta.com.au>  Mon, 15 Apr 2013 17:50:32 +1000
+
 oml2 (2.10.0pre) precise; urgency=low
 
   * Add libocomm metapackage.
