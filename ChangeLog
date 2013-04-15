@@ -1,3 +1,24 @@
+2013-04-15  Olivier Mehani  <olivier.mehani@nicta.com.au>
+	* OML: Version 2.10.0rc2
+	* OMSP (protocol): finalise version 4
+		Support for booleans in both text and binary modes
+	* liboml2: Proper bump to library version 9.1.0
+		Allow to declare new MPs after omlc_start has been called (#1057)
+		Fix log delegation issues (#943)
+	* Major fixes:
+		oml2-scaffold is now more compatible with OMF application
+		descriptions (#1124, #1118)
+		Fix some memory and/or locking issues (#1122, #1072)
+	* Documentation:
+		Document use of OML_FROM_MAIN in liboml2(3) (#1123)
+		Package PostgreSQL backend documentation by default (#1050)
+		Various fixups and clarifications
+	* oml2-scaffold:
+		The default generated code now shows off all supported types
+	* OML4Py: API closer to the generic OML interfaces (#938)
+	* OML4R: removed from tree, now available from GitHub:
+			   https://github.com/mytestbed/oml4r
+
 2013-03-17  Olivier Mehani  <olivier.mehani@nicta.com.au>
 	* OML: Version 2.10.0rc
 	* protocol: New version, 4
