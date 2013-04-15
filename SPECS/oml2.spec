@@ -37,6 +37,7 @@ BuildRequires:	libxml2-devel
 BuildRequires:	popt-devel
 BuildRequires:	sqlite-devel
 BuildRequires:	postgresql-devel
+BuildRequires:	ruby
 BuildRequires:	texinfo
 
 %description
@@ -80,9 +81,9 @@ Obsoletes:      liboml-dev
 Requires:	liboml2
 Requires:	popt-devel
 Requires:	libxml2-devel
+Requires:	ruby
 BuildRequires:	sqlite-devel
 BuildRequires:	postgresql-devel
-Requires:	ruby
 
 %description -n liboml2-devel
 This package contains necessary header files for liboml2 development.
