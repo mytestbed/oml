@@ -216,7 +216,7 @@ o_vlog(int log_level, const char* fmt, va_list va)
       last_time = now;
       nseen = 0;
 
-      if (exponent < (1ul<<63)) { exponent <<= 1; }
+      if (exponent < (INT64_MAX/2)) { exponent *= 2; }
     }
 
   } else {
