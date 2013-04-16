@@ -23,6 +23,7 @@ source=(
 #<!GIT
 	http://oml.mytestbed.net/attachments/download/${_redmineid}/oml2-${pkgver}.tar.gz
 #!GIT>
+	oml2-server.service
 	oml2-server.rc
 	oml2-server.conf
 )
