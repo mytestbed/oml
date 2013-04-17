@@ -78,7 +78,7 @@ extern int parse_config(char* config_file);
  * \param pargc argc of the command line of the application
  * \param argv argv of the command line of the application
  * \param custom_oml_log custom format-based logging function
- * \return 0 on success, -1 on failure.
+ * \return 0 on success, -1 on failure, 1 when OML is disabled.
  *
  * \see omlc_add_mp, omlc_start, omlc_close
  * \see o_log_fn, o_set_log
@@ -207,7 +207,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
         *pargc -= 2;
       } else if (strcmp(*arg, "--oml-noop") == 0) {
         *pargc -= 1;
-        omlc_instance = NULL;
+        omlc_close();
         return 1;
       } else if (strcmp(*arg, "--oml-help") == 0) {
         usage();
@@ -325,6 +325,8 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
     return NULL;
   }
 
+  logdebug("Adding MP %s\n", mp_name);
+
   OmlMP* mp = (OmlMP*)xmalloc(sizeof(OmlMP));
   memset(mp, 0, sizeof(OmlMP));
 
@@ -411,8 +413,9 @@ destroy_mp(OmlMP *mp)
   OmlMP *next;
   OmlMStream *ms;
 
-  if(!mp)
+  if(!mp) {
     return NULL;
+  }
 
   logdebug("Destroying MP %s at %p\n", mp->name, mp);
 
@@ -452,7 +455,7 @@ destroy_mp(OmlMP *mp)
 int
 omlc_start()
 {
-  if (omlc_instance == NULL) return -1;
+  if (omlc_instance == NULL) { return -1; }
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -462,20 +465,17 @@ omlc_start()
   if (config_file) {
     if (parse_config((char*)config_file)) {
       logerror("Error while parsing configuration '%s'\n", config_file);
-      xfree(omlc_instance);
-      omlc_instance = NULL;
+      omlc_close();
       return -1;
     }
   } else {
     if (omlc_instance->collection_uri == NULL) {
       logerror("Missing --oml-collect declaration.\n");
-      xfree(omlc_instance);
-      omlc_instance = NULL;
+      omlc_close();
       return -2;
     }
     if (default_configuration()) {
-      xfree(omlc_instance);
-      omlc_instance = NULL;
+      omlc_close();
       return -3;
     }
   }
@@ -554,19 +554,23 @@ int
 omlc_close(void)
 {
 
-  if (omlc_instance == NULL) {
-    return -1;
+  if (NULL == omlc_instance) {
+    return 0; /* Already clear */
+
+  } else {
+    OmlWriter* w = omlc_instance->first_writer;
+    OmlMP* mp = omlc_instance->mpoints;
+
+    install_close_handler(SIG_DFL);
+
+    while( (mp = destroy_mp(mp)) );
+    if (w) {
+      while( (w =  w->close(w)) );
+    }
+
+    xfree(omlc_instance);
   }
 
-  OmlWriter* w = omlc_instance->first_writer;
-  OmlMP* mp = omlc_instance->mpoints;
-
-  install_close_handler(SIG_DFL);
-
-  while( (mp = destroy_mp(mp)) );
-  while( (w =  w->close(w)) );
-
-  xfree(omlc_instance);
   omlc_instance = NULL;
 
   xmemreport(O_LOG_DEBUG);

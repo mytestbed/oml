@@ -101,6 +101,9 @@ int main(int argc, const char **argv)
   if (result == -1) {
     fprintf (stderr, "Could not initialise OML\n");
     exit (1);
+  } else if (result == 1) {
+    fprintf (stderr, "OML was disabled by the user, exiting\n");
+    exit (0);
   }
 
   /* Do application stuff... */
@@ -389,8 +392,11 @@ int main (int argc, const char **argv)
 {
   int result = omlc_init ("Simple", &argc, argv, NULL);
   if (result == -1) {
-    fprintf (stderr, "Could not initialize OML\n");
+    fprintf (stderr, "Could not initialise OML\n");
     exit (1);
+  } else if (result == 1) {
+    fprintf (stderr, "OML was disabled by the user, exiting\n");
+    exit (0);
   }
 
   OmlMPDef mp_def [] = {

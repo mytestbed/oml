@@ -867,9 +867,9 @@ run(opts_t* opts, oml_mps_t* oml_mps)
 int
 main(int argc, const char *argv[])
 {
-  int c;
+  int c, ret;
 
-  if(omlc_init("#{template(:app_name)}", &argc, argv, NULL)) {
+  if((ret = omlc_init("#{template(:app_name)}", &argc, argv, NULL)) < 0) {
     logerror("Could not initialise OML\\n");
     return -1;
   }
@@ -878,9 +878,9 @@ main(int argc, const char *argv[])
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0); /* options is defined in #{template(:app_name)}_popt.h */
   while ((c = poptGetNextOpt(optCon)) > 0) {}
 
-  /* Initialise measurement points */
+  /* Initialise measurement points, only if OML is not disabled */
   oml_register_mps(); /* Defined in #{template(:app_name)}_oml.h */
-  if(omlc_start()) {
+  if(ret == 0 && omlc_start()) {
     logerror("Could not start OML\\n");
     return -1;
   }
