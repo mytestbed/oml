@@ -321,7 +321,7 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
     super
 
     # default to int32 if the type is not specified XXX: should be noisy
-    type = (opts[:type] || :int32).to_sym
+    type = (opts[:type].to_sym || :int32).to_sym
     opts[:type] = type
 
     # store the variable name
@@ -342,7 +342,7 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
     a << (letter_name ? "'#{'%c' % letter_name}'" : '0')
     a << "#{$types[opts[:type]][:popttype]}"
     a << "&g_opts_storage.#{@impl[:var_name]}"
-    a << "#{popt_defval}"
+    a << (letter_name ? "'#{'%c' % letter_name}'" : '0')
     a << "\"#{descr}\""
     a << "\"#{opts[:unit]}\"" if opts[:unit]
     "  { #{a.join(', ')}},"
@@ -351,11 +351,10 @@ class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
   ## Get the default value for this property
   # \return imlp[:popt_val] if defined, or the default value for the type otherwise
   def popt_defval
-    if (val = @impl[:popt_val])
-      # XXX: If #{val} cannot be graciously cast to an int, the compiler will cry
-      "\'#{val}\'"
+    if (@impl[:popt_val])
+      @impl[:popt_val]
     else
-      "0"
+      $types[opts[:type]][:poptdefval]
     end
   end
 end
