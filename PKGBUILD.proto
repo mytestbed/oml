@@ -23,10 +23,12 @@ source=(
 #<!GIT
 	http://oml.mytestbed.net/attachments/download/${_redmineid}/oml2-${pkgver}.tar.gz
 #!GIT>
-	oml2-server.service
-	oml2-server.rc
 	oml2-server.conf
+	oml2-server.logrotate
+	oml2-server.rc
+	oml2-server.service
 )
+
 backup=(etc/conf.d/oml2-server.conf)
 install="oml2.install"
 
