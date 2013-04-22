@@ -1,0 +1,25 @@
+Example OML configuration files
+===============================
+
+This directory contains sample OML configuration files that can be
+used with the simple sine wave generator application. These are XML
+files that allow the user to configure the operation of the client
+and change its runtime behaviour in ways that often cannot be done
+purely from the command line.
+
+config.xml
+
+   A simple configuration file that declares a single measurement
+   stream and instantiates an averaging filter in the client process.
+
+config_text_stream.xml
+
+   Defines a single measurement stream which uses the text protocol to
+   communicate to the server process.
+
+config_two_streams.xml
+
+   Define a pair of measurement streams for a single measurement
+   point: the first being the normal sine wave generator and the
+   second a moving average computed over the last ten readings.
+

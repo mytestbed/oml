@@ -1,0 +1,34 @@
+The OML Proxy Server
+====================
+
+This directory contains the code for the OML proxy server. The proxy
+implements a "server" that collects measurements from clients which
+are then forwarded onto an actual OML server.
+
+message_queue.c
+
+   Implement a FIFO message queue containing cbuffer (see
+   ${OMLROOT}/lib/shared/cbuf.h) objects.
+
+oml2-proxy-server.c
+
+   Implement the proxy server's top-level main() and its supporting
+   functions.
+
+proxy_client.c
+
+   Functions to manage the Client structure.
+
+receiver.c
+
+   Functions responsible for implementing the receive loop that reads
+   stores meessages in the message queue.
+
+sender.c
+
+   Implements half-async sender which uses a background thread to send
+   messages to the OML server.
+
+session.c
+
+   Session management functions.

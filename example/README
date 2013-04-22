@@ -1,0 +1,12 @@
+Example OML applications and config files
+=========================================
+
+This directory contains examples to illustrate the use of OML.
+
+liboml2
+
+   The simple sine wave generator application.
+
+liboml2-config
+
+   Example liboml2 configuration files.

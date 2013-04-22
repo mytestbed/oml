@@ -1,0 +1,37 @@
+The OML Server
+==============
+
+This directory contains the source code for the OML server. This
+implements the functionality that receives measurement tuples from the
+clients and commits them to the SQL database (either PostgreSQL or
+SQLite3).
+
+client_handler.c
+
+   The client handler receives callbacks from the eventloop and
+   processes messages in either OML's text or binary formats.
+
+database_adapter.h
+
+   Generic functions that apply to both of the database adapters.
+
+hook.c
+
+   Implements the event hook so that an external program can be called
+   by the OML server.
+
+oml2-server.c
+
+   The top-level main() and its supporting functions.
+
+psql_adapter.c
+
+   Adapter code for the PostgreSQL database backend.
+
+sqlite_adapter.c
+
+   Adapter code for the SQLite3 database backend.
+
+table_descr.c
+
+   Functions for managing table description (TableDescr) structures.
