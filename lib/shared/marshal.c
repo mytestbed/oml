@@ -71,8 +71,8 @@
  *  --+---------------+---------------+---------------+---------------+
  *    |  (U)INT32_T   |  int-byte-HH  |  int-byte-HL  |  int-byte-LH  |
  *  --+---------------+---------------+---------------+---------------+
- *    |  int-byte-HL  |  int-byte-LL  |
- *    +---------------+---------------+--
+ *    |  int-byte-LL  |
+ *    +---------------+--
  * \endverbatim
  *
  * The same goes for 64-bit integers (\ref INT64_T and \ref UINT64_T). GUIDs
@@ -81,10 +81,10 @@
  *  --+---------------+---------------+---------------+---------------+
  *    |  (U)INT64_T   |  int-byte-HHH |  int-byte-HHL |  int-byte-HLH |
  *  --+---------------+---------------+---------------+---------------+
- *    |  int-byte-HHL |  int-byte-HLL |  int-byte-LHL |  int-byte-LLH |
+ *    |  int-byte-HLL |  int-byte-LHH |  int-byte-LHL |  int-byte-LLH |
  *    +---------------+---------------+---------------+---------------+
- *    |  int-byte-LHL |  int-byte-LLH |
- *    +---------------+---------------+--
+ *    |  int-byte-LLL |
+ *    +---------------+--
  * \endverbatim
  *
  * Doubles (\ref DOUBLE_T) are represented with a 4-byte mantissa \f$M\f$ and a
@@ -94,8 +94,8 @@
  *  --+---------------+---------------+---------------+---------------+
  *    |   DOUBLE_T    |  mant-byte-HH |  mant-byte-HL |  mant-byte-LH |
  *  --+---------------+---------------+---------------+---------------+
- *    |  mant-byte-HL |  mant-byte-LL |  exponent     |
- *    +---------------+---------------+---------------+--
+ *    |  mant-byte-LL |   exponent    |
+ *    +---------------+---------------+--
  * \endverbatim
  *
  * Strings (\ref STRING_T) and blobs (\ref BLOB_T) are serialised as bytes,
