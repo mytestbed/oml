@@ -1,0 +1,18 @@
+Libraries for OML
+=================
+
+This directory contains the OML libraries. These include the client
+library, the socket layer communications and functionality that is
+common to the client and server.
+
+client
+
+   Contains the source code for the OML client-side library.
+
+ocomm
+
+   An abstraction layer that simplifies working with sockets.
+
+shared
+
+   Code shared between client and server.
