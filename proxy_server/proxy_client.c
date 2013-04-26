@@ -1,24 +1,14 @@
 /*
- * Copyright 2010-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2010-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file proxy_client.c
+ * \brief Functions to manage the Client structure.
  */
 #include <stdlib.h>
 #include <string.h>
@@ -37,20 +27,19 @@ dummy_read_msg_start (struct oml_message *msg, MBuffer *mbuf)
   return -1;
 }
 
-/**
- * @brief Create and initialise a +Client+ structure to represent a single client.
+/** Create and initialise a +Client+ structure to represent a single client.
  *
- * @param client_sock the socket associated to the client transmission
+ * \param client_sock the socket associated to the client transmission
  *        (from libocomm).  The client_sock should be attached to an active
  *        client that has been accepted by the server socket.
  *
- * @param page_size the page size for the underlying memory store for
+ * \param page_size the page size for the underlying memory store for
  *        buffering received measurements.
- * @param file_name save measurements to a file with this name.
- * @param server_port the port of the downstream OML server
- * @param server_address the address of the downstream OML Server
+ * \param file_name save measurements to a file with this name.
+ * \param server_port the port of the downstream OML server
+ * \param server_address the address of the downstream OML Server
  *
- * @return a new Client structure
+ * \return a new Client structure
  */
 Client*
 client_new (Socket* client_sock, int page_size, char* file_name,

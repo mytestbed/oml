@@ -5,24 +5,9 @@ This directory contains the source code for the ocomm library which
 provides an abstraction layer for socket-based communications. The
 code here contains both client and server functionality.
 
-eventloop.c
+Please refer to the boilerplate in each file to get their description.
+You can get a summary by running
 
-   Callback-based event loop supporting file descriptors, sockets and
-   timers.
+  grep "brief" *.{c,h}
 
-log.c
-
-   The implementation for the logerror(), logwarn(), loginfo() and
-   logdebug() logging functions.
-
-
-socket.c
-
-   A thin abstraction layer that manages sockets and provides some
-   additional state management functions.
-
-socket_group.c
-
-   Functions for managing a group of sockets as a unit. Internally
-   maintains a linked list of sockets which can be modified at
-   runtime.
+in this directory.

@@ -8,7 +8,7 @@
  * in the License.
  */
 /** \file client_handler.c
- * \brief Deals with a single connected client.
+ * \brief The client handler receives callbacks from the eventloop and processes messages in either OML's text or binary formats.
  */
 
 #include <stdio.h>
@@ -934,8 +934,7 @@ process_text_message(ClientHandler* self, MBuffer* mbuf)
   return 0;
 }
 
-/**
- * \brief function called when the socket receive some data
+/** * Callback function called when the socket receive some data
  * \param source the socket event
  * \param handle the client handler
  * \param buf data received from the socket
@@ -1010,8 +1009,7 @@ process:
   logdebug("%s: Buffer repacked to %d bytes\n",
       source->name, mbuf_fill(mbuf));
 }
-/**
- * \brief Call back function when the status of the socket change
+/** Callback function called when the status of the socket change
  * \param source the socket event
  * \param status the status of the socket
  * \param errno the value of the error if there is

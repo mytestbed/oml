@@ -107,8 +107,7 @@ struct poptOption options[] = {
   { NULL, 0, 0, NULL, 0, NULL, NULL }
 };
 
-/**
- * @brief Set up the logging system.
+/** Set up the logging system.
  *
  * This function sets up the server logging system to log to file
  * logfile, with the given log verbosity level.  All messages with
@@ -121,8 +120,8 @@ struct poptOption options[] = {
  * logging; otherwise, if logfile is NULL and stderr is attached to a
  * tty then log messages will sent to stderr.
  *
- * @param logfile the file to open
- * @param level the severity level at which to log
+ * \param logfile the file to open
+ * \param level the severity level at which to log
  */
 static void logging_setup (char *logfile, int level)
 {

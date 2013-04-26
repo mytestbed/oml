@@ -11,7 +11,7 @@
  * \brief Abstract interface for writers.
  *
  * A writer is in charge of serialising the OML samples (using either the text
- * or binary protocol \ref binprotocol), and outputting them somewhere (network
+ * or binary protocol \ref omspbin), and outputting them somewhere (network
  * or file).
  *
  * \see OmlTextWriter, OmlBinWriter

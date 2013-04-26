@@ -8,7 +8,7 @@
  * in the License.
  */
 /**\file log.c
- * \brief Logging functions
+ * \brief Logging functions, including the implementation for logerror(), logwarn(), loginfo() and logdebug().
  */
 
 #include <stdio.h>

@@ -3,49 +3,14 @@ Client-side OML library
 
 This directory contains the source code for the OML client side library.
 
-api.c
+Please refer to the boilerplate in each file to get their description.
+You can get a summary by running
 
-   This file contains the functions that implement the OML API. 
+  grep "brief" *.{c,h}
 
-bin_writer.c
+in this directory. Subdirectories are as follows.
 
-   An implementation of the OmlWriter interface functions (see
-   oml2/oml_writer.h) that writes messages using the OML binary
-   protocol.
+filter/
 
-buffered_writer.c
-
-   Implements a non-blocking, self-draining FIFO queue using threads.
-
-file_stream.c
-
-   An OmlOutStream implementation that writer that writes measurement
-   tuples to a file on the local filesystem.
-
-filter.c
-
-   Implementation of OML's client-side filter engine.
-
-init.c
-
-   Implemention of the OML API initialisation routines.
-
-misc.c
-
-   Contains miscellaneous locking functions used to synchronize the
-   multi-threaded implementation.
-
-net_stream.c
-
-   An OmlOutStream implementation that writer that sends measurement
-   tuples over the network.
-
-parse_config.c
-
-   The XML configuration file parser functions.
-
-text_writer.c
-
-   An implementation of the OmlWriter interface functions (see
-   oml2/oml_writer.h) that serializes measurement tuples using the OML
-   text protocol.
+   Implementations of the client-side filters, as well as the factory making
+   them available to the code in filter.c.

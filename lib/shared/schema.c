@@ -9,6 +9,12 @@
  */
 /** \file schema.c
  * \brief Manipulate schema structures, and convert to/from string or SQL representation.
+ *
+ * \page omspschema OMSP Schema Specification
+ *
+ * XXX: The contents of
+ * http://oml.mytestbed.net/projects/oml/wiki/OML_Measurement_Stream_Protocol_%28OMSP%29_Specification#Schema-Definition
+ * should be wrapped into this documentation.
  */
 #include <stdlib.h>
 #include <string.h>

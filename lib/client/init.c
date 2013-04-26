@@ -822,11 +822,10 @@ create_writer(const char* uri, enum StreamEncoding encoding)
   return writer;
 }
 
-/**
- * @brief Find a named measurement point.
+/** Find a named measurement point.
  *
- * @param name The name of the measurement point to search for.
- * @return the measurement point, or NULL if not found.
+ * \param name The name of the measurement point to search for.
+ * \return the measurement point, or NULL if not found.
  */
 OmlMP*
 find_mp (const char *name)
@@ -910,12 +909,11 @@ find_mstream_in_mp (const char *name, OmlMP *mp)
   return ms;
 }
 
-/**
- * @brief Find a measurement stream by name.  All measurement streams
- * must be named uniquely.
+/** Find a measurement stream by name.
+ * All measurement streams must be named uniquely.
  *
- * @param name the name of the measurement stream to search for.
- * @return a pointer to the measurement stream or NULL if not found.
+ * \param name the name of the measurement stream to search for.
+ * \return a pointer to the measurement stream or NULL if not found.
  */
 OmlMStream*
 find_mstream (const char *name)

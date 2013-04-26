@@ -1,24 +1,14 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file oml2-proxy-server.c
+ * \brief Implement the proxy server's top-level main() and its supporting functions.
  */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -77,10 +67,9 @@ struct poptOption options[] = {
 void
 proxy_message_loop (const char *client_id, Client *client, void *buf, size_t size);
 
-/**
- * \brief function called when the socket receive some data
+/** Callback function called when the socket receive some data
  * \param source the socket event
- * \param handle the cleint handler
+ * \param handle the client handler
  * \param buf data received from the socket
  * \param bufsize the size of the data set from the socket
  */
@@ -111,8 +100,7 @@ client_callback(SockEvtSource *source, void *handle, void *buf, int buf_size)
   pthread_mutex_unlock (&self->mutex);
 }
 
-/**
- * \brief Call back function when the status of the socket change
+/** Callback function when the status of the socket change
  * \param source the socket event
  * \param status the status of the socket
  * \param error the value of the error if there is
@@ -143,10 +131,9 @@ status_callback(SockEvtSource *source, SocketStatus status, int error, void *han
   }
 }
 
-/**
- * \brief Called when a node connects via TCP
- * \param
- * \return
+/** Callback function called when a node connects via TCP
+ * \param client_sock Socket of the client
+ * \param handle the client handler
  */
 void
 on_connect (Socket* client_sock, void* handle)
@@ -281,8 +268,7 @@ sigpipe_handler(int signum)
     sigpipe_flag = 1;
 }
 
-/**
- * @brief Set up the logging system.
+/** Set up the logging system.
  *
  * This function sets up the server logging system to log to file
  * logfile, with the given log verbosity level.  All messages with
@@ -295,8 +281,8 @@ sigpipe_handler(int signum)
  * logging; otherwise, if logfile is NULL and stderr is attached to a
  * tty then log messages will sent to stderr.
  *
- * @param logfile the file to open
- * @param level the severity level at which to log
+ * \param logfile the file to open
+ * \param level the severity level at which to log
  */
 void
 setup_logging (char *logfile, int level)

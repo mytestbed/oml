@@ -7,7 +7,11 @@
  * downloading or using this software you accept the terms and the
  * liability disclaimer in the License.
  */
-
+/** \file guid.c
+ * \brief Implementation of the functions required to support the GUID data type.
+ * 
+ * Uses /dev/urandom internally as its source of random GUIDs.
+ */
 #include "guid.h"
 
 #include <assert.h>

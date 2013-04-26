@@ -7,6 +7,11 @@
  * using this software you accept the terms and the liability disclaimer
  * in the License.
  */
+/** \file string_utils.c
+ * \brief Utility functions for processing strings. Contains functions to convert to/from backslash-encoded format.
+ *
+ * XXX: Shouldn't this code be moved into oml_util.c?
+ */
 
 #include <assert.h>
 #include <stdint.h>

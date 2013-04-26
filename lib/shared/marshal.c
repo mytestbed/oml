@@ -8,11 +8,9 @@
  * in the License.
  */
 /** \file marshal.c
+ * \brief Binary mode OMSP (\ref omsp \ref omspbin) marhsalling and unmarshalling of OML types.
  *
- * \brief Implements marhsalling and unmarshalling of basic types for binary
- * transmission across the network (see \ref binprotocol).
- *
- * \page binprotocol Binary Protocol Marshalling
+ * \page omspbin OMSP Binary Marshalling
  *
  * Marshalling is done directly into Mbuffers. A marshalled packet is
  * structured as follows.

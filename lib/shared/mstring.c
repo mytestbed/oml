@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013 National ICT Australia Limited (NICTA)
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -7,7 +7,8 @@
  * using this software you accept the terms and the liability disclaimer
  * in the License.
  */
-/** \file mstring.c \brief Manipulation functions for managed strings (MString).
+/** \file mstring.c
+ * \brief A simple managed string abstraction which is dynamically allocated and can be transparently resized on demand which provides access to the underlying C string as required.
  *
  * MStrings encapsulate a variable amount of allocated space, and manage it
  * transparently, increasing it when needed. They are allocated with

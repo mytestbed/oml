@@ -1,28 +1,15 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*!\file parse_config.c
-  \brief Implements the parsing of the configuration file.
-*/
+/** \file parse_config.c
+ * \brief The XML configuration file parser functions.
+ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -66,8 +53,24 @@ struct synonym {
 static struct synonym *tokmap_[CT_Max] = {0};
 static enum ConfToken curtok = CT_ROOT;
 
-void setcurtok (enum ConfToken tok) { curtok = tok; }
-void mksyn (const char * const str)
+
+static int parse_collector(xmlNodePtr el);
+static int parse_stream_or_mp(xmlNodePtr el, OmlWriter* writer);
+static int parse_mp(xmlNodePtr el, OmlWriter* writer);
+static int parse_stream(xmlNodePtr el, OmlWriter* writer);
+static int parse_stream_filters (xmlNodePtr el, OmlWriter* writer, char *source, char *name);
+static OmlFilter* parse_filter(xmlNodePtr el, OmlMStream* ms, OmlMP* mp);
+static OmlFilter* parse_filter_properties(xmlNodePtr el, OmlFilter* f);
+static int set_filter_property(OmlFilter* f, const char* pname, const char* ptype, const char* pvalue);
+
+void
+setcurtok (enum ConfToken tok)
+{
+  curtok = tok;
+}
+
+void
+mksyn (const char * const str)
 {
   struct synonym *new = xmalloc (sizeof (struct synonym));
   new->name = xstrndup (str, strlen (str));
@@ -75,7 +78,8 @@ void mksyn (const char * const str)
   tokmap_[curtok] = new;
 }
 
-static void init_tokens (void)
+static void
+init_tokens (void)
 {
   /* The canonical name goes last here, but ends up at the head of the linked list */
   setcurtok (CT_ROOT),             mksyn ("omlc");
@@ -99,7 +103,8 @@ static void init_tokens (void)
   setcurtok (CT_FILTER_PROP_TYPE), mksyn ("type");
 }
 
-static struct synonym *token_names(enum ConfToken index)
+static struct synonym*
+token_names(enum ConfToken index)
 {
   if (!tokmap_[0])
     init_tokens();
@@ -109,9 +114,7 @@ static struct synonym *token_names(enum ConfToken index)
   return tokmap_[index];
 }
 
-/**
- * @brief Get the string value of an XML attribute identified by a
- * token.
+/** Get the string value of an XML attribute identified by a token.
  *
  * The token can map to multiple attribute names; the value of the
  * first one that is present will be returned.  This mechanism allows
@@ -120,9 +123,9 @@ static struct synonym *token_names(enum ConfToken index)
  * config file itself.  If none of the synonyms is present as an
  * attribute of the given XML element, NULL is returned.
  *
- * @param el the XML element to inspect for the given attribute.
- * @param tok the token representing the attribute(s) of interest.
- * @return the string value of the attribute, or NULL if not found..
+ * \param el the XML element to inspect for the given attribute.
+ * \param tok the token representing the attribute(s) of interest.
+ * \return the string value of the attribute, or NULL if not found..
  */
 static char*
 get_xml_attr (xmlNodePtr el, enum ConfToken tok)
@@ -144,19 +147,16 @@ get_xml_attr (xmlNodePtr el, enum ConfToken tok)
   }
 }
 
-/**
- * @brief Get the string name of an XML attribute identified by a
- * token.
+#if 0 // unused
+/** Get the string name of an XML attribute identified by a token.
  *
  * The name returned is the one used in the actual config XML file,
  * not the canonical name.
  *
- * @param el the XML element to inspect for the given attribute.
- * @param tok the token representing the attribute(s) of interest.
- * @return the name of the attribute that matches the token, if any,
- * otherwise NULL.
+ * \param el the XML element to inspect for the given attribute.
+ * \param tok the token representing the attribute(s) of interest.
+ * \return the name of the attribute that matches the token, if any, otherwise NULL.
  */
-#if 0 // unused
 static const char*
 get_xml_attr_name (xmlNodePtr el, enum ConfToken tok)
 {
@@ -173,15 +173,14 @@ get_xml_attr_name (xmlNodePtr el, enum ConfToken tok)
 }
 #endif
 
-/**
- * @brief Check whether an element name matches a given token.
+/** Check whether an element name matches a given token.
  *
  * If the actual name of the element matches one of the synonyms for
  * the token, return non-zero; otherwise, returns zero (false).
  *
- * @param el the element to inspect
- * @param tok the token to match against.
- * @return non-zero (true) if the element matches the token, zero
+ * \param el the element to inspect
+ * \param tok the token to match against.
+ * \return non-zero (true) if the element matches the token, zero
  * (false) otherwise.
  */
 static int
@@ -197,15 +196,13 @@ match_xml_elt (xmlNodePtr el, enum ConfToken tok)
   return 0;
 }
 
-/**
- * @brief Get the canonical name for a token.
+/** Get the canonical name for a token.
  *
  * The canonical name is the currently blessed "official" name for the
  * token, as it appears in the config XML file.
  *
- * @param tok the token to look up.
- * @return NULL if the token is not found or has no registered names;
- * otherwise, the official name for the token.
+ * \param tok the token to look up.
+ * \return NULL if the token is not found or has no registered names; otherwise, the official name for the token.
  */
 static const char *
 canonical_name (enum ConfToken tok)
@@ -217,25 +214,9 @@ canonical_name (enum ConfToken tok)
     return NULL;
 }
 
-/**************************************************/
-
-static int parse_collector(xmlNodePtr el);
-static int parse_stream_or_mp(xmlNodePtr el, OmlWriter* writer);
-static int parse_mp(xmlNodePtr el, OmlWriter* writer);
-static int parse_stream(xmlNodePtr el, OmlWriter* writer);
-static int parse_stream_filters (xmlNodePtr el, OmlWriter* writer,
-                                 char *source, char *name);
-static OmlFilter* parse_filter(xmlNodePtr el, OmlMStream* ms, OmlMP* mp);
-static OmlFilter* parse_filter_properties(xmlNodePtr el, OmlFilter* f);
-static int set_filter_property(OmlFilter* f, const char* pname,
-                               const char* ptype, const char* pvalue);
-
-/**************************************************/
-
-/**
- * @brief Parse the config file to configure liboml2.
- * @param configFile the name of the config file
- * @return 0 if successful <0 otherwise
+/** Parse the config file to configure liboml2.
+ * \param configFile the name of the config file
+ * \return 0 if successful <0 otherwise
  */
 int
 parse_config(char* configFile)
@@ -283,15 +264,14 @@ parse_config(char* configFile)
   return 0;
 }
 
-/**
- * @brief Parse the definition of a single collector.
+/** Parse the definition of a single collector.
  *
  * Extracts the URL for the collector to send its measurement streams
  * to, then parses its child elements for measurement streams to
  * build.
  *
- * @param el the XML element to analyse
- * @return 0 if successful <0 otherwise
+ * \param el the XML element to analyse
+ * \return 0 if successful <0 otherwise
  */
 static int
 parse_collector(xmlNodePtr el)
@@ -327,16 +307,14 @@ parse_collector(xmlNodePtr el)
   return 0;
 }
 
-/**
- * @brief Parse an <mp/> or <stream/> element and build a measurement
- * stream from it.
+/** Parse an <mp/> or <stream/> element and build a measurement stream from it.
  *
  * <mp/> is the old (badly named) format for describing a stream,
  * <stream/> is the new one.
  *
- * @param el the XML element to analyse
- * @param writer the writer to which the stream will send its output
- * @return 0 if successful <0 otherwise
+ * \param el the XML element to analyse
+ * \param writer the writer to which the stream will send its output
+ * \return 0 if successful <0 otherwise
  */
 static int
 parse_stream_or_mp (xmlNodePtr el, OmlWriter* writer)
@@ -353,13 +331,11 @@ parse_stream_or_mp (xmlNodePtr el, OmlWriter* writer)
     return parse_stream (el, writer);
 }
 
-/**
- * @brief Parse an <mp/> element and build a measurement stream from
- * it.
+/**Parse an <mp/> element and build a measurement stream from it.
  *
- * @param el the XML element to analyse
- * @param writer the writer to which the stream will send its output
- * @return 0 if successful <0 otherwise
+ * \param el the XML element to analyse
+ * \param writer the writer to which the stream will send its output
+ * \return 0 if successful <0 otherwise
  */
 static int
 parse_mp (xmlNodePtr el, OmlWriter* writer)
@@ -380,13 +356,11 @@ parse_mp (xmlNodePtr el, OmlWriter* writer)
   return parse_stream_filters (el, writer, source_, name_);
 }
 
-/**
- * @brief Parse an <stream/> element and build a measurement stream
- * from it.
+/** Parse an <stream/> element and build a measurement stream from it.
  *
- * @param el the XML element to analyse
- * @param writer the writer to which the stream will send its output
- * @return 0 if successful <0 otherwise
+ * \param el the XML element to analyse
+ * \param writer the writer to which the stream will send its output
+ * \return 0 if successful <0 otherwise
  */
 static int
 parse_stream (xmlNodePtr el, OmlWriter* writer)
@@ -397,17 +371,15 @@ parse_stream (xmlNodePtr el, OmlWriter* writer)
   return parse_stream_filters (el, writer, source, name);
 }
 
-/**
- * @brief Parse the <filter/> children of an <mp/> or <stream/>
+/** Parse the <filter/> children of an <mp/> or <stream/>
  * element and construct a measurement stream together with the
  * described filters.
  *
- * @param el the XML element to analyse
- * @param writer the writer to which the stream will send its output
- * @param source the name of the source MP for this stream
- * @param the name of this stream.  If NULL, the name will be the name
- * of the source MP.
- * @return 0 if successful <0 otherwise
+ * \param el the XML element to analyse
+ * \param writer the writer to which the stream will send its output
+ * \param source the name of the source MP for this stream
+ * \param the name of this stream.  If NULL, the name will be the name * of the source MP.
+ * \return 0 if successful <0 otherwise
  */
 static int
 parse_stream_filters (xmlNodePtr el, OmlWriter *writer,
@@ -474,13 +446,12 @@ parse_stream_filters (xmlNodePtr el, OmlWriter *writer,
   return 0;
 }
 
-/**
- * @brief Parse a <filter/> element and return the configured filter.
+/** Parse a <filter/> element and return the configured filter.
  *
- * @param el the XML element to analyze.
- * @param ms the stream to which the filter is associated.
- * @param mp the measurement point to which the stream is attached.
- * @return an OmlFilter if successful NULL otherwise
+ * \param el the XML element to analyze.
+ * \param ms the stream to which the filter is associated.
+ * \param mp the measurement point to which the stream is attached.
+ * \return an OmlFilter if successful NULL otherwise
  */
 static OmlFilter*
 parse_filter (xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
@@ -529,9 +500,7 @@ parse_filter (xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
   return f;
 }
 
-/**
- * @brief Parse optional filter properties and call the filter's 'set'
- * funtion with the properly cast values.
+/** Parse optional filter properties and call the filter's 'set' funtion with the properly cast values.
  *
  * A property has a name and a type, which are specified in attributes
  * on the <property/> element, and a value, which is carried in the
@@ -540,11 +509,11 @@ parse_filter (xmlNodePtr el, OmlMStream* ms, OmlMP* mp)
  * representations (i.e. int32, uint32, int64, uint64, double, string,
  * blob, ...).
  *
- * @param el the filer XML element
- * @param f the filter to set the properties on.
- * @param ms the stream to which the filter is associated.
- * @param mp the measurement point to which the filter is associated.
- * @return an OmlFilter if successful NULL otherwise
+ * \param el the filer XML element
+ * \param f the filter to set the properties on.
+ * \param ms the stream to which the filter is associated.
+ * \param mp the measurement point to which the filter is associated.
+ * \return an OmlFilter if successful NULL otherwise
  */
 static OmlFilter*
 parse_filter_properties(xmlNodePtr el, OmlFilter* f)
@@ -589,18 +558,16 @@ parse_filter_properties(xmlNodePtr el, OmlFilter* f)
   return f;
 }
 
-/**
- * @brief Set property a property on a filter.
+/** Set property a property on a filter.
  *
  * The property type should be the string representation of one of the
  * OML_*_VALUE types, as per schema header declarations.
  *
- * @param f filter to set the property for.
- * @param name Name of the property to set.
- * @param type Type of the property, as a string.
- * @param value Value to set property to
- *
- * @return 1 on success, 0 or less for failure
+ * \param f filter to set the property for.
+ * \param name Name of the property to set.
+ * \param type Type of the property, as a string.
+ * \param value Value to set property to
+ * \return 1 on success, 0 or less for failure
  */
 static int
 set_filter_property(OmlFilter* f, const char* name, const char* type, const char* value)

@@ -1,24 +1,37 @@
 /*
- * Copyright 2010-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2010-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file headers.c
+ * \brief Implements OMSP header-parsing functions.
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ * \page omsp OML Measurement Stream Protocol (OMSP)
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * XXX: The contents of
+ * http://oml.mytestbed.net/projects/oml/wiki/OML_Measurement_Stream_Protocol_%28OMSP%29_Specification
+ * (Generalities, Timestamping, Key/Value and Protocol)
+ * should be wrapped into this documentation.
  *
+ * \li \subpage omspschema
+ * \li \subpage omspheaders
+ * \li \subpage omsptext
+ * \li \subpage omspbin
+ *
+ *
+ * \page omspheaders OMSP Headers
+ *
+ * XXX: The contents of
+ * http://oml.mytestbed.net/projects/oml/wiki/OML_Measurement_Stream_Protocol_%28OMSP%29_Specification#Headers
+ * should be wrapped into this documentation.
+ *
+ * Also, all text manipulation should be wrapped into here (see
+ * http://oml.mytestbed.net/issues/1088 and
+ * http://oml.mytestbed.net/issues/1101).
  */
 
 #include <stdlib.h>
@@ -45,8 +58,7 @@ static const struct {
   { NULL, 0, H_NONE }
 };
 
-/**
- * @brief Convert a string header name into the tag for that header.
+/** Convert a string header name into the tag for that header.
  *
  * The +str+ should be a null terminated string.  The parameter +n+
  * sets the bounds of the string to be considered for extracting the
@@ -58,9 +70,9 @@ static const struct {
  * headers.  If it finds a match, it converts the header to its
  * corresponding tag; otherwise it returns H_NONE.
  *
- * @param str -- string name to convert.
- * @param n -- the number of bytes of str to consider
- * @return -- the tag.
+ * \param str -- string name to convert.
+ * \param n -- the number of bytes of str to consider
+ * \return -- the tag.
  */
 enum HeaderTag
 tag_from_string (const char *str, size_t n)

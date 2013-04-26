@@ -1,24 +1,14 @@
 /*
- * Copyright 2010-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2010-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file receiver.c
+ * \brief Functions responsible for implementing the receive loop that reads stores meessages in the message queue.
  */
 #include <string.h>
 
@@ -32,8 +22,7 @@
 #include "message_queue.h"
 #include "proxy_client.h"
 
-/**
- * @brief Read a line from mbuf.
+/** Read a line from mbuf.
  *
  * Sets *line_p to point to the start of the line, and *length_p to
  * the length of the line and returns 0 if successful.  Note that
@@ -43,10 +32,10 @@
  * If there is no newline character, returns -1 and *line_p and
  * *length_p are untouched.
  *
- * @param line_p out parameter for the start of the line
- * @param length_p out parameter for the length of the line
- * @param mbuf the buffer that contains the data to be read
- * @return 0 if successful, -1 if there is no newline character.
+ * \param line_p out parameter for the start of the line
+ * \param length_p out parameter for the length of the line
+ * \param mbuf the buffer that contains the data to be read
+ * \return 0 if successful, -1 if there is no newline character.
  */
 static int
 read_line(char** line_p, int* length_p, MBuffer* mbuf)
@@ -111,14 +100,10 @@ read_header (Client *self, MBuffer *mbuf)
   return 1; // still in header
 }
 
-/**
- * @brief Convert a content header into the correct symbol type.
+/** Convert a content header into the correct symbol type.
  *
- * @param str the string represention of the content type, either
- * "text" or "binary".
- * @return The symbolic representation of the content type, either
- * CONTENT_BINARY, CONTENT_TEXT, or CONTENT_NONE to indicate an unrecognized
- * content type string.
+ * \param str the string represention of the content type, either "text" or "binary".
+ * \return The symbolic representation of the content type, either CONTENT_BINARY, CONTENT_TEXT, or CONTENT_NONE to indicate an unrecognized content type string.
  */
 enum ContentType
 content_from_string (const char *str)

@@ -7,8 +7,8 @@
  * using this software you accept the terms and the liability disclaimer
  * in the License.
  */
-/** \file text_writer.c
- * \brief Serialise OML samples using the binary protocol \ref binprotocol.
+/** \file bin_writer.c
+ * \brief An implementation of the OmlWriter interface functions (see oml2/oml_writer.h) that writes messages using the OML binary protocol \ref omspbin.
  */
 
 #include <stdlib.h>
@@ -29,7 +29,7 @@
 #define DEF_PROTOCOL "tcp"
 #define DEF_PORT 3003
 
-/** An OmlWriter using the binary marshalling functions \ref binprotocol */
+/** An OmlWriter using the binary marshalling functions \ref omspbin */
 typedef struct OmlBinWriter {
 
   /*

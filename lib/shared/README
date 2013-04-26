@@ -6,82 +6,9 @@ shared between OML client, proxy and server. It contains code for
 marshalling and unmarshalling, managing OMLValues, handling memory
 buffers and so on.
 
-base64.c
+Please refer to the boilerplate in each file to get their description.
+You can get a summary by running
 
-	Source code for converting to/from BASE64 format.
+  grep "brief" *.{c,h}
 
-binary.c
-
-   Functions for reading oml_message objects from an MBuffer (see
-   mbuf.h) using the OML binary format.
-
-cbuf.c
-
-   A FIFO implementation used by the proxy that uses a circular list
-   of pages to manage the memory.
-
-guid.c
-
-	Implementation of the functions required to support the GUID data
-	type. Uses /dev/urandom internally as its source of random GUIDs.
-
-headers.c
-
-   Code to extract values of the various message headers and convert
-   tagged values to/from string buffer representation.
-
-htonll.h
-
-   Macros for converting 64 bit integers between host and network
-   representation.
-
-marshal.c
-
-   Functions for marshalling/unmarshalling of OmlValues into the OML
-   binary format.
-
-mbuf.c
-
-   Implements an MBuffer abstraction that provides functions for
-   reading, writing and resizing a memory buffer used to hold a
-   message.
-
-message.h
-
-   Defines the struct oml_message (a container for either a text or
-   binary message) and the associated interface functions.
-
-mstring.c
-
-   A simple string abstraction which is heap allocated that can be
-   transparently resized on demand and provides access to the
-   underlying C string as required.
-
-oml_util.c
-
-   Utility functions for processing URIs.
-
-oml_value.c
-
-   Implementation of functions required to support OmlValues.
-
-schema.c
-
-   Fucnions to manipulate schema structures, and convert to/from
-   string or SQL representation.
-
-string_utils.c
-
-   Utility functions for processing strings. Contains functions to
-	convert to/from backslash-encoded format.
-
-text.h
-
-   Functions for reading oml_message objects from an MBuffer (see
-   mbuf.h) using the OML text format.
-
-validate.c
-
-   Implements the validation of OML identifiers. The validate_name()
-   function ensures that all names must be of the form
-   "[A-Za-z_][A-Za-z0-9_]*".
+in this directory.

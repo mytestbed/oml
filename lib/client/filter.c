@@ -8,7 +8,7 @@
  * in the License.
  */
 /**\file filter.c
- * \brief Implements OML's client side filter engine
+ * \brief OML's client side filter engine
  */
 
 #include <string.h>

@@ -8,7 +8,7 @@
  * in the License.
  */
 /** \file text_writer.c
- * \brief Serialise OML samples using the text protocol.
+ * \brief An implementation of the OmlWriter interface functions (see oml2/oml_writer.h) that serializes measurement tuples using the OML text protocol \ref omsptext.
  */
 
 #include <alloca.h>

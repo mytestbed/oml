@@ -8,7 +8,7 @@
  * in the License.
  */
 /** \file buffered_writer.c
- * \brief Implements a non-blocking, self-draining FIFO queue using threads.
+ * \brief A non-blocking, self-draining FIFO queue using threads.
  */
 
 #include <stdlib.h>

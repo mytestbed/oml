@@ -7,6 +7,9 @@
  * using this software you accept the terms and the liability disclaimer
  * in the License.
  */
+/** \file base64.c
+ * \brief Source code for converting to/from BASE64 format (used for binary marshalling of blobs \see omspbin).
+ */
 
 #include "base64.h"
 

@@ -1,24 +1,14 @@
 /*
- * Copyright 2010-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2010-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file message_queue.c
+ * \brief Implement a FIFO message queue containing CBuffer objects.
  */
 #include <assert.h>
 
@@ -47,10 +37,8 @@ msg_queue_destroy (struct msg_queue *queue)
   xfree (queue);
 }
 
-/**
- * Create a new node at the end of the queue and return a pointer to it.
+/** Create a new node at the end of the queue and return a pointer to it.
  * This operation is O(1).
- *
  */
 struct msg_queue_node*
 msg_queue_add (struct msg_queue *queue)
@@ -76,10 +64,9 @@ msg_queue_add (struct msg_queue *queue)
   return node;
 }
 
-/**
- * Return a pointer to the head of the queue (next node to be
- * processed).  This operation is O(1).
+/** Return a pointer to the head of the queue (next node to be processed).
  *
+ * This operation is O(1).
  */
 struct msg_queue_node*
 msg_queue_head (struct msg_queue *queue)
@@ -89,8 +76,7 @@ msg_queue_head (struct msg_queue *queue)
   return queue->tail->next;
 }
 
-/**
- * Remove the node at the head of the queue.  This operation is O(1).
+/** Remove the node at the head of the queue.  This operation is O(1).
  */
 void
 msg_queue_remove (struct msg_queue *queue)

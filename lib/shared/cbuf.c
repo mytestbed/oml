@@ -1,24 +1,35 @@
 /*
- * Copyright 2010-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2010-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
+ */
+/** \file cbuf.c
+ * \brief A FIFO implementation used by the proxy that uses a circular list of pages to manage the memory.
+ * 
+ * It always writes in the tail buffer and always reads from the read buffer;
+ * tail->next points back to the start of the buffer:
+ * 
+ * \verbatim
+ *  +------------------------------------------+
+ *  V                                          |
+ * [X] -> [X] -> ... [X] -> ... -> [X] -> [X] -+
+ *                    ^                    ^
+ *                    |_ read              |_ tail
+ * \endverbatim
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ * When the tail buffer fills up, add a new one after tail, link the
+ * new tail to the head, and keep writing.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * To remove a buffer from the head, link the tail to the next one.
  *
+ * Could also implement this as a circular chain where beyond a certain
+ * size the chain does not expand, by having an empty flag on the nodes
+ * and allowing the tail to process, rather than inserting new nodes at
+ * the tail.
  */
 #include <stdlib.h>
 #include <string.h>
@@ -27,27 +38,6 @@
 #include "cbuf.h"
 
 #define CBUFFER_DEFAULT_SIZE 1024
-
-/*
-  Always writing in the tail buffer; always reading from the read buffer;
-  tail->next points back to the start of the buffer:
-
-   +------------------------------------------+
-   V                                          |
-  [X] -> [X] -> ... [X] -> ... -> [X] -> [X] -+
-                     ^                    ^
-                     |_ read              |_ tail
-
-  When the tail buffer fills up, add a new one after tail, link the
-  new tail to the head, and keep writing.
-
-  To remove a buffer from the head, link the tail to the next one.
-
-  Could also implement this as a circular chain where beyond a certain
-  size the chain does not expand, by having an empty flag on the nodes
-  and allowing the tail to process, rather than inserting new nodes at
-  the tail.
- */
 
 CBuffer*
 cbuf_create(int default_size)

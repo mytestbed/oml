@@ -8,7 +8,7 @@
  * in the License.
  */
 /**\file net_stream.c
- * \brief Implements an OmlOutStream stream which sends measurement tuples over the network
+ * \brief An OmlOutStream implementation that writer that sends measurement tuples over the network.
  */
 
 #include <assert.h>
