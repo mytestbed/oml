@@ -1,3 +1,0 @@
-v2.9.pre, 2012-09-11 -- Integration into main OML source tree
-v1.0.0, 09/10/2012 -- Initial release.
-

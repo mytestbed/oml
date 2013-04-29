@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = gnulib lib server proxy_server python ruby doc example test
+SUBDIRS = gnulib lib server proxy_server ruby doc example test
 
 EXTRA_DIST = autogen.sh \
 	     autoclean.sh \
@@ -9,7 +9,6 @@ EXTRA_DIST = autogen.sh \
 	     $(top_srcdir)/build-aux/gen-authors.sh \
 	     m4/ax_compare_version.m4 \
 	     m4/ax_prog_doxygen.m4 \
-	     m4/ax_prog_python_version.m4 \
 	     m4/ax_prog_ruby_version.m4 \
 	     m4/ax_with_prog.m4 \
 	     m4/oml_check_macosx.m4 \
@@ -28,11 +27,6 @@ dist-hook:
 if ENABLE_DOC
 doc-publish:
 	$(MAKE) -C doc/ publish
-endif
-
-if BUILD_OML4PY_EGG
-oml4py-egg oml4py-push:
-	$(MAKE) -C python/ $@
 endif
 
 if ENABLE_PACKAGING

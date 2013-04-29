@@ -105,7 +105,6 @@ define README-mdfy
 		-e 's^\([^/]\)README^\1[README](@ref index)^g' \
 		-e 's^INSTALL^[&](@ref install)^g' \
 		-e 's^example/liboml2/README^[&](@ref example)^' \
-		-e 's/OML4Py/[&](@ref oml4pydoc)/g' \
 		-e '/^    /!s^\(\(lib\)\?[Oo]ml[-.a-zA-Z1-9]\+\)(\([0-9]\))^[&](http://oml.mytestbed.net/doc/oml/$(OML_BASE_VER)/\1.\3.html)^g'
 endef
 mainpage.md: $(top_srcdir)/README
@@ -114,8 +113,6 @@ install.md: $(top_srcdir)/INSTALL
 	$(call README-mdfy,#install) $< > $@
 example.md: $(top_srcdir)/example/liboml2/README
 	$(call README-mdfy,#example) $< > $@
-oml4pydoc.md: $(top_srcdir)/python/oml4py/README.txt
-	$(call README-mdfy,#oml4pydoc) $< > $@
 
 publish-doxygen: @DX_DOCDIR@/@PACKAGE@.tag
 	ssh $(USER)$(WWWHOST) mkdir -p $(HTDOCS)/
