@@ -7,12 +7,13 @@
 #include <math.h>
 #include <unistd.h>
 
-#define USE_OPTS
 #include <popt.h>
+#include <oml2/omlc.h>
+
+#define USE_OPTS /* Include command line parsing code*/
 #include "generator_popt.h"
 
-#include <oml2/omlc.h>
-#define OML_FROM_MAIN
+#define OML_FROM_MAIN /* Define storage for some global variables; #define this in only one file */
 #include "generator_oml.h"
 
 #include "config.h"
@@ -48,23 +49,29 @@ run(opts_t* opts, oml_mps_t* oml_mps)
 int
 main(int argc, const char *argv[])
 {
-  int c;
+  int c, ret;
 
-  omlc_init("generator", &argc, argv, NULL);
+  if((ret = omlc_init("generator", &argc, argv, NULL)) < 0) {
+    logerror("Could not initialise OML\n");
+    return -1;
+  }
 
   /* Parse command line arguments */
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0); /* options is defined in generator_popt.h */
   while ((c = poptGetNextOpt(optCon)) > 0) {}
 
-  /* Initialise measurement points */
+  /* Initialise measurement points, only if OML is not disabled */
   oml_register_mps(); /* Defined in generator_oml.h */
-  omlc_start();
+  if(ret == 0 && omlc_start()) {
+    logerror("Could not start OML\n");
+    return -1;
+  }
 
   run(g_opts, g_oml_mps_generator); /* Do some work and injections, see above */
 
   omlc_close();
 
-  return(0);
+  return 0;
 }
 
 /*
