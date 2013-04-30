@@ -243,6 +243,7 @@ Generate C code for an OML application from an application definition file
     $stderr.puts "INFO\tCreated #{app_file}"
     $stderr.puts "INFO\tYou can now generate a skeleton main file with '#{$PROGRAM_NAME} --main #{app_file}' and its associated Makefile with '#{$PROGRAM_NAME} --make #{app_file}'"
     AppDefinition.remove ad
+    exit
   end
 
   unless app_file
@@ -305,57 +306,96 @@ Generate C code for an OML application from an application definition file
 end
 
 ## A representation of a command-line option and the associated popt(3) code generation
-class Property < Struct.new(:long_name, :descr, :letter_name, :opts)
+class Property < Struct.new(:name, :description, :parameter, :options)
 
   ## Parse a defProperty
-  # \param long_name long option (assumed to be preceded with "--")
-  # \param descr human-readable description
-  # \param letter_name short option (assumed to be preceded with "-")
-  # \param opts hash containing at least { :impl => {:var_name => NAME}, } defining the variable to update with the value from the command line
-  # \return a Property instance
   #
-  # Option :letter_name can be empty
-  # If :impl[:var_name] is not specified, use the value of :long_name
-  # If :impl[:popt_val] is specified, override the default value for this type
-  def initialize(long_name, descr, letter_name, opts = {})
+  # Expects a valid OMF>=5.4 defProperty call
+  # (http://doc.mytestbed.net/doc/omf/OmfEc/Backward/AppDefinition.html#defProperty-instance_method),
+  # but try to be backward compatible with OMF<=5.3
+  # (http://oml.mytestbed.net/projects/omf53/wiki/OEDL-5-3-defProperty-App) in
+  # some corner cases (http://oml.mytestbed.net/issues/1159#Heuristic)
+  #
+  # If this changes, the documentation of defProperty MUST be updated to reflect
+  # it in OMF:omf_ec/lib/omf_ec/backward/app_definition.rb.
+  #
+  def initialize(name = :mandatory, description = nil, parameter = nil, options = {})
+    if parameter.nil? and options[:use_name] == false or
+      not parameter.nil? and parameter.length == 1
+      parameter, opts = pre54defProperty(name, description, parameter, options)
+      options = options.merge(opts)
+      options.delete(:impl)
+    end
+    options[:type] = options[:type].to_sym || :int32
+
+    if (m = /^--(.*)/.match(parameter))
+      options[:longName] = m[1]
+    elsif (m = /^-(.)/.match(parameter))
+      options[:shortName] = m[1]
+    end
+
+    options[:longName] ||= name
+    options[:shortName] ||= options[:mnemonic]
+    options[:var_name] ||= name.gsub(/-/, '_')
+
+    # Only call the superclass' constructor when the options hash is good
     super
-
-    # default to int32 if the type is not specified XXX: should be noisy
-    type = (opts[:type].to_sym || :int32).to_sym
-    opts[:type] = type
-
-    # store the variable name
-    @impl = opts[:impl] || {}
-    @impl[:var_name] ||= long_name.gsub(/-/, '_')
   end
 
-  ## Output code to define the variable containing the :impl[:var_name] CLI option
+  # Parse an OMF<=5.3 defProperty, issuing update warnings
+  def pre54defProperty(long_name, descr, letter_name, opts = {})
+    letter_name = letter_name
+    if letter_name.nil?
+      parameter = "--#{long_name}"
+    else
+      parameter = "-#{letter_name}"
+    end
+    options = {}
+    options[:mnemonic] = letter_name
+    options[:type] = opts[:type].to_sym
+    options[:unit] = opts[:unit] if opts[:unit]
+    options[:default] = opts[:default] if opts[:default]
+    if opts[:impl]
+      # Only keep var_name if it is different from name
+      options[:var_name] = opts[:impl][:var_name] if opts[:impl][:var_name] != long_name
+      options[:default] = opts[:impl][:popt_val] if opts[:impl][:popt_val] != long_name
+    end
+
+    $stderr.puts "WARN\tObsolescent declaration of '#{long_name}'; consider updating as follows: " +
+      "app.defProperty('#{long_name}', '#{descr}', '#{parameter}'" +
+      (options[:type] ? ", :type => '#{options[:type]}'" : "") +
+      (options[:unit] ? ", :unit => '#{options[:unit]}'" : "") +
+      (options[:mnemonic] ? ", :mnemonic => '#{options[:mnemonic]}'" : "") +
+      (options[:default] ? ", :default => '#{options[:default]}'" : "") +
+      (options[:var_name] ? ", :var_name => '#{options[:var_name]}'" : "") +
+      ")"
+    return parameter, options
+  end
+
+
+  ## Output code to define the variable containing the :var_name CLI option
   # \param stream stream to write code to
   def write_opts_t(stream)
-    stream.puts "  #{$types[opts[:type]][:poptctype]} #{@impl[:var_name]};"
+    stream.puts "  #{$types[options[:type]][:poptctype]} #{options[:var_name]};"
   end
 
   ## Generate the popt(3) API call to define this command-line option
   def popt_def()
     a = []
-    a << "\"#{long_name}\""
-    a << (letter_name ? "'#{'%c' % letter_name}'" : '0')
-    a << "#{$types[opts[:type]][:popttype]}"
-    a << "&g_opts_storage.#{@impl[:var_name]}"
-    a << (letter_name ? "'#{'%c' % letter_name}'" : '0')
-    a << "\"#{descr}\""
-    a << "\"#{opts[:unit]}\"" if opts[:unit]
+    a << "\"#{options[:longName]}\""
+    a << (options[:shortName] ? "'#{'%c' % options[:shortName]}'" : '0')
+    a << "#{$types[options[:type]][:popttype]}"
+    a << "&g_opts_storage.#{options[:var_name]}"
+    a << (options[:mnemonic] ? "'#{'%c' % options[:mnemonic]}'" : '0')
+    a << "\"#{description}\""
+    a << "\"#{options[:unit]}\"" if options[:unit]
     "  { #{a.join(', ')}},"
   end
 
   ## Get the default value for this property
   # \return imlp[:popt_val] if defined, or the default value for the type otherwise
   def popt_defval
-    if (@impl[:popt_val])
-      @impl[:popt_val]
-    else
-      $types[opts[:type]][:poptdefval]
-    end
+    options[:default] || $types[options[:type]][:poptdefval]
   end
 end
 
@@ -539,8 +579,8 @@ class AppDefinition
 
   ## Instanciate a Property
   # \see Property::initialize
-  def defProperty(long_name, descr, letter_name, opts = {})
-    @properties << Property.new(long_name, descr, letter_name, opts)
+  def defProperty(name, description, parameter, options = {})
+    @properties << Property.new(name, description, parameter, options)
   end
 
   ## Instanciate a MeasurementPoint
@@ -925,6 +965,9 @@ main(int argc, const char *argv[])
   # \see AppDefinition::template
   def write_app_def(stream = $stdout, app_file="[FILENAME]")
     stream.puts %@# This file was automatically generated by #{PROG} #{VERSION}
+# The syntax of this file is documented at [0].
+#
+# [0] http://doc.mytestbed.net/doc/omf/OmfEc/Backward/AppDefinition.html
 
 defApplication('#{template(:app_urn)}', '#{template(:app_name)}') do |app|
 
@@ -938,18 +981,17 @@ is doing and useful for.
 
   # Declare command-line arguments; generate Popt parser with
   #  #{PROG} --opts #{app_file}
-  app.defProperty('loop', 'Create periodic result', ?l,
-        :type => :flag, :impl => { :var_name => 'loop' })
-  app.defProperty('delay', 'Delay between consecutive measurements', ?d,
-        :type => :int, :unit => 'seconds',
-        :impl => { :var_name => 'delay' })
+  app.defProperty('loop', 'Create periodic result', '-l',
+        :type => 'boolean', :mnemonic => 'l')
+  app.defProperty('delay', 'Delay between consecutive measurements', '-d',
+        :type => 'integer', :unit => 'seconds', :mnemonic => 'd')
 
   # Example of all supported command-line argument types; see popt(3) for more details
 #{
   a = []
   $popttypes.each do |t|
-    a << "  app.defProperty('#{t}_var', 'Command line option of type #{t}', nil, # no short option
-        :type => :#{t}, :impl => { :var_name => 'var#{t}' })"
+    a << "  app.defProperty('#{t}_var', 'Command line option of type #{t}', '--#{t}',
+        :type => :#{t}, :var_name => 'var#{t}')"
   end
   a.join("\n")
   }
