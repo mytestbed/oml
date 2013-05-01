@@ -248,7 +248,7 @@ schema_to_sql (const struct schema* schema, reverse_typemap o2t)
   /* Build SQL "CREATE TABLE" statement */
   n += mstring_set (mstr, "CREATE TABLE \"");
   n += mstring_cat (mstr, schema->name);
-  n += mstring_sprintf (mstr, "\" (id %s, ", o2t (OML_DB_PRIMARY_KEY));
+  n += mstring_sprintf (mstr, "\" (oml_tuple_id %s, ", o2t (OML_DB_PRIMARY_KEY));
   n += mstring_sprintf (mstr, "oml_sender_id %s, ", o2t (OML_INT32_VALUE));
   n += mstring_sprintf (mstr, "oml_seq %s, ", o2t (OML_INT32_VALUE));
   n += mstring_sprintf (mstr, "oml_ts_client %s, ", o2t (OML_DOUBLE_VALUE));
@@ -290,7 +290,7 @@ schema_check_metadata (struct schema_field *field)
 {
   struct schema_field metadata [] =
     {
-      { "id", OML_DB_PRIMARY_KEY },
+      { "oml_tuple_id", OML_DB_PRIMARY_KEY },
       { "oml_sender_id", OML_INT32_VALUE },
       { "oml_seq", OML_INT32_VALUE },
       { "oml_ts_client", OML_DOUBLE_VALUE },
