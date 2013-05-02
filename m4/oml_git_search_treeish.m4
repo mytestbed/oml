@@ -35,7 +35,8 @@ AC_DEFUN([OML_GIT_SEARCH_TREEISH],[
 			 ])
 		 ])
 	 AS_IF([test "x$VARIABLE" = "x"], [VARIABLE="VALUE_IF_NOT_FOUND"])
-	 AC_MSG_RESULT([$VARIABLE])
+	 REV=`git rev-list -n 1 ${VARIABLE}`
+	 AC_MSG_RESULT([$VARIABLE ($REV)])
 
 	 m4_popdef([VALUE_IF_NOT_FOUND])
 	 m4_popdef([LIST])
