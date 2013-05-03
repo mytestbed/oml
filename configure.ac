@@ -159,10 +159,12 @@ AC_ARG_ENABLE([packaging],
 			     AS_IF([ test "x" != "x$gittag"],
 				   [
 				    AC_MSG_RESULT([$gittag])
+				    gitlasttag=$gittag
 				    gitistag=yes
 				   ],
 				   [
-				    AC_MSG_RESULT([none])
+				    gitlasttag=`${GIT} describe --tags --abbrev=0 --match v\* HEAD`
+				    AC_MSG_RESULT([none, latest tag is $gitlasttag])
 				    gitistag=no
 				   ])
 
@@ -241,6 +243,7 @@ AC_ARG_ENABLE([packaging],
 	      [enable_packaging=no])
 AC_SUBST([GITBRANCH],[$gitbranch])
 AC_SUBST([GITTAG],[$gittag])
+AC_SUBST([GITLASTTAG],[$gitlasttag])
 AC_SUBST([GITHEAD],[$githead])
 AC_SUBST([GITANDREF],[$gitandref])
 AC_SUBST([GITARCHREF],[$gitarchref])

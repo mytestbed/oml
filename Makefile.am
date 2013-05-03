@@ -141,8 +141,8 @@ if !IS_DEBIAN
 	rm $(PKG_DEB_RULES).orig
 endif
 if !GITISTAG
-	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(DCH) -v $(VERSION)-1 "Development build (`$(GIT) describe` on branch `$(GIT) describe --contains --all HEAD`), not for general distribution; changes since $(GITTAG) follow"
-	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(GIT) log --pretty='%s' $(GITTAG)..HEAD | while read LINE; do $(DCH) -a "$${LINE}"; done
+	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(DCH) -v $(VERSION)-1 "Development build (`$(GIT) describe` on branch `$(GIT) describe --contains --all HEAD`), not for general distribution; changes since $(GITLASTTAG) follow"
+	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(GIT) log --pretty='%s' $(GITLASTTAG)..HEAD | while read LINE; do $(DCH) -a "$${LINE}"; done
 endif
 
 pkg-deb: $(PKG_DEB_BUILD_DIR)/$(distdir)/debian/rules
