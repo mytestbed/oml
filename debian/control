@@ -5,6 +5,14 @@ Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Build-Depends: debhelper (>= 5), libxml2-dev, libpopt-dev, libsqlite3-dev, libpq-dev, check, pkg-config, asciidoc, texinfo, ruby, libxml2-utils, docbook-xml, docbook-xsl, xsltproc
 Standards-Version: 3.7.2
 
+Package: oml2
+Architecture: any
+Depends: oml2-server, oml2-proxy-server, oml2-proxycon, liboml2, liboml2-dev
+Suggests: oml2-example
+Description: OML: The O? Measurement Library Suite (Metapackage)
+ This metapackage installs the OML client library, development headers, and
+ various server applications packages.
+
 Package: oml2-server
 Architecture: any
 Replaces: oml-server
