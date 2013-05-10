@@ -362,7 +362,7 @@ class Property < Struct.new(:name, :description, :parameter, :options)
 
     $stderr.puts "WARN\tObsolescent declaration of '#{long_name}'; consider updating as follows: " +
       "app.defProperty('#{long_name}', '#{descr}', '#{parameter}'" +
-      (options[:type] ? ", :type => '#{options[:type]}'" : "") +
+      (options[:type] ? ", :type => :#{options[:type]}" : "") +
       (options[:unit] ? ", :unit => '#{options[:unit]}'" : "") +
       (options[:mnemonic] ? ", :mnemonic => '#{options[:mnemonic]}'" : "") +
       (options[:default] ? ", :default => '#{options[:default]}'" : "") +
