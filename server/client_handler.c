@@ -293,7 +293,8 @@ process_schema(ClientHandler* self, char* value)
   schema_free (schema);
 
   if (client_realloc_tables (self, idx + 1) == -1) {
-    logerror ("%s: Failed to allocate memory for table index %d\n", self->name, idx);
+    logerror ("%s: Failed to allocate memory for table index %d '%s'\n",
+        self->name, idx, schema->name);
     return;
   }
 
@@ -305,8 +306,8 @@ process_schema(ClientHandler* self, char* value)
 
   /* Reallocate the values vector if this schema has more columns than can fit already. */
   if (client_realloc_values (self, idx, table->schema->nfields) == -1) {
-    logwarn ("%s: Could not allocate values vector of size %d for table index %d\n",
-        self->name, table->schema->nfields, idx);
+    logwarn ("%s: Could not allocate values vector of size %d for table index %d '%s'\n",
+        self->name, table->schema->nfields, idx, schema->name);
   }
 }
 
@@ -696,13 +697,13 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
     } else if(process_meta(self,
           omlc_get_string_ptr(*oml_value_get_value(&v[ki])),
           omlc_get_string_ptr(*oml_value_get_value(&v[vi]))) <= 0) {
-      logdebug("%s(bin): No need to store metadata separately", self->name);
+      logdebug("%s(bin): No need to store metadata separately\n", self->name);
       return;
     }
   }
 
-  logdebug("%s(bin): Inserting data into table index %d (seqno=%d, ts=%f)\n",
-      self->name, table_index, seqno, ts);
+  logdebug("%s(bin): Inserting data into table index %d '%s' (seqno=%d, ts=%f)\n",
+      self->name, table_index, table->schema->name, seqno, ts);
   self->database->insert(self->database, table, self->sender_id, header->seqno,
       ts, self->values_vectors[table_index], count);
 }
@@ -848,7 +849,7 @@ process_text_data_message(ClientHandler* self, char** msg, int count)
           self->name, msg[si]);
 
     } else if(process_meta(self, msg[ki], msg[vi]) <=0 ) {
-      logdebug("%s(txt): No need to store metadata separately", self->name);
+      logdebug("%s(txt): No need to store metadata separately\n", self->name);
       return;
     }
   }
@@ -872,8 +873,8 @@ process_text_data_message(ClientHandler* self, char** msg, int count)
     }
   }
 
-  logdebug("%s(txt): Inserting data into table index %d (seqno=%d, ts=%f)\n",
-      self->name, table_index, seqno, ts);
+  logdebug("%s(txt): Inserting data into table index %d '%s' (seqno=%d, ts=%f)\n",
+      self->name, table_index, table->schema->name, seqno, ts);
   self->database->insert(self->database, table, self->sender_id, seqno,
       ts, self->values_vectors[table_index], count - 3); /* Ignore first 3 elements */
 }
