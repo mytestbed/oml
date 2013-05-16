@@ -19,6 +19,8 @@ oml2_server_SOURCES = \
 	hook.h \
 	database_adapter.c \
 	database_adapter.h \
+	monitoring_server.c \
+	monitoring_server.h \
 	sqlite_adapter.c \
 	sqlite_adapter.h \
 	table_descr.c \
@@ -35,6 +37,7 @@ endif
 oml2_server_CPPFLAGS = $(PQINCPATH) $(AM_CPPFLAGS)
 
 oml2_server_LDADD = \
+	$(top_builddir)/lib/client/liboml2.la \
 	$(top_builddir)/lib/ocomm/libocomm.la \
 	$(top_builddir)/lib/shared/libshared.la \
 	$(M_LIBS) $(POPT_LIBS) $(SQLITE3_LIBS) $(LIBPQ_LIBS)

@@ -11,6 +11,7 @@
  * \brief Deals with a single connected client.
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +23,7 @@
 #include "ocomm/o_socket.h"
 #include "ocomm/o_eventloop.h"
 #include "mem.h"
+#include "monitoring_server.h"
 #include "mbuf.h"
 #include "oml_value.h"
 #include "oml_util.h"
@@ -51,6 +53,32 @@ client_state_to_s (CState state)
   };
   return states[state];
 }
+
+
+/**
+ * Logs a measurement with the monitoring OML server.
+ *
+ * \param self A non-NULL pointer to this client_handler.
+ * \param event A pointer to a string naming an event.
+ * \param message A pointer to a string describing the event.
+ */
+static void
+inject_measurement(ClientHandler *self, const char *event, const char *message)
+{
+  assert(self);
+  assert(event);
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  const size_t ADDR_SZ = socket_get_addr_sz(self->socket);
+  char addr[ADDR_SZ];
+  socket_get_addr(self->socket, addr, ADDR_SZ);
+  uint16_t port = socket_get_port(self->socket);
+  const char *oml_id = self->sender_name ? self->sender_name : "";
+  const char *domain = self->database && self->database->name ? self->database->name : "";
+  const char *app_name = self->app_name ? self->app_name : "";
+  ms_inject(addr, port, oml_id, domain, app_name, tv.tv_sec, event, message);
+}
+
 
 /**  Allocate data structures for the ClientHandler's tables.
  *
@@ -174,12 +202,13 @@ client_realloc_values (ClientHandler *self, int idx, int nvalues)
  * \see on_client_connect()
  * \see on_connect()
  */
-  ClientHandler*
+ClientHandler*
 client_handler_new(Socket* new_sock)
 {
   ClientHandler* self = xmalloc(sizeof(ClientHandler));
   if (!self) return NULL;
 
+  memset(self, 0, sizeof(*self));
   self->state = C_HEADER;
   self->content = C_TEXT_DATA;
   self->mbuf = mbuf_create ();
@@ -187,6 +216,11 @@ client_handler_new(Socket* new_sock)
   self->event = eventloop_on_read_in_channel(new_sock, client_callback,
       status_callback, (void*)self);
   strncpy (self->name, self->event->name, MAX_STRING_SIZE);
+
+  const char *event = "Connect";
+  const char *message = "";
+  inject_measurement(self, event, message);
+
   return self;
 }
 
@@ -991,6 +1025,7 @@ process:
     // Protocol error:  close the client connection
     logerror("%s: Fatal error, disconnecting client\n",
         source->name);
+    inject_measurement(self, "Disconnect", "C_PROTOCOL_ERROR");
     client_handler_free (self);
     /*
      * Protocol error --> no need to repack buffer, so just return;
@@ -1025,17 +1060,21 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
   logdebug("%s: Socket status changed to %s (%d); error code is %d\n",
            source->name, socket_status_string (status), status, errcode);
 
+  const char *event = "Disconnect";
+  const char *message = socket_status_string(status);
   switch (status)
     {
     case SOCKET_WRITEABLE:
       break;
     case SOCKET_CONN_CLOSED:
       /* Client closed the connection */
+      inject_measurement(self, event, message);
       loginfo("%s: Client '%s' closed connection\n", source->name, self->name);
       client_handler_free (self);
       break;
     case SOCKET_IDLE:
       /* Server dropped idle connection */
+      inject_measurement(self, event, message);
       loginfo("%s: Client '%s' dropped due to idleness\n", source->name, self->name);
       client_handler_free (self);
       break;
@@ -1043,6 +1082,7 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
     case SOCKET_CONN_REFUSED:
     case SOCKET_DROPPED:
     default:
+      inject_measurement(self, event, message);
       logwarn ("%s: Client '%s' received unhandled condition %s (%d)\n", source->name,
           self->name, socket_status_string (status), status);
       break;

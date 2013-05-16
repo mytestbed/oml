@@ -24,6 +24,7 @@
 #include <signal.h>
 #include <errno.h>
 
+#include "oml2/omlc.h"
 #include "oml2/oml_writer.h"
 #include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
@@ -34,6 +35,7 @@
 #include "client_handler.h"
 #include "database.h"
 #include "sqlite_adapter.h"
+#include "monitoring_server.h"
 
 #define V_STRING  "OML2 Server V%s\n"
 
@@ -336,6 +338,8 @@ int main(int argc, char **argv)
       die("Failed to setup database backend '%s'\n", dbbackend);
   }
 
+  ms_setup(&argc, (const char**)argv);
+
   signal_setup();
 
   hook_setup();
@@ -345,6 +349,8 @@ int main(int argc, char **argv)
   signal_cleanup();
 
   hook_cleanup();
+
+  ms_cleanup();
 
   xmemreport(O_LOG_INFO);
 
