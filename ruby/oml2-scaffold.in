@@ -981,9 +981,9 @@ is doing and useful for.
   # Declare command-line arguments; generate Popt parser with
   #  #{PROG} --opts #{app_file}
   app.defProperty('loop', 'Create periodic result', '-l',
-        :type => 'boolean', :mnemonic => 'l')
+        :type => :boolean, :mnemonic => 'l')
   app.defProperty('delay', 'Delay between consecutive measurements', '-d',
-        :type => 'integer', :unit => 'seconds', :mnemonic => 'd')
+        :type => :integer, :unit => 'seconds', :mnemonic => 'd')
 
   # Example of all supported command-line argument types; see popt(3) for more details
 #{
