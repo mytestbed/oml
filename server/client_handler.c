@@ -65,6 +65,7 @@ client_state_to_s (CState state)
 static void
 inject_measurement(ClientHandler *self, const char *event, const char *message)
 {
+#ifndef NOOML /* For unit tests */
   assert(self);
   assert(event);
   struct timeval tv;
@@ -77,6 +78,7 @@ inject_measurement(ClientHandler *self, const char *event, const char *message)
   const char *domain = self->database && self->database->name ? self->database->name : "";
   const char *app_name = self->app_name ? self->app_name : "";
   ms_inject(addr, port, oml_id, domain, app_name, tv.tv_sec, event, message);
+#endif
 }
 
 

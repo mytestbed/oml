@@ -42,7 +42,7 @@ check_server_SOURCES = \
 msgloop_LDADD = \
 	$(top_builddir)/lib/shared/libshared.la \
 	$(top_builddir)/lib/ocomm/libocomm.la
-check_server_CFLAGS = @CHECK_CFLAGS@ -UHAVE_CONFIG_H
+check_server_CFLAGS = @CHECK_CFLAGS@ -UHAVE_CONFIG_H -DNOOML
 
 check_server_LDADD = @CHECK_LIBS@ @SQLITE3_LIBS@ \
 	$(top_builddir)/lib/shared/libshared.la \
