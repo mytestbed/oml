@@ -592,6 +592,7 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     mbuf_consume_message (mbuf);
     self->state = self->content;
     client_handler_update_name(self);
+    inject_measurement(self, "Ready", "");
     loginfo("%s: Client '%s' ready to send data\n", self->event->name, self->name);
     return 0;
   }
