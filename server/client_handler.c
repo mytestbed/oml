@@ -385,6 +385,10 @@ process_meta(ClientHandler* self, char* key, char* value)
        * This mechanism however does not remove the need for a good time
        * synchronisation between the involved experimental nodes.
        *
+       * Note: The `oml_ts_client` is always accurate with respect to the
+       * sender, while the `oml_ts_server` might be off in case the sender was
+       * disconnected and automatically reconnected.
+       *
        * Upon connection, the clients send headers to the server as key--value
        * pairs. One of the keys is the `start-time` (or `start_time`) which
        * indicates the client timestamp at which their messages has been
