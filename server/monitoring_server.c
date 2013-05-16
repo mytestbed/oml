@@ -7,9 +7,8 @@
  * using this software you accept the terms and the liability disclaimer
  * in the License.
  */
-
 /** \file monitoring-server.c
- * \brief functions for taking measurements about this OML server.
+ * \brief Functions for taking measurements about this OML server.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -23,70 +22,72 @@
 
 #include "oml2/omlc.h"
 
+#define OML_FROM_MAIN
+#include "oml2-server_oml.h"
 
-/** The OML server measurement point.
+static int oml_enabled = 0;
+
+/** Set up connection to a monitoring OML server.
+ *
+ * \param argc non-NULL pointer to the argument count
+ * \param argv argument vector
  */
-static OmlMP *stats = NULL;
-
 void
 ms_setup(int *argc, const char **argv)
 {
+  int result;
   /* connect to the monitoring server */
-  if(omlc_init("server", argc, argv, NULL) == 0) {
-    loginfo("Initialized OML client lib\n");
+    result = omlc_init("server", argc, argv, NULL);
+  if(0 == result) {
+    logdebug("Initialised OML client library\n");
+    oml_register_mps();
     if(omlc_start() == 0) {
-      loginfo("Started OML client\n");
-      static OmlMPDef oml_server_basic_def[] = {
-        {"address", OML_STRING_VALUE},
-        {"port", OML_UINT32_VALUE},
-        {"oml_id", OML_STRING_VALUE},
-        {"domain", OML_STRING_VALUE},
-        {"appname", OML_STRING_VALUE},
-        {"timestamp", OML_UINT64_VALUE},
-        {"event", OML_STRING_VALUE},
-        {"message", OML_STRING_VALUE},
-        {NULL, OML_UNKNOWN_VALUE}
-      };
-      stats = omlc_add_mp("omlserver", oml_server_basic_def);
+      logdebug("Started OML reporting of server's internal metrics\n");
+      oml_enabled = 1;
     } else {
-      logwarn("Could not start OML client\n");    
+      logwarn("Could not start OML client library; this does not impact the server's collection capabilities\n");
     }
+  } else if (result == 1) {
+    logdebug ("OML was disabled by the user\n");
   } else {
-    logwarn("Could not initialise link to OML monitor\n");
+    logwarn("Could not initialise OML client library; this does not impact the server's collection capabilities\n");
   }
 }
 
+/** Clean up connection to the monitoring OML server. */
 void
 ms_cleanup(void)
 {
-  if(stats) {
+  if(oml_enabled) {
     omlc_close();
-    stats = NULL;
+    oml_enabled = 0;
   }
 }
 
+/** Inject a client report into the monitoring OML server.
+ *
+ * \param address pointer to the client IP address string
+ * \param port    client port number
+ * \param oml_id  pointer to a string containing the client OML ID.
+ * \param domain  pointer to a string containing the client domain.
+ * \param appname pointer to a string containing the client appname.
+ * \param timestamp timestamp
+ * \param event   (possibly NULL) pointer to an event string
+ * \param message (possibly NULL) pointer to a message string
+ */
 void
 ms_inject(const char* address, uint32_t port, const char* oml_id, const char* domain, const char* appname, uint64_t timestamp, const char* event, const char* message)
 {
-  if(stats) {
-    OmlValueU v[8];
-    omlc_zero_array(v, 8);
-    omlc_set_string(v[0], address);
-    omlc_set_uint32(v[1], port);
-    omlc_set_string(v[2], oml_id);
-    omlc_set_string(v[3], domain);
-    omlc_set_string(v[4], appname);
-    omlc_set_uint64(v[5], timestamp);
-    omlc_set_string(v[6], event);
-    omlc_set_string(v[7], message);
-
-    omlc_inject(stats, v);
-
-    omlc_reset_string(v[0]);
-    omlc_reset_string(v[2]);
-    omlc_reset_string(v[3]);
-    omlc_reset_string(v[4]);
-    omlc_reset_string(v[6]);
-    omlc_reset_string(v[7]);
+  if(oml_enabled) {
+    oml_inject_clients(g_oml_mps_oml2_server->clients, address, port, oml_id, domain, appname, timestamp, event, message);
   }
 }
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 2
+ indent-tabs-mode: nil
+ End:
+ vim: sw=2:sts=2:expandtab
+*/

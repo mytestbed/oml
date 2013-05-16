@@ -1,0 +1,82 @@
+#
+# Copyright 2013 National ICT Australia (NICTA)
+#
+# This software may be used and distributed solely under the terms of
+# the MIT license (License).  You should find a copy of the License in
+# COPYING or at http://opensource.org/licenses/MIT. By downloading or
+# using this software you accept the terms and the liability disclaimer
+# in the License.
+#
+# Application description file to be processed by oml2-scaffold to generate the
+# server's own instrumentation code.
+#
+# This application description can also be used in OMF scripts.
+#
+defApplication('oml2:server', 'oml2-server') do |app|
+
+  app.version(2, 10, -1)
+  app.shortDescription = 'OML2 collecion point daemon'
+  app.description = %{oml2-server (OML2 Server) is the daemon program for OML. It collects
+measurements from client applications and stores them in a measurement
+database.
+}
+  app.path = "@bindir@/oml2-server"
+
+  # Declare command-line arguments; generate Popt parser with
+  #  oml2-scaffold --opts oml2-server.rb
+  app.defProperty('listen', 'Port to listen for TCP based clients', '-l',
+        :type => 'integer', :mnemonic => 'l', :var_name => 'listen_port')
+  app.defProperty('backend', 'Database server backend [sqlite|postgresql]', '-b',
+        :type => 'string', :default => "sqlite", :mnemonic => 'b', :var_name => 'dbbackend')
+
+  # SQLite3 backend options
+  app.defProperty('data-dir', 'Directory to store database files (sqlite)', '-D',
+        :type => 'string', :default => "DIR", :mnemonic => 'D', :var_name => 'sqlite_database_dir')
+
+  # PostgreSQL backend options
+  app.defProperty('pg-host', 'PostgreSQL server host to connect to', '--pg-host',
+		  :type => :string, :default => "localhost", :var_name => 'pg_host')
+  app.defProperty('pg-port', 'PostgreSQL server port to connect to', '--pg-port',
+		  :type => :string, :default => "postgresql", :var_name => 'pg_port')
+  app.defProperty('pg-user', 'PostgreSQL user to connect as', '--pg-user',
+		  :type => :string, :default => "oml", :var_name => 'pg_user')
+  app.defProperty('pg-pass', 'Password of the PostgreSQL user', '--pg-pass',
+		  :type => :string, :default => "", :var_name => 'pg_pass')
+  app.defProperty('pg-connect', 'PostgreSQL connection info string', '--pg-connect',
+		  :type => :string, :default => "", :var_name => 'pg_conninfo')
+
+  app.defProperty('user', "Change server's user id", '--user',
+		  :type => :string, :default => "UID", :var_name => 'uidstr')
+  app.defProperty('group', "Change server's group id", '--group',
+		  :type => :string, :default => "GID", :var_name => 'gidstr')
+  app.defProperty('event-hook', 'Path to an event hook taking input on stdin', '-H',
+		  :type => :string, :default => "HOOK", :mnemonic => 'H', :var_name => 'hook')
+  app.defProperty('timeout', 'Timeout after which idle receiving sockets are cleaned up to avoid resource exhaustion', '-t',
+		  :type => :string, :default => "60", :mnemonic => 't', :var_name => 'socket_timeout')
+  # XXX: Redundant with --oml-log-level
+  app.defProperty('debug-level', 'Increase debug level', '--debug-level',
+		  :type => :integer, :default => "{1 .. 4}", :mnemonic => 'd', :var_name => 'log_level')
+  app.defProperty('logfile', 'File to log to', '--logfile',
+		  :type => :string, :default => "", :var_name => 'logfile_name')
+  app.defProperty('version', 'Print version information and exit', '--version',
+		  :type => :boolean, :default => "", :mnemonic => 'v')
+
+  # Declare measurement points; generate OML injection helpers with
+  #  oml2-scaffold --oml oml2-server.rb
+  app.defMeasurement("clients") do |mp|
+    mp.defMetric('address', :string)
+    mp.defMetric('port', :int32)
+    mp.defMetric('oml_id', :string)
+    mp.defMetric('domain', :string)
+    mp.defMetric('appname', :string)
+    mp.defMetric('timestamp', :int64)
+    mp.defMetric('event', :string)
+    mp.defMetric('message', :string)
+  end
+
+end
+
+# Local Variables:
+# mode:ruby
+# End:
+# vim: ft=ruby:sw=2
