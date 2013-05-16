@@ -10,6 +10,7 @@
 /** \file socket.c
  * \brief A thin abstraction layer that manages sockets and provides some additional state management functions.
  */
+#include <assert.h>
 #include <sys/timeb.h>
 #include <sys/stat.h>
 #include <netdb.h>
@@ -367,9 +368,7 @@ on_client_connect(
 ) {
   (void)source; // FIXME: Check why source parameter is unused
   socklen_t cli_len;
-
   SocketInt* self = (SocketInt*)handle;
-
   SocketInt* newSock = initialize(NULL);
   cli_len = sizeof(newSock->servAddr);
   newSock->sockfd = accept(self->sockfd,
@@ -615,7 +614,6 @@ socket_sendto(
   return sent;
 }
 
-
 int
 socket_get_sockfd(
   Socket* socket
@@ -625,16 +623,31 @@ socket_get_sockfd(
   return self->sockfd;
 }
 
-/**
-char*
-socket_get_addr(
-  Socket* socket
-) {
-  SocketInt *self = (SocketInt*)socket;
-
-  return self->addr;
+uint16_t
+socket_get_port(Socket *s)
+{
+  assert(s);
+  SocketInt *self = (SocketInt*)s;
+  return ntohs(self->servAddr.sin_port);
 }
-**/
+
+size_t
+socket_get_addr_sz(Socket *s)
+{
+  assert(s);
+  return INET_ADDRSTRLEN;
+}
+
+void
+socket_get_addr(Socket *s, char *addr, size_t addr_sz)
+{
+  assert(s);
+  assert(addr);
+  assert(socket_get_addr_sz(s) <= addr_sz);
+  SocketInt *self = (SocketInt*)s;
+  const char *tmp = inet_ntop(AF_INET, &self->servAddr.sin_addr, addr, addr_sz);
+  assert(tmp == addr);
+}
 
 /*
  Local Variables:

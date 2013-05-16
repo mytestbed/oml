@@ -29,6 +29,9 @@
 #ifndef O_SOCKET_H
 #define O_SOCKET_H
 
+#include <stddef.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -66,7 +69,7 @@ typedef struct _Socket {
 /*! Defines the signature of a callback to report a new IN socket
  * from a client connecting to a listening socket.
  */
-typedef void (*o_so_connect_callback)(Socket* newSock, void* handle);
+  typedef void (*o_so_connect_callback)(Socket* newSock, void* handle);
 
 /*! Set a global flag which, when set true will
  * cause all newly created sockets to be put in
@@ -200,13 +203,29 @@ socket_get_sockfd(
   Socket* socket
 );
 
-/*! Return the address of this socket. */
-/*
-char*
-socket_get_addr(
-  Socket* socket
-);
-*/
+/*! Return the port number for this socket.
+ *
+ * \return A uint16_t containing the port number.
+ */
+uint16_t
+socket_get_port(Socket *s);
+
+/*! Return the maximum size of the human-readable address for this
+    socket (including the terminating NUL character).
+ *
+ * \return A size_t specifying the worst-case string.
+ */
+size_t
+socket_get_addr_sz(Socket *s);
+
+/*! Return the address of the this socket in human-readable form.
+ *
+ * \param s A non-NULL pointer to the socket.
+ * \param addr A non-NULL pointer to the string buffer.
+ * \param addr_sz The size of the buffer pointed to by addr.
+ */
+void
+socket_get_addr(Socket *s, char *addr, size_t addr_sz);
 
 #ifdef __cplusplus
 }
