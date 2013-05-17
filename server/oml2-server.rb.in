@@ -66,7 +66,7 @@ database.
   app.defMeasurement("clients") do |mp|
     mp.defMetric('address', :string)
     mp.defMetric('port', :int32)
-    mp.defMetric('oml_id', :string)
+    mp.defMetric('node_id', :string)
     mp.defMetric('domain', :string)
     mp.defMetric('appname', :string)
     mp.defMetric('event', :string)
