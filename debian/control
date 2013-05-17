@@ -5,23 +5,41 @@ Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
 Build-Depends: debhelper (>= 5), libxml2-dev, libpopt-dev, libsqlite3-dev, libpq-dev, check, pkg-config, asciidoc, texinfo, ruby, libxml2-utils, docbook-xml, docbook-xsl, xsltproc
 Standards-Version: 3.7.2
 
+Package: oml2
+Architecture: any
+Depends: oml2-server, oml2-proxy-server, oml2-proxycon, liboml2, liboml2-dev
+Suggests: oml2-example
+Description: OML: The O? Measurement Library Suite (Metapackage)
+ This metapackage installs the OML client library, development headers, and
+ various server applications packages.
+
 Package: oml2-server
 Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
-Depends: ${misc:Depends}, libc6, libsqlite3-0, libpq5, libpopt0, libocomm1 (= ${Source-Version}), adduser
-Suggests: oml2-example
+Depends: ${misc:Depends}, libc6, libsqlite3-0, libpq5, libpopt0, liboml2 (= ${Source-Version}), adduser
+Suggests: oml2-example, oml2-server-omfdef
 Description: OML measurement server
  The OML server accepts connections from client applications and
  stores measurements that they transmit in a database.  Currently the
  SQLite3 database is supported.  The server understands both binary
  and text protocols on the same TCP port.
 
+Package: oml2-server-omfdef
+Section: net
+Priority: optional
+Architecture: all
+Depends: omf-expctl-5.4
+Suggests: oml2-server
+Description: A meta-package that installs OMF-5.4 definition of OML2 server
+ This package installs all the application definition needed by the OMF 5.4
+ experiment controller to use the oml2-server.
+
 Package: oml2-proxy-server
 Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
-Depends: ${misc:Depends}, libc6, libpopt0, libocomm1 (= ${Source-Version})
+Depends: ${misc:Depends}, libc6, libpopt0, libocomm (= ${Source-Version})
 Description: OML proxy server
  The OML proxy server acts as a buffer for measurements.  It accepts
  connections from OML client applications and then stores them in
@@ -49,7 +67,7 @@ Description: Example OML application (metapackage)
 
 Package: oml2-generator
 Architecture: any
-Depends: ${misc:Depends}, libc6, libpopt0, liboml2-9 (= ${Source-Version}), libocomm1 (= ${Source-Version})
+Depends: ${misc:Depends}, libc6, libpopt0, liboml2 (= ${Source-Version}), libocomm (= ${Source-Version})
 Description: Example OML sine wave generator
  A simple OML-instrumented sine wave generator, useful to test server and
  reporting chains setups.
@@ -83,7 +101,7 @@ Section: libs
 Architecture: any
 Replaces: liboml
 Breaks: liboml (<< 2.4)
-Depends: libc6, libocomm1, libxml2, ${misc:Depends}
+Depends: libc6, libocomm, libxml2, ${misc:Depends}
 Suggests: oml2-example
 Description: OML: The O? Measurement Library
  This library allows application writers to define customizable
