@@ -260,11 +260,11 @@ static void on_connect(Socket* new_sock, void* handle)
   logdebug("%s: New client connected\n", client->name);
 }
 
-int main(int argc, char **argv)
+int main(int argc, const char **argv)
 {
   int c;
 #ifdef HAVE_LIBPQ
-  int i;
+  char *pass_replace = "--pg-pass=WITHHELD", *conninfo_replace = "--pg-connect=WITHHELD";
 #endif
 
   poptContext optCon = poptGetContext(NULL, argc, (const char**) argv, options, 0);
@@ -289,22 +289,12 @@ int main(int argc, char **argv)
    */
   if (pg_pass || pg_conninfo) {
     for(c=1; c<argc; c++) {
-      i = -1;
+      if(pg_pass && !strncmp(argv[c],"--pg-pass", 9)) {
+        argv[c] = pass_replace;
+      }
 
-      if(pg_pass && !strncmp(argv[c],"--pg-pass", 9))
-        i = 9; /* Offset to look for '=' */
-
-      if(pg_conninfo && !strncmp(argv[c],"--pg-connect", 12))
-        i = 12;
-
-      if (i >= 0) {
-        if (argv[c][i++] != '=') {
-          c++;
-          i = 0;
-        }
-        if (c<argc)
-          for (;i<strlen(argv[c]); i++)
-            argv[c][i] = 'X';
+      if(pg_conninfo && !strncmp(argv[c],"--pg-connect", 12)) {
+        argv[c] = conninfo_replace;
       }
     }
   }
