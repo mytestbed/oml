@@ -69,7 +69,6 @@ database.
     mp.defMetric('oml_id', :string)
     mp.defMetric('domain', :string)
     mp.defMetric('appname', :string)
-    mp.defMetric('timestamp', :int64)
     mp.defMetric('event', :string)
     mp.defMetric('message', :string)
   end

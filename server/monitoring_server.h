@@ -16,7 +16,7 @@ void oml_setup(int *argc, const char **argv);
 
 void oml_cleanup(void);
 
-void client_event_inject(const char* address, uint32_t port, const char* oml_id, const char* domain, const char* appname, uint64_t timestamp, const char* event, const char* message);
+void client_event_inject(const char* address, uint32_t port, const char* oml_id, const char* domain, const char* appname, const char* event, const char* message);
 
 #endif /*MONITORING_SERVER_H_*/
 

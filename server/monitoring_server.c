@@ -71,15 +71,14 @@ oml_cleanup(void)
  * \param oml_id  pointer to a string containing the client OML ID.
  * \param domain  pointer to a string containing the client domain.
  * \param appname pointer to a string containing the client appname.
- * \param timestamp timestamp
  * \param event   (possibly NULL) pointer to an event string
  * \param message (possibly NULL) pointer to a message string
  */
 void
-client_event_inject(const char* address, uint32_t port, const char* oml_id, const char* domain, const char* appname, uint64_t timestamp, const char* event, const char* message)
+client_event_inject(const char* address, uint32_t port, const char* oml_id, const char* domain, const char* appname, const char* event, const char* message)
 {
   if(oml_enabled) {
-    oml_inject_clients(g_oml_mps_oml2_server->clients, address, port, oml_id, domain, appname, timestamp, event, message);
+    oml_inject_clients(g_oml_mps_oml2_server->clients, address, port, oml_id, domain, appname, event, message);
   }
 }
 

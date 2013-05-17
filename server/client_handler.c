@@ -68,8 +68,6 @@ client_event_report(ClientHandler *self, const char *event, const char *message)
 #ifndef NOOML /* For unit tests */
   assert(self);
   assert(event);
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
   const size_t ADDR_SZ = socket_get_addr_sz(self->socket);
   char addr[ADDR_SZ];
   socket_get_addr(self->socket, addr, ADDR_SZ);
@@ -77,7 +75,7 @@ client_event_report(ClientHandler *self, const char *event, const char *message)
   const char *oml_id = self->sender_name ? self->sender_name : "";
   const char *domain = self->database && self->database->name ? self->database->name : "";
   const char *app_name = self->app_name ? self->app_name : "";
-  client_event_inject(addr, port, oml_id, domain, app_name, tv.tv_sec, event, message);
+  client_event_inject(addr, port, oml_id, domain, app_name, event, message);
 #endif
 }
 
