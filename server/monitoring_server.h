@@ -12,11 +12,11 @@
 #ifndef MONITORING_SERVER_H_
 #define MONITORING_SERVER_H_
 
-void ms_setup(int *argc, const char **argv);
+void oml_setup(int *argc, const char **argv);
 
-void ms_cleanup(void);
+void oml_cleanup(void);
 
-void ms_inject(const char* address, uint32_t port, const char* oml_id, const char* domain, const char* appname, uint64_t timestamp, const char* event, const char* message);
+void client_event_inject(const char* address, uint32_t port, const char* oml_id, const char* domain, const char* appname, uint64_t timestamp, const char* event, const char* message);
 
 #endif /*MONITORING_SERVER_H_*/
 

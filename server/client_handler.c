@@ -63,7 +63,7 @@ client_state_to_s (CState state)
  * \param message A pointer to a string describing the event.
  */
 static void
-inject_measurement(ClientHandler *self, const char *event, const char *message)
+client_event_report(ClientHandler *self, const char *event, const char *message)
 {
 #ifndef NOOML /* For unit tests */
   assert(self);
@@ -77,7 +77,7 @@ inject_measurement(ClientHandler *self, const char *event, const char *message)
   const char *oml_id = self->sender_name ? self->sender_name : "";
   const char *domain = self->database && self->database->name ? self->database->name : "";
   const char *app_name = self->app_name ? self->app_name : "";
-  ms_inject(addr, port, oml_id, domain, app_name, tv.tv_sec, event, message);
+  client_event_inject(addr, port, oml_id, domain, app_name, tv.tv_sec, event, message);
 #endif
 }
 
@@ -221,7 +221,7 @@ client_handler_new(Socket* new_sock)
 
   const char *event = "Connect";
   const char *message = "";
-  inject_measurement(self, event, message);
+  client_event_report(self, event, message);
 
   return self;
 }
@@ -599,7 +599,7 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     mbuf_consume_message (mbuf);
     self->state = self->content;
     client_handler_update_name(self);
-    inject_measurement(self, "Ready", "");
+    client_event_report(self, "Ready", "");
     loginfo("%s: Client '%s' ready to send data\n", self->event->name, self->name);
     return 0;
   }
@@ -1032,7 +1032,7 @@ process:
     // Protocol error:  close the client connection
     logerror("%s: Fatal error, disconnecting client\n",
         source->name);
-    inject_measurement(self, "Disconnect", "C_PROTOCOL_ERROR");
+    client_event_report(self, "Disconnect", "C_PROTOCOL_ERROR");
     client_handler_free (self);
     /*
      * Protocol error --> no need to repack buffer, so just return;
@@ -1074,13 +1074,13 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
       break;
     case SOCKET_CONN_CLOSED:
       /* Client closed the connection */
-      inject_measurement(self, event, message);
+      client_event_report(self, event, message);
       loginfo("%s: Client '%s' closed connection\n", source->name, self->name);
       client_handler_free (self);
       break;
     case SOCKET_IDLE:
       /* Server dropped idle connection */
-      inject_measurement(self, event, message);
+      client_event_report(self, event, message);
       loginfo("%s: Client '%s' dropped due to idleness\n", source->name, self->name);
       client_handler_free (self);
       break;
@@ -1088,7 +1088,7 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
     case SOCKET_CONN_REFUSED:
     case SOCKET_DROPPED:
     default:
-      inject_measurement(self, event, message);
+      client_event_report(self, event, message);
       logwarn ("%s: Client '%s' received unhandled condition %s (%d)\n", source->name,
           self->name, socket_status_string (status), status);
       break;

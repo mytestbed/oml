@@ -33,7 +33,7 @@ static int oml_enabled = 0;
  * \param argv argument vector
  */
 void
-ms_setup(int *argc, const char **argv)
+oml_setup(int *argc, const char **argv)
 {
   int result;
   /* connect to the monitoring server */
@@ -56,7 +56,7 @@ ms_setup(int *argc, const char **argv)
 
 /** Clean up connection to the monitoring OML server. */
 void
-ms_cleanup(void)
+oml_cleanup(void)
 {
   if(oml_enabled) {
     omlc_close();
@@ -76,7 +76,7 @@ ms_cleanup(void)
  * \param message (possibly NULL) pointer to a message string
  */
 void
-ms_inject(const char* address, uint32_t port, const char* oml_id, const char* domain, const char* appname, uint64_t timestamp, const char* event, const char* message)
+client_event_inject(const char* address, uint32_t port, const char* oml_id, const char* domain, const char* appname, uint64_t timestamp, const char* event, const char* message)
 {
   if(oml_enabled) {
     oml_inject_clients(g_oml_mps_oml2_server->clients, address, port, oml_id, domain, appname, timestamp, event, message);

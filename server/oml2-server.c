@@ -267,6 +267,8 @@ int main(int argc, const char **argv)
   char *pass_replace = "--pg-pass=WITHHELD", *conninfo_replace = "--pg-connect=WITHHELD";
 #endif
 
+  oml_setup(&argc, argv);
+
   poptContext optCon = poptGetContext(NULL, argc, (const char**) argv, options, 0);
 
   while ((c = poptGetNextOpt(optCon)) >= 0) {
@@ -327,8 +329,6 @@ int main(int argc, const char **argv)
       die("Failed to setup database backend '%s'\n", dbbackend);
   }
 
-  ms_setup(&argc, (const char**)argv);
-
   signal_setup();
 
   hook_setup();
@@ -339,7 +339,7 @@ int main(int argc, const char **argv)
 
   hook_cleanup();
 
-  ms_cleanup();
+  oml_cleanup();
 
   xmemreport(O_LOG_INFO);
 
