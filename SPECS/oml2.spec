@@ -110,7 +110,7 @@ protocols on the same TCP port.
 %setup -q
 
 %build
-%configure --enable-doc --disable-doxygen-doc --with-pgsql --without-python --localstatedir=/var/lib
+%configure --enable-doc --disable-doxygen-doc --with-pgsql %{?pgsqlinc:--with-pgsql-inc=%{pgsqlinc}} --without-python --localstatedir=/var/lib
 make %{?_smp_mflags}
 
 %install
