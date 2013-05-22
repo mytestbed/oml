@@ -1,3 +1,9 @@
+oml2 (2.10.0-mytestbed1) precise; urgency=low
+
+  * New upstream release 2.10.0
+
+ -- Steve Glass <stephen.glass@nicta.com.au>  Wed, 22 May 2013 15:58:46 +1000
+
 oml2 (2.10.0rc2-mytestbed1) precise; urgency=low
 
   * New upstream release 2.10.0rc2
