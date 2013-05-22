@@ -1,7 +1,7 @@
 %define name		oml2
-%define version		2.10.0rc2
+%define version		2.10.0
 %define pkgver		%{version}
-%define redmineid	851
+%define redmineid	895
 %define liboml2cur	9
 %define liboml2age	1
 %define liboml2rev	0
