@@ -1,3 +1,13 @@
+2013-04-20  Stephen Glass  <stephen.glass@nicta.com.au>
+	* OML: Version 2.10.0
+	* Major fixes:
+		Remove OML4Py from main build Instrument OML server so
+		that it logs connections and disconnections using OML (#1150).
+		Add README files to the directories in the source code (#961).
+		Use symbols instead of strings for scaffold defProperty types.
+		Make scaffold work with Ruby 1.8.7.
+	* Fix minor bugs and discrepancies since RC.
+
 2013-04-15  Olivier Mehani  <olivier.mehani@nicta.com.au>
 	* OML: Version 2.10.0rc2
 	* OMSP (protocol): finalise version 4
