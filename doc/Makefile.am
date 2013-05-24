@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
 
 # Automake doesn't support infos_TEXINFOS to be defined conditionnaly
-info_TEXINFOS = oml-user-manual.texinfo
+info_TEXINFOS = oml-user-manual.texi
 
 DATE=`date "+%Y-%m-%d"`
 ALL_MAN_FILES= \
