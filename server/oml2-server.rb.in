@@ -12,7 +12,7 @@
 #
 # This application description can also be used in OMF scripts.
 #
-defApplication('oml2:server', 'oml2-server') do |app|
+defApplication('oml:server', 'oml2-server') do |app|
 
   app.version(2, 10, -1)
   app.shortDescription = 'OML2 collecion point daemon'
