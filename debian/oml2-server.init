@@ -14,6 +14,8 @@
 # Description:       Enable service provided by daemon.
 ### END INIT INFO
 
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="OML2 Measurements Collection Server"
 NAME=oml2-server
 PIDFILE=/var/run/$NAME.pid
 
