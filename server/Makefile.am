@@ -5,7 +5,7 @@ SCAFFOLD = ruby ../ruby/oml2-scaffold
 pkgdatadir = $(datadir)/$(installed_name)
 # The name under which this binary will be installed after applying the
 # transform.
-installed_name = `echo '$(PACKAGE)' | sed '$(transform)'`
+installed_name = `echo '$(PACKAGE)' | $(SED) '$(transform)'`
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/lib/client \
@@ -61,8 +61,8 @@ oml2-server_oml.h: oml2-server.rb
 	$(SCAFFOLD) --oml $<
 
 oml2-server.rb: oml2-server.rb.in
-	VER=`echo $(VERSION) | sed "s/.*+oml//;s/\([0-9\+]\(\.[0-9]\+\)\{1,2\}\).*/\1/;s/\./, /g"`; \
-	    sed -e 's|@bindir[@]|$(bindir)|g' \
+	VER=`echo $(VERSION) | $(SED) "s/.*+oml//;s/\([0-9]\{1,\}\(\.[0-9]\{1,\}\)\{1,2\}\).*/\1/;s/\./, /g"`; \
+	    $(SED) -e 's|@bindir[@]|$(bindir)|g' \
 		-e "/app\.path/s/oml2-server/$(installed_name)/" \
 		-e "s/app\.version.*/app.version($$VER)/" \
 		$< > $@
