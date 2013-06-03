@@ -227,7 +227,7 @@ exit 0
 %doc %{_mandir}/man1/oml2-server.1.gz
 %dir /var/lib/oml2
 %{_prefix}/bin/oml2-server
-%{_prefix}/share/oml2/oml2-server-hook.sh
+%{_prefix}/share/oml2/server/oml2-server-hook.sh
 %{_prefix}/share/oml2/oml2-server.rb
 %attr(0755,root,root) /etc/rc.d/init.d/oml2-server
 /usr/lib/systemd/system/oml2-server.service
