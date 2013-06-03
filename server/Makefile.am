@@ -39,7 +39,6 @@ BUILT_SOURCES = oml2-server.rb \
 
 CLEANFILES = $(BUILT_SOURCES)
 
-dist_pkgdata_DATA = oml2-server-hook.sh
 pkgdata_DATA = oml2-server.rb
 
 EXTRA_DIST = oml2-server.rb.in
@@ -72,5 +71,4 @@ install-data-hook:
 
 uninstall-hook:
 	rm -rf $(DESTDIR)$(pkglocalstatedir)
-	rm -rf $(DESTDIR)$(pkgdatadir)/oml2-server-hook.sh $(DESTDIR)$(pkgdatadir)/oml2-server.rb
-
+	rm -rf $(DESTDIR)$(pkgdatadir)/oml2-server.rb
