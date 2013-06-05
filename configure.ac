@@ -50,8 +50,8 @@ AC_C_BIGENDIAN
 # Checks for libraries.
 missing_libs=""
 
-AC_SUBST([OML_ALT_VER], [`echo "$PACKAGE_VERSION" | sed 's/-/./g'`])
 AC_SUBST([OML_BASE_VER], [`echo "$PACKAGE_VERSION" | sed 's/^\([[0-9]]\+\.[[0-9]]\+\).*$/\1/'`])
+AC_SUBST([OML_PKG_VER], [`echo "$PACKAGE_VERSION" | sed 's/^\([[0-9]]\+\(\.[[0-9]]\+\)\{1,2\}\)\([[-.a-zA-Z0-9]]\+\)\?.*$/\1~\3/;s/-/./g'`])
 
 LIBOML2_LT_VER_CUR=10
 LIBOML2_LT_VER_REV=0 # Revisions of LIBOML2_LT_VER_CUR

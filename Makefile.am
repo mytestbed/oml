@@ -81,7 +81,7 @@ $(PKG_AND_BUILD_DIR)/$(PKG_AND_BASE_NAME).tar.gz: $(PKG_AND_BUILD_DIR)
 endif #BUILD_ANDROID
 
 if BUILD_ARCH
-PKG_ARCH_BASE_NAME=$(PACKAGE)-$(OML_ALT_VER)
+PKG_ARCH_BASE_NAME=$(PACKAGE)-$(OML_PKG_VER)
 PKG_ARCH_BUILD_DIR=p-arch
 PKG_ARCH_BUILD=$(PKG_ARCH_BUILD_DIR)/PKGBUILD
 
@@ -103,7 +103,7 @@ if !GITISTAG
 endif
 	cat $(PKG_ARCH_BUILD).proto | \
 		$(SED) -e "/<GIT/,/GIT>/d" | \
-		$(SED) -e "/!GIT.*/d" -e "s/^pkgver.*=.*/pkgver=$(OML_ALT_VER)/" \
+		$(SED) -e "/!GIT.*/d" -e "s/^pkgver.*=.*/pkgver=$(OML_PKG_VER)/" \
 		> $(PKG_ARCH_BUILD)
 	cd $(PKG_ARCH_BUILD_DIR); $(MAKEPKG) -p PKGBUILD -g >> PKGBUILD
 	cat $(PKG_ARCH_BUILD).proto | \
@@ -118,7 +118,7 @@ pkg-arch: $(PKG_ARCH_BUILD)
 endif #BUILD_ARCH
 
 if BUILD_DEBIAN
-PKG_DEB_BASE_NAME=$(PACKAGE)_$(VERSION)
+PKG_DEB_BASE_NAME=$(PACKAGE)_$(OML_PKG_VER)
 PKG_DEB_BUILD_DIR=p-debian
 PKG_DEB_ORIG_SRC=$(PKG_DEB_BUILD_DIR)/$(PKG_DEB_BASE_NAME).orig.tar.gz
 PKG_DEB_RULES=$(PKG_DEB_BUILD_DIR)/$(distdir)/debian/rules
@@ -142,7 +142,7 @@ if !IS_DEBIAN
 	rm $(PKG_DEB_RULES).orig
 endif
 if !GITISTAG
-	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(DCH) -v $(VERSION)-1 "Development build (`$(GIT) describe` on branch `$(GIT) describe --contains --all HEAD`), not for general distribution; changes since $(GITLASTTAG) follow"
+	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(DCH) -v $(OML_PKG_VER)-1 "Development build (`$(GIT) describe` on branch `$(GIT) describe --contains --all HEAD`), not for general distribution; changes since $(GITLASTTAG) follow"
 #	The sed line reverts the order of the lines without a dependency on tac
 	cd $(PKG_DEB_BUILD_DIR)/$(distdir)/; $(GIT) log --pretty='%s' $(GITLASTTAG)..HEAD | $(SED) '1!G;h;$!d' | while read LINE; do $(DCH) -a "$${LINE}"; done
 endif
@@ -154,7 +154,7 @@ endif #BUILD_DEBIAN
 if BUILD_RPM
 
 
-PKG_RPM_BASE_NAME=$(PACKAGE)-$(OML_ALT_VER)
+PKG_RPM_BASE_NAME=$(PACKAGE)-$(OML_PKG_VER)
 PKG_RPM_SPEC=$(PKG_RPM_BUILD_DIR)/SPECS/$(PACKAGE).spec
 PKG_RPM_BUILD_DIR=p-rpm
 
@@ -183,8 +183,8 @@ else
 		GZIP=$(GZIP_ENV) gzip -c >../SOURCES/$(PKG_RPM_BASE_NAME).tar.gz
 	mv $(PKG_RPM_SPEC) $(PKG_RPM_SPEC).orig
 	cat $(PKG_RPM_SPEC).orig | \
-		$(SED) -e "s/^%define version.*/%define version	$(OML_ALT_VER)/" \
-		-e "s/^%define pkgver.*/%define pkgver $(VERSION)/" \
+		$(SED) -e "s/^%define version.*/%define version	$(OML_PKG_VER)/" \
+		-e "s/^%define pkgver.*/%define pkgver $(OML_PKG_VER)/" \
 		-e "s/^%define liboml2cur.*/%define liboml2cur $(LIBOML2_LT_VER_MIN)/" \
 		-e "s/^%define liboml2rev.*/%define liboml2rev $(LIBOML2_LT_VER_REV)/" \
 		-e "s/^%define liboml2age.*/%define liboml2age $(LIBOML2_LT_VER_AGE)/" \
