@@ -112,24 +112,24 @@ its computers. }
                :type => :boolean, :var_name => 'report_memory')
 
   app.defMeasurement("memory") do |mp|
-    mp.defMetric('ram', 'string')
-    mp.defMetric('total', 'uint32')
-    mp.defMetric('free', 'uint32')
-    mp.defMetric('used', 'uint32')
-    mp.defMetric('free_percent', 'double')
-    mp.defMetric('used_percent', 'double')
+    mp.defMetric('ram', :string)
+    mp.defMetric('total', :uint32)
+    mp.defMetric('free', :uint32)
+    mp.defMetric('used', :uint32)
+    mp.defMetric('free_percent', :double)
+    mp.defMetric('used_percent', :double)
   end
 
   app.defMeasurement("cpu") do |mp|
-    mp.defMetric('user', 'uint64')
-    mp.defMetric('sys', 'uint64')
-    mp.defMetric('nice', 'uint64')
-    mp.defMetric('idle', 'uint64')
-    mp.defMetric('wait', 'uint64')
-    mp.defMetric('irq', 'uint64')
-    mp.defMetric('soft_irq', 'uint64')
-    mp.defMetric('stolen', 'uint64')
-    mp.defMetric('total', 'uint64')
+    mp.defMetric('user', :uint64)
+    mp.defMetric('sys', :uint64)
+    mp.defMetric('nice', :uint64)
+    mp.defMetric('idle', :uint64)
+    mp.defMetric('wait', :uint64)
+    mp.defMetric('irq', :uint64)
+    mp.defMetric('soft_irq', :uint64)
+    mp.defMetric('stolen', :uint64)
+    mp.defMetric('total', :uint64)
   end
 end
 --------

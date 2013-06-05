@@ -18,6 +18,7 @@ ifdef::have_pg[]
 	    [--pg-connect=conninfo]
 endif::have_pg[]
 	    [--usage] [--version | -v] [-? | --help]
+            [OML-OPTIONS]
 
 DESCRIPTION
 -----------
@@ -45,6 +46,11 @@ ifdef::have_pg[]
 disk or in a PostgreSQL database.  See the '--backend' option for
 details.
 endif::have_pg[]
+
+Finally, runtime statistics about the server can be reported over OML,
+either to the server itself or, better, to another *oml2-server*. The
+available measurements points are described below, in section
+link:#_runtime_measurement_points[RUNTIME MEASUREMENT POINTS].
 
 OPTIONS
 -------
@@ -188,6 +194,33 @@ endif::have_pg[]
 
 -?, --help::
 		Print a summary of options.
+
+OML-OPTIONS::
+		These options control the reporting of runtime metrics
+		over OML. They are documented in linkoml:liboml2[1].
+		The avaialble 'MPs' are documented in section
+		link:#_runtime_measurement_points[RUNTIME MEASUREMENT POINTS],
+		below.
+
+RUNTIME MEASUREMENT POINTS
+--------------------------
+
+The *oml2-server* is able to expose some internal parameters and events
+over OML. While the server should be able to report these to itself, it
+is recommended to use a second *oml2-server* for the purpose of
+monitoring.
+
+Currently, the following 'MPs' are available.
+
+clients::
+		This measurement point records client events, and
+		reports their 'address', remote 'port', OML 'node_id',
+		experimental 'domain', 'appname', as well as the
+		observed 'event' (e.g., connection or disconnection),
+		and a potential 'message'.
+
+An linkoml:oml2-scaffold[3] application description listing these 'MPs'
+can also be found in {pkgdatadir}.
 
 HOOK COMMANDS
 -------------
