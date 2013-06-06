@@ -107,7 +107,7 @@ define README-mdfy
 		-e 's^example/liboml2/README^[&](@ref example)^' \
 		-e '/^    /!s^\(\(lib\)\?[Oo]ml[-.a-zA-Z1-9]\+\)(\([0-9]\))^[&](http://oml.mytestbed.net/doc/oml/$(OML_BASE_VER)/\1.\3.html)^g'
 endef
-mainpage.md: $(top_srcdir)/README
+mainpage.md: $(top_srcdir)/README.md
 	$(call README-mdfy,#mainpage) $< > $@
 install.md: $(top_srcdir)/INSTALL
 	$(call README-mdfy,#install) $< > $@
