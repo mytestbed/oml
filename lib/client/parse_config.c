@@ -53,6 +53,7 @@ struct synonym {
 static struct synonym *tokmap_[CT_Max] = {0};
 static enum ConfToken curtok = CT_ROOT;
 
+static int create_metadata_stream(OmlWriter *writer);
 
 static int parse_collector(xmlNodePtr el);
 static int parse_stream_or_mp(xmlNodePtr el, OmlWriter* writer);
@@ -294,7 +295,15 @@ parse_collector(xmlNodePtr el)
     logerror("Config line %hu: Unknown 'encoding' value '%s' for <%s ...>'.\n", el->line, encoding_s, el->name);
     return -1;
   }
-  if ((writer = create_writer(url, encoding)) == NULL) return -2;
+  if ((writer = create_writer(url, encoding)) == NULL) {
+    return -2;
+  }
+
+  /* Unconditionally add metadata stream,
+   * as it otherwise confuses the server */
+  if(create_metadata_stream(writer)) {
+    return -3;
+  }
 
   xmlNodePtr cur = el->xmlChildrenNode;
   while (cur != NULL) {
@@ -308,6 +317,31 @@ parse_collector(xmlNodePtr el)
 
   return 0;
 }
+
+/** Add the metadata stream to a writer
+ *
+ * \param writer OmlWriter to send metadata stream to
+ *
+ * \return 0 on success, -1 on error
+ */
+static int
+create_metadata_stream(OmlWriter *writer)
+{
+  char name[] = "_experiment_metadata";
+  OmlMP *mp;
+  OmlMStream* ms;
+  mp = find_mp (name);
+  if (!mp) { return -1; }
+  ms = create_mstream(name, mp, writer, -1, -1);
+  if (!ms) { return -1; }
+
+  create_default_filters(mp, ms);
+  ms->next = mp->streams;
+  mp->streams = ms;
+
+  return 0;
+}
+
 
 /** Parse an <mp/> or <stream/> element and build a measurement stream from it.
  *
