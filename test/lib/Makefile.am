@@ -18,6 +18,7 @@ check_liboml2_SOURCES = \
 	check_liboml2_base64.c \
 	check_liboml2_bswap.c \
 	check_liboml2_cbuf.c \
+	check_liboml2_config.c \
 	check_liboml2_filters.c \
 	check_liboml2_log.c \
 	check_liboml2_mbuf.c \
@@ -63,6 +64,8 @@ CLEANFILES = \
 	check_libshared_oml.log \
 	test_api_basic \
 	test_api_metadata \
+	test_config_metadata.xml \
+	test_config_metadata \
 	test_fw_create_buffered
 
 STDDEV = $(srcdir)/stddev.py
