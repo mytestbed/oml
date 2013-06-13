@@ -105,14 +105,14 @@ The configuration file must be an XML file. The root element must be
 example shows the skeleton of an OML config file:
 
 --------------------------
-    <omlc domain="my_experiment" id="my_source_id" encoding="binary">
-        <collect url=...>
+    <omlc domain="my_experiment" id="my_source_id">
+        <collect url="..." encoding="binary">
            ...
         </collect>
 
         ...
 
-        <collect url=...>
+        <collect url="...">
            ...
         </collect>
     </omlc>
@@ -147,7 +147,7 @@ elements:
 
 --------------------------
     <omlc domain="my_experiment" id="my_source_id">
-        <collect url="tcp://10.0.0.200">
+        <collect url="tcp:10.0.0.200">
            <stream mp="radiotap" interval="2">
               <filter field="sig_strength_dBm" />
               <filter field="noise_strength_dBm" />
@@ -230,12 +230,11 @@ The format for the local file version is:
         file:<local-path>
 ---------------------------
 
-For instance, 'tcp:10.0.0.200:3003' or 'tcp://10.0.0.200:3003' will
+For instance, 'tcp:10.0.0.200:3003' (or 'tcp://10.0.0.200:3003') will
 send measurements to an *oml2-server* listening on port 3003 at IP
 address 10.0.0.200, using TCP. The '//' is recognized but optional.
-Either an IP address or a hostname can be used as the <host>
-specifier, and the <port> specifier is optional, defaulting to port
-3003.
+Either an IP address or a hostname can be used as the <host> specifier,
+and the <port> specifier is optional, defaulting to port 3003.
 
 Alternatively, 'file:/tmp/myfile.txt' writes to the /tmp/myfile.txt
 file in the local filesystem. Relative paths are also accepted. There
