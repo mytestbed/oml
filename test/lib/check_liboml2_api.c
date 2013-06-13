@@ -15,6 +15,7 @@
 
 #include "ocomm/o_log.h"
 #include "oml2/omlc.h"
+#include "check_util.h"
 #include "oml_util.h"
 #include "oml_value.h"
 #include "validate.h"
@@ -94,6 +95,7 @@ START_TEST (test_api_app_name_spaces)
       fail_if (res != -1, "Invalid app name '%s' was incorrectly accepted\n", names_vector[_i]);
       fail_unless (omlc_instance == NULL);
     }
+  omlc_close();
 }
 END_TEST
 
@@ -146,13 +148,7 @@ START_TEST(test_api_basic)
   o_set_log_level (2);
   logdebug("%s\n", __FUNCTION__);
 
-  /* XXX: Yuck */
-  const char* argv[] = {
-    "--oml-id", __FUNCTION__,
-    "--oml-domain", __FILE__,
-    "--oml-collect", "file:test_api_basic",
-    "--oml-log-level", "2"};
-  int argc = 8;
+  MAKEOMLCMDLINE(argc, argv, "file:test_api_basic");
 
   omlc_zero(value);
   omlc_set_string(value, "1337");
@@ -189,13 +185,7 @@ START_TEST(test_api_metadata)
   o_set_log_level (2);
   logdebug("%s\n", __FUNCTION__);
 
-  /* XXX: Yuck */
-  const char* argv[] = {
-    "--oml-id", __FUNCTION__,
-    "--oml-domain", __FILE__,
-    "--oml-collect", "file:test_api_metadata",
-    "--oml-log-level", "2"};
-  int argc = 8;
+  MAKEOMLCMDLINE(argc, argv, "file:test_api_metadata");
 
   fail_if(omlc_init("app", &argc, argv, NULL), "Error initialising OML");
 
