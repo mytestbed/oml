@@ -12,6 +12,7 @@
  */
 #include <check.h>
 
+#include "ocomm/o_log.h"
 #include "mstring.h"
 
 START_TEST (test_mstring)
