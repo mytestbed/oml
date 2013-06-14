@@ -1029,6 +1029,11 @@ destroy_ms(OmlMStream *ms)
   logdebug("Destroying MS %s at %p\n", ms->table_name, ms);
 
   next = ms->next;
+
+  if (ms->sample_size > 0) {
+    loginfo("Reporting last (partial) sample for MS %s\n", ms->table_name);
+    filter_process(ms);
+  }
   ft = ms->filters;
 
   while( (ft = destroy_filter(ft)) );
