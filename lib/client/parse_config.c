@@ -224,6 +224,8 @@ parse_config(char* configFile)
   xmlDocPtr doc;
   xmlNodePtr cur;
 
+  logdebug("Using configuration file '%s'\n", configFile);
+
   if ((doc = xmlParseFile(configFile)) == NULL) {
     logerror("Config file '%s' not parsed successfully.\n",
       configFile);

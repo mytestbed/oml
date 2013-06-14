@@ -37,6 +37,7 @@ extern OmlClient* omlc_instance;
 void
 filter_engine_start(OmlMStream* ms)
 {
+  logdebug ("Starting filtering thread for MS '%s'\n", ms->table_name);
   pthread_create(&ms->filter_thread, NULL, thread_start, (void*)ms);
 }
 

@@ -1104,6 +1104,9 @@ create_default_filters(OmlMP *mp, OmlMStream *ms)
 
   int param_count = mp->param_count;
 
+  logdebug("Creating default filters on MP '%s' to MS '%s'\n",
+      mp->name, ms->table_name);
+
   OmlFilter* prev = NULL;
   for (j = 0; j < param_count; j++) {
     OmlMPDef def = mp->param_defs[j];

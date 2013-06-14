@@ -139,6 +139,12 @@ AM_CONDITIONAL([HAVE_LIBPQ], [test x$HAVE_LIBPQ = xyes])
 AM_CONDITIONAL([HAVE_POSTGRES], [test x$POSTGRES != xno])
 LIBS=$oldLIBS
 
+AC_ARG_ENABLE([debug],
+	      [AS_HELP_STRING([--enable-debug],
+			      [enable verbose debug code in time-sensitive parts of the code])],
+	      [AC_DEFINE([DEBUG], [1],
+			 [Define if verbose debug code in time-sensitive parts of the code should be enabled.])])
+
 AC_ARG_ENABLE([packaging],
 	      [AS_HELP_STRING([--enable-packaging],
 			      [enable targets to create distribution-specific packages (Git clone needed)])],

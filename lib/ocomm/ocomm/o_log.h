@@ -68,6 +68,21 @@ typedef void (*o_log_fn)(int log_level, const char* format, ...);
 /* XXX: This is needed for backward compatibility with <=2.9 */
 extern o_log_fn o_log;
 
+#if DEBUG
+/** CPP macro for printing debug messages in time-sensitive code.
+ * Only activated with --enable-debug is passed to the configure script,
+ * not to be used in release binaries.
+ */
+/* C99 construct */
+# define LOGDEBUG(...) o_log(O_LOG_DEBUG3, __VA_ARGS__)
+/* Old GCC equivalent
+ * # define LOGDEBUG(args...) o_log(O_LOG_DEBUG3, args)
+ */
+#else
+# define LOGDEBUG(...) /* o_log(O_LOG_DEBUG3, __VA_ARGS__) */
+#endif /* DEBUG */
+
+
 /** Direct the log stream to the named file.
  * \param name name of the file to write log into (if '-' or NULL, defaults to stderr)
  */

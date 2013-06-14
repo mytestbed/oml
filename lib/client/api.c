@@ -10,7 +10,9 @@
 /** \file api.c
  * \brief Implement the user-visible API of OML.
  */
-
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -71,6 +73,8 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
     return -1;
   }
 
+  LOGDEBUG("Injecting data into MP '%s'\n", mp->name);
+
   oml_value_init(&v);
 
   if (mp_lock(mp) == -1) {
@@ -79,6 +83,7 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
   }
   ms = mp->streams;
   while (ms) {
+    LOGDEBUG("Filtering MP '%s' data into MS '%s'\n", mp->name, ms->table_name);
     OmlFilter* f = ms->filters;
     for (; f != NULL; f = f->next) {
 
@@ -181,6 +186,7 @@ omlc_ms_process(OmlMStream *ms)
   if (ms == NULL) return;
 
   if (ms->sample_thres > 0 && ++ms->sample_size >= ms->sample_thres) {
+    LOGDEBUG("Generating new sample for MS '%s'\n", ms->table_name);
     // sample based filters fire
     filter_process(ms);
   }
