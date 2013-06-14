@@ -95,7 +95,7 @@ bin_writer_new(OmlOutStream* out_stream)
   OmlBinWriter* self = (OmlBinWriter *)xmalloc(sizeof(OmlBinWriter));
   memset(self, 0, sizeof(OmlBinWriter));
 
-  self->bufferedWriter = bw_create(out_stream->write, out_stream,
+  self->bufferedWriter = bw_create(out_stream,
       omlc_instance->max_queue, 0);
   self->out_stream = out_stream;
 

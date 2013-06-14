@@ -34,7 +34,7 @@ typedef struct _omlFileOutStream {
 } OmlFileOutStream;
 
 static size_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
-
+static int file_stream_close(OmlOutStream* hdl);
 
 /** Create a new OmlWriter
  * \param fileName the destination file
@@ -58,12 +58,13 @@ file_stream_new(const char *file)
   }
 
   self->write = file_stream_write;
+  self->close = file_stream_close;
   self->header_written = 0;
   return (OmlOutStream*)self;
 }
 
 /** Write data to a file without any sanity check
- * \param hdl pointer to the OmlOutStream
+ * \param file_hdl FILE pointer
  * \param buffer pointer to the buffer containing the data to write
  * \param buffer length of the header information
  * \return amount of data written, or -1 on error
@@ -177,6 +178,23 @@ file_stream_get_buffered(OmlOutStream* hdl)
   if (self == NULL) return -1;
 
   return (hdl->write==file_stream_write);
+}
+
+/** Close an OmlFileOutStream's output file
+ * \param hdl pointer to the OmlFileOutStream
+ * \return amount of data written, or -1 on error
+ */
+static inline int
+file_stream_close(OmlOutStream* hdl)
+{
+  OmlFileOutStream* self = (OmlFileOutStream*)hdl;
+  int ret = -1;
+
+  if (self->f != 0) {
+    ret = fclose(self->f);
+    self->f = NULL;
+  }
+  return ret;
 }
 
 /*
