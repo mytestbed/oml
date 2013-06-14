@@ -87,8 +87,7 @@ text_writer_new(OmlOutStream* out_stream)
   OmlTextWriter* self = (OmlTextWriter *)xmalloc(sizeof(OmlTextWriter));
   memset(self, 0, sizeof(OmlTextWriter));
 
-  self->bufferedWriter = bw_create(out_stream->write,
-      out_stream, omlc_instance->max_queue, 0);
+  self->bufferedWriter = bw_create(out_stream, omlc_instance->max_queue, 0);
   self->out_stream = out_stream;
 
   self->meta = owt_meta;

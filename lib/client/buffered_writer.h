@@ -19,7 +19,7 @@
 
 typedef void* BufferedWriterHdl;
 
-BufferedWriterHdl bw_create(oml_outs_write_f writeFunc, OmlOutStream* writeFuncHdl, long queueCapacity, long chunkSize);
+BufferedWriterHdl bw_create(OmlOutStream* outStream, long queueCapacity, long chunkSize);
 
 void bw_close(BufferedWriterHdl instance);
 

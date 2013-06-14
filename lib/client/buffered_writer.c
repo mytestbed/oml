@@ -53,10 +53,8 @@ typedef struct BufferedWriter {
   /** Target size of MBuffer in each link */
   size_t chainLength;
 
-  /** Function called to write the buffer out, can be blocking */
-  oml_outs_write_f  writeFunc;
-  /** Opaque handler to writeFunc */
-  OmlOutStream*     writeFuncHdl;
+  /** Opaque handler to  the output stream*/
+  OmlOutStream*    outStream;
 
   /** Chain where the data gets stored until it's pushed out */
   BufferChain* writerChain;
@@ -82,17 +80,16 @@ static void* threadStart(void* handle);
 static int processChain(BufferedWriter* self, BufferChain* chain);
 
 /** Create a BufferedWriter instance
- * \param writeFunc oml_outs_write_f function in charge of draining the buffer, can block
- * \param writeFuncHdl opaque OmlOutStream handler to writeFunc
+ * \param outStream opaque OmlOutStream handler
  * \param queueCapaity maximal size of the internal queue
  * \param chunkSize size of buffer space allocated at a time, set to 0 for default
  *
  * \return an instance pointer if successful, NULL otherwise
  */
 BufferedWriterHdl
-bw_create(oml_outs_write_f writeFunc, OmlOutStream* writeFuncHdl, long  queueCapacity, long  chunkSize)
+bw_create(OmlOutStream* outStream, long  queueCapacity, long  chunkSize)
 {
-  if (writeFunc == NULL || writeFuncHdl == NULL ||
+  if (outStream == NULL ||
       queueCapacity < 0 || chunkSize < 0) {
     return NULL;
   }
@@ -101,8 +98,7 @@ bw_create(oml_outs_write_f writeFunc, OmlOutStream* writeFuncHdl, long  queueCap
   if (self == NULL) { return NULL; }
   memset(self, 0, sizeof(BufferedWriter));
 
-  self->writeFunc = writeFunc;
-  self->writeFuncHdl = writeFuncHdl;
+  self->outStream =outStream;
 
   long bufSize = chunkSize > 0 ? chunkSize : DEF_CHAIN_BUFFER_SIZE;
   self->chainLength = bufSize;
@@ -170,6 +166,7 @@ bw_close(BufferedWriterHdl instance)
     break;
   }
 
+  self->outStream->close(self->outStream);
   destroyBufferChain(self);
   xfree(self);
 }
@@ -403,6 +400,7 @@ destroyBufferChain(BufferedWriter* self) {
   while( (chain = self->firstChain) && chain!=start) {
     logdebug("Destroying BufferChain at %p\n", chain);
     self->firstChain = chain->next;
+
     mbuf_destroy(chain->mbuf);
     xfree(chain);
   }
@@ -458,7 +456,7 @@ processChain(BufferedWriter* self, BufferChain* chain)
   MBuffer* meta = self->meta_buf;
 
   while (size > sent) {
-    long cnt = self->writeFunc(self->writeFuncHdl, (void*)(buf + sent), size - sent,
+    long cnt = self->outStream->write(self->outStream, (void*)(buf + sent), size - sent,
                                meta->rdptr, meta->fill);
     if (cnt > 0) {
       sent += cnt;
