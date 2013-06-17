@@ -11,6 +11,7 @@
  * \brief Test the client-side XML configuration parsing.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -71,6 +72,9 @@ START_TEST (test_config_metadata)
 
   omlc_close();
 
+  /* Sleep 2 seconds so the file's contents is really written out */
+  sleep(2);
+
   fp = fopen(__FUNCTION__, "r");
   fail_unless(fp != NULL, "Output file %s missing", __FUNCTION__);
 
@@ -126,6 +130,9 @@ START_TEST (test_config_empty_collect)
   fail_if(omlc_inject(mp, v), "Injection failed");
 
   omlc_close();
+
+  /* Sleep 2 seconds so the file's contents is really written out */
+  sleep(2);
 
   fp = fopen(__FUNCTION__, "r");
   fail_unless(fp != NULL, "Output file %s missing", __FUNCTION__);
