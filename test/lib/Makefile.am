@@ -64,6 +64,8 @@ CLEANFILES = \
 	check_libshared_oml.log \
 	test_api_basic \
 	test_api_metadata \
+	test_config_empty_collect.xml \
+	test_config_empty_collect \
 	test_config_metadata.xml \
 	test_config_metadata \
 	test_fw_create_buffered
