@@ -87,6 +87,60 @@ START_TEST (test_config_metadata)
 }
 END_TEST
 
+/** Check that an empty <collect /> sends all streams to that collection point (#1272) */
+START_TEST (test_config_empty_collect)
+{
+  OmlMP *mp;
+  OmlValueU v[2];
+  char buf[1024];
+  char config[] = "<omlc domain='check_liboml2_config' id='test_config_empty_collect'>\n"
+                  "  <collect url='file:test_config_empty_collect' encoding='text' />\n"
+                  "</omlc>";
+  int s1found = 0;
+  FILE *fp;
+
+  logdebug("%s\n", __FUNCTION__);
+
+  MAKEOMLCMDLINE(argc, argv, "file:test_config_empty_collect");
+  argv[1] = "--oml-config";
+  argv[2] = "test_config_empty_collect.xml";
+  argc = 3;
+
+  fp = fopen (argv[2], "w");
+  fail_unless(fp != NULL, "Could not create configuration file %s: %s", argv[2], strerror(errno));
+  fail_unless(fwrite(config, sizeof(config), 1, fp) == 1,
+      "Could not write configuration in file %s: %s", argv[2], strerror(errno));
+  fclose(fp);
+
+  unlink("test_config_empty_collect");
+
+  fail_if(omlc_init(__FUNCTION__, &argc, argv, NULL),
+      "Could not initialise OML");
+  mp = omlc_add_mp(__FUNCTION__, mp_def);
+  fail_if(mp==NULL, "Could not add MP");
+  fail_if(omlc_start(), "Could not start OML");
+
+  omlc_set_uint32(v[0], 1);
+  omlc_set_uint32(v[1], 2);
+
+  fail_if(omlc_inject(mp, v), "Injection failed");
+
+  omlc_close();
+
+  fp = fopen(__FUNCTION__, "r");
+  fail_unless(fp != NULL, "Output file %s missing", __FUNCTION__);
+
+  while(fgets(buf, sizeof(buf), fp) && !s1found) {
+    if (!strncmp(buf, "schema: 1", 9)) {
+        s1found = 1;
+    }
+  }
+  fail_unless(s1found, "Schema 1 never defined");
+
+  fclose(fp);
+}
+END_TEST
+
 Suite*
 config_suite (void)
 {
@@ -95,6 +149,7 @@ config_suite (void)
   TCase* tc_config = tcase_create ("Config");
 
   tcase_add_test (tc_config, test_config_metadata);
+  tcase_add_test (tc_config, test_config_empty_collect);
 
   suite_add_tcase (s, tc_config);
 
