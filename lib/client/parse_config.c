@@ -278,11 +278,14 @@ static int
 parse_collector(xmlNodePtr el)
 {
   char* url = get_xml_attr(el, CT_COLLECT_URL);
+  OmlWriter* writer;
+  OmlMP *mp;
+  OmlMStream *prev_ms;
+
   if (url == NULL) {
     logerror("Config line %hu: Missing 'url' attribute for <%s ...>'.\n", el->line, el->name);
     return -1;
   }
-  OmlWriter* writer;
   char* encoding_s = get_xml_attr(el, CT_COLLECT_ENCODING);
   enum StreamEncoding encoding;
   if (encoding_s == NULL || strcmp(encoding_s, "binary") == 0) {
@@ -297,20 +300,50 @@ parse_collector(xmlNodePtr el)
     return -2;
   }
 
-  /* Unconditionally add metadata stream,
-   * as it otherwise confuses the server */
-  if(create_metadata_stream(writer)) {
-    return -3;
-  }
-
   xmlNodePtr cur = el->xmlChildrenNode;
-  while (cur != NULL) {
-    if (match_xml_elt (cur, CT_STREAM)) {
-      if (parse_stream_or_mp(cur, writer)) {
-        return -3;
-      }
+  if (cur == NULL) {
+    logdebug("Found empty <collect /> element, sending all registered MPs to %s\n", url);
+    mp = omlc_instance->mpoints;
+    if (omlc_instance->sample_interval == 0 &&
+        omlc_instance->sample_count == 0) {
+      /* Sampling or intervals work on a per <stream /> basis as we are
+       * handling the case where they are not specifically defined here by
+       * putting a sane default.  See #541 for some discussion about this */
+      logwarn("Neither --oml-samples nor --oml-interval were specified, defaulting to --oml-samples 1 for %s\n", url);
+      omlc_instance->sample_count = 1;
     }
-    cur = cur->next;
+    while (mp != NULL) {
+      prev_ms = mp->streams;
+      /* XXX: This code is very similar to lib/client/init.c:default_mp_configuration()
+       * FIXME: Fix this duplication */
+      logdebug("Sampling intervals: %fs, or %d\n", omlc_instance->sample_interval, omlc_instance->sample_count);
+      mp->streams = create_mstream (NULL, mp,
+          writer,
+          omlc_instance->sample_interval,
+          omlc_instance->sample_count);
+      create_default_filters(mp, mp->streams);
+      if (omlc_instance->sample_interval > 0) {
+        filter_engine_start(mp->streams);
+      }
+      mp->streams->next = prev_ms;
+
+      mp = mp->next;
+    }
+  } else {
+    /* Unconditionally add metadata stream,
+     * as it otherwise confuses the server */
+    if(create_metadata_stream(writer)) {
+      return -3;
+    }
+
+    while (cur != NULL) {
+      if (match_xml_elt (cur, CT_STREAM)) {
+        if (parse_stream_or_mp(cur, writer)) {
+          return -3;
+        }
+      }
+      cur = cur->next;
+    }
   }
 
   return 0;
