@@ -166,7 +166,7 @@ RPMBUILD_FLAGS=-bb --clean $(RPMBUILD_FLAGS_ADD)
 $(PKG_RPM_SPEC):
 	rm -rf $(PKG_RPM_BUILD_DIR)
 	mkdir -p $(PKG_RPM_BUILD_DIR)/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-	$(GIT) archive $(GITRPMREF) | $(am__untar) -C $(PKG_RPM_BUILD_DIR)
+	$(GIT) archive $(GITRPMREF) | $(am__untar) -C $(PKG_RPM_BUILD_DIR)/
 if GITISTAG
 # Releases should have a valid specfile and know where to get the tarball
 #
@@ -174,7 +174,7 @@ if GITISTAG
 # evaluated by the shell. Then, replace %{VAR} with ${VAR} in the Source entries
 # of the SPECFILE, and let the shell substitute these variables with their newly
 # assigned values.
-	URL=$$(eval "`sed -n "s/%define\s\+\(\S\+\)\s\+\(\S\+\)$$/\1=\2/p;/Source[0-9]*:[ \t]*http/{s/Source[0-9]*:\s*/echo /;s/%/\$$/g;p}" $(PKG_RPM_SPEC)`"); \
+	URL=$$(eval "`$(SED) -n "s/%define\s\+\(\S\+\)\s\+\(\S\+\)$$/\1=\2/p;/Source[0-9]*:[ \t]*http/{s/Source[0-9]*:\s*/echo /;s/%/\$$/g;p}" $(PKG_RPM_SPEC)`"); \
 		wget -q $${URL} -O $(PKG_RPM_BUILD_DIR)/SOURCES/`basename $${URL}`
 else
 	$(MAKE) distdir=$(PKG_RPM_BUILD_DIR)/BUILD/$(PKG_RPM_BASE_NAME) distdir
