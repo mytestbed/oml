@@ -69,6 +69,8 @@ install: build
 	mkdir -p $(CURDIR)/debian/oml2-generator/usr/bin
 	mkdir -p $(CURDIR)/debian/liboml2-9/usr/lib
 	mkdir -p $(CURDIR)/debian/liboml2-9/usr/share/liboml2
+	mkdir -p $(CURDIR)/debian/liboml2-9/usr/share/man/man1
+	mkdir -p $(CURDIR)/debian/liboml2-9/usr/share/man/man5
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/include
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/lib
 	mkdir -p $(CURDIR)/debian/liboml2-dev/usr/bin
@@ -106,6 +108,8 @@ install: build
 	# Build the liboml2-9 package
 	mv $(CURDIR)/debian/tmp/usr/lib/liboml2.so.* $(CURDIR)/debian/liboml2-9/usr/lib/
 	mv $(CURDIR)/debian/tmp/usr/share/oml2/liboml2-conf/ $(CURDIR)/debian/liboml2-9/usr/share/liboml2/
+	mv $(CURDIR)/debian/tmp/usr/share/man/man1/liboml2.1 $(CURDIR)/debian/liboml2-9/usr/share/man/man1/
+	mv $(CURDIR)/debian/tmp/usr/share/man/man5/liboml2.conf.5 $(CURDIR)/debian/liboml2-9/usr/share/man/man5/
 
 	# Build the libocomm-dev package
 	mv $(CURDIR)/debian/tmp/usr/include/ocomm $(CURDIR)/debian/libocomm-dev/usr/include/
