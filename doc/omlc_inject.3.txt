@@ -108,9 +108,9 @@ omlc_set_uint32 (values[2], packet_length);
 omlc_set_double (values[3], weight);
 omlc_set_string (values[4], protocol);
 
-omlc_reset_string(values[4]);
-
 omlc_inject (mp, values);
+
+omlc_reset_string(values[4]);
 ----
 
 Internally, the library guards each MP with a mutex, so this function
