@@ -148,6 +148,66 @@ START_TEST (test_config_empty_collect)
 }
 END_TEST
 
+/** Check that multiple <collect /> do not trigger a "Measurement stream 'd_lin' already exists" error (#1154) */
+START_TEST (test_config_multi_collect)
+{
+  OmlMP *mp;
+  OmlValueU v[2];
+  char buf[1024];
+  char *dests[2] = { "test_config_multi_collect1", "test_config_multi_collect2" };
+  char config[] = "<omlc domain='check_liboml2_config' id='test_config_multi_collect'>\n"
+                  "  <collect url='file:test_config_multi_collect1' encoding='text' />\n"
+                  "  <collect url='file:test_config_multi_collect2' encoding='text' />\n"
+                  "</omlc>";
+  int i, s1found = 0;
+  FILE *fp;
+
+  logdebug("%s\n", __FUNCTION__);
+
+  MAKEOMLCMDLINE(argc, argv, "file:test_config_multi_collect");
+  argv[1] = "--oml-config";
+  argv[2] = "test_config_multi_collect.xml";
+  argc = 3;
+
+  fp = fopen (argv[2], "w");
+  fail_unless(fp != NULL, "Could not create configuration file %s: %s", argv[2], strerror(errno));
+  fail_unless(fwrite(config, sizeof(config), 1, fp) == 1,
+      "Could not write configuration in file %s: %s", argv[2], strerror(errno));
+  fclose(fp);
+
+  unlink("test_config_multi_collect1");
+  unlink("test_config_multi_collect2");
+
+  fail_if(omlc_init(__FUNCTION__, &argc, argv, NULL),
+      "Could not initialise OML");
+  mp = omlc_add_mp(__FUNCTION__, mp_def);
+  fail_if(mp==NULL, "Could not add MP");
+  fail_if(omlc_start(), "Could not start OML");
+
+  omlc_set_uint32(v[0], 1);
+  omlc_set_uint32(v[1], 2);
+
+  fail_if(omlc_inject(mp, v), "Injection failed");
+
+  omlc_close();
+
+  for (i=0; i<2; i++) {
+    s1found = 0;
+    fp = fopen(dests[i], "r");
+    fail_unless(fp != NULL, "Output file %s missing", __FUNCTION__);
+
+    while(fgets(buf, sizeof(buf), fp) && !s1found) {
+      if (!strncmp(buf, "schema: 1", 9)) {
+        s1found = 1;
+      }
+    }
+    fail_unless(s1found, "Schema 1 never defined in %s", dests[i]);
+
+    fclose(fp);
+  }
+}
+END_TEST
+
 Suite*
 config_suite (void)
 {
@@ -157,6 +217,7 @@ config_suite (void)
 
   tcase_add_test (tc_config, test_config_metadata);
   tcase_add_test (tc_config, test_config_empty_collect);
+  tcase_add_test (tc_config, test_config_multi_collect);
 
   suite_add_tcase (s, tc_config);
 
