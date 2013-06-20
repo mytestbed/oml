@@ -506,7 +506,7 @@ the new ones:
 [width="90%",cols="<2,<1"]
 |=====================
 ^| OLD     ^| NEW
-|  <omlc domain="abc" ...> | <omlc experiment="abc" ... >
+|  <omlc exp_id="abc" ...> | <omlc domain="abc" ... >
 |  <mp name="def" rename="bar"...> | <stream mp="def" name="bar"...>
 |  <f fname="avg" ...> | <filter operation="avg" ...>
 |  <f pname="foo" ...> | <filter field="foo" ...>
