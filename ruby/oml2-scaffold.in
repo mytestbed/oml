@@ -738,7 +738,7 @@ static oml_mps_t g_oml_mps_storage;
 oml_mps_t* g_oml_mps_#{template(:app_cstring)} = &g_oml_mps_storage;
 
 static inline void
-oml_register_mps()
+oml_register_mps(void)
 {
 #{template(:oml_register)}
 }
