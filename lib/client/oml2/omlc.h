@@ -601,14 +601,20 @@ typedef struct OmlMStream {
   /** Filtering thread */
   pthread_t  filter_thread;
 
-  /** Outputting function */
-  struct OmlWriter* writer;
+  /** Outputting function
+   * XXX: This field is deprecated, and replaced with the writers (plural) array below (#1292)*/
+  struct OmlWriter* writer __attribute__ ((deprecated));
 
   /** Next MS in this MP's linked list */
   struct OmlMStream* next;
 
   /** Output's sequence number for the metadata associated to this stream */
   long meta_seq_no;
+
+  /** Array of OmlWriters through which this MS's tuples should be sent */
+  struct OmlWriter** writers;
+  /** Length of writers */
+  int nwriters;
 
 } OmlMStream;
 
