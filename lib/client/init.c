@@ -55,7 +55,6 @@ typedef void(*sighandler) (int);
 static void usage(void);
 static void print_filters(void);
 static int  default_configuration(void);
-static int default_mp_configuration(OmlMP *mp);
 static char *schemastr_from_mpdef(OmlMPDef *mpdef);
 static int  write_meta(void);
 static int  write_schema(OmlMStream* ms, int index);
@@ -376,8 +375,8 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 
     mstring_delete(meta);
 
-    if (default_mp_configuration(mp)) {
-      logerror("Failed to create default filters for MP %s\n", mp_name);
+    if (!oml_mp_get_default_ms(mp)) {
+      logerror("Failed to create default MS for MP %s\n", mp_name);
       xfree(mp);
       return NULL;
     }
@@ -941,10 +940,13 @@ find_mstream (const char *name)
 OmlMStream*
 create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_interval, int sample_thres)
 {
+  int i;
+  OmlMStream *ms, *existing_ms;
+  OmlWriter *w;
   if (!mp || !writer)
     return NULL;
 
-  OmlMStream* ms = (OmlMStream*)xmalloc(sizeof(OmlMStream));
+  ms = (OmlMStream*)xmalloc(sizeof(OmlMStream));
   if(!ms) {
     logerror("Cannot allocate memory for MS %s\n", name);
     return NULL;
@@ -983,17 +985,29 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
     mstring_cat (namestr, mp->name);
   stream_name = mstring_buf (namestr);
 
-  if (find_mstream (stream_name)) {
-    logerror ("Measurement stream '%s' already exists; cannot create duplicate in MP '%s':  %s\n",
-              name ? name : mp->name,
-              mp->name,
-              name
-              ? " Choose another name in the <stream name=\"...\"> attribute."
-              : " Consider using the <stream name=\"...\"> attribute.");
+  if (existing_ms = find_mstream (stream_name)) {
+    /* Loop through all writers of the existing MS, and make sure none are the
+     * current writer
+     *
+     * XXX: This is probably not the most efficient way to do it, but OmlWriters
+     * do not have any reference to the streams they handle so we cannot do the
+     * check the other way. Fortunately, this is done only rarely, during
+     * setup, so the performance hit should not be too hard.
+     */
+    for (i=0; i < existing_ms->nwriters; i++) {
+      if (writer == ms->writers[i]) {
+        logerror ("Measurement stream '%s' already exists; cannot create duplicate in MP '%s':  %s\n",
+            name ? name : mp->name,
+            mp->name,
+            name
+            ? " Choose another name in the <stream name=\"...\"> attribute."
+            : " Consider using the <stream name=\"...\"> attribute.");
 
-    destroy_ms (ms);
-    mstring_delete (namestr);
-    return NULL;
+        destroy_ms (ms);
+        mstring_delete (namestr);
+        return NULL;
+      }
+    }
   }
   const size_t tnlen = sizeof(ms->table_name);
   strncpy (ms->table_name, stream_name, tnlen);
@@ -1108,36 +1122,47 @@ default_configuration(void)
 
   mp = omlc_instance->mpoints;
   while (mp != NULL) {
-    default_mp_configuration(mp);
+    oml_mp_get_default_ms(mp);
     mp = mp->next;
   }
   return 0;
 }
 
-/** Set the default filter configuration for a single MP
+/** Get or create a default MS for the given MP, reporting all fields, using
+ * the OML instance's default samples and intervals and writing to its default
+ * writer.
+ *
  * \param mp OmlMP for which to set the filter configuration
- * \return 0 if successful, -1 otherwise
+ * \return the OmlMstream if successful, NULL otherwise
  */
-static int
-default_mp_configuration(OmlMP *mp)
+OmlMStream *
+oml_mp_get_default_ms(OmlMP *mp)
 {
   if(NULL == omlc_instance || NULL == mp) {
-    return -1;
-  }
-  mp->streams = create_mstream (NULL, mp,
-      omlc_instance->default_writer,
-      omlc_instance->sample_interval,
-      omlc_instance->sample_count );
-  if (NULL == mp->streams) {
-    logerror("Error creating MS %s\n", mp->name);
-    return -1;
+    return NULL;
   }
 
-  create_default_filters(mp, mp->streams);
-  if (omlc_instance->sample_interval > 0) {
-    filter_engine_start(mp->streams);
+  logdebug("Getting default MS for MP %s\n", mp->name);
+  if (!mp->default_ms) {
+    if(!mp->streams) {
+      create_mstream (NULL, mp,
+          omlc_instance->default_writer,
+          omlc_instance->sample_interval,
+          omlc_instance->sample_count );
+      if (NULL == mp->streams) {
+        logerror("Error creating MS %s\n", mp->name);
+        return NULL;
+      }
+
+      create_default_filters(mp, mp->streams);
+      if (omlc_instance->sample_interval > 0) {
+        filter_engine_start(mp->streams);
+      }
+    }
+    mp->default_ms = mp->streams;
+
   }
-  return 0;
+  return mp->default_ms;
 }
 
 /** Create the default filters

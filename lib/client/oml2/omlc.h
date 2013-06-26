@@ -550,6 +550,10 @@ typedef struct OmlMP {
   /** Next MP in the instance's linked list */
   struct OmlMP*   next;
 
+  /** A pointer to the default MS for that MP,  */
+  /* FIXME: to be taken up aftern streams on the next library major bump */
+  struct OmlMStream* default_ms;
+
 } OmlMP;
 
 /* Forward declaration from oml_filter.h */

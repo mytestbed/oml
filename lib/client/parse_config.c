@@ -53,7 +53,7 @@ struct synonym {
 static struct synonym *tokmap_[CT_Max] = {0};
 static enum ConfToken curtok = CT_ROOT;
 
-static int create_metadata_stream(OmlWriter *writer);
+static int add_metadata_stream(OmlWriter *writer);
 
 static int parse_collector(xmlNodePtr el);
 static int parse_stream_or_mp(xmlNodePtr el, OmlWriter* writer);
@@ -311,35 +311,21 @@ parse_collector(xmlNodePtr el)
       /* Sampling or intervals work on a per <stream /> basis as we are
        * handling the case where they are not specifically defined here by
        * putting a sane default.  See #541 for some discussion about this */
-      logwarn("Neither --oml-samples nor --oml-interval were specified, defaulting to --oml-samples 1 for %s\n", url);
       omlc_instance->sample_count = 1;
     }
     while (mp != NULL) {
-      /* XXX: This code is very similar to lib/client/init.c:default_mp_configuration()
-       * FIXME: Fix this duplication */
-      logdebug("Sampling intervals: %fs, or %d\n", omlc_instance->sample_interval, omlc_instance->sample_count);
-      ms = create_mstream (NULL, mp,
-          writer,
-          omlc_instance->sample_interval,
-          omlc_instance->sample_count);
-      if (NULL == ms) {
-        logwarn("Error creating MS %s towards %s, skipping...\n", mp->name, url);
-
+      ms = oml_mp_get_default_ms(mp);
+      if(!ms) {
+        logerror("Error creating MS %s towards %s, skipping...\n", mp->name, url);
       } else {
-        create_default_filters(mp, ms);
-        if (omlc_instance->sample_interval > 0) {
-          filter_engine_start(ms);
-        }
-        ms->next = mp->streams;
-        mp->streams = ms;
-
+        oml_ms_add_writer(ms, writer);
       }
       mp = mp->next;
     }
   } else {
     /* Unconditionally add metadata stream,
      * as it otherwise confuses the server */
-    if(create_metadata_stream(writer)) {
+    if(add_metadata_stream(writer)) {
       return -3;
     }
 
@@ -363,14 +349,22 @@ parse_collector(xmlNodePtr el)
  * \return 0 on success, -1 on error
  */
 static int
-create_metadata_stream(OmlWriter *writer)
+add_metadata_stream(OmlWriter *writer)
 {
   char name[] = "_experiment_metadata";
   OmlMP *mp;
   OmlMStream* ms;
   mp = find_mp (name);
   if (!mp) { return -1; }
-  ms = create_mstream(name, mp, writer, -1, -1);
+  ms = find_mstream("_experiment_metadata");
+  if (!ms) {
+    logdebug("Didn't find existing MS for _experiment_metadata, creating...\n");
+    ms = create_mstream(name, mp, writer, -1, -1);
+
+  } else {
+    logdebug("Found existing MS for _experiment_metadata\n");
+
+  }
   if (!ms) { return -1; }
 
   create_default_filters(mp, ms);
