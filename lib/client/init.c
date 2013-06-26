@@ -941,6 +941,9 @@ find_mstream (const char *name)
 OmlMStream*
 create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_interval, int sample_thres)
 {
+  char *stream_name = NULL;
+  MString *namestr;
+
   if (!mp || !writer)
     return NULL;
 
@@ -949,9 +952,6 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
     logerror("Cannot allocate memory for MS %s\n", name);
     return NULL;
   }
-
-  MString *namestr = mstring_create();
-  char *stream_name = NULL;
   memset(ms, 0, sizeof(OmlMStream));
 
   ms->sample_interval = sample_interval;
@@ -965,6 +965,7 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
    * want to confuse legacy post-processing scripts. See #1055.
    * However, schema 0 is new, so let's do the right thing here.
    */
+  namestr = mstring_create();
   if (mp!=schema0) {
     mstring_set (namestr, omlc_instance->app_name);
     mstring_cat (namestr, "_");
