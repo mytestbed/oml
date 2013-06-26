@@ -87,6 +87,8 @@ OmlMP *find_mp (const char *name);
 int find_mp_field (const char *name, OmlMP *mp);
 OmlMStream *find_mstream (const char *name);
 OmlMStream *find_mstream_in_mp (const char *name, OmlMP *mp);
+OmlMStream *oml_mp_get_default_ms(OmlMP *mp);
+int oml_ms_add_writer(OmlMStream *ms, OmlWriter *w);
 
 MString *mp_fields_summary (OmlMP *mp);
 

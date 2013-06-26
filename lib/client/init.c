@@ -957,7 +957,15 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
   ms->sample_interval = sample_interval;
   ms->sample_thres = sample_thres;
   ms->mp = mp;
-  ms->writer = writer;
+
+  if(!writer) {
+    logwarn("NULL writer trying to create MS %s; it might get created later\n", name?name:mp->name);
+
+  } else if (oml_ms_add_writer(ms, writer))  {
+    xfree(ms);
+    logerror("Cannot create %s's initial writer array\n", name);
+    return NULL;
+  }
   ms->next = NULL;
 
   /* XXX: We should not do it for any MP, as an MP should be
@@ -1006,6 +1014,38 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
   return ms;
 }
 
+/** Add a new writer to an existing MS
+ * \param ms MStream to add w to
+ * \param w writer to add to MS
+ *
+ * \return 0 on success, -1 on error (previous writers are preserved)
+ */
+int
+oml_ms_add_writer(OmlMStream *ms, OmlWriter *w)
+{
+  int n;
+  OmlWriter **writers;
+
+  if(!ms || !w) {
+    logerror("%s: ms (%p) or w (%p) are invalid", __FUNCTION__, ms, w);
+    return -1;
+  }
+
+  n = ms->nwriters + 1;
+
+  writers = (OmlWriter **)xrealloc(ms->writers, n*sizeof(OmlWriter*));
+  if (!writers) {
+    logerror("Cannot (re)allocate memory for %s's writers array\n", ms->table_name);
+    return -1;
+  }
+
+  writers[n-1] = w;
+  ms->writers = writers;
+  ms->nwriters = n;
+
+  return 0;
+}
+
 /** Destroy a Measurement Stream, and deep free allocated memory (filters.
  *
  * This function is designed so it can be used in a while loop to clean up the
@@ -1038,6 +1078,7 @@ destroy_ms(OmlMStream *ms)
 
   while( (ft = destroy_filter(ft)) );
 
+  xfree(ms->writers);
   xfree(ms);
 
   return next;
@@ -1089,7 +1130,7 @@ default_mp_configuration(OmlMP *mp)
       omlc_instance->sample_count );
   if (NULL == mp->streams) {
     logerror("Error creating MS %s\n", mp->name);
-    return NULL;
+    return -1;
   }
 
   create_default_filters(mp, mp->streams);
@@ -1250,7 +1291,7 @@ write_schema(OmlMStream *ms, int index)
   char* schema;
   size_t count = 0;
   size_t n = 0;
-  OmlWriter* writer = ms->writer;
+  int i;
 
   ms->index = index;
   n = snprintf(s, bufsize, "schema: %d %s ", ms->index, ms->table_name);
@@ -1303,7 +1344,16 @@ write_schema(OmlMStream *ms, int index)
       }
     }
   }
-  writer->meta(writer, schema);
+
+  for (i=0;i<ms->nwriters;i++) {
+    if (ms->writers[i] == NULL) {
+      logwarn("%s: Sending schema to NULL writer (at %d)\n", ms->table_name, i);
+
+    } else {
+      ms->writers[i]->meta( ms->writers[i], schema);
+    }
+  }
+
   xfree (schema);
   return 0;
 }
