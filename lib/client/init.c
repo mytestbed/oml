@@ -1087,6 +1087,11 @@ default_mp_configuration(OmlMP *mp)
       omlc_instance->default_writer,
       omlc_instance->sample_interval,
       omlc_instance->sample_count );
+  if (NULL == mp->streams) {
+    logerror("Error creating MS %s\n", mp->name);
+    return NULL;
+  }
+
   create_default_filters(mp, mp->streams);
   if (omlc_instance->sample_interval > 0) {
     filter_engine_start(mp->streams);

@@ -282,7 +282,7 @@ parse_collector(xmlNodePtr el)
   char* url = get_xml_attr(el, CT_COLLECT_URL);
   OmlWriter* writer;
   OmlMP *mp;
-  OmlMStream *prev_ms;
+  OmlMStream *ms;
 
   if (url == NULL) {
     logerror("Config line %hu: Missing 'url' attribute for <%s ...>'.\n", el->line, el->name);
@@ -315,20 +315,25 @@ parse_collector(xmlNodePtr el)
       omlc_instance->sample_count = 1;
     }
     while (mp != NULL) {
-      prev_ms = mp->streams;
       /* XXX: This code is very similar to lib/client/init.c:default_mp_configuration()
        * FIXME: Fix this duplication */
       logdebug("Sampling intervals: %fs, or %d\n", omlc_instance->sample_interval, omlc_instance->sample_count);
-      mp->streams = create_mstream (NULL, mp,
+      ms = create_mstream (NULL, mp,
           writer,
           omlc_instance->sample_interval,
           omlc_instance->sample_count);
-      create_default_filters(mp, mp->streams);
-      if (omlc_instance->sample_interval > 0) {
-        filter_engine_start(mp->streams);
-      }
-      mp->streams->next = prev_ms;
+      if (NULL == ms) {
+        logwarn("Error creating MS %s towards %s, skipping...\n", mp->name, url);
 
+      } else {
+        create_default_filters(mp, ms);
+        if (omlc_instance->sample_interval > 0) {
+          filter_engine_start(ms);
+        }
+        ms->next = mp->streams;
+        mp->streams = ms;
+
+      }
       mp = mp->next;
     }
   } else {
