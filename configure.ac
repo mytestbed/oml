@@ -9,7 +9,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
 
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 # automake 1.12 seems to require this, but automake 1.11 doesn't recognize it
 m4_pattern_allow([AM_PROG_AR]) 
 AM_PROG_AR
