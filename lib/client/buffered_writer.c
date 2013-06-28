@@ -143,26 +143,26 @@ bw_close(BufferedWriterHdl instance)
   if (oml_lock (&self->lock, __FUNCTION__)) { return; }
   self->active = 0;
 
-  loginfo ("Waiting for buffered queue reader thread to drain...\n");
+  loginfo ("%s: Waiting for buffered queue thread to drain...\n", self->outStream->dest);
 
   pthread_cond_signal (&self->semaphore);
   oml_unlock (&self->lock, __FUNCTION__);
   //  pthread_cond_destroy(&self->semaphore, NULL);
   switch (pthread_join (self->readerThread, NULL)) {
   case 0:
-    loginfo ("Buffered queue reader thread finished OK...\n");
+    logdebug ("%s: Buffered queue reader thread finished OK...\n", self->outStream->dest);
     break;
   case EINVAL:
-    logerror ("Buffered queue reader thread is not joinable\n");
+    logerror ("%s: Buffered queue reader thread is not joinable\n", self->outStream->dest);
     break;
   case EDEADLK:
-    logerror ("Buffered queue reader thread shutdown deadlock, or self-join\n");
+    logerror ("%s: Buffered queue reader thread shutdown deadlock, or self-join\n", self->outStream->dest);
     break;
   case ESRCH:
-    logerror ("Buffered queue reader thread shutdown failed: could not find the thread\n");
+    logerror ("%s: Buffered queue reader thread shutdown failed: could not find the thread\n", self->outStream->dest);
     break;
   default:
-    logerror ("Buffered queue reader thread shutdown failed with an unknown error\n");
+    logerror ("%s: Buffered queue reader thread shutdown failed with an unknown error\n", self->outStream->dest);
     break;
   }
 

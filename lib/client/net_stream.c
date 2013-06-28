@@ -40,23 +40,20 @@ typedef struct OmlNetOutStream {
   /** \see OmlOutStream::close, oml_outs_close_f */
   oml_outs_close_f close;
 
+  /** \see OmlOutStream::dest */
+  char *dest;
+
   /*
    * Fields specific to the OmlNetOutStream
    */
-
-  /** File to write result to
-   * XXX: This is a Network implementation, what is this field used for?
-   * Not removing to avoid altering the layout of the structure
-   */
-  FILE* f;
 
   /** OComm Socket in which the data is writte */
   Socket*    socket;
 
   /** Protocol used to establish the connection */
-  const char*       protocol;
+  char*       protocol;
   /** Host to connect to */
-  const char*       host;
+  char*       host;
   /** Port to connect to */
   int         port;
 
@@ -82,12 +79,18 @@ static ssize_t socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  leng
 OmlOutStream*
 net_stream_new(const char *transport, const char *hostname, const char *port)
 {
+  MString *dest;
   assert(transport != NULL && hostname != NULL && port != NULL);
-  OmlNetOutStream* self = (OmlNetOutStream *)malloc(sizeof(OmlNetOutStream));
+  OmlNetOutStream* self = (OmlNetOutStream *)xmalloc(sizeof(OmlNetOutStream));
   memset(self, 0, sizeof(OmlNetOutStream));
 
-  self->protocol = (const char*)xstrndup (transport, strlen (transport));
-  self->host = (const char*)xstrndup (hostname, strlen (hostname));
+  dest = mstring_create();
+  mstring_sprintf(dest, "%s:%s:%s", transport, hostname, port);
+  self->dest = (char*)xstrndup (mstring_buf(dest), mstring_len(dest));
+  mstring_delete(dest);
+
+  self->protocol = (char*)xstrndup (transport, strlen (transport));
+  self->host = (char*)xstrndup (hostname, strlen (hostname));
   self->port = atoi (port);
 
   logdebug("OmlNetOutStream: connecting to host %s://%s:%d\n",
@@ -117,6 +120,11 @@ net_stream_close(OmlOutStream* stream)
     socket_close(self->socket);
     self->socket = NULL;
   }
+  logdebug("Destroying OmlNetOutStream to host %s at %p\n", self->dest, self);
+  xfree(self->dest);
+  xfree(self->host);
+  xfree(self->protocol);
+  xfree(self);
   return 0;
 }
 
