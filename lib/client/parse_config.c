@@ -354,22 +354,15 @@ add_metadata_stream(OmlWriter *writer)
   char name[] = "_experiment_metadata";
   OmlMP *mp;
   OmlMStream* ms;
-  mp = find_mp (name);
-  if (!mp) { return -1; }
-  ms = find_mstream("_experiment_metadata");
-  if (!ms) {
-    logdebug("Didn't find existing MS for _experiment_metadata, creating...\n");
-    ms = create_mstream(name, mp, writer, -1, -1);
-
-  } else {
-    logdebug("Found existing MS for _experiment_metadata\n");
-
+  if(!(mp = find_mp (name))) {
+    return -1;
   }
-  if (!ms) { return -1; }
-
-  create_default_filters(mp, ms);
-  ms->next = mp->streams;
-  mp->streams = ms;
+  if(!(ms = oml_mp_get_default_ms(mp))) {
+    return -1;
+  }
+  if (oml_ms_add_writer(ms, writer)) {
+    return -1;
+  }
 
   return 0;
 }
@@ -505,12 +498,12 @@ parse_stream_filters (xmlNodePtr el, OmlWriter *writer,
   }
 
   // no filters specified - use default
-  if (ms->filters == NULL)
+  if (ms->filters == NULL) {
     create_default_filters(mp, ms);
-  ms->next = mp->streams;
-  mp->streams = ms;
-  if (interval > 0)
+  }
+  if (interval > 0) {
     filter_engine_start(ms);
+  }
   return 0;
 }
 
