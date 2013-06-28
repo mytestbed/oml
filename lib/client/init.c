@@ -931,6 +931,8 @@ find_mstream (const char *name)
 /** Create a new stream of measurement samples from the inputs
  * to a given MP.
  *
+ * If a stream by that name already exists, it is used instead.
+ *
  * \param sample_interval the sample interval for the filter
  * \param sample_thres the threshold for the filter
  * \param mp the measurement point
@@ -940,90 +942,81 @@ find_mstream (const char *name)
 OmlMStream*
 create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_interval, int sample_thres)
 {
-  int i;
-  OmlMStream *ms, *existing_ms;
-  OmlWriter *w;
-  if (!mp || !writer)
-    return NULL;
-
-  ms = (OmlMStream*)xmalloc(sizeof(OmlMStream));
-  if(!ms) {
-    logerror("Cannot allocate memory for MS %s\n", name);
-    return NULL;
-  }
-
-  MString *namestr = mstring_create();
   char *stream_name = NULL;
-  memset(ms, 0, sizeof(OmlMStream));
-
-  ms->sample_interval = sample_interval;
-  ms->sample_thres = sample_thres;
-  ms->mp = mp;
-
-  if(!writer) {
-    logwarn("NULL writer trying to create MS %s; it might get created later\n", name?name:mp->name);
-
-  } else if (oml_ms_add_writer(ms, writer))  {
-    xfree(ms);
-    logerror("Cannot create %s's initial writer array\n", name);
+  int new = 1;
+  MString *namestr;
+  OmlMStream *ms;
+  if (!mp) {
     return NULL;
   }
-  ms->next = NULL;
 
-  /* XXX: We should not do it for any MP, as an MP should be
+  namestr = mstring_create();
+  /* If name is not specified, create one by concatenating the application and
+   * MP names.
+   *
+   * XXX: We probably should not do it for any MP, as an MP should be
    * application-agnostic. This is not the case at the moment, and we don't
    * want to confuse legacy post-processing scripts. See #1055.
+   *
    * However, schema 0 is new, so let's do the right thing here.
+   *
    */
   if (mp!=schema0) {
     mstring_set (namestr, omlc_instance->app_name);
     mstring_cat (namestr, "_");
   }
-  if (name)
+  if (name) {
     mstring_cat (namestr, name);
-  else
+  } else {
     mstring_cat (namestr, mp->name);
-  stream_name = mstring_buf (namestr);
-
-  if (existing_ms = find_mstream (stream_name)) {
-    /* Loop through all writers of the existing MS, and make sure none are the
-     * current writer
-     *
-     * XXX: This is probably not the most efficient way to do it, but OmlWriters
-     * do not have any reference to the streams they handle so we cannot do the
-     * check the other way. Fortunately, this is done only rarely, during
-     * setup, so the performance hit should not be too hard.
-     */
-    for (i=0; i < existing_ms->nwriters; i++) {
-      if (writer == ms->writers[i]) {
-        logerror ("Measurement stream '%s' already exists; cannot create duplicate in MP '%s':  %s\n",
-            name ? name : mp->name,
-            mp->name,
-            name
-            ? " Choose another name in the <stream name=\"...\"> attribute."
-            : " Consider using the <stream name=\"...\"> attribute.");
-
-        destroy_ms (ms);
-        mstring_delete (namestr);
-        return NULL;
-      }
-    }
   }
-  const size_t tnlen = sizeof(ms->table_name);
-  strncpy (ms->table_name, stream_name, tnlen);
-  if (ms->table_name[tnlen-1] != '\0')
-    ms->table_name[tnlen-1] = '\0';
+  stream_name = mstring_buf (namestr);
   mstring_delete (namestr);
 
-  if (ms->sample_interval > 0) {
-    if (mp->mutexP == NULL) {
-      mp->mutexP = &mp->mutex;
-      pthread_mutex_init(mp->mutexP, NULL);
-    }
-    ms->sample_interval = sample_interval;
-    ms->sample_thres = 0;
+  if ((ms=find_mstream (stream_name))) {
+    loginfo("MS '%s' already exists, assuming identical parameters for a new destination; use the 'name' attribute of the <stream /> element to change\n", stream_name);
+    new = 0;
+
   } else {
+    logdebug("MS '%s' does not exist, creating...\n", stream_name);
+    ms = (OmlMStream*)xmalloc(sizeof(OmlMStream));
+    if(!ms) {
+      logerror("Cannot allocate memory for MS %s\n", name);
+      return NULL;
+    }
+    memset(ms, 0, sizeof(OmlMStream));
+
+    ;
+    strncpy (ms->table_name, stream_name, sizeof(ms->table_name));
+    ms->table_name[sizeof(ms->table_name)-1] = '\0';
+
+    ms->sample_interval = sample_interval;
     ms->sample_thres = sample_thres;
+    ms->mp = mp;
+
+    if (ms->sample_interval > 0) {
+      if (mp->mutexP == NULL) {
+        mp->mutexP = &mp->mutex;
+        pthread_mutex_init(mp->mutexP, NULL);
+      }
+      ms->sample_thres = 0;
+    }
+  }
+
+  if(!writer) {
+    logdebug("NULL writer for MS %s; it might get added later (using a configuration file?)\n", name?name:mp->name);
+
+  } else if (oml_ms_add_writer(ms, writer))  {
+    logerror("Cannot add %s's writer\n", name);
+    if(new) {
+      xfree(ms);
+    }
+    return NULL;
+  }
+
+  if (new) {
+    ms->next = mp->streams;
+    mp->streams = ms;
   }
   return ms;
 }
