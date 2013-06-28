@@ -53,6 +53,8 @@ typedef struct OmlOutStream {
   oml_outs_write_f write;
   /** Pointer to a function in charge of closing the stream \see oml_outs_close_f */
   oml_outs_close_f close;
+  /** Description of this output stream, usually overriden by a URI or filename */
+  char* dest;
 } OmlOutStream;
 
 #ifdef __cplusplus

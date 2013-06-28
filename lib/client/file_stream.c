@@ -19,17 +19,29 @@
 #include "oml2/omlc.h"
 #include "oml2/oml_out_stream.h"
 #include "ocomm/o_log.h"
+#include "mem.h"
 #include "client.h"
 
+typedef struct OmlFileOutStream {
 
-typedef struct _omlFileOutStream {
+  /*
+   * Fields from OmlOutStream interface
+   */
 
+  /** \see OmlOutStream::write, oml_outs_write_f */
   oml_outs_write_f write;
+  /** \see OmlOutStream::close, oml_outs_close_f */
   oml_outs_close_f close;
 
-  //----------------------------
-  FILE* f;                      /* File to write result to */
-  int   header_written;         // True if header has been written to file
+  /** \see OmlOutStream::dest */
+  char *dest;
+
+  /*
+   * Fields specific to the OmlFileOutStream
+   */
+
+  FILE* f;                      /**< File pointer into which to write result to */
+  int   header_written;         /**< True if header has been written to file */
 
 } OmlFileOutStream;
 
@@ -43,7 +55,7 @@ static int file_stream_close(OmlOutStream* hdl);
 OmlOutStream*
 file_stream_new(const char *file)
 {
-  OmlFileOutStream* self = (OmlFileOutStream *)malloc(sizeof(OmlFileOutStream));
+  OmlFileOutStream* self = (OmlFileOutStream *)xmalloc(sizeof(OmlFileOutStream));
   memset(self, 0, sizeof(OmlFileOutStream));
 
   loginfo ("File_stream: opening local storage file '%s'\n", file);
@@ -59,6 +71,7 @@ file_stream_new(const char *file)
 
   self->write = file_stream_write;
   self->close = file_stream_close;
+  self->dest = (char*)xstrndup (file, strlen (file));
   self->header_written = 0;
   return (OmlOutStream*)self;
 }
@@ -194,6 +207,9 @@ file_stream_close(OmlOutStream* hdl)
     ret = fclose(self->f);
     self->f = NULL;
   }
+  logdebug("Destroying OmlFileOutStream to file %s at %p\n", self->dest, self);
+  xfree(self->dest);
+  xfree(self);
   return ret;
 }
 
