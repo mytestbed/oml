@@ -153,13 +153,13 @@ START_TEST (test_config_multi_collect)
 {
   OmlMP *mp;
   OmlValueU v[2];
-  char buf[1024];
+  char buf[1024], *bufp;
   char *dests[2] = { "test_config_multi_collect1", "test_config_multi_collect2" };
   char config[] = "<omlc domain='check_liboml2_config' id='test_config_multi_collect'>\n"
                   "  <collect url='file:test_config_multi_collect1' encoding='text' />\n"
                   "  <collect url='file:test_config_multi_collect2' encoding='text' />\n"
                   "</omlc>";
-  int i, s1found = 0;
+  int i, s1found = 0, emptyfound = 0, n, datafound[2] = {0, 0};
   FILE *fp;
 
   logdebug("%s\n", __FUNCTION__);
@@ -196,12 +196,31 @@ START_TEST (test_config_multi_collect)
     fp = fopen(dests[i], "r");
     fail_unless(fp != NULL, "Output file %s missing", __FUNCTION__);
 
-    while(fgets(buf, sizeof(buf), fp) && !s1found) {
+    emptyfound = 0;
+    while(fgets(buf, sizeof(buf), fp) && (!s1found || !datafound[i])) {
+
       if (!strncmp(buf, "schema: 1", 9)) {
         s1found = 1;
+
+      } else if (emptyfound) {
+        /* We know we are passed the header;
+         * We check that the data is here, that is, we have
+         * 5 tab-delimited fields (ts, schemaid, seqno, d1, d2) */
+        bufp = buf;
+        n = 0;
+        while(++n<6 && strtok(bufp, "\t")) {
+          bufp = NULL; /* Make strtok continue on the same string */
+        };
+        if (n==6) {
+          datafound[i] = 1;
+        }
+
+      } else if (*buf == '\n') {
+        emptyfound = 1;
       }
     }
     fail_unless(s1found, "Schema 1 never defined in %s", dests[i]);
+    fail_unless(datafound[i], "No actual data in %s", dests[i]);
 
     fclose(fp);
   }
