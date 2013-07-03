@@ -23,7 +23,7 @@
 #ifndef HISTOGRAM_FILTER_H__
 #define HISTOGRAM_FILTER_H__
 
-struct _omlHistFilterInstanceData {
+struct OmlHistFilterInstanceData {
   /** Array to store the current output data for writing */
   OmlValue*     result;
 

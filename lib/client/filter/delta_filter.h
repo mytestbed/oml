@@ -23,7 +23,7 @@
 #ifndef DELTA_FILTER_H__
 #define DELTA_FILTER_H__
 
-struct _omlDeltaFilterInstanceData {
+struct OmlDeltaFilterInstanceData {
   /** Array to store the current output data for writing */
   OmlValue*     result;
 

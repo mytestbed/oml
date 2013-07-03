@@ -61,6 +61,14 @@ typedef int (*oml_filter_input)(struct OmlFilter* filter, OmlValue* value);
  */
 typedef int (*oml_filter_output)(struct OmlFilter* filter, struct OmlWriter* writer);
 
+/** Function called whenever aggregated output has been written to all writers,
+ * and can then be cleared.
+ *
+ * \param filter pointer to OmlFilter instance
+ * \return 0 on success, -1 otherwise
+ */
+typedef int (*oml_filter_newwindow)(struct OmlFilter* filter);
+
 /** Optional function returning metainformation for complex outputs.
  *
  * XXX: This function will probably go at some point soon. Don't use it.
@@ -108,7 +116,7 @@ typedef struct OmlFilter {
 
   /** Function to process a new sample \see oml_filter_input */
   oml_filter_input input;
-  /** Function to generate output, send it, and get ready for new sample period \see oml_filter_output */
+  /** Function to send the current output to a writer \see oml_filter_output */
   oml_filter_output output;
 
   /** Function returning describing complex outputs (optional) \see oml_filter_meta */
@@ -130,6 +138,9 @@ typedef struct OmlFilter {
 
   /** Filters are stored in a linked list for a given MP */
   struct OmlFilter* next;
+
+  /** Function to start a new sampling period \see oml_filter_newwindow */
+  oml_filter_newwindow newwindow; /* XXX: To be pulled up after output on the next ABI version change */
 } OmlFilter;
 
 /** Register a new filter type.
@@ -154,12 +165,14 @@ typedef struct OmlFilter {
  *  \param set oml_filter_set() function which allows parameter setting (can be NULL)
  *  \param input oml_filter_input() function which adds new input samples to be filtered
  *  \param output oml_filter_output() function which puts a filtered result in the result vector
+ *  \param newwindow oml_filter_newwindow() output function which is used to start a new sampling window
  *  \param meta oml_filter_meta() output function which is used to define the output schema (can be NULL is filter_def is not)
  *  \param filter_def output spec (name and type of each element of the output n-tuple; can be NULL if meta is not)
  *  \see oml_filter_create, oml_filter_set, oml_filter_input, oml_filter_output, oml_filter_meta, OmlFilterDef
  */
 int
-omlf_register_filter(const char* filter_name, oml_filter_create create, oml_filter_set set, oml_filter_input input, oml_filter_output output, oml_filter_meta meta, OmlFilterDef* filter_def);
+omlf_register_filter(const char* filter_name, oml_filter_create create, oml_filter_set set, oml_filter_input input,
+    oml_filter_output output, oml_filter_newwindow newwindow, oml_filter_meta meta, OmlFilterDef* filter_def);
 
 #ifdef __cplusplus
 }

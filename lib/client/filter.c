@@ -9,6 +9,18 @@
  */
 /**\file filter.c
  * \brief OML's client side filter engine
+ *
+ * \publicsection \page filters In-line filtering
+ *
+ * The C OML client library allows to process the content of Measurement
+ * Streams as they are generated and sent to the Collection Point.
+ *
+ * This is done by selecting the relevant fields of an MP, and applying the
+ * desired filter on them. The easiest way to do so is through the use of a
+ * configuration file, as documented in liboml2.conf(5).
+ *
+ * A few standard filters are available; fewer are documented:
+ * \li \subpage stddev_filter
  */
 
 #include <string.h>
@@ -126,6 +138,11 @@ filter_process(OmlMStream* ms)
       }
       writer->row_end(writer, ms);
     }
+  }
+
+  f = ms->firstFilter;
+  for (; f != NULL; f = f->next) {
+    f->newwindow(f);
   }
   ms->sample_size = 0;
 

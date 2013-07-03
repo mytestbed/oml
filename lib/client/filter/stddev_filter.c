@@ -1,45 +1,35 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*! \file stddev_filter.c \brief Implements a filter that calculates
- *  the standard deviation (and variance) over all samples it received
- *  over the sample period.
+/** \file stddev_filter.c
  *
- *  This filter calculates the standard deviation using a running
+ * \brief Implements a filter that calculates the standard deviation (and
+ * variance) over all samples it received over the sample period.
+ *
+ * \page stddev_filter Standard deviation
+ *
+ *  The `stddev` filter calculates the standard deviation using a running
  *  accumulation method due to B.P. Belford, cited in:
  *
  *  Donald Knuth, Art of Computer Programming, Vol 2, page 232, 3rd edition.
  *
- *  For k=1, initialize with:
+ *  For \f$k=1\f$, initialise with:
  *
- *  M_1 = x_1, S_1 = 0
+ *    \f[M_1 = x_1, S_1 = 0\f]
  *
- *  where x_i is the i-th input sample.  For k > 1, compute the
+ *  where \f$x_i\f$ is the i-th input sample.  For \f$k > 1\f$, compute the
  *  recurrence relations:
  *
- *  M_k = M_{k-1} + (x_k - M_{k-1}) / k
- *  S_k = S_{k-1} + (x_k - M_{k-1}) * (x_k - M_k)
+ *    \f[M_k = M_{k-1} + (x_k - M_{k-1}) / k \f]
+ *    \f[S_k = S_{k-1} + (x_k - M_{k-1}) * (x_k - M_k) \f]
  *
- *  Then the variance of the k-th sample is s^2 = S_k / (k-1).
+ *  Then the variance of the k-th sample is \f$s^2 = S_k / (k-1)\f$.
  *
  */
 
@@ -55,13 +45,16 @@
 
 #define FILTER_NAME "stddev"
 
-typedef struct _omlStddevFilterInstanceData InstanceData;
+typedef struct OmlStddevFilterInstanceData InstanceData;
 
 static int
 input (OmlFilter* f, OmlValue* value);
 
 static int
 output (OmlFilter* f, OmlWriter* writer);
+
+static int
+newwindow(OmlFilter* f);
 
 void*
 omlf_stddev_new(
@@ -107,6 +100,7 @@ omlf_register_filter_stddev (void)
                         NULL,
                         input,
                         output,
+                        newwindow,
                         NULL,
                         def);
 }
@@ -154,11 +148,19 @@ output (
   omlc_set_double(*oml_value_get_value(&self->result[1]), 1.0 * self->s / (self->sample_count - 1));
   omlc_set_double(*oml_value_get_value(&self->result[0]), sqrt (omlc_get_double(*oml_value_get_value(&self->result[1]))));
 
+  writer->out (writer, self->result, f->output_count);
+  return 0;
+}
+
+static int
+newwindow(OmlFilter* f)
+{
+  InstanceData* self = (InstanceData*)f->instance_data;
+
   self->m = 0;
   self->s = 0;
   self->sample_count = 0;
 
-  writer->out (writer, self->result, f->output_count);
   return 0;
 }
 

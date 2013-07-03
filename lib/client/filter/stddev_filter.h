@@ -23,7 +23,7 @@
 #ifndef STDDEV_FILTER_H__
 #define STDDEV_FILTER_H__
 
-struct _omlStddevFilterInstanceData
+struct OmlStddevFilterInstanceData
 {
   /** Array to store the current output data for writing */
   OmlValue*     result;
