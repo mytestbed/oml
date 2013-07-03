@@ -23,7 +23,7 @@
 #ifndef FIRST_FILTER_H__
 #define FIRST_FILTER_H__
 
-struct _omlFirstFilterInstanceData {
+struct OmlFirstFilterInstanceData {
   /** Array to store the current output data for writing */
   OmlValue*     result;
 

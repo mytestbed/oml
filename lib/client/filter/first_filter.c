@@ -1,28 +1,15 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*!\file first_filter.c
-  \brief Implements a filter which captures the first value presented
-*/
+/**\file first_filter.c
+ * \brief Implements a filter which captures the first value presented
+ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -31,17 +18,20 @@
 #include "oml2/oml_filter.h"
 #include "ocomm/o_log.h"
 #include "oml_value.h"
-#include "filter/first_filter.h"
+#include "first_filter.h"
 
 #define FILTER_NAME "first"
 
-typedef struct _omlFirstFilterInstanceData InstanceData;
+typedef struct OmlFirstFilterInstanceData InstanceData;
 
 static int
 process(OmlFilter* filter, OmlWriter* writer);
 
 static int
 sample(OmlFilter* f, OmlValue* values);
+
+static int
+newwindow(OmlFilter* f);
 
 static int
 meta(OmlFilter* f, int param_index, char** namePtr, OmlValueT* type);
@@ -84,15 +74,14 @@ omlf_register_filter_first (void)
             NULL,
             sample,
             process,
+            newwindow,
             meta,
             def);
 }
 
 static int
-sample(
-    OmlFilter* f,
-    OmlValue * value  //! values of sample
-) {
+sample(OmlFilter* f, OmlValue * value)
+{
   InstanceData* self = (InstanceData*)f->instance_data;
   OmlValueU* v = oml_value_get_value(value);
   OmlValueT type = oml_value_get_type(value);
@@ -112,16 +101,22 @@ sample(
 }
 
 static int
-process(
-  OmlFilter* f,
-  OmlWriter*  writer //! Write results of filter to this function
-) {
+process(OmlFilter* f, OmlWriter*  writer)
+{
   InstanceData* self = (InstanceData*)f->instance_data;
 
   if (self->sample_count <= 0)
     return 1;
 
   writer->out(writer, self->result, f->output_count);
+
+  return 0;
+}
+
+static int
+newwindow(OmlFilter* f)
+{
+  InstanceData* self = (InstanceData*)f->instance_data;
 
   self->is_first = 1;
   self->sample_count = 0;
@@ -130,12 +125,8 @@ process(
 }
 
 static int
-meta(
-  OmlFilter* f,
-  int param_index,
-  char** namePtr,
-  OmlValueT* type
-) {
+meta(OmlFilter* f, int param_index, char** namePtr, OmlValueT* type)
+{
   InstanceData* self = (InstanceData*)f->instance_data;
 
   if (param_index > 0) return 0;

@@ -36,12 +36,12 @@
 #include "oml2/oml_writer.h"
 #include "check_util.h"
 
-typedef struct _omlAvgFilterInstanceData AvgInstanceData;
-typedef struct _omlFirstFilterInstanceData FirstInstanceData;
-typedef struct _omlHistFilterInstanceData HistInstanceData;
-typedef struct _omlStddevFilterInstanceData StddevInstanceData;
-typedef struct _omlSumFilterInstanceData SumInstanceData;
-typedef struct _omlDeltaFilterInstanceData DeltaInstanceData;
+typedef struct OmlAvgFilterInstanceData AvgInstanceData;
+typedef struct OmlFirstFilterInstanceData FirstInstanceData;
+typedef struct OmlHistFilterInstanceData HistInstanceData;
+typedef struct OmlStddevFilterInstanceData StddevInstanceData;
+typedef struct OmlSumFilterInstanceData SumInstanceData;
+typedef struct OmlDeltaFilterInstanceData DeltaInstanceData;
 
 
 /* Fixtures */
@@ -84,6 +84,7 @@ START_TEST (test_filter_create)
   fail_if (f->set == NULL, "Filter set function is NULL");
   fail_if (f->input == NULL, "Filter input function is NULL");
   fail_if (f->output == NULL, "Filter output function is NULL");
+  fail_if (f->newwindow == NULL, "Filter newwindow function is NULL");
   fail_if (f->meta == NULL, "Filter meta function is NULL");
   fail_if (f->definition == NULL, "Filter definition is NULL");
   fail_if (f->instance_data == NULL, "Filter instance data is NULL");

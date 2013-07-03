@@ -1,28 +1,15 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*!\file factory.c
-  \brief Implements the functions to create and manage filters.
-*/
+/** \file factory.c
+ * \brief Implements the functions to create and manage filters.
+ */
 
 #include <string.h>
 #include <stdlib.h>
@@ -31,20 +18,21 @@
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "oml_value.h"
-#include "filter/factory.h"
+#include "factory.h"
 
-typedef struct _filterType {
+typedef struct FilterType {
   const char * name;
   oml_filter_create create;
   oml_filter_set set;
   oml_filter_input input;
   oml_filter_output output;
+  oml_filter_newwindow newwindow;
   oml_filter_meta meta;
 
   OmlFilterDef* definition;
   int output_count;
 
-  struct _filterType* next;
+  struct FilterType* next;
 } FilterType;
 
 static FilterType* filter_types = NULL;
@@ -126,6 +114,7 @@ create_filter(
   f->input_type = type;
   f->input = ft->input;
   f->output = ft->output;
+  f->newwindow = ft->newwindow;
   f->meta = ft->meta;
   f->definition = ft->definition;   /* FIXME:  Copy and substitute OML_INPUT_VALUE types */
   f->output_count = ft->output_count;
@@ -218,6 +207,7 @@ omlf_register_filter(const char* filter_name,
              oml_filter_set set,
              oml_filter_input input,
              oml_filter_output output,
+             oml_filter_newwindow newwindow,
              oml_filter_meta meta,
              OmlFilterDef* filter_def)
 {
@@ -237,6 +227,7 @@ omlf_register_filter(const char* filter_name,
   ft->set = set;
   ft->input = input;
   ft->output = output;
+  ft->newwindow = newwindow;
   ft->output_count = 0;
 
   OmlFilterDef* dp = filter_def;

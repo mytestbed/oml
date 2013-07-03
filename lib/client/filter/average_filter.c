@@ -1,29 +1,16 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*!\file average_filter.c
-  \brief Implements a filter which calculates the average over all
-  the samples it received over the sample period.
-*/
+/** \file average_filter.c
+ * \brief Implements a filter which calculates the average over all the samples
+ * it received over the sample period.
+ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -37,13 +24,16 @@
 
 #define FILTER_NAME  "avg"
 
-typedef struct _omlAvgFilterInstanceData InstanceData;
+typedef struct OmlAvgFilterInstanceData InstanceData;
 
 static int
 process(OmlFilter* filter, OmlWriter* writer);
 
 static int
 sample(OmlFilter* f, OmlValue* value);
+
+static int
+newwindow(OmlFilter* f);
 
 void*
 omlf_average_new(OmlValueT type, OmlValue* result)
@@ -88,6 +78,7 @@ omlf_register_filter_average (void)
                         NULL,
                         sample,
                         process,
+                        newwindow,
                         NULL,
                         def);
 }
@@ -125,6 +116,14 @@ process(OmlFilter* f, OmlWriter* writer)
 
   writer->out(writer, self->result, f->output_count);
 
+  return 0;
+}
+
+static int
+newwindow(OmlFilter* f)
+{
+  InstanceData* self = (InstanceData*)f->instance_data;
+
   self->sample_max = -1 * HUGE;
   self->sample_min = HUGE;
   self->sample_sum = 0;
@@ -132,7 +131,6 @@ process(OmlFilter* f, OmlWriter* writer)
 
   return 0;
 }
-
 
 /*
  Local Variables:
