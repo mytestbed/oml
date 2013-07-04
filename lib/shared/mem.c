@@ -250,7 +250,7 @@ void *xmemdupz (const void *data, size_t len)
   return ret;
 }
 
-/* Duplicate string, up to len characters, and nul-terminate it.
+/** Duplicate string, up to len characters, and nul-terminate it.
  *
  * \param str string to copy in the new xchunk
  * \param len length of the string
