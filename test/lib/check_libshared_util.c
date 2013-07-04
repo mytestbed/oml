@@ -56,22 +56,36 @@ END_TEST
 
 START_TEST (test_util_find)
 {
+  char ws[] = "   ";
   char ts[] = " abc def";
   char *tsnwf = ts + 1;
   char *tsnw = tsnwf + 4;
+  const char *got;
 
-  fail_unless(skip_white("   ") == NULL);
-  fail_unless(skip_white(ts) == tsnwf);
-  fail_unless(skip_white(tsnwf) == tsnwf);
-  fail_unless(skip_white(tsnw) == tsnw);
+  /* XXX: This should really be using a loop test */
 
-  fail_unless(find_white(ts) == ts);
-  fail_unless(find_white(tsnwf) == tsnw - 1);
-  fail_unless(find_white(tsnw) == tsnw+strlen(tsnw), "'%s', %p, %p, '%s'", tsnw, find_white(tsnw), tsnw, find_white(tsnw));
+  fail_unless((got=skip_white(ws)) == ws+sizeof(ws)-1,
+      "exp: %p :'%s'; got: %p: '%s'", ws+sizeof(ws)-1, ws+sizeof(ws)-1, got, got);
+  fail_unless((got=skip_white(ts)) == tsnwf,
+      "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
+  fail_unless((got=skip_white(tsnwf)) == tsnwf,
+      "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
+  fail_unless((got=skip_white(tsnw)) == tsnw,
+      "exp: %p :'%s'; got: %p: '%s'", tsnw, tsnw, got, got);
 
-  fail_unless(find_charn(ts, 'a', sizeof(ts)) == tsnwf);
-  fail_unless(find_charn(ts, 'z', sizeof(ts) + 10) == NULL, "%s %p %s %p", ts, ts, find_charn(ts, 'z', sizeof(ts) + 10), find_charn(ts, 'z', sizeof(ts) + 10));
-  fail_unless(find_charn(ts, 'a', 1) == NULL);
+  fail_unless((got=find_white(ts)) == ts,
+      "exp: %p :'%s'; got: %p: '%s'", ts, ts, got, got);
+  fail_unless((got=find_white(tsnwf)) == tsnw - 1,
+      "exp: %p :'%s'; got: %p: '%s'", tsnw-1, tsnw-1, got, got);
+  fail_unless((got=find_white(tsnw)) == tsnw+strlen(tsnw),
+      "exp: %p :'%s'; got: %p: '%s'", tsnw+strlen(tsnw), tsnw+strlen(tsnw), got, got);
+
+  fail_unless((got=find_charn(ts, 'a', sizeof(ts))) == tsnwf,
+      "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
+  fail_unless((got=find_charn(ts, 'z', sizeof(ts) + 10)) == NULL,
+      "exp: %p :'%s'; got: %p: '%s'", NULL, NULL, got, got);
+  fail_unless((got=find_charn(ts, 'a', 1)) == NULL,
+      "exp: %p :'%s'; got: %p: '%s'", NULL, NULL, got, got);
 }
 END_TEST
 
