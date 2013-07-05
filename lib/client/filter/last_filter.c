@@ -100,9 +100,6 @@ process(
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
 
-  if (self->sample_count <= 0)
-    return 1;
-
   writer->out(writer, self->result, f->output_count);
 
   return 0;
