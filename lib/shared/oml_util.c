@@ -41,39 +41,34 @@ void chomp(char *str)
  * long here being entirely machine dependent, one should not really rely on
  * this...
  *
- * \param[in,out] p pointer to the beginning of the string or array; updated to the matching element, or NULL if not found
+ * \param[in,out] p pointer to the beginning of the string or array; updated to the matching element, or the end of the search area if not found
  * \param cond success condition involving p
- * \param[in,out] len maximum length to search for; updated to the remaining number of characters when finishing (found or not)
+ * \param[in,out] len maximum length to search for; updated to the remaining number of characters when finishing (-1 if not found)
  */
 #define find_matching(p, cond, len)  \
-do {                              \
-  while (p && !(cond)) {          \
-    if (!--len || *p == 0) {      \
-      p = NULL;                   \
-    } else {                      \
-      p++;                        \
-    }                             \
-  }                               \
+do {                                 \
+  while (len-- && *p && !(cond)) {  \
+    p++;                             \
+  }                                  \
 } while(0)
 
 /** Skip whitespaces in a string
  *
  * \param p string to skip whitespace out of
- * \return a pointer to the first non-white character of the string, or NULL if p is entirely composed of whitespaces
+ * \return a pointer to the first non-white character of the string, which might be the end of the string
  * \see isspace(3)
  */
 const char* skip_white(const char *p)
 {
   int l = -1;
   find_matching(p, !(isspace (*p)), l);
-  if (*p == '\0') p = NULL;
   return p;
 }
 
 /** Find first whitespace in a string
  *
  * \param p string to search for whitespace in
- * \return a pointer to the first whitespace character of the string, or NULL if p does not contain whitspaces
+ * \return a pointer to the first whitespace character of the string, which might be the end of the string
  * \see isspace(3)
  */
 const char* find_white(const char *p)
@@ -94,6 +89,9 @@ const char* find_white(const char *p)
 const char* find_charn(const char *str, char c, int len)
 {
   find_matching(str, (*str == c), len);
+  if (len<0 || !*str) {
+    return NULL;
+  }
   return str;
 }
 
