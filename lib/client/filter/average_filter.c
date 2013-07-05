@@ -107,9 +107,6 @@ process(OmlFilter* f, OmlWriter* writer)
 {
   InstanceData* self = (InstanceData*)f->instance_data;
 
-  if (self->sample_count <= 0)
-    return 1;
-
   omlc_set_double(*oml_value_get_value(&self->result[0]), 1.0 * self->sample_sum / self->sample_count);
   omlc_set_double(*oml_value_get_value(&self->result[1]), self->sample_min);
   omlc_set_double(*oml_value_get_value(&self->result[2]), self->sample_max);
