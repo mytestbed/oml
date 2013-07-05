@@ -23,7 +23,7 @@
 #ifndef LAST_FILTER_H__
 #define LAST_FILTER_H__
 
-struct _omlLastFilterInstanceData {
+struct OmlLastFilterInstanceData {
   /** Array to store the current output data for writing */
   OmlValue*     result;
 

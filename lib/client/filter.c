@@ -9,6 +9,18 @@
  */
 /**\file filter.c
  * \brief OML's client side filter engine
+ *
+ * \publicsection \page filters In-line filtering
+ *
+ * The C OML client library allows to process the content of Measurement
+ * Streams as they are generated and sent to the Collection Point.
+ *
+ * This is done by selecting the relevant fields of an MP, and applying the
+ * desired filter on them. The easiest way to do so is through the use of a
+ * configuration file, as documented in liboml2.conf(5).
+ *
+ * A few standard filters are available; fewer are documented:
+ * \li \subpage stddev_filter
  */
 
 #include <string.h>
@@ -92,35 +104,46 @@ filter_process(OmlMStream* ms)
 {
   struct timeval tv;
   double now;
+  int i;
   OmlFilter *f;
+  OmlWriter *writer;
 
-  if (ms == NULL || omlc_instance == NULL) {
-    logerror("Could not process filters because of null measurement stream or instance\n");
-    return -1;
-  }
-
-  OmlWriter* writer = ms->writer;
-
-  if (writer == NULL) {
-    logerror("Could not process filters because of null writer\n");
-    return -1;
-  }
-
+  /* Get the time as soon as possible */
   gettimeofday(&tv, NULL);
-  now = tv.tv_sec - omlc_instance->start_time + 0.000001 * tv.tv_usec;
 
-  /* Be aware that row_start is obtaining a lock on the writer
-   * which is released in row_end. Always ensure that row_end is
-   * called, even if there is a problem somewhere along the way.
-   * \see oml_writer_row_start, oml_writer_out, oml_writer_row_end
-   */
+  if (ms == NULL || omlc_instance == NULL || ms->writers == NULL) {
+    logerror("Could not process filters because of null measurement stream, instance or writers array\n");
+    return -1;
+  }
+
+  now = tv.tv_sec - omlc_instance->start_time + 0.000001 * tv.tv_usec;
   ms->seq_no++;
-  writer->row_start(writer, ms, now);
+
+  for (i=0; i<ms->nwriters; i++) {
+    writer = ms->writers[i];
+
+    if (writer == NULL) {
+      logwarn("%s: Sending data NULL writer (at %d)\n", ms->table_name, i);
+
+    } else {
+      /* Be aware that row_start is obtaining a lock on the writer
+       * which is released in row_end. Always ensure that row_end is
+       * called, even if there is a problem somewhere along the way.
+       * \see oml_writer_row_start, oml_writer_out, oml_writer_row_end
+       */
+      writer->row_start(writer, ms, now);
+      f = ms->firstFilter;
+      for (; f != NULL; f = f->next) {
+        f->output(f, writer);
+      }
+      writer->row_end(writer, ms);
+    }
+  }
+
   f = ms->firstFilter;
   for (; f != NULL; f = f->next) {
-    f->output(f, writer);
+    f->newwindow(f);
   }
-  writer->row_end(writer, ms);
   ms->sample_size = 0;
 
   return 0;

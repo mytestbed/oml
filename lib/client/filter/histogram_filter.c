@@ -1,28 +1,19 @@
 /*
- * Copyright 2007-2013 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2013 National ICT Australia (NICTA)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*!\file histogram_filter.c
-  \brief Implements a filter which calculates
-*/
+/** \file histogram_filter.c
+ * \brief Implements a filter which calculates
+ *
+ * XXX: This filter is currently non-functional, and therefore disabled.
+ *
+ * \see register_builtin_filters
+ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,17 +23,20 @@
 #include "oml2/oml_filter.h"
 #include "ocomm/o_log.h"
 #include "oml_value.h"
-#include "filter/histogram_filter.h"
+#include "histogram_filter.h"
 
 #define FILTER_NAME "histogram"
 
-typedef struct _omlHistFilterInstanceData InstanceData;
+typedef struct OmlHistFilterInstanceData InstanceData;
 
 static int
 process(OmlFilter* filter, OmlWriter* writer);
 
 static int
 sample(OmlFilter* f, OmlValue* value);
+
+static int
+newwindow(OmlFilter* f);
 
 /*
 static int
@@ -95,6 +89,7 @@ omlf_register_filter_histogram (void)
             NULL,
             sample,
             process,
+            newwindow,
             NULL,
             def);
 }
@@ -142,6 +137,14 @@ process(
   omlc_set_double(*oml_value_get_value(&self->result[2]), self->sample_max);
 
   writer->out(writer, self->result, 3);
+
+  return 0;
+}
+
+static int
+newwindow(OmlFilter* f)
+{
+  InstanceData* self = (InstanceData*)f->instance_data;
 
   self->sample_count = 0;
 

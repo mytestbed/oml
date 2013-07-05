@@ -25,7 +25,7 @@
 
 #include <oml2/omlc.h>
 
-struct _omlSumFilterInstanceData
+struct OmlSumFilterInstanceData
 {
   /** Array to store the current output data for writing */
   OmlValue*     result;

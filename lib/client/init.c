@@ -55,7 +55,6 @@ typedef void(*sighandler) (int);
 static void usage(void);
 static void print_filters(void);
 static int  default_configuration(void);
-static int default_mp_configuration(OmlMP *mp);
 static char *schemastr_from_mpdef(OmlMPDef *mpdef);
 static int  write_meta(void);
 static int  write_schema(OmlMStream* ms, int index);
@@ -376,8 +375,8 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 
     mstring_delete(meta);
 
-    if (default_mp_configuration(mp)) {
-      logerror("Failed to create default filters for MP %s\n", mp_name);
+    if (!oml_mp_get_default_ms(mp)) {
+      logerror("Failed to create default MS for MP %s\n", mp_name);
       xfree(mp);
       return NULL;
     }
@@ -932,6 +931,8 @@ find_mstream (const char *name)
 /** Create a new stream of measurement samples from the inputs
  * to a given MP.
  *
+ * If a stream by that name already exists, it is used instead.
+ *
  * \param sample_interval the sample interval for the filter
  * \param sample_thres the threshold for the filter
  * \param mp the measurement point
@@ -942,69 +943,115 @@ OmlMStream*
 create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_interval, int sample_thres)
 {
   char *stream_name = NULL;
+  int new = 1;
   MString *namestr;
-
-  if (!mp || !writer)
-    return NULL;
-
-  OmlMStream* ms = (OmlMStream*)xmalloc(sizeof(OmlMStream));
-  if(!ms) {
-    logerror("Cannot allocate memory for MS %s\n", name);
+  OmlMStream *ms;
+  if (!mp) {
     return NULL;
   }
-  memset(ms, 0, sizeof(OmlMStream));
 
-  ms->sample_interval = sample_interval;
-  ms->sample_thres = sample_thres;
-  ms->mp = mp;
-  ms->writer = writer;
-  ms->next = NULL;
-
-  /* XXX: We should not do it for any MP, as an MP should be
+  namestr = mstring_create();
+  /* If name is not specified, create one by concatenating the application and
+   * MP names.
+   *
+   * XXX: We probably should not do it for any MP, as an MP should be
    * application-agnostic. This is not the case at the moment, and we don't
    * want to confuse legacy post-processing scripts. See #1055.
+   *
    * However, schema 0 is new, so let's do the right thing here.
+   *
    */
   namestr = mstring_create();
   if (mp!=schema0) {
     mstring_set (namestr, omlc_instance->app_name);
     mstring_cat (namestr, "_");
   }
-  if (name)
+  if (name) {
     mstring_cat (namestr, name);
-  else
+  } else {
     mstring_cat (namestr, mp->name);
-  stream_name = mstring_buf (namestr);
-
-  if (find_mstream (stream_name)) {
-    logerror ("Measurement stream '%s' already exists; cannot create duplicate in MP '%s':  %s\n",
-              name ? name : mp->name,
-              mp->name,
-              name
-              ? " Choose another name in the <stream name=\"...\"> attribute."
-              : " Consider using the <stream name=\"...\"> attribute.");
-
-    destroy_ms (ms);
-    mstring_delete (namestr);
-    return NULL;
   }
-  const size_t tnlen = sizeof(ms->table_name);
-  strncpy (ms->table_name, stream_name, tnlen);
-  if (ms->table_name[tnlen-1] != '\0')
-    ms->table_name[tnlen-1] = '\0';
+  stream_name = mstring_buf (namestr);
   mstring_delete (namestr);
 
-  if (ms->sample_interval > 0) {
-    if (mp->mutexP == NULL) {
-      mp->mutexP = &mp->mutex;
-      pthread_mutex_init(mp->mutexP, NULL);
-    }
-    ms->sample_interval = sample_interval;
-    ms->sample_thres = 0;
+  if ((ms=find_mstream (stream_name))) {
+    loginfo("MS '%s' already exists, assuming identical parameters for a new destination; use the 'name' attribute of the <stream /> element to change\n", stream_name);
+    new = 0;
+
   } else {
+    logdebug("MS '%s' does not exist, creating...\n", stream_name);
+    ms = (OmlMStream*)xmalloc(sizeof(OmlMStream));
+    if(!ms) {
+      logerror("Cannot allocate memory for MS %s\n", name);
+      return NULL;
+    }
+    memset(ms, 0, sizeof(OmlMStream));
+
+    ;
+    strncpy (ms->table_name, stream_name, sizeof(ms->table_name));
+    ms->table_name[sizeof(ms->table_name)-1] = '\0';
+
+    ms->sample_interval = sample_interval;
     ms->sample_thres = sample_thres;
+    ms->mp = mp;
+
+    if (ms->sample_interval > 0) {
+      if (mp->mutexP == NULL) {
+        mp->mutexP = &mp->mutex;
+        pthread_mutex_init(mp->mutexP, NULL);
+      }
+      ms->sample_thres = 0;
+    }
+  }
+
+  if(!writer) {
+    logdebug("NULL writer for MS %s; it might get added later (using a configuration file?)\n", name?name:mp->name);
+
+  } else if (oml_ms_add_writer(ms, writer))  {
+    logerror("Cannot add %s's writer\n", name);
+    if(new) {
+      xfree(ms);
+    }
+    return NULL;
+  }
+
+  if (new) {
+    ms->next = mp->streams;
+    mp->streams = ms;
   }
   return ms;
+}
+
+/** Add a new writer to an existing MS
+ * \param ms MStream to add w to
+ * \param w writer to add to MS
+ *
+ * \return 0 on success, -1 on error (previous writers are preserved)
+ */
+int
+oml_ms_add_writer(OmlMStream *ms, OmlWriter *w)
+{
+  int n;
+  OmlWriter **writers;
+
+  if(!ms || !w) {
+    logerror("%s: ms (%p) or w (%p) are invalid", __FUNCTION__, ms, w);
+    return -1;
+  }
+
+  n = ms->nwriters + 1;
+
+  writers = (OmlWriter **)xrealloc(ms->writers, n*sizeof(OmlWriter*));
+  if (!writers) {
+    logerror("Cannot (re)allocate memory for %s's writers array\n", ms->table_name);
+    return -1;
+  }
+
+  writers[n-1] = w;
+  ms->writers = writers;
+  ms->nwriters = n;
+
+  return 0;
 }
 
 /** Destroy a Measurement Stream, and deep free allocated memory (filters.
@@ -1039,6 +1086,7 @@ destroy_ms(OmlMStream *ms)
 
   while( (ft = destroy_filter(ft)) );
 
+  xfree(ms->writers);
   xfree(ms);
 
   return next;
@@ -1068,31 +1116,47 @@ default_configuration(void)
 
   mp = omlc_instance->mpoints;
   while (mp != NULL) {
-    default_mp_configuration(mp);
+    oml_mp_get_default_ms(mp);
     mp = mp->next;
   }
   return 0;
 }
 
-/** Set the default filter configuration for a single MP
+/** Get or create a default MS for the given MP, reporting all fields, using
+ * the OML instance's default samples and intervals and writing to its default
+ * writer.
+ *
  * \param mp OmlMP for which to set the filter configuration
- * \return 0 if successful, -1 otherwise
+ * \return the OmlMstream if successful, NULL otherwise
  */
-static int
-default_mp_configuration(OmlMP *mp)
+OmlMStream *
+oml_mp_get_default_ms(OmlMP *mp)
 {
   if(NULL == omlc_instance || NULL == mp) {
-    return -1;
+    return NULL;
   }
-  mp->streams = create_mstream (NULL, mp,
-      omlc_instance->default_writer,
-      omlc_instance->sample_interval,
-      omlc_instance->sample_count );
-  create_default_filters(mp, mp->streams);
-  if (omlc_instance->sample_interval > 0) {
-    filter_engine_start(mp->streams);
+
+  logdebug("Getting default MS for MP %s\n", mp->name);
+  if (!mp->default_ms) {
+    if(!mp->streams) {
+      create_mstream (NULL, mp,
+          omlc_instance->default_writer,
+          omlc_instance->sample_interval,
+          omlc_instance->sample_count );
+      if (NULL == mp->streams) {
+        logerror("Error creating MS %s\n", mp->name);
+        return NULL;
+      }
+
+      create_default_filters(mp, mp->streams);
+      if (omlc_instance->sample_interval > 0) {
+        filter_engine_start(mp->streams);
+      }
+    }
+    mp->default_ms = mp->streams;
+
   }
-  return 0;
+  return mp->default_ms;
 }
 
 /** Create the default filters
@@ -1246,7 +1310,7 @@ write_schema(OmlMStream *ms, int index)
   char* schema;
   size_t count = 0;
   size_t n = 0;
-  OmlWriter* writer = ms->writer;
+  int i;
 
   ms->index = index;
   n = snprintf(s, bufsize, "schema: %d %s ", ms->index, ms->table_name);
@@ -1299,7 +1363,16 @@ write_schema(OmlMStream *ms, int index)
       }
     }
   }
-  writer->meta(writer, schema);
+
+  for (i=0;i<ms->nwriters;i++) {
+    if (ms->writers[i] == NULL) {
+      logwarn("%s: Sending schema to NULL writer (at %d)\n", ms->table_name, i);
+
+    } else {
+      ms->writers[i]->meta( ms->writers[i], schema);
+    }
+  }
+
   xfree (schema);
   return 0;
 }

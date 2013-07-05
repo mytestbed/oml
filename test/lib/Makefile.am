@@ -68,6 +68,9 @@ CLEANFILES = \
 	test_config_empty_collect \
 	test_config_metadata.xml \
 	test_config_metadata \
+	test_config_multi_collect.xml \
+	test_config_multi_collect1 \
+	test_config_multi_collect2 \
 	test_fw_create_buffered
 
 STDDEV = $(srcdir)/stddev.py

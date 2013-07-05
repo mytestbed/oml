@@ -53,7 +53,7 @@ struct synonym {
 static struct synonym *tokmap_[CT_Max] = {0};
 static enum ConfToken curtok = CT_ROOT;
 
-static int create_metadata_stream(OmlWriter *writer);
+static int add_metadata_stream(OmlWriter *writer);
 
 static int parse_collector(xmlNodePtr el);
 static int parse_stream_or_mp(xmlNodePtr el, OmlWriter* writer);
@@ -282,7 +282,7 @@ parse_collector(xmlNodePtr el)
   char* url = get_xml_attr(el, CT_COLLECT_URL);
   OmlWriter* writer;
   OmlMP *mp;
-  OmlMStream *prev_ms;
+  OmlMStream *ms;
 
   if (url == NULL) {
     logerror("Config line %hu: Missing 'url' attribute for <%s ...>'.\n", el->line, el->name);
@@ -311,30 +311,21 @@ parse_collector(xmlNodePtr el)
       /* Sampling or intervals work on a per <stream /> basis as we are
        * handling the case where they are not specifically defined here by
        * putting a sane default.  See #541 for some discussion about this */
-      logwarn("Neither --oml-samples nor --oml-interval were specified, defaulting to --oml-samples 1 for %s\n", url);
       omlc_instance->sample_count = 1;
     }
     while (mp != NULL) {
-      prev_ms = mp->streams;
-      /* XXX: This code is very similar to lib/client/init.c:default_mp_configuration()
-       * FIXME: Fix this duplication */
-      logdebug("Sampling intervals: %fs, or %d\n", omlc_instance->sample_interval, omlc_instance->sample_count);
-      mp->streams = create_mstream (NULL, mp,
-          writer,
-          omlc_instance->sample_interval,
-          omlc_instance->sample_count);
-      create_default_filters(mp, mp->streams);
-      if (omlc_instance->sample_interval > 0) {
-        filter_engine_start(mp->streams);
+      ms = oml_mp_get_default_ms(mp);
+      if(!ms) {
+        logerror("Error creating MS %s towards %s, skipping...\n", mp->name, url);
+      } else {
+        oml_ms_add_writer(ms, writer);
       }
-      mp->streams->next = prev_ms;
-
       mp = mp->next;
     }
   } else {
     /* Unconditionally add metadata stream,
      * as it otherwise confuses the server */
-    if(create_metadata_stream(writer)) {
+    if(add_metadata_stream(writer)) {
       return -3;
     }
 
@@ -358,19 +349,20 @@ parse_collector(xmlNodePtr el)
  * \return 0 on success, -1 on error
  */
 static int
-create_metadata_stream(OmlWriter *writer)
+add_metadata_stream(OmlWriter *writer)
 {
   char name[] = "_experiment_metadata";
   OmlMP *mp;
   OmlMStream* ms;
-  mp = find_mp (name);
-  if (!mp) { return -1; }
-  ms = create_mstream(name, mp, writer, -1, -1);
-  if (!ms) { return -1; }
-
-  create_default_filters(mp, ms);
-  ms->next = mp->streams;
-  mp->streams = ms;
+  if(!(mp = find_mp (name))) {
+    return -1;
+  }
+  if(!(ms = oml_mp_get_default_ms(mp))) {
+    return -1;
+  }
+  if (oml_ms_add_writer(ms, writer)) {
+    return -1;
+  }
 
   return 0;
 }
@@ -506,12 +498,12 @@ parse_stream_filters (xmlNodePtr el, OmlWriter *writer,
   }
 
   // no filters specified - use default
-  if (ms->filters == NULL)
+  if (ms->filters == NULL) {
     create_default_filters(mp, ms);
-  ms->next = mp->streams;
-  mp->streams = ms;
-  if (interval > 0)
+  }
+  if (interval > 0) {
     filter_engine_start(ms);
+  }
   return 0;
 }
 

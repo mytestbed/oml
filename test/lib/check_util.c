@@ -256,6 +256,7 @@ run_filter_test (TestData* test_data, OmlFilter* f)
         }
 
       f->output (f, (OmlWriter*)&w);
+      f->newwindow (f);
 
       fail_unless (w.count == output->length);
       fail_unless (vector_type_check (w.values, output->type, output->length));

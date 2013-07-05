@@ -550,6 +550,10 @@ typedef struct OmlMP {
   /** Next MP in the instance's linked list */
   struct OmlMP*   next;
 
+  /** A pointer to the default MS for that MP,  */
+  /* FIXME: to be taken up aftern streams on the next library major bump */
+  struct OmlMStream* default_ms;
+
 } OmlMP;
 
 /* Forward declaration from oml_filter.h */
@@ -601,14 +605,20 @@ typedef struct OmlMStream {
   /** Filtering thread */
   pthread_t  filter_thread;
 
-  /** Outputting function */
-  struct OmlWriter* writer;
+  /** Outputting function
+   * XXX: This field is deprecated, and replaced with the writers (plural) array below (#1292)*/
+  struct OmlWriter* writer __attribute__ ((deprecated));
 
   /** Next MS in this MP's linked list */
   struct OmlMStream* next;
 
   /** Output's sequence number for the metadata associated to this stream */
   long meta_seq_no;
+
+  /** Array of OmlWriters through which this MS's tuples should be sent */
+  struct OmlWriter** writers;
+  /** Length of writers */
+  int nwriters;
 
 } OmlMStream;
 

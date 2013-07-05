@@ -25,7 +25,7 @@
 
 #include <oml2/omlc.h>
 
-struct _omlAvgFilterInstanceData {
+struct OmlAvgFilterInstanceData {
   /** Array to store the current output data for writing */
   OmlValue*     result;
 
