@@ -7,7 +7,7 @@
 %define liboml2rev	0
 %define libocommcur	1
 %define libocommage	0
-%define libocommrev	0
+%define libocommrev	1
 
 # RPM 4.7 on our Jenkins instance does not seem to do this by default.
 %define __spec_install_post /usr/lib/rpm/brp-compress
