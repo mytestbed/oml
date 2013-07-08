@@ -18,6 +18,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="OML2 Measurements Collection Server"
 NAME=oml2-server
 PIDFILE=/var/run/$NAME.pid
+FIN_WAIT_TO=`cat /proc/sys/net/ipv4/tcp_fin_timeout`
 
 test -x /usr/bin/$NAME || exit 0
 
@@ -57,6 +58,7 @@ wait_stop(){
 
     if [ -n "${PID:-}" ]; then
 	i=0
+	# Wait for the process to terminate
 	while kill -0 "${PID:-}" 2> /dev/null;  do
 	    if [ $i = '60' ]; then
 		break;
@@ -71,6 +73,8 @@ wait_stop(){
 	    fi
 	done
     fi
+    # Wait for the kernel to have cleaned up FIN_WAIT sockets (#1262)
+    sleep ${FIN_WAIT_TO}
 }
 
 case "$1" in
