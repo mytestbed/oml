@@ -168,6 +168,8 @@ typedef struct _eventLoop {
 
   /** Stopping condition for the event loop */
   int stopping;
+  /** If set to 1, the eventloop will not wait for active FDs to be closed */
+  int force_stop;
 
   /** UNIX Time when the EventLoop was started
    * \see time(3) */
@@ -203,7 +205,7 @@ static EventLoop self;
 
 
 /** Initialise the global EventLoop
- * \see eventloop_run, eventloop_stop
+ * \see eventloop_run, eventloop_stop, eventloop_terminate
  */
 void eventloop_init()
 {
@@ -232,7 +234,7 @@ void eventloop_set_socket_timeout(unsigned int to)
   self.socket_timeout = to;
 }
 
-/** Run the global EventLoop until eventloop_stop() is called.
+/** Run the global EventLoop until eventloop_stop() or eventloop_terminate() is called.
  *
  * The loop is based around the poll(3) system call. It monitor event sources
  * such as Channel or Timers, registered in the respective fields of the global
@@ -241,11 +243,13 @@ void eventloop_set_socket_timeout(unsigned int to)
  * poll(3) on the file descriptors (STDIN or sockets) related to active
  * Channels, and runs the relevant callbacks for those with pending events.  It
  * finally executes the callback functions of the expired timers.  The loop
- * will not return until eventloop_stop() is called.
+ * will not return until eventloop_stop() or eventloop_terminate() is called.
+ * In the former case, it will try to wait until all active sockets are close,
+ * while not in the latter.
  *
- * \return the (non-zero) value passed to eventloop_stop()
+ * \return the (non-zero) value passed to eventloop_stop() or eventloop_terminate()
  *
- * \see eventloop_init, eventloop_stop
+ * \see eventloop_init, eventloop_stop, eventloop_terminate
  * \eventloop_on_stdin, eventloop_on_monitor_in_channel, eventloop_on_read_in_channel, eventloop_on_out_channel
  * \see o_el_timer_callback, o_el_read_socket_callback, o_el_monitor_socket_callback, o_el_state_socket_callback, o_el_timer_callback
  * \see poll(3)
@@ -254,8 +258,9 @@ int eventloop_run()
 {
   int i;
   self.stopping = 0;
+  self.force_stop = 0;
   self.start = self.now = self.last_reaped = time(NULL);
-  while (!self.stopping || self.size>0) {
+  while (!self.stopping || (self.size>0 && !self.force_stop)) {
     // Check for active timers
     int timeout = -1;
     TimerInt* t = self.timers;
@@ -435,17 +440,29 @@ int eventloop_run()
 
 /** Stop the eventloop,
  *
+ * The eventloop will try to gracefully finish by waiting for all active FDs to be closed.
+ *
  * \param reason a non-zero reason for stopping the loop; default to 1, with a warning
  */
 void eventloop_stop(int reason)
 {
   if(reason) {
     self.stopping = reason;
-    terminate_fds();
   } else {
     o_log(O_LOG_WARN, "EventLoop: Tried to stop with no reason, defaulting to 1");
     self.stopping = 1;
   }
+  terminate_fds();
+}
+
+/** Terminate the eventloop,
+ *
+ * \param reason a non-zero reason for stopping the loop; default to 1, with a warning
+ */
+void eventloop_terminate(int reason)
+{
+    self.force_stop = 1;
+    eventloop_stop(reason);
 }
 
 /** Log a summary of resource usage.
@@ -890,6 +907,10 @@ static void terminate_fds(void)
         socket_is_listening(ch->socket)) {
       o_log(O_LOG_DEBUG3, "EventLoop: Releasing listening channel %s\n", ch->name);
       eventloop_socket_release((SockEvtSource*)ch);
+    } else if (self.force_stop) {
+      o_log(O_LOG_DEBUG3, "EventLoop: Closing down %s\n", ch->name);
+      eventloop_socket_release((SockEvtSource*)ch);
+      socket_close(ch->socket);
     } else {
       o_log(O_LOG_DEBUG3, "EventLoop: Shutting down %s\n", ch->name);
       socket_shutdown(ch->socket);

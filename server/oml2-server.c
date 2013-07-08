@@ -144,7 +144,7 @@ static void logging_setup (char *logfile, int level)
  * Captures the following signals, and handles them thusly.
  * * SIGTERM: instruct the EventLoop to stop.
  *
- * \see eventloop_stop()
+ * \see eventloop_terminate()
  */
 static void sighandler(int signum)
 {
@@ -152,7 +152,7 @@ static void sighandler(int signum)
   case SIGINT:
   case SIGTERM:
     loginfo("Received signal %d, cleaning up and exiting\n", signum);
-    eventloop_stop(signum);
+    eventloop_terminate(signum);
     break;
   case SIGUSR1:
     eventloop_report(O_LOG_INFO);
