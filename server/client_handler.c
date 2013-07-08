@@ -768,7 +768,7 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
   if(res>0) {
     logwarn("%s(bin): Skipped %d bytes of data searching for a new message\n", self->name, res);
   } else if (res == -1 && mbuf_rd_remaining(mbuf)>=2) {
-    logdebug("%s(bin): No message found in binary packet\n", self->name);
+    logdebug("%s(bin): Invalid or no message found in binary packet\n", self->name);
     if(o_log_level_active(O_LOG_DEBUG4)) {
       out = to_octets(mbuf_rdptr(mbuf), mbuf_rd_remaining(mbuf));
       logdebug("%s(bin): Packet follows\n%s", self->name, out);
