@@ -58,9 +58,9 @@ omlf_histogram_new(
   if(self) {
     memset(self, 0, sizeof(InstanceData));
 
-    self->sample_sum = 0;
-    self->sample_min = HUGE;
-    self->sample_max = -1 * HUGE;
+    self->sample_sum = NAN;
+    self->sample_min = NAN;
+    self->sample_max = NAN;
     self->sample_count = 0;
     self->result = result;
   } else {
@@ -115,9 +115,13 @@ sample(
     // raise error;
     return -1;
   }
-  self->sample_sum += val;
-  if (val < self->sample_min) self->sample_min = val;
-  if (val > self->sample_max) self->sample_max = val;
+  if (isnan(self->sample_sum)) {
+    self->sample_sum = val;
+  } else {
+    self->sample_sum += val;
+  }
+  if (val < self->sample_min || isnan(self->sample_min)) self->sample_min = val;
+  if (val > self->sample_max || isnan(self->sample_max)) self->sample_max = val;
   self->sample_count++;
   return 0;
 }
@@ -143,6 +147,9 @@ newwindow(OmlFilter* f)
 {
   InstanceData* self = (InstanceData*)f->instance_data;
 
+  self->sample_sum = NAN;
+  self->sample_min = NAN;
+  self->sample_max = NAN;
   self->sample_count = 0;
 
   return 0;

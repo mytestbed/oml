@@ -122,7 +122,6 @@ newwindow(OmlFilter* f)
   InstanceData* self = (InstanceData*)f->instance_data;
 
   self->previous = self->current;
-  self->current = 0;
   self->sample_count = 0;
 
   return 0;
