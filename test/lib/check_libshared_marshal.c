@@ -44,6 +44,7 @@
 
 static const int LONG_T = 0x1;        // marshal.c LONG_T
 static const int DOUBLE_T = 0x2;      // marshal.c DOUBLE_T
+static const int DOUBLE_NAN = 0x3;    // marshal.c DOUBLE_NAN
 static const int STRING_T = 0x4;      // marshal.c STRING_T
 static const int INT32_T = 0x5;       // marshal.c INT32_T
 static const int UINT32_T = 0x6;      // marshal.c UINT32_T
@@ -71,6 +72,7 @@ static double double_values[] = {
   -0.12345e12,
   0.12345e24,
   -0.12345e24,
+  NAN,
 };
 
 static int32_t int32_values[] = {
@@ -435,7 +437,13 @@ START_TEST (test_marshal_value_double)
   double val = ldexp (mant * 1.0 / (1 << 30), exp);
 
   fail_if (result != 1);
-  fail_if (type != DOUBLE_T); // DOUBLE_T
+  if (isnan(double_values[_i])) {
+    fail_if (type != DOUBLE_NAN);
+    imant = 0;
+    iexp = 0;
+  } else {
+    fail_if (type != DOUBLE_T);
+  }
   fail_if (mant != imant, "Value %g:  mismatched mantissa, expected %d, got %d\n", double_values[_i], imant, mant);
   fail_if (exp != iexp, "Value %g:  mismatched exponent, expected %d, got %d\n", double_values[_i], iexp, exp);
   fail_if (relative_error (val, v.doubleValue) > EPSILON, "Value %g expected, recovered %f from the buffer, delta=%g\n", double_values[_i], val, double_values[_i] - val);
@@ -885,10 +893,19 @@ START_TEST (test_marshal_unmarshal_double)
     double val = ldexp (mant * 1.0 / (1 << 30), exp);
 
     fail_if (result != 1);
-    fail_if (type != DOUBLE_T, "Type == %d", type); // DOUBLE_T
-    fail_if (fabs((val - omlc_get_double(v))/omlc_get_double(v)) >= EPSILON,
-        "Unmarshalled %g, expected %g\n",
-        val, omlc_get_double(v));
+    if (isnan(double_values[i])) {
+      fail_if (type != DOUBLE_NAN, "Type == %d", type); // DOUBLE_NAN
+      /* NaN is actually encoded as 0., but only the type, DOUBLE_NAN, matters for unmarshalling */
+      fail_unless (-EPSILON <= val && val <= EPSILON,
+          "Unmarshalled %g, expected %g\n",
+          val, 0);
+
+    } else {
+      fail_if (type != DOUBLE_T, "Type == %d", type); // DOUBLE_T
+      fail_if (fabs((val - omlc_get_double(v))/omlc_get_double(v)) >= EPSILON,
+          "Unmarshalled %g, expected %g\n",
+          val, omlc_get_double(v));
+    }
   }
 
   marshal_finalize (mbuf);
@@ -901,9 +918,16 @@ START_TEST (test_marshal_unmarshal_double)
     unmarshal_value (mbuf, &value);
 
     fail_unless (oml_value_get_type(&value) == OML_DOUBLE_VALUE);
-    fail_unless (relative_error (omlc_get_double(*oml_value_get_value(&value)), double_values[i]) < EPSILON,
-        "Unmarshalled value %g, expected %g\n",
-        omlc_get_double(*oml_value_get_value(&value)), double_values[i]);
+    if (isnan(double_values[i])) {
+      fail_unless (isnan(omlc_get_double(*oml_value_get_value(&value))),
+          "Unmarshalled value %g, expected %g\n",
+          omlc_get_double(*oml_value_get_value(&value)), double_values[i]);
+
+    } else {
+      fail_unless (relative_error (omlc_get_double(*oml_value_get_value(&value)), double_values[i]) < EPSILON,
+          "Unmarshalled value %g, expected %g\n",
+          omlc_get_double(*oml_value_get_value(&value)), double_values[i]);
+    }
   }
   oml_value_reset(&value);
 }

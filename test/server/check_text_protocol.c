@@ -142,6 +142,8 @@ static struct {
   { "int64", "int64", "-9223372036854775807", "-9223372036854775807"},    /* INT32_MIN+1 */
   { "uint64", "uint64", "9223372036854775807", "9223372036854775807"},
   { "double", "double", "13.37", "13.37"},                                /* Leetness */
+  { "dblNaNexpl", "double", "NAN", NULL},                                 /* Explicit NaN */
+  { "dblNaNimpl", "double", "", NULL},                                    /* Implicit NaN */
   { "string", "string", "string", "string"},
   { "stringNULL", "string", "", ""},
   { "blob", "blob", "YWJjZGU=", "abcde"}, /* see test/lib/check_liboml2_base64.c:test_round_trip */
@@ -218,10 +220,15 @@ START_TEST(test_text_types)
 
   rc = sqlite3_step(stmt);
   fail_unless(rc == SQLITE_ROW, "Statement `%s' failed; rc=%d", select, rc);
-  fail_if(strcmp((const char *)sqlite3_column_text(stmt, 0), type_tests[_i].exp),
-      "%s: Invalid %s in data: expected `%s', got `%s'",
-      type_tests[_i].name, type_tests[_i].proto_type,
-      type_tests[_i].exp, sqlite3_column_text(stmt, 0));
+  const char *ret=(const char *)sqlite3_column_text(stmt, 0);
+  if (NULL == ret) {
+    fail_if(type_tests[_i].exp != NULL);
+  } else {
+    fail_if(strcmp(ret, type_tests[_i].exp),
+        "%s: Invalid %s in data: expected `%s', got `%s'",
+        type_tests[_i].name, type_tests[_i].proto_type,
+        type_tests[_i].exp, sqlite3_column_text(stmt, 0));
+  }
   database_release(db);
 }
 END_TEST
