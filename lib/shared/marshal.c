@@ -555,7 +555,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 
    if (str == NULL) {
      str = "";
-     logwarn("Attempting to send a NULL string; sending empty string instead\n");
+     logdebug("Attempting to send a NULL string; sending empty string instead\n");
    }
 
    size_t len = strlen(str);
@@ -588,7 +588,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
    void *blob = omlc_get_blob_ptr(*val);
    size_t length = omlc_get_blob_length(*val);
    if (blob == NULL || length == 0) {
-     logwarn ("Attempting to send NULL or empty blob; blob of length 0 will be sent\n");
+     logdebug ("Attempting to send NULL or empty blob; blob of length 0 will be sent\n");
      length = 0;
    }
 
