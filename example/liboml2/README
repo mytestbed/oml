@@ -42,4 +42,8 @@ The `config_*.xml` files are examples, usable with the generator, of how OML
 Measurement Streams can be directed to one or more collection point, and
 filterred or further processed along the way.
 
+To build this example without installing the OML components system wide, run
+  make CC="$PWD/../../libtool compile gcc" CCLD="$PWD/../../libtool link --tag=CC gcc"
+
+
 [oml-scaffold-tute]: http://oml.mytestbed.net/projects/oml/wiki/OML2_scaffold_Tutorial
