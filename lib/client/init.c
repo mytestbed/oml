@@ -971,7 +971,6 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
     mstring_cat (namestr, mp->name);
   }
   stream_name = mstring_buf (namestr);
-  mstring_delete (namestr);
 
   if ((ms=find_mstream (stream_name))) {
     loginfo("MS '%s' already exists, assuming identical parameters for a new destination; use the 'name' attribute of the <stream /> element to change\n", stream_name);
@@ -1002,6 +1001,7 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
       ms->sample_thres = 0;
     }
   }
+  mstring_delete (namestr);
 
   if(!writer) {
     logdebug("NULL writer for MS %s; it might get added later (using a configuration file?)\n", name?name:mp->name);
