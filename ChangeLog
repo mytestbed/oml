@@ -1,4 +1,8 @@
-2013-06-09  Olivier Mehani <olivier.mehani@nicta.com.au>
+2013-08-06  Olivier Mehani <olivier.mehani@nicta.com.au>
+	* OML: Version 2.10.1 (bugfix release)
+	* No changes since RC.
+
+2013-07-09  Olivier Mehani <olivier.mehani@nicta.com.au>
 	* OML: Version 2.10.1rc (bugfix release)
 	* Major fixes:
 		Client library:
