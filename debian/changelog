@@ -1,3 +1,9 @@
+oml2 (2.10.1-mytestbed1) precise; urgency=low
+
+  * New upstream release 2.10.1
+
+ -- Olivier Mehani <olivier.mehani@nicta.com.au>  Wed, 07 Aug 2013 10:41:33 +1000
+
 oml2 (2.10.1rc-mytestbed1) precise; urgency=low
 
   * New upstream release 2.10.1rc
