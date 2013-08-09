@@ -19,13 +19,13 @@
 
 /** Create a new table description
  *
- * The caller should xfree the returned value when no longer needed.
+ * The caller should oml_free the returned value when no longer needed.
  * The schema argument is kept verbatim (no copy). XXX: It should be copied internally.
  *
  * \param name name of the table
  * \param schema MP schema of the table
- * \return an xmalloc'd TableDescr, or NULL on error
- * \see xmalloc, xfree
+ * \return an oml_malloc'd TableDescr, or NULL on error
+ * \see oml_malloc, oml_free
  */
 TableDescr*
 table_descr_new (const char* name, struct schema* schema)
@@ -35,11 +35,11 @@ table_descr_new (const char* name, struct schema* schema)
 
   /* schema == NULL means metadata table */
 
-  char *new_name = xstrndup (name, strlen (name));
+  char *new_name = oml_strndup (name, strlen (name));
 
-  TableDescr* t = xmalloc (sizeof(TableDescr));
+  TableDescr* t = oml_malloc (sizeof(TableDescr));
   if (t == NULL) {
-    xfree (new_name);
+    oml_free (new_name);
     return NULL;
   }
   t->name = new_name;
@@ -77,13 +77,13 @@ table_descr_array_free (TableDescr* tables, int n)
 {
   int i = 0;
   for (i = 0; i < n; i++) {
-      xfree (tables[i].name);
+      oml_free (tables[i].name);
       if (tables[i].schema) {
         schema_free (tables[i].schema);
       }
   }
 
-  xfree(tables);
+  oml_free(tables);
 }
 
 /** Deallocate a TableDescr linked list
@@ -99,11 +99,11 @@ table_descr_list_free (TableDescr* tables)
 
   while (t) {
       TableDescr* next = t->next;
-      xfree (t->name);
+      oml_free (t->name);
       if (t->schema) {
         schema_free (t->schema);
       }
-      xfree (t);
+      oml_free (t);
       t = next;
   }
 }

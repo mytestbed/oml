@@ -135,7 +135,7 @@ store_received_message (Client *client, struct oml_message *msg, char *buf, size
   cbuf_write_cursor (client->cbuf, &node->cursor);
   cbuf_write (client->cbuf, buf, length);
 
-  node->msg = xmalloc (sizeof (struct oml_message));
+  node->msg = oml_malloc (sizeof (struct oml_message));
   *node->msg = *msg;
 
   pthread_mutex_unlock (&client->mutex);

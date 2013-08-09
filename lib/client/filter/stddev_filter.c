@@ -66,7 +66,7 @@ omlf_stddev_new(
     return NULL;
   }
 
-  InstanceData* self = (InstanceData*)xmalloc(sizeof(InstanceData));
+  InstanceData* self = (InstanceData*)oml_malloc(sizeof(InstanceData));
 
   if (self) {
     memset(self, 0, sizeof(InstanceData));

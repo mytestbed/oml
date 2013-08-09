@@ -92,7 +92,7 @@ bin_writer_new(OmlOutStream* out_stream)
 {
   assert(out_stream != NULL);
 
-  OmlBinWriter* self = (OmlBinWriter *)xmalloc(sizeof(OmlBinWriter));
+  OmlBinWriter* self = (OmlBinWriter *)oml_malloc(sizeof(OmlBinWriter));
   memset(self, 0, sizeof(OmlBinWriter));
 
   self->bufferedWriter = bw_create(out_stream,
@@ -253,7 +253,7 @@ owb_close(OmlWriter* writer)
 
   // Blocks until the buffered writer drains
   bw_close (self->bufferedWriter);
-  xfree(self);
+  oml_free(self);
 
   return next;
 }

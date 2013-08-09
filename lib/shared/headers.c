@@ -183,13 +183,13 @@ header_from_string (const char *str, size_t n)
   struct header *header = NULL;
 
   if ((int)valuelen > 0) {
-    value = xstrndup (q, valuelen);
+    value = oml_strndup (q, valuelen);
     if (!value)
       return NULL;
 
-    header = xmalloc (sizeof (struct header));
+    header = oml_malloc (sizeof (struct header));
     if (!header) {
-      xfree (value);
+      oml_free (value);
       return NULL;
     }
     header->tag = tag;
@@ -208,8 +208,8 @@ header_free (struct header *header)
 {
   if (header) {
     if (header->value)
-      xfree (header->value);
-    xfree (header);
+      oml_free (header->value);
+    oml_free (header);
   }
 }
 

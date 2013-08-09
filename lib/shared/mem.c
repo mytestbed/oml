@@ -39,12 +39,12 @@
 
 static size_t xbytes = 0;
 static size_t xnew = 0;
-static size_t xfreed = 0;
+static size_t oml_freed = 0;
 static size_t xmax = 0;
 
 /** Take into account newly allocated memory.
  * \param bytes size of the new xchunk
- * \see xmembytes, xmemnew, xmemreport
+ * \see xmembytes, xmemnew, oml_memreport
  */
 static void xcount_new   (size_t bytes) {
 #if OML_MEM_DEBUG
@@ -58,13 +58,13 @@ static void xcount_new   (size_t bytes) {
 
 /** Take into account freed memory.
  * \param bytes size of the freed xchunk
- * \see xmembytes, xmemfreed, xmemreport
+ * \see xmembytes, xmemfreed, oml_memreport
  */
 static void xcount_freed (size_t bytes) {
 #if OML_MEM_DEBUG
   o_log(O_LOG_DEBUG4, "Freed %dB of memory\n", bytes);
 #endif
-  xbytes -= bytes; xfreed += bytes;
+  xbytes -= bytes; oml_freed += bytes;
 }
 
 /** Report the current memory allocation tracked by x*() functions */
@@ -72,14 +72,15 @@ size_t xmembytes() { return xbytes; }
 /** Report the cumulated allocated memory tracked by x*() functions */
 size_t xmemnew() { return xnew; }
 /** Report the cumulated freed memory tracked by x*() functions */
-size_t xmemfreed() { return xfreed; }
+size_t xmemfreed() { return oml_freed; }
 
 /** Create a summary of the dynamically allocated memory tracked by x*() functions
  *
  * \return a pointer to a statically allocated, nul-terminated, string containing the summary
- * \see xmemreport
+ * \see oml_memreport
  * */
-char *xmemsummary ()
+char*
+oml_memsummary ()
 {
   static char summary[1024];
 
@@ -100,7 +101,7 @@ char *xmemsummary ()
              PRIuMAX" current, %"
              PRIuMAX" maximum]",
              (uintmax_t)xbytes_h, units,
-             (uintmax_t)xnew, (uintmax_t)xfreed, (uintmax_t)xbytes,
+             (uintmax_t)xnew, (uintmax_t)oml_freed, (uintmax_t)xbytes,
              (uintmax_t)xmax);
   summary[1023] = '\0';
 
@@ -109,11 +110,12 @@ char *xmemsummary ()
 /** Log a summary of the dynamically allocated memory tracked by x*() functions
  *
  * \param loglevel log level at which the message should be issued
- * \see xmemsummary
+ * \see oml_memsummary
  * */
-void xmemreport (int loglevel)
+void
+oml_memreport (int loglevel)
 {
-  o_log(loglevel, "%s\n", xmemsummary());
+  o_log(loglevel, "%s\n", oml_memsummary());
 }
 
 #define xreturn(ptr, size, str)                                         \
@@ -124,7 +126,7 @@ void xmemreport (int loglevel)
     return ptr;                                                         \
   } while (0);
 
-/** Allocate memory, tracking track of how much.
+/** Allocate memory, keeping track of how much.
  *
  * The allocated memory is one size_t larger, just before the returned pointer,
  * to store the size of the xchunk.
@@ -133,7 +135,8 @@ void xmemreport (int loglevel)
  * \return an xchunk of memory at least as big as size, or NULL
  * \see malloc(3)
  */
-void *xmalloc (size_t size)
+void*
+oml_malloc (size_t size)
 {
   size += sizeof (size_t);
   void *ret = malloc (size);
@@ -145,14 +148,15 @@ void *xmalloc (size_t size)
   return (size_t*)ret + 1;
 }
 
-/** Allocate array, tracking track of allocated memory.
+/** Allocate array, keeping track of allocated memory.
  *
  * \param number of elements in the array
  * \param size size of one element
  * \return an xchunk of memory at least as big as size, or NULL
- * \see calloc(3), xmalloc
+ * \see calloc(3), oml_malloc
  */
-void *xcalloc (size_t count, size_t size)
+void*
+oml_calloc (size_t count, size_t size)
 {
   if (size >= sizeof (size_t))
     count++;
@@ -180,9 +184,10 @@ void *xcalloc (size_t count, size_t size)
  * \return a new xchunk of at least the requested size containing the old data, or NULL
  * \see realloc(3)
  */
-void *xrealloc (void *ptr, size_t size)
+void*
+oml_realloc (void *ptr, size_t size)
 {
-  if (!ptr) return xmalloc (size);
+  if (!ptr) return oml_malloc (size);
   size += sizeof (size_t);
   ptr = (size_t*)ptr - 1;
   size_t old = *(size_t*)ptr;
@@ -197,11 +202,12 @@ void *xrealloc (void *ptr, size_t size)
 
 /** Report the size of the given xchunk
  *
- * \param ptr pointer to an xmalloc()'d bit of memory
+ * \param ptr pointer to an oml_malloc()'d bit of memory
  * \return the size of the allocated xchunk
- * \see xmalloc, malloc_usable_size(3)
+ * \see oml_malloc, malloc_usable_size(3)
  */
-size_t xmalloc_usable_size(void *ptr) {
+size_t
+oml_malloc_usable_size(void *ptr) {
   if(!ptr) return 0;
   size_t *sptr = (size_t*)ptr - 1;
   return *sptr-sizeof(size_t);
@@ -209,10 +215,11 @@ size_t xmalloc_usable_size(void *ptr) {
 
 /** Free an xchunk
  *
- * \param ptr pointer to an xmalloc()'d bit of memory
- * \see xmalloc, free(3)
+ * \param ptr pointer to an oml_malloc()'d bit of memory
+ * \see oml_malloc, free(3)
  */
-void xfree (void *ptr)
+void
+oml_free (void *ptr)
 {
   if (ptr) {
     size_t *sptr = (size_t*)ptr - 1, size = *sptr;
@@ -225,16 +232,17 @@ void xfree (void *ptr)
  *
  * \param len maximum size of the string to be stored in the allocated xchunk
  * \return the allocated xchunk, or NULL
- * \see xmalloc, memset(3)
+ * \see oml_malloc, memset(3)
  */
-char* xstralloc (size_t len)
+char*
+oml_stralloc (size_t len)
 {
-  char *ret = xmalloc (len + 1);
+  char *ret = oml_malloc (len + 1);
   memset (ret, 0, len + 1);
   return ret;
 }
 
-/* xmemdupz() and xstrndup() are taken from Git. */
+/* oml_memdupz() and oml_strndup() are taken from Git. */
 
 /** Allocates (len + 1) bytes of memory, copies "len" bytes from "data" into the new memory and zero terminates the copy
  *
@@ -242,9 +250,10 @@ char* xstralloc (size_t len)
  * \param len length of the data
  * \return the newly allocated xchunk, or NULL
  */
-void *xmemdupz (const void *data, size_t len)
+void*
+oml_memdupz (const void *data, size_t len)
 {
-  char *ret = xmalloc (len + 1);
+  char *ret = oml_malloc (len + 1);
   memcpy (ret, data, len);
   ret[len] = '\0';
   return ret;
@@ -257,10 +266,11 @@ void *xmemdupz (const void *data, size_t len)
  * \return the newly allocated xchunk, or NULL
  * \see strndup(3)
  */
-char* xstrndup (const char *str, size_t len)
+char*
+oml_strndup (const char *str, size_t len)
 {
   char *p = memchr (str, '\0', len);
-  return xmemdupz (str, p ? (size_t)(p - str) : len);
+  return oml_memdupz (str, p ? (size_t)(p - str) : len);
 }
 
 /*

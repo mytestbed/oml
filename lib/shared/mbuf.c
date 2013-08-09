@@ -57,15 +57,15 @@ mbuf_create (void)
 MBuffer*
 mbuf_create2 (size_t buffer_length, size_t min_resize)
 {
-  MBuffer* mbuf = xmalloc (sizeof (MBuffer));
+  MBuffer* mbuf = oml_malloc (sizeof (MBuffer));
   if (mbuf == NULL) return NULL;
 
   mbuf->length = buffer_length > 0 ? buffer_length : DEF_BUF_SIZE;
   mbuf->min_resize = min_resize > 0 ? min_resize : DEF_MIN_BUF_RESIZE;
-  mbuf->base = xmalloc (mbuf->length);
+  mbuf->base = oml_malloc (mbuf->length);
 
   if (mbuf->base == NULL) {
-    xfree (mbuf);
+    oml_free (mbuf);
     return NULL;
   }
 
@@ -96,8 +96,8 @@ mbuf_destroy (MBuffer* mbuf)
 
   logdebug("Destroying MBuffer %p\n", mbuf);
 
-  xfree (mbuf->base);
-  xfree (mbuf);
+  oml_free (mbuf->base);
+  oml_free (mbuf);
 }
 
 /** Get an MBuffer's storage.
@@ -325,7 +325,7 @@ mbuf_resize (MBuffer* mbuf, size_t new_length)
 
   assert (wr_offset == (int)mbuf->fill);
 
-  uint8_t* new = xrealloc (mbuf->base, new_length);
+  uint8_t* new = oml_realloc (mbuf->base, new_length);
   if (new == NULL)
     return -1;
 

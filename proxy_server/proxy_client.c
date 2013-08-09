@@ -45,12 +45,12 @@ Client*
 client_new (Socket* client_sock, int page_size, char* file_name,
            int server_port, char* server_address)
 {
-  Client* self = (Client *)xmalloc(sizeof(Client));
+  Client* self = (Client *)oml_malloc(sizeof(Client));
   memset(self, 0, sizeof(Client));
 
   self->state = C_HEADER;
   self->downstream_port = server_port;
-  self->downstream_addr = xstrndup (server_address, strlen (server_address));
+  self->downstream_addr = oml_strndup (server_address, strlen (server_address));
   self->mbuf = mbuf_create ();
   self->headers = NULL;
   self->msg_start = dummy_read_msg_start;
@@ -59,7 +59,7 @@ client_new (Socket* client_sock, int page_size, char* file_name,
   self->cbuf = cbuf_create (page_size);
 
   self->file = fopen(file_name, "wa");
-  self->file_name =  xstrndup (file_name, strlen (file_name));
+  self->file_name =  oml_strndup (file_name, strlen (file_name));
 
   self->recv_socket = client_sock;
 
@@ -81,8 +81,8 @@ client_free (Client *client)
     client->file = NULL;
   }
 
-  xfree (client->file_name);
-  xfree (client->downstream_addr);
+  oml_free (client->file_name);
+  oml_free (client->downstream_addr);
 
   struct header *header = client->headers;
 
@@ -100,7 +100,7 @@ client_free (Client *client)
 
   socket_free (client->recv_socket);
 
-  xfree (client);
+  oml_free (client);
 }
 
 /*

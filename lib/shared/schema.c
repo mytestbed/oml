@@ -42,8 +42,8 @@ schema_field_from_meta (const char *meta, size_t len, struct schema_field *field
   if (!q) {
     return -1;
   }
-  field->name = xstrndup (p, q++ - p);
-  type = xstrndup (q, len - (q - p));
+  field->name = oml_strndup (p, q++ - p);
+  type = oml_strndup (q, len - (q - p));
   if (!field->name || !type) {
     goto exit;
   }
@@ -53,14 +53,14 @@ schema_field_from_meta (const char *meta, size_t len, struct schema_field *field
   if (field->type == OML_UNKNOWN_VALUE) {
     goto exit;
   }
-  xfree (type);
+  oml_free (type);
   return 0;
  exit:
   if (!field->name) {
-    xfree (field->name);
+    oml_free (field->name);
     field->name = NULL;
   }
-  if (!type) { xfree (type); }
+  if (!type) { oml_free (type); }
   return -1;
 }
 
@@ -71,7 +71,7 @@ schema_field_from_meta (const char *meta, size_t len, struct schema_field *field
  * We get everything from the first colon ':' onwards in "meta" parameter.
  *
  * \param meta nil-terminated string to parse
- * \return a pointer to an xmalloc'd struct schema, to be freed by the caller, or NULL on error (e.g., meta is NULL)
+ * \return a pointer to an oml_malloc'd struct schema, to be freed by the caller, or NULL on error (e.g., meta is NULL)
  *
  * \see schema_field_from_meta
  */
@@ -86,7 +86,7 @@ schema_from_meta (const char *meta)
   const char *p = meta;
   char *q;
 
-  schema = xmalloc (sizeof (struct schema));
+  schema = oml_malloc (sizeof (struct schema));
   if (!schema) { goto exit; }
   schema->nfields = 0;
   schema->fields = NULL;
@@ -101,7 +101,7 @@ schema_from_meta (const char *meta)
   /* Get the name of the schema */
   p = (char*)skip_white (p);
   q = (char*)find_white (p);
-  schema->name = xstrndup (p, (q - p));
+  schema->name = oml_strndup (p, (q - p));
   if (!schema->name) { goto exit; }
   p = q;
 
@@ -113,7 +113,7 @@ schema_from_meta (const char *meta)
       schema->nfields++;
       fields_size += sizeof (struct schema_field);
       /* We need this intermediary to be able to free the previous block on failure */
-      if (!(f = xrealloc (schema->fields, fields_size))) {
+      if (!(f = oml_realloc (schema->fields, fields_size))) {
         goto exit;
       }
       schema->fields = f;
@@ -134,7 +134,7 @@ schema_from_meta (const char *meta)
 /** Create a string representation of a schema
  *
  * \param schema a schema structure to trancribe
- * \return a pointer to an xmalloc'd string containing the schema; the caller should free the memory
+ * \return a pointer to an oml_malloc'd string containing the schema; the caller should free the memory
  */
 char *
 schema_to_meta (const struct schema *schema)
@@ -154,7 +154,7 @@ schema_to_meta (const struct schema *schema)
   else
     goto fail_exit;
 
-  s = xstrndup (mstring_buf (str), mstring_len (str));
+  s = oml_strndup (mstring_buf (str), mstring_len (str));
   mstring_delete (str);
   return s;
 
@@ -203,9 +203,9 @@ schema_field_from_sql (const char *sql, size_t len, struct schema_field *field, 
   q = (char*)find_white (p);
   up = *p == '"' ? p+1 : p;
   uq = *(q-1) == '"' ? q-1 : q;
-  field->name = xstrndup (up, uq - up);
+  field->name = oml_strndup (up, uq - up);
   q = (char*)skip_white (q);
-  char *type = xstrndup (q, len - (q - p));
+  char *type = oml_strndup (q, len - (q - p));
   if (!field->name || !type)
     goto exit;
   field->type = t2o (type);
@@ -213,11 +213,11 @@ schema_field_from_sql (const char *sql, size_t len, struct schema_field *field, 
   field->type = (field->type == OML_LONG_VALUE) ? OML_INT32_VALUE : field->type;
   if (field->type == OML_UNKNOWN_VALUE)
     goto exit;
-  xfree (type);
+  oml_free (type);
   return 0;
  exit:
-  if (!field->name) xfree (field->name);
-  if (!type) xfree (type);
+  if (!field->name) oml_free (field->name);
+  if (!type) oml_free (type);
   return -1;
 }
 
@@ -225,8 +225,8 @@ schema_field_from_sql (const char *sql, size_t len, struct schema_field *field, 
  *
  * \param schema schema structure as created by, e.g., schema_from_meta()
  * \param typemap function pointer to the database adapter's SQL to OML type converter function
- * \return an xmalloc'd MString containing the table-creation statement; the caller is responsible of freeing it
- * \see xmalloc, xfree
+ * \return an oml_malloc'd MString containing the table-creation statement; the caller is responsible of freeing it
+ * \see oml_malloc, oml_free
  */
 MString*
 schema_to_sql (const struct schema* schema, reverse_typemap o2t)
@@ -340,7 +340,7 @@ schema_from_sql (const char *sql, OmlValueT (*t2o) (const char *s))
   q = (char*)find_white (p);
   up = *p == '"' ? p+1 : p;
   uq = *(q-1) == '"' ? q-1 : q;
-  name = xstrndup (up, uq - up);
+  name = oml_strndup (up, uq - up);
   p = q;
   p = (char*)skip_white (p);
 
@@ -356,7 +356,7 @@ schema_from_sql (const char *sql, OmlValueT (*t2o) (const char *s))
     }
     if (q != NULL) {
       fields_size = (nfields + 1) * sizeof (struct schema_field);
-      struct schema_field *f = xrealloc (fields, fields_size);
+      struct schema_field *f = oml_realloc (fields, fields_size);
       if (!f)
         goto exit;
       fields = f;
@@ -367,7 +367,7 @@ schema_from_sql (const char *sql, OmlValueT (*t2o) (const char *s))
         goto exit;
       /* n == 0 means metadata column (must be skipped here) */
       if (n == 0) {
-        xfree (fields[nfields].name);
+        oml_free (fields[nfields].name);
         fields[nfields].name = NULL;
       }
       nfields += n;
@@ -375,7 +375,7 @@ schema_from_sql (const char *sql, OmlValueT (*t2o) (const char *s))
     }
   }
 
-  schema = xmalloc (sizeof (struct schema));
+  schema = oml_malloc (sizeof (struct schema));
   if (!schema) goto exit;
 
   schema->name = name;
@@ -385,15 +385,15 @@ schema_from_sql (const char *sql, OmlValueT (*t2o) (const char *s))
   return schema;
 
  exit:
-  if (name) xfree (name);
+  if (name) oml_free (name);
   if (fields) {
     int i = 0;
     for (; i < nfields; i++)
       if (fields[i].name)
-        xfree (fields[i].name);
-    xfree (fields);
+        oml_free (fields[i].name);
+    oml_free (fields);
   }
-  xfree (schema);
+  oml_free (schema);
   return NULL;
 }
 
@@ -404,11 +404,11 @@ schema_from_sql (const char *sql, OmlValueT (*t2o) (const char *s))
 struct schema *
 schema_new (const char *name)
 {
-  struct schema *schema = xmalloc (sizeof (struct schema));
+  struct schema *schema = oml_malloc (sizeof (struct schema));
   if (!schema) { goto exit; }
   memset(schema, 0, sizeof(struct schema));
 
-  schema->name = xstrndup (name, strlen (name));
+  schema->name = oml_strndup (name, strlen (name));
   if (!schema->name) { goto exit; }
   schema->index = -1;
   return schema;
@@ -426,18 +426,18 @@ schema_free (struct schema *schema)
 {
   if (schema) {
     if (schema->name) {
-      xfree (schema->name);
+      oml_free (schema->name);
     }
     if (schema->fields) {
       int i;
       for (i = 0; i < schema->nfields; i++) {
         if (schema->fields[i].name) {
-          xfree (schema->fields[i].name);
+          oml_free (schema->fields[i].name);
         }
       }
-      xfree (schema->fields);
+      oml_free (schema->fields);
     }
-    xfree (schema);
+    oml_free (schema);
   }
 }
 
@@ -453,10 +453,10 @@ schema_add_field (struct schema *schema, const char *name, OmlValueT type)
 {
   if (!schema || !name) return -1;
   size_t fields_size = (schema->nfields + 1) * sizeof (struct schema_field);
-  struct schema_field *new = xrealloc (schema->fields, fields_size);
+  struct schema_field *new = oml_realloc (schema->fields, fields_size);
   if (!new) return -1;
   schema->fields = new;
-  schema->fields[schema->nfields].name = xstrndup (name, strlen (name));
+  schema->fields[schema->nfields].name = oml_strndup (name, strlen (name));
   schema->fields[schema->nfields].type = type;
   if (!schema->fields[schema->nfields].name) return -1;
   schema->nfields += 1;
@@ -466,7 +466,7 @@ schema_add_field (struct schema *schema, const char *name, OmlValueT type)
 /** Deep copy of an existing schema structure
  *
  * \param schema schema structur to copy
- * \return a new xmalloc'd copy (to be cleaned by the caller), or NULL
+ * \return a new oml_malloc'd copy (to be cleaned by the caller), or NULL
  */
 struct schema*
 schema_copy (const struct schema *schema)
@@ -475,19 +475,19 @@ schema_copy (const struct schema *schema)
   int i;
   if (!schema) { return NULL; }
 
-  new = xmalloc (sizeof (struct schema));
+  new = oml_malloc (sizeof (struct schema));
   if (!new) { return NULL; }
 
-  new->name = xstrndup (schema->name, strlen (schema->name));
+  new->name = oml_strndup (schema->name, strlen (schema->name));
   new->index = schema->index;
   new->nfields = schema->nfields;
-  new->fields = xcalloc (new->nfields, sizeof (struct schema_field));
+  new->fields = oml_calloc (new->nfields, sizeof (struct schema_field));
   if (!new->name || !new->fields) {
     goto exit;
   }
 
   for (i = 0; i < new->nfields; i++) {
-    new->fields[i].name = xstrndup (schema->fields[i].name, strlen (schema->fields[i].name));
+    new->fields[i].name = oml_strndup (schema->fields[i].name, strlen (schema->fields[i].name));
     if (!new->fields[i].name) {
       goto exit;
     }
@@ -496,16 +496,16 @@ schema_copy (const struct schema *schema)
   return new;
  exit:
   /* new has been successfully allocated if we reach here */
-  if (new->name) { xfree (new->name); }
+  if (new->name) { oml_free (new->name); }
   if (new->fields) {
     for (i = 0; i < new->nfields; i++) {
       if (new->fields[i].name) {
-        xfree (new->fields[i].name);
+        oml_free (new->fields[i].name);
       }
     }
-    xfree (new->fields);
+    oml_free (new->fields);
   }
-  xfree (new);
+  oml_free (new);
   return NULL;
 }
 

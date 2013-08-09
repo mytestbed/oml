@@ -81,16 +81,16 @@ net_stream_new(const char *transport, const char *hostname, const char *port)
 {
   MString *dest;
   assert(transport != NULL && hostname != NULL && port != NULL);
-  OmlNetOutStream* self = (OmlNetOutStream *)xmalloc(sizeof(OmlNetOutStream));
+  OmlNetOutStream* self = (OmlNetOutStream *)oml_malloc(sizeof(OmlNetOutStream));
   memset(self, 0, sizeof(OmlNetOutStream));
 
   dest = mstring_create();
   mstring_sprintf(dest, "%s:%s:%s", transport, hostname, port);
-  self->dest = (char*)xstrndup (mstring_buf(dest), mstring_len(dest));
+  self->dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
   mstring_delete(dest);
 
-  self->protocol = (char*)xstrndup (transport, strlen (transport));
-  self->host = (char*)xstrndup (hostname, strlen (hostname));
+  self->protocol = (char*)oml_strndup (transport, strlen (transport));
+  self->host = (char*)oml_strndup (hostname, strlen (hostname));
   self->port = atoi (port);
 
   logdebug("OmlNetOutStream: connecting to host %s://%s:%d\n",
@@ -121,10 +121,10 @@ net_stream_close(OmlOutStream* stream)
     self->socket = NULL;
   }
   logdebug("Destroying OmlNetOutStream to host %s at %p\n", self->dest, self);
-  xfree(self->dest);
-  xfree(self->host);
-  xfree(self->protocol);
-  xfree(self);
+  oml_free(self->dest);
+  oml_free(self->host);
+  oml_free(self->protocol);
+  oml_free(self);
   return 0;
 }
 
@@ -216,7 +216,7 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
     if(o_log_level_active(O_LOG_DEBUG4)) {
       char *out = to_octets(header, header_length);
       logdebug("%s: Sending header %s\n", __FUNCTION__, out);
-      xfree(out);
+      oml_free(out);
     }
     if ((count = socket_write(self, header, header_length)) < header_length) {
       // TODO: This is not completely right as we end up rewriting the same header
@@ -233,7 +233,7 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
   if(o_log_level_active(O_LOG_DEBUG4)) {
     char *out = to_octets(buffer, length);
     logdebug("%s: Sending data %s\n", __FUNCTION__, out);
-    xfree(out);
+    oml_free(out);
   }
   count = socket_write(self, buffer, length);
   return count;

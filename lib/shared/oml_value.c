@@ -438,7 +438,7 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
                             break;
                           }
   case OML_STRING_VALUE:
-    s = xmalloc(strlen(value_s)+1);
+    s = oml_malloc(strlen(value_s)+1);
     n = backslash_decode(value_s, s);
     omlc_reset_string(*value);
     omlc_set_string(*value, s);
@@ -450,7 +450,7 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
     s_sz = base64_validate_string(value_s);
     if(s_sz != -1) {
       blob_sz = base64_size_blob(s_sz);
-      blob = xmalloc(blob_sz);
+      blob = oml_malloc(blob_sz);
       base64_decode_string(s_sz, value_s, blob_sz, blob);
       omlc_set_blob_ptr(*value, blob);
       omlc_set_blob_length(*value, blob_sz);

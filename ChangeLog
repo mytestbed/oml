@@ -370,12 +370,12 @@
 	in redesigning the main code path to the database in a way that is
 	more reliable.
 
-	* oml2-server: Now uses a set of x-functions (xmalloc(),
-	xrealloc(), etc.) for memory-related code.  These functions allow
-	a central point for control and auditing of memory.  xmalloc()
+	* oml2-server: Now uses a set of x-functions (oml_malloc(),
+	oml_realloc(), etc.) for memory-related code.  These functions allow
+	a central point for control and auditing of memory.  oml_malloc()
 	stores an integer indicating the size of the object allocated to
 	allow simple memory use tracking, and to detect problems when
-	using xfree() to free allocated memory.
+	using oml_free() to free allocated memory.
 
 	* oml2-server: Integrate Ruben Merz's patches for the server to
 	support PostgreSQL backend.  The code is still experimental, and

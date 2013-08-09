@@ -81,7 +81,7 @@ client_send_header (Client *client, struct header *header)
 {
   const char *tagstr = tag_to_string (header->tag);
   char *value = header->value;
-  char *buf = xmalloc (strlen (tagstr) + strlen (value) + 4);
+  char *buf = oml_malloc (strlen (tagstr) + strlen (value) + 4);
   if (!buf)
     return -1;
 
@@ -96,12 +96,12 @@ client_send_header (Client *client, struct header *header)
     logdebug ("Sending %d bytes of header\n", count);
     int result = send (client->send_socket, buf, count, 0);
     if (result == -1) {
-      xfree (buf);
+      oml_free (buf);
       return -1;
     }
     count -= result;
   } while (count > 0);
-  xfree (buf);
+  oml_free (buf);
 
   return 0;
 }

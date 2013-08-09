@@ -46,7 +46,7 @@ ClientHandler*
 check_server_prepare_client_handler(const char* name, SockEvtSource *source) {
   ClientHandler* ch;
 
-  ch = (ClientHandler*) xmalloc(sizeof(ClientHandler));
+  ch = (ClientHandler*) oml_malloc(sizeof(ClientHandler));
   fail_if(ch == NULL, "Problem allocating ClientHandler");
 
   ch->state = C_HEADER;
@@ -69,7 +69,7 @@ void
 check_server_destroy_client_handler(ClientHandler* ch)
 {
   mbuf_destroy(ch->mbuf);
-  xfree(ch);
+  oml_free(ch);
 }
 
 int

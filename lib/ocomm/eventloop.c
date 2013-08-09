@@ -468,12 +468,12 @@ void eventloop_terminate(int reason)
 /** Log a summary of resource usage.
  *
  * \param loglevel log level at which the message should be issued
- * \see xmemsummary
+ * \see oml_memsummary
  */
 void eventloop_report (int loglevel)
 {
   o_log(loglevel, "EventLoop: Open file descriptors: %d/%d\n", self.size, self.length);
-  o_log(loglevel, "EventLoop: Memory usage: %s\n", xmemsummary());
+  o_log(loglevel, "EventLoop: Memory usage: %s\n", oml_memsummary());
 }
 
 
@@ -493,7 +493,7 @@ TimerEvtSource* eventloop_every(
   o_el_timer_callback callback,
   void* handle
 ) {
-  TimerInt* t = (TimerInt*)xmalloc(sizeof(TimerInt));
+  TimerInt* t = (TimerInt*)oml_malloc(sizeof(TimerInt));
   memset(t, 0, sizeof(TimerInt));
 
   t->name = t->nameBuf;
@@ -520,7 +520,7 @@ static void eventloop_timer_free(TimerInt* timer) {
   if (!timer) {
     o_log(O_LOG_DEBUG, "EventLoop: %s: Trying to free NULL pointer\n", __FUNCTION__);
   } else {
-    xfree(timer);
+    oml_free(timer);
   }
 }
 
@@ -529,7 +529,7 @@ static void eventloop_timer_free(TimerInt* timer) {
  * \param timer TimerEvtSource to terminate and free
  *
  * \see eventloop_every
- * \see xfree
+ * \see oml_free
  */
 void eventloop_timer_stop(TimerEvtSource* timer) {
   TimerInt *t = (TimerInt *)timer;
@@ -753,7 +753,7 @@ void eventloop_socket_remove(SockEvtSource* source)
  * \return a pointer to the newly-created Channel
  *
  * \see EventLoop, eventloop_socket_activate
- * \see xmalloc
+ * \see oml_malloc
  * \see poll(3)
  */
 static Channel* channel_new(
@@ -763,7 +763,7 @@ static Channel* channel_new(
   o_el_state_socket_callback status_cbk,
   void* handle
 ) {
-  Channel* ch = (Channel *)xmalloc(sizeof(Channel));
+  Channel* ch = (Channel *)oml_malloc(sizeof(Channel));
   memset(ch, 0, sizeof(Channel));
 
   ch->fds_fd = fd;
@@ -790,7 +790,7 @@ static Channel* channel_new(
  * \param ch Channel to terminate and free
  *
  * \see channel_new
- * \see xfree
+ * \see oml_free
  */
 static void channel_free(
     Channel *ch
@@ -798,7 +798,7 @@ static void channel_free(
   if (!ch) {
     o_log(O_LOG_DEBUG, "EventLoop: %s: Trying to free NULL pointer\n", __FUNCTION__);
   } else {
-    xfree(ch);
+    oml_free(ch);
   }
 }
 

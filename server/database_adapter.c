@@ -97,7 +97,7 @@ dba_table_create_from_schema (Database *db, const struct schema *schema)
   mstring_sprintf (meta_skey, "table_%s", schema->name);
   meta_svalue = schema_to_meta (schema);
   db->set_metadata (db, mstring_buf (meta_skey), meta_svalue);
-  xfree(meta_svalue);
+  oml_free(meta_svalue);
   mstring_delete(meta_skey);
   schema_free(schema_meta);
 

@@ -246,7 +246,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
   setup_features (getenv ("OML_FEATURES"));
 
-  omlc_instance = xmalloc(sizeof(OmlClient));
+  omlc_instance = oml_malloc(sizeof(OmlClient));
   memset(omlc_instance, 0, sizeof(OmlClient));
 
   omlc_instance->app_name = app_name;
@@ -326,7 +326,7 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 
   logdebug("Adding MP %s\n", mp_name);
 
-  OmlMP* mp = (OmlMP*)xmalloc(sizeof(OmlMP));
+  OmlMP* mp = (OmlMP*)oml_malloc(sizeof(OmlMP));
   memset(mp, 0, sizeof(OmlMP));
 
   mp->name = mp_name;
@@ -342,7 +342,7 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
     if (!validate_name (dp->name)) {
       logerror ("Found illegal field name '%s' in MP '%s'.  MP will not be created\n",
           dp->name, mp_name);
-      xfree (mp);
+      oml_free (mp);
       return NULL;
     }
 
@@ -364,7 +364,7 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
      * between the client and servers views at this stage. See #1055. */
     mstring_sprintf(meta, "%d %s_%s%s",
         omlc_instance->next_ms_idx, omlc_instance->app_name, mp_name, schemastr);
-    xfree(schemastr);
+    oml_free(schemastr);
 
     logdebug("omlc_start already called, adding MP through schema 0: %s\n",
         mstring_buf(meta));
@@ -377,7 +377,7 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 
     if (!oml_mp_get_default_ms(mp)) {
       logerror("Failed to create default MS for MP %s\n", mp_name);
-      xfree(mp);
+      oml_free(mp);
       return NULL;
     }
 
@@ -567,12 +567,12 @@ omlc_close(void)
       while( (w =  w->close(w)) );
     }
 
-    xfree(omlc_instance);
+    oml_free(omlc_instance);
   }
 
   omlc_instance = NULL;
 
-  xmemreport(O_LOG_DEBUG);
+  oml_memreport(O_LOG_DEBUG);
 
   return 0;
 }
@@ -656,7 +656,7 @@ parse_dest_uri (const char *uri, const char **protocol, const char **path, const
   if (uri) {
     int i, j;
     uri_type = oml_uri_type(uri);
-    parts[0] = xstrndup (uri, strlen (uri));
+    parts[0] = oml_strndup (uri, strlen (uri));
     for (i = 1, j = 0; i < MAX_PARTS; i++, j = 0) {
       parts[i] = parts[i-1];
       while (*parts[i] != ':' && *parts[i] != '\0') {
@@ -671,7 +671,7 @@ parse_dest_uri (const char *uri, const char **protocol, const char **path, const
       lengths[i] = parts[i] ? strlen (parts[i]) : 0;
     }
 
-#define trydup(i) (parts[(i)] && lengths[(i)]>0 ? xstrndup (parts[(i)], lengths[(i)]) : NULL)
+#define trydup(i) (parts[(i)] && lengths[(i)]>0 ? oml_strndup (parts[(i)], lengths[(i)]) : NULL)
     *protocol = *path = *port = NULL;
     if (lengths[0] > 0 && lengths[1] > 0) {
       /* Case 1:  "abc:xyz" or "abc:xyz:123" -- if abc is a transport, use it; otherwise, it's a hostname/path */
@@ -709,7 +709,7 @@ parse_dest_uri (const char *uri, const char **protocol, const char **path, const
 #undef trydup
 
     if (parts[0])
-      xfree (parts[0]);
+      oml_free (parts[0]);
   }
   if (is_valid)
     return 0;
@@ -753,9 +753,9 @@ create_writer(const char* uri, enum StreamEncoding encoding)
   if (parse_dest_uri (uri, &transport, &path, &port) == -1) {
     logerror ("Error parsing server destination URI '%s'; failed to create stream for this destination\n",
               uri);
-    if (transport) xfree ((void*)transport);
-    if (path) xfree ((void*)path);
-    if (port) xfree ((void*)port);
+    if (transport) oml_free ((void*)transport);
+    if (path) oml_free ((void*)path);
+    if (port) oml_free ((void*)port);
     return NULL;
   }
 
@@ -778,11 +778,11 @@ create_writer(const char* uri, enum StreamEncoding encoding)
 
   /* Default transport is tcp if not specified */
   if (!transport)
-    transport = xstrndup ("tcp", strlen ("tcp"));
+    transport = oml_strndup ("tcp", strlen ("tcp"));
 
   /* If not file transport, use the OML default port if unspecified */
   if (!port && !oml_uri_is_file(uri_type))
-    port = xstrndup (DEF_PORT_STRING, strlen (DEF_PORT_STRING));
+    port = oml_strndup (DEF_PORT_STRING, strlen (DEF_PORT_STRING));
 
   OmlOutStream* out_stream;
   if (oml_uri_is_file(uri_type)) {
@@ -979,7 +979,7 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
 
   } else {
     logdebug("MS '%s' does not exist, creating...\n", stream_name);
-    ms = (OmlMStream*)xmalloc(sizeof(OmlMStream));
+    ms = (OmlMStream*)oml_malloc(sizeof(OmlMStream));
     if(!ms) {
       logerror("Cannot allocate memory for MS %s\n", name);
       return NULL;
@@ -1010,7 +1010,7 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
   } else if (oml_ms_add_writer(ms, writer))  {
     logerror("Cannot add %s's writer\n", name);
     if(new) {
-      xfree(ms);
+      oml_free(ms);
     }
     return NULL;
   }
@@ -1041,7 +1041,7 @@ oml_ms_add_writer(OmlMStream *ms, OmlWriter *w)
 
   n = ms->nwriters + 1;
 
-  writers = (OmlWriter **)xrealloc(ms->writers, n*sizeof(OmlWriter*));
+  writers = (OmlWriter **)oml_realloc(ms->writers, n*sizeof(OmlWriter*));
   if (!writers) {
     logerror("Cannot (re)allocate memory for %s's writers array\n", ms->table_name);
     return -1;
@@ -1086,8 +1086,8 @@ destroy_ms(OmlMStream *ms)
 
   while( (ft = destroy_filter(ft)) );
 
-  xfree(ms->writers);
-  xfree(ms);
+  oml_free(ms->writers);
+  oml_free(ms);
 
   return next;
 }
@@ -1223,8 +1223,8 @@ create_default_filter(OmlMPDef *def, OmlMStream *ms, int index)
  *  concatenated to, e.g., the MS name.
  *
  * \param mpdef OmlMPDef to describe
- * \return an xmalloc'd string representation of the schema of OmlMPDef, to be xfree'd by the caller, or NULL on error
- * \see xmalloc, xfree
+ * \return an oml_malloc'd string representation of the schema of OmlMPDef, to be oml_free'd by the caller, or NULL on error
+ * \see oml_malloc, oml_free
  */
 static char*
 schemastr_from_mpdef(OmlMPDef *mpdef)
@@ -1319,7 +1319,7 @@ write_schema(OmlMStream *ms, int index)
     logerror("Schema generation failed because the following table name was too long: %s\n", ms->table_name);
     return -1;
   }
-  schema = (char*)xmalloc (schema_size * sizeof (char));
+  schema = (char*)oml_malloc (schema_size * sizeof (char));
 
   strncpy (schema, s, n + 1);
   count += n;
@@ -1343,15 +1343,15 @@ write_schema(OmlMStream *ms, int index)
         if (n >= bufsize) {
             logerror("One of the schema entries for table %s was too long:\n\t%s\t%s\n",
                    prefix, type_s);
-            xfree (schema);
+            oml_free (schema);
             return -1;
         }
 
         if (count + n >= schema_size) {
             schema_size += DEFAULT_SCHEMA_LENGTH;
-            char* new = (char*)xmalloc (schema_size * sizeof (char));
+            char* new = (char*)oml_malloc (schema_size * sizeof (char));
             strncpy (new, schema, count);
-            xfree (schema);
+            oml_free (schema);
             schema = new;
         }
         strncpy (&schema[count], s, n + 1);
@@ -1373,7 +1373,7 @@ write_schema(OmlMStream *ms, int index)
     }
   }
 
-  xfree (schema);
+  oml_free (schema);
   return 0;
 }
 
@@ -1442,13 +1442,13 @@ setup_features (const char * const features)
     char *name;
     q    = strchr(p, ';');
     len  = q ? (size_t)(q - p) : strlen (p);
-    name = xstrndup (p, len);
+    name = oml_strndup (p, len);
     p    = q ? (q + 1) : q;
 
     for (i = 0; i < feature_count; i++)
       if (strcmp (name, feature_table[i].name) == 0)
         feature_table[i].enable();
-    xfree (name);
+    oml_free (name);
   }
 }
 

@@ -55,7 +55,7 @@ static int file_stream_close(OmlOutStream* hdl);
 OmlOutStream*
 file_stream_new(const char *file)
 {
-  OmlFileOutStream* self = (OmlFileOutStream *)xmalloc(sizeof(OmlFileOutStream));
+  OmlFileOutStream* self = (OmlFileOutStream *)oml_malloc(sizeof(OmlFileOutStream));
   memset(self, 0, sizeof(OmlFileOutStream));
 
   loginfo ("File_stream: opening local storage file '%s'\n", file);
@@ -71,7 +71,7 @@ file_stream_new(const char *file)
 
   self->write = file_stream_write;
   self->close = file_stream_close;
-  self->dest = (char*)xstrndup (file, strlen (file));
+  self->dest = (char*)oml_strndup (file, strlen (file));
   self->header_written = 0;
   return (OmlOutStream*)self;
 }
@@ -208,8 +208,8 @@ file_stream_close(OmlOutStream* hdl)
     self->f = NULL;
   }
   logdebug("Destroying OmlFileOutStream to file %s at %p\n", self->dest, self);
-  xfree(self->dest);
-  xfree(self);
+  oml_free(self->dest);
+  oml_free(self);
   return ret;
 }
 
