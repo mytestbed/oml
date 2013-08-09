@@ -68,3 +68,5 @@ test/lib/stddev_0.c
 test/lib/stddev_1.c
 test/server/issue610.rb
 test/testclient
+server/oml2-server.rb
+server/oml2-server_oml.h
