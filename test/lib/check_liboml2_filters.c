@@ -129,10 +129,10 @@ START_TEST (test_filter_avg_create)
   data = (AvgInstanceData*)f->instance_data;
 
   // Sample count and accumulator should be 0; min and max should be v. -ve and v. +ve respectively.
-  fail_unless (data->sample_sum == 0);
+  fail_unless (isnan(data->sample_sum));
   fail_unless (data->sample_count == 0);
-  fail_unless (data->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, data->sample_min);
-  fail_unless (data->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, data->sample_max);
+  fail_unless (isnan(data->sample_min), "Initial min val should be %f, but actually was %f", NAN, data->sample_min);
+  fail_unless (isnan(data->sample_max), "Initial min val should be %f, but actually was %f", NAN, data->sample_max);
 
   fail_unless (destroy_filter(f) == NULL);
 }
@@ -166,11 +166,11 @@ START_TEST (test_filter_avg_output)
 
   run_filter_test (data, f);
 
-  // Sample count and accumulator should be 0; min and max should be v. -ve and v. +ve respectively.
-  fail_unless (instdata->sample_sum == 0);
+  /* Sample count should be 0; accumulator, min and max should NaN. */
+  fail_unless (isnan(instdata->sample_sum));
   fail_unless (instdata->sample_count == 0);
-  fail_unless (instdata->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, instdata->sample_min);
-  fail_unless (instdata->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, instdata->sample_max);
+  fail_unless (isnan(instdata->sample_min), "Initial min val should be %f, but actually was %f", NAN, instdata->sample_min);
+  fail_unless (isnan(instdata->sample_max), "Initial min val should be %f, but actually was %f", NAN, instdata->sample_max);
 
   fail_unless (destroy_filter(f) == NULL);
 }
@@ -227,11 +227,11 @@ START_TEST (test_filter_hist_create)
 
   data = (HistInstanceData*)f->instance_data;
 
-  /* Sample count and accumulator should be 0; min and max should be v. +ve and v. -ve respectively. */
-  fail_unless (data->sample_sum == 0);
-  fail_unless (data->sample_count == 0);
-  fail_unless (data->sample_min == HUGE, "Initial min val should be %f, but actually was %f", HUGE, data->sample_min);
-  fail_unless (data->sample_max == -HUGE, "Initial min val should be %f, but actually was %f", -HUGE, data->sample_max);
+  /* Sample count should be 0; accumulator, min and max should NaN. */
+  fail_unless (isnan(instdata->sample_sum));
+  fail_unless (instdata->sample_count == 0);
+  fail_unless (isnan(instdata->sample_min), "Initial min val should be %f, but actually was %f", NAN, instdata->sample_min);
+  fail_unless (isnan(instdata->sample_max), "Initial min val should be %f, but actually was %f", NAN, instdata->sample_max);
 
   fail_unless (destroy_filter(f) == NULL);
 }

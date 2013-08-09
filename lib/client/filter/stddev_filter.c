@@ -142,9 +142,6 @@ output (
 ) {
   InstanceData* self = (InstanceData*)f->instance_data;
 
-  if (self->sample_count <= 0)
-    return 1;
-
   omlc_set_double(*oml_value_get_value(&self->result[1]), 1.0 * self->s / (self->sample_count - 1));
   omlc_set_double(*oml_value_get_value(&self->result[0]), sqrt (omlc_get_double(*oml_value_get_value(&self->result[1]))));
 

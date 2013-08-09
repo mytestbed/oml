@@ -154,6 +154,7 @@ void eventloop_init(void);
 void eventloop_set_socket_timeout(unsigned int to);
 int eventloop_run(void);
 void eventloop_stop(int reason);
+void eventloop_terminate(int reason);
 void eventloop_report (int loglevel);
 
 TimerEvtSource* eventloop_every(char* name, int period, o_el_timer_callback callback, void* handle);

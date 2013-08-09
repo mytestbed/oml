@@ -689,7 +689,11 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
   count = unmarshal_measurements(mbuf, header, v, count);
 
   schema = table->schema;
-  if (schema->nfields != count) {
+  if (count<-100) {
+    logerror("%s(bin): An error occured during unmarshalling (%d)\n",
+        self->name, count);
+    return;
+  } else if (schema->nfields != count) {
     logerror("%s(bin): Data item number mismatch for schema '%s' (expected %d, got %d)\n",
         self->name, schema->name, schema->nfields, count - 3);
     return;
@@ -764,7 +768,7 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
   if(res>0) {
     logwarn("%s(bin): Skipped %d bytes of data searching for a new message\n", self->name, res);
   } else if (res == -1 && mbuf_rd_remaining(mbuf)>=2) {
-    logdebug("%s(bin): No message found in binary packet", self->name);
+    logdebug("%s(bin): Invalid or no message found in binary packet\n", self->name);
     if(o_log_level_active(O_LOG_DEBUG4)) {
       out = to_octets(mbuf_rdptr(mbuf), mbuf_rd_remaining(mbuf));
       logdebug("%s(bin): Packet follows\n%s", self->name, out);
@@ -857,7 +861,11 @@ process_text_data_message(ClientHandler* self, char** msg, int count)
   }
 
   schema = table->schema;
-  if (schema->nfields != count - 3) { /* Ignore first 3 elements */
+  if (count<-100) {
+    logerror("%s(txt): An error occured during unmarshalling (%d)\n",
+        self->name, count);
+    return;
+  } else if (schema->nfields != count - 3) { /* Ignore first 3 elements */
     logerror("%s(txt): Data item number mismatch for schema '%s' (expected %d, got %d)\n",
         self->name, schema->name, schema->nfields, count - 3);
     return;

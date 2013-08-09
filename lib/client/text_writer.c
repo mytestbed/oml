@@ -186,7 +186,7 @@ owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
         xfree(enc);
 
       } else {
-        logwarn ("Attempting to send NULL or empty string; string of length 0 will be sent\n");
+        logdebug ("Attempting to send NULL or empty string; string of length 0 will be sent\n");
         res = mbuf_print(mbuf, "\t");
       }
       break;
@@ -200,7 +200,7 @@ owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
         xfree(enc);
 
       } else {
-        logwarn ("Attempting to send NULL or empty blob; blob of length 0 will be sent\n");
+        logdebug ("Attempting to send NULL or empty blob; blob of length 0 will be sent\n");
         res = mbuf_print(mbuf, "\t");
       }
       break;

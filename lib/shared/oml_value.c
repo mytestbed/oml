@@ -18,6 +18,7 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include <errno.h>
+#include <math.h>
 
 #include "oml2/omlc.h"
 #include "ocomm/o_log.h"
@@ -413,7 +414,7 @@ oml_value_from_typed_s (OmlValue *value, const char *type_s, const char *value_s
 static int
 oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
 {
-  char *s;
+  char *s, *eptr;
   ssize_t n;
   size_t s_sz, blob_sz;
   uint8_t *blob;
@@ -429,7 +430,13 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
   case OML_UINT32_VALUE:  omlc_set_uint32 (*value, strtoul (value_s, NULL, 0)); break;
   case OML_INT64_VALUE:   omlc_set_int64 (*value, strtoll (value_s, NULL, 0)); break;
   case OML_UINT64_VALUE:  omlc_set_uint64 (*value, strtoull (value_s, NULL, 0)); break;
-  case OML_DOUBLE_VALUE:  omlc_set_double (*value, strtod (value_s, NULL)); break;
+  case OML_DOUBLE_VALUE:  {
+                            omlc_set_double (*value, strtod (value_s, &eptr));
+                            if (eptr == value_s) {
+                              omlc_set_double (*value, NAN);
+                            }
+                            break;
+                          }
   case OML_STRING_VALUE:
     s = xmalloc(strlen(value_s)+1);
     n = backslash_decode(value_s, s);

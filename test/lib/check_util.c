@@ -241,33 +241,37 @@ run_filter_test (TestData* test_data, OmlFilter* f)
 
   w.out = test_writer_out;
 
-  for (i = 0; i < test_data->count; i++)
+  for (i = 0; i < test_data->count; i++) {
+    TestVector* input = test_data->inputs[i];
+    TestVector* output = test_data->outputs[i];
+    oml_value_set_type(&v, input->type);
+    for (j = 0; j < input->length; j++, count++)
     {
-      TestVector* input = test_data->inputs[i];
-      TestVector* output = test_data->outputs[i];
-      oml_value_set_type(&v, input->type);
-      for (j = 0; j < input->length; j++, count++)
-        {
-          int res;
-          /* XXX: is this really legal? */
-          v.value = input->vector[j];
-          res = f->input(f, &v);
-          fail_unless (res == 0);
-        }
-
-      f->output (f, (OmlWriter*)&w);
-      f->newwindow (f);
-
-      fail_unless (w.count == output->length);
-      fail_unless (vector_type_check (w.values, output->type, output->length));
-      fail_unless (vector_values_check (w.values, output->vector, output->type, output->length),
-          "Output mismatch in test vector %d [%s] for filter '%s': expected [%s] but got [%s]",
-          i,
-          vector_values_ut_stringify(input->vector, input->type, input->length),
-          f->name,
-          vector_values_ut_stringify(output->vector, output->type, output->length),
-          vector_values_stringify(w.values, w.count));
+      int res;
+      /* XXX: is this really legal? */
+      v.value = input->vector[j];
+      res = f->input(f, &v);
+      fail_unless (res == 0);
     }
+
+    f->output (f, (OmlWriter*)&w);
+    f->newwindow (f);
+
+    fail_unless (w.count == output->length);
+    fail_unless (vector_type_check (w.values, output->type, output->length));
+    fail_unless (vector_values_check (w.values, output->vector, output->type, output->length),
+        "Output mismatch in test vector %d [%s] for filter '%s': expected [%s] but got [%s]",
+        i,
+        vector_values_ut_stringify(input->vector, input->type, input->length),
+        f->name,
+        vector_values_ut_stringify(output->vector, output->type, output->length),
+        vector_values_stringify(w.values, w.count));
+  }
+  /* Ask for data when nothing more has happened*/
+  f->output (f, (OmlWriter*)&w);
+  fail_unless (w.count == test_data->outputs[0]->length,
+      "Filter with empty window didn't return the right amount of data items (%d instead of %d)",
+      w.count, test_data->outputs[0]->length);
 
   oml_value_reset(&v);
 }

@@ -48,10 +48,10 @@ omlf_average_new(OmlValueT type, OmlValue* result)
   if (self) {
     memset(self, 0, sizeof(InstanceData));
 
-    self->sample_sum = 0.;
-    self->sample_count = 0;
-    self->sample_min = HUGE;
-    self->sample_max = -1 * HUGE;
+    self->sample_max = NAN;
+    self->sample_min = NAN;
+    self->sample_sum = NAN;
+    self->sample_count = 0.;
     self->result = result;
     return self;
   } else {
@@ -94,9 +94,13 @@ sample(OmlFilter* f, OmlValue* value)
 
   val = oml_value_to_double (value);
 
-  self->sample_sum += val;
-  if (val < self->sample_min) self->sample_min = val;
-  if (val > self->sample_max) self->sample_max = val;
+  if (isnan(self->sample_sum)) {
+    self->sample_sum = val;
+  } else {
+    self->sample_sum += val;
+  }
+  if (val < self->sample_min || isnan(self->sample_min)) self->sample_min = val;
+  if (val > self->sample_max || isnan(self->sample_max)) self->sample_max = val;
   self->sample_count++;
 
   return 0;
@@ -106,9 +110,6 @@ static int
 process(OmlFilter* f, OmlWriter* writer)
 {
   InstanceData* self = (InstanceData*)f->instance_data;
-
-  if (self->sample_count <= 0)
-    return 1;
 
   omlc_set_double(*oml_value_get_value(&self->result[0]), 1.0 * self->sample_sum / self->sample_count);
   omlc_set_double(*oml_value_get_value(&self->result[1]), self->sample_min);
@@ -129,9 +130,9 @@ newwindow(OmlFilter* f)
 {
   InstanceData* self = (InstanceData*)f->instance_data;
 
-  self->sample_max = -1 * HUGE;
-  self->sample_min = HUGE;
-  self->sample_sum = 0;
+  self->sample_max = NAN;
+  self->sample_min = NAN;
+  self->sample_sum = NAN;
   self->sample_count = 0.;
 
   return 0;
