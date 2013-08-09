@@ -1,9 +1,6 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 AM_TESTS_ENVIRONMENT = CK_VERBOSITY=verbose
 
-# See #1327
-AUTOMAKE_OPTIONS = no-dependencies
-
 if HAVE_CHECK
 TESTS = check_server
 if HAVE_RUBY_MIN_1_8_7
@@ -11,16 +8,6 @@ TESTS += msggen.rb
 endif
 TESTS_ENVIRONMENT=TOPBUILDDIR=$(top_builddir)
 check_PROGRAMS = msgloop check_server
-
-AM_CPPFLAGS = \
-	-I $(top_srcdir)/proxy_server \
-	-I $(top_srcdir)/lib/client \
-	-I $(top_srcdir)/lib/ocomm \
-	-I $(top_srcdir)/lib/shared \
-	-I $(top_srcdir)/server \
-	-I $(srcdir)/../system \
-	-D PKG_LOCAL_STATE_DIR=\".\" \
-	-DOML_TEST
 
 msgloop_SOURCES = \
 	msgloop.c \
@@ -62,6 +49,16 @@ check_server_LDADD = @CHECK_LIBS@ @SQLITE3_LIBS@ \
 	$(top_builddir)/lib/ocomm/libocomm.la
 
 endif
+
+AM_CPPFLAGS = \
+	-I $(top_srcdir)/proxy_server \
+	-I $(top_srcdir)/lib/client \
+	-I $(top_srcdir)/lib/ocomm \
+	-I $(top_srcdir)/lib/shared \
+	-I $(top_srcdir)/server \
+	-I $(srcdir)/../system \
+	-D PKG_LOCAL_STATE_DIR=\".\" \
+	-DOML_TEST
 
 EXTRA_DIST = msggen.rb
 CLEANFILES = \
