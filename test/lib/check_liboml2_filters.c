@@ -167,8 +167,8 @@ START_TEST (test_filter_avg_output)
   run_filter_test (data, f);
 
   /* Sample count should be 0; accumulator, min and max should NaN. */
-  fail_unless (isnan(instdata->sample_sum));
   fail_unless (instdata->sample_count == 0);
+  fail_unless (isnan(instdata->sample_sum), "Initial sum val should be %f, but actually was %f", NAN, instdata->sample_sum);
   fail_unless (isnan(instdata->sample_min), "Initial min val should be %f, but actually was %f", NAN, instdata->sample_min);
   fail_unless (isnan(instdata->sample_max), "Initial min val should be %f, but actually was %f", NAN, instdata->sample_max);
 

@@ -117,11 +117,6 @@ process(OmlFilter* f, OmlWriter* writer)
 
   writer->out(writer, self->result, f->output_count);
 
-  self->sample_max = -1 * HUGE;
-  self->sample_min = HUGE;
-  self->sample_sum = 0;
-  self->sample_count = 0.;
-
   return 0;
 }
 
