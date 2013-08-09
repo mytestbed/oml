@@ -300,7 +300,7 @@ psql_create_database(Database* db)
   }
   PQsetNoticeReceiver(conn, psql_receive_notice, db->name);
 
-  PsqlDB* self = (PsqlDB*)xmalloc(sizeof(PsqlDB));
+  PsqlDB* self = (PsqlDB*)oml_malloc(sizeof(PsqlDB));
   self->conn = conn;
   self->last_commit = time (NULL);
 
@@ -346,7 +346,7 @@ psql_release(Database* db)
   PsqlDB* self = (PsqlDB*)db->handle;
   dba_end_transaction (db);
   PQfinish(self->conn);
-  xfree(self);
+  oml_free(self);
   db->handle = NULL;
 }
 
@@ -392,7 +392,7 @@ psql_table_create (Database *db, DbTable *table, int shallow)
     logwarn("psql:%s: BUG: Recreating PsqlTable handle for table %s\n",
         table->schema->name);
   }
-  psqltable = (PsqlTable*)xmalloc(sizeof(PsqlTable));
+  psqltable = (PsqlTable*)oml_malloc(sizeof(PsqlTable));
   table->handle = psqltable;
 
   /* Prepare the insert statement  */
@@ -449,7 +449,7 @@ psql_table_create (Database *db, DbTable *table, int shallow)
 fail_exit:
   if (insert) { mstring_delete (insert); }
   if (insert_name) { mstring_delete (insert_name); }
-  if (psqltable) { xfree (psqltable); }
+  if (psqltable) { oml_free (psqltable); }
   return -1;
 }
 
@@ -466,7 +466,7 @@ psql_table_free (Database *database, DbTable *table)
   PsqlTable *psqltable = (PsqlTable*)table->handle;
   if (psqltable) {
     mstring_delete (psqltable->insert_stmt);
-    xfree (psqltable);
+    oml_free (psqltable);
   }
   return 0;
 }
@@ -478,7 +478,7 @@ static char*
 psql_prepared_var(Database *db, unsigned int order)
 {
   int nchar = 1 + (int) floor(log10(order+1))+1; /* Get the number of digits */
-  char *s = xmalloc(nchar + 1);
+  char *s = oml_malloc(nchar + 1);
 
   (void)db;
 
@@ -506,7 +506,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
 
   char *paramValues[4+value_count];
   for (i=0;i<4+value_count;i++) {
-    paramValues[i] = xmalloc(512*sizeof(char));
+    paramValues[i] = oml_malloc(512*sizeof(char));
   }
 
   int paramLength[4+value_count];
@@ -564,7 +564,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
                            /* XXX: 512 char is the size allocated above. Nasty. */
                            if (eblob_len > 512) {
                              logdebug("psql:%s: Reallocating %d bytes for big blob\n", db->name, eblob_len);
-                             paramValues[4+i] = xrealloc(paramValues[4+i], eblob_len);
+                             paramValues[4+i] = oml_realloc(paramValues[4+i], eblob_len);
                              if (!paramValues[4+i]) {
                                logerror("psql:%s: Could not realloc()at memory for escaped blob in field %d of table '%s'\n",
                                    db->name, i, table->schema->name);
@@ -624,7 +624,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   PQclear(res);
 
   for (i=0;i<4+value_count;i++) {
-    xfree(paramValues[i]);
+    oml_free(paramValues[i]);
   }
 
   return 0;
@@ -634,7 +634,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
  *
  * FIXME: Not using prepared statements (#168)
  *
- * The caller is responsible for xfree()ing the returned value when no longer
+ * The caller is responsible for oml_free()ing the returned value when no longer
  * needed.
  *
  * This function does a key lookup on a database table that is set up
@@ -660,9 +660,9 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
  * \param value_column name of the column to set the value in
  * \param key key to look for in key_column
  *
- * \return an xmalloc'd string value for the given key, or NULL
+ * \return an oml_malloc'd string value for the given key, or NULL
  *
- * \see psql_set_key_value, xmalloc, xfree
+ * \see psql_set_key_value, oml_malloc, oml_free
  */
 static char*
 psql_get_key_value (Database *database, const char *table, const char *key_column, const char *value_column, const char *key)
@@ -698,7 +698,7 @@ psql_get_key_value (Database *database, const char *table, const char *key_colum
   value = PQgetvalue (res, 0, 0);
 
   if (value != NULL)
-    value = xstrndup (value, strlen (value));
+    value = oml_strndup (value, strlen (value));
 
   PQclear (res);
   mstring_delete (stmt);
@@ -777,7 +777,7 @@ psql_add_sender_id(Database *db, const char *sender_id)
 
   if (id_str) {
     index = atoi (id_str);
-    xfree (id_str);
+    oml_free (id_str);
 
   } else {
     PGresult *res = PQexec (self->conn, "SELECT MAX(id) FROM _senders;");

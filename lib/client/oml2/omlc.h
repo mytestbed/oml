@@ -183,9 +183,9 @@ typedef union OmlValueU {
  * 
  * DO NOT USE DIRECTLY IN CLIENT APPLICATIONS!
  */
-void *xmalloc (size_t size);
-void xfree (void *ptr);
-size_t xmalloc_usable_size(void *ptr);
+void *oml_malloc (size_t size);
+void oml_free (void *ptr);
+size_t oml_malloc_usable_size(void *ptr);
 
 /** Zero out a freshly declared OmlValueU.
  *
@@ -372,12 +372,12 @@ size_t xmalloc_usable_size(void *ptr);
  *
  * \param var OmlValueU to operate on
  * \param type type of data contained in the OmlValueU
- * \see omlc_free_string, omlc_free_blob, xfree
+ * \see omlc_free_string, omlc_free_blob, oml_free
  */
 #define _omlc_free_storage(var, type)                     \
   do {                                                    \
     if (_oml_get_storage_field((var), type, size) > 0) {  \
-      xfree(_oml_get_storage_field((var), type, ptr));    \
+      oml_free(_oml_get_storage_field((var), type, ptr));    \
       _oml_set_storage_field((var), type, size, 0);       \
     }                                                     \
   } while(0)
@@ -412,17 +412,17 @@ size_t xmalloc_usable_size(void *ptr);
  * \param type type of data contained in the OmlValueU
  * \param str data to copy
  * \param len length of the data
- * \see omlc_set_string_copy, omlc_set_blob, xmalloc
- * \see xmalloc, memcpy(3)
+ * \see omlc_set_string_copy, omlc_set_blob, oml_malloc
+ * \see oml_malloc, memcpy(3)
  */
-/* XXX: Does not check result of xmalloc */
+/* XXX: Does not check result of oml_malloc */
 #define _omlc_set_storage_copy(var, type, data, len)                          \
   do {                                                                        \
     if (len >= _oml_get_storage_field((var), type, size)) {                   \
       _omlc_reset_storage((var), type);                                       \
-      _oml_set_storage_field((var), type, ptr, xmalloc(len));                 \
+      _oml_set_storage_field((var), type, ptr, oml_malloc(len));                 \
       _oml_set_storage_field((var), type, size,                               \
-          xmalloc_usable_size(_oml_get_storage_field((var), type, ptr)));     \
+          oml_malloc_usable_size(_oml_get_storage_field((var), type, ptr)));     \
     }                                                                         \
     memcpy(_oml_get_storage_field((var), type, ptr), (void*)(data), (len));   \
     _oml_set_storage_field((var), type, length, (len));                       \

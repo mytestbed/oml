@@ -109,7 +109,7 @@ typedef int (*db_adapter_table_free)(Database *db, DbTable *table);
  *
  * \param db pointer to Database
  * \param order
- * \return an xmalloc'd string to be freed by the caller, or NULL on error
+ * \return an oml_malloc'd string to be freed by the caller, or NULL on error
  */
 typedef char* (*db_adapter_prepared_var)(Database *db, unsigned int order);
 
@@ -128,12 +128,12 @@ typedef int (*db_adapter_insert)(Database *db, DbTable* table, int sender_id, in
 
 /** Get data from the metadata table
  *
- * The returned string should be xfree'd by the caller when no longer needed.
+ * The returned string should be oml_free'd by the caller when no longer needed.
  *
  * \param key key to lookup
- * \return an xmalloc'd string containing the current value for that key
+ * \return an oml_malloc'd string containing the current value for that key
  *
- * \see xmalloc, xfree
+ * \see oml_malloc, oml_free
  */
 typedef char* (*db_adapter_get_metadata) (Database* db, const char* key);
 
@@ -171,7 +171,7 @@ typedef int (*db_add_sender_id)(Database* db, const char* sender_id);
  * The list of tables should also include _experiment_metadata and _senders,
  * even though they might not be defined with a schema string.
  *
- * The caller should xfree the returned values when no longer needed.
+ * The caller should oml_free the returned values when no longer needed.
  *
  * \param db Database to list tables of
  * \param[out] num_tables pointer to an integer where the number of tables will be written, set to -1 on error

@@ -99,9 +99,9 @@ const char* find_charn(const char *str, char c, int len)
  *
  * \param buf array of data to dump
  * \param len length of buf
- * \return a character string which needs to be xfree()'d
+ * \return a character string which needs to be oml_free()'d
  *
- * \see xmalloc, xfree
+ * \see oml_malloc, oml_free
  */
 char* to_octets(unsigned char *buf, int len)
 {
@@ -112,7 +112,7 @@ char* to_octets(unsigned char *buf, int len)
   /* Each row has 7 non-data characters (numbers and spaces), one more space, and columns*ASCII characters, plus a '\n' */
   const int rowlength = (octet_width * columns + 7 + 1 + columns + 1);
   const int outlength = rows * rowlength + 1;
-  char *out = xmalloc (outlength);
+  char *out = oml_malloc (outlength);
   char strrep[columns + 1];
   int n = 0, i, col, rw=0;
 

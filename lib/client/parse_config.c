@@ -73,8 +73,8 @@ setcurtok (enum ConfToken tok)
 void
 mksyn (const char * const str)
 {
-  struct synonym *new = xmalloc (sizeof (struct synonym));
-  new->name = xstrndup (str, strlen (str));
+  struct synonym *new = oml_malloc (sizeof (struct synonym));
+  new->name = oml_strndup (str, strlen (str));
   new->next = tokmap_[curtok];
   tokmap_[curtok] = new;
 }
@@ -140,7 +140,7 @@ get_xml_attr (xmlNodePtr el, enum ConfToken tok)
 
   if (attrVal != NULL) {
     size_t len = strlen ((char*)attrVal) + 1;
-    char *val = xstrndup ((char*)attrVal, len);
+    char *val = oml_strndup ((char*)attrVal, len);
     xmlFree(attrVal);
     return val;
   } else {
@@ -404,10 +404,10 @@ parse_mp (xmlNodePtr el, OmlWriter* writer)
   xmlChar *source = xmlGetProp (el, (xmlChar *)"name");
   xmlChar *name   = xmlGetProp (el, (xmlChar *)"rename");
 
-  char *source_ = xstrndup ((char*)source, strlen ((char*)source));
+  char *source_ = oml_strndup ((char*)source, strlen ((char*)source));
   char *name_;
   if (name) {
-    name_ = xstrndup ((char*)name, strlen ((char*)name));
+    name_ = oml_strndup ((char*)name, strlen ((char*)name));
     xmlFree (name);
   } else {
     name_ = NULL;

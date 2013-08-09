@@ -66,7 +66,7 @@ END_TEST
 START_TEST(zero_sized_vector_double_tiny_output)
 {
   double v[1];
-  char *s = xmalloc(1);
+  char *s = oml_malloc(1);
   ssize_t n = vector_double_to_json(v, 0, &s);
 
   /* for a zero-sized vector we expect an empty string */
@@ -81,7 +81,7 @@ END_TEST
 START_TEST(null_valued_vector_double_tiny_output)
 {
   double *v = NULL;
-  char *s = xmalloc(1);
+  char *s = oml_malloc(1);
   ssize_t n = vector_double_to_json(v, 0, &s);
 
   /* for a zero-sized vector we expect an empty string */
@@ -96,7 +96,7 @@ END_TEST
 START_TEST(single_elt_vector_double_tiny_output)
 {
   const double v[] = { 2.718281828 };
-  char *s = xmalloc(1);
+  char *s = oml_malloc(1);
   ssize_t n = vector_double_to_json(v, sizeof(v)/sizeof(v[0]), &s);
   /* ensure it succeeded */
   ck_assert_int_ne(-1, n);
@@ -119,7 +119,7 @@ START_TEST(vector_double_test_precision)
     2.345678901234567,
     3.456789012345678
   };
-  char *s = xmalloc(1), *o = s;
+  char *s = oml_malloc(1), *o = s;
   ssize_t n = vector_double_to_json(v, sizeof(v)/sizeof(v[0]), &s);
 
   /* ensure it succeeded */

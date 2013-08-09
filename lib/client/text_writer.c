@@ -84,7 +84,7 @@ text_writer_new(OmlOutStream* out_stream)
 {
   assert(out_stream != NULL);
 
-  OmlTextWriter* self = (OmlTextWriter *)xmalloc(sizeof(OmlTextWriter));
+  OmlTextWriter* self = (OmlTextWriter *)oml_malloc(sizeof(OmlTextWriter));
   memset(self, 0, sizeof(OmlTextWriter));
 
   self->bufferedWriter = bw_create(out_stream, omlc_instance->max_queue, 0);
@@ -180,10 +180,10 @@ owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
     case OML_STRING_VALUE:
       if(omlc_get_string_ptr(*oml_value_get_value(v)) &&
           0 < omlc_get_string_length(*oml_value_get_value(v))) {
-        enc = xmalloc(backslash_encode_size(omlc_get_string_size(v->value)));
+        enc = oml_malloc(backslash_encode_size(omlc_get_string_size(v->value)));
         backslash_encode(omlc_get_string_ptr(v->value), enc);
         res = mbuf_print(mbuf, "\t%s", enc);
-        xfree(enc);
+        oml_free(enc);
 
       } else {
         logdebug ("Attempting to send NULL or empty string; string of length 0 will be sent\n");
@@ -194,10 +194,10 @@ owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
     case OML_BLOB_VALUE: {
       if(omlc_get_blob_ptr(*oml_value_get_value(v)) &&
           0 < omlc_get_blob_length(*oml_value_get_value(v))) {
-        enc = xmalloc(base64_size_string(omlc_get_blob_length(*oml_value_get_value(v))));
+        enc = oml_malloc(base64_size_string(omlc_get_blob_length(*oml_value_get_value(v))));
         base64_encode_blob(omlc_get_blob_length(*oml_value_get_value(v)), omlc_get_blob_ptr(*oml_value_get_value(v)), enc);
         res = mbuf_print(mbuf, "\t%s", enc);
-        xfree(enc);
+        oml_free(enc);
 
       } else {
         logdebug ("Attempting to send NULL or empty blob; blob of length 0 will be sent\n");
@@ -378,7 +378,7 @@ owt_close(OmlWriter* writer)
 
   // Blocks until the buffered writer drains
   bw_close (self->bufferedWriter);
-  xfree(self);
+  oml_free(self);
 
   return next;
 }

@@ -40,7 +40,7 @@
  * \param mstr MString to manipulate
  * \param len desired length to store
  * \return 0 if mstr now has enough space, -1 otherwise
- * \see xrealloc, xfree
+ * \see oml_realloc, oml_free
  */
 static int
 mstring_ensure_space(MString *mstr, size_t len)
@@ -53,7 +53,7 @@ mstring_ensure_space(MString *mstr, size_t len)
 
   if (mstr->size < len + 1) { /* This means we only increase the size */
     new_size = len + DEFAULT_MSTRING_SIZE + 1;
-    new = xrealloc (mstr->buf, new_size);
+    new = oml_realloc (mstr->buf, new_size);
     if (new == NULL) {
       return -1;
     }
@@ -67,17 +67,17 @@ mstring_ensure_space(MString *mstr, size_t len)
 
 /** Create a new MString
  * \return a pointer to the newly allocated MString, or NULL on error
- * \see mstring_delete, mstring_ensure_space, xmalloc, xfree
+ * \see mstring_delete, mstring_ensure_space, oml_malloc, oml_free
  */
 MString*
 mstring_create (void)
 {
-  MString* mstr = xmalloc (sizeof (MString));
+  MString* mstr = oml_malloc (sizeof (MString));
   memset(mstr, 0, sizeof(MString));
 
   if (mstr) {
     if (mstring_ensure_space(mstr, 0) < 0) {
-      xfree (mstr);
+      oml_free (mstr);
       mstr = NULL;
     }
   }
@@ -179,7 +179,7 @@ mstring_sprintf (MString *mstr, const char *fmt, ...)
     if(mstring_ensure_space(mstr, mstr->length + n) < 0) {
       return -1;
     }
-    /* mstring_ensure_space's call to xrealloc might have moved things ... */
+    /* mstring_ensure_space's call to oml_realloc might have moved things ... */
     buf = mstr->buf + mstr->length;
     /* ... and we have more space */
     space = mstr->size - mstr->length;
@@ -231,14 +231,14 @@ mstring_buf (MString* mstr)
 /** Delete an MString and free its storage
  *
  * \param mstr MString to deallocate
- * \see xfree
+ * \see oml_free
  */
 void
 mstring_delete (MString* mstr)
 {
   if (mstr) {
-    xfree (mstr->buf);
-    xfree (mstr);
+    oml_free (mstr->buf);
+    oml_free (mstr);
   }
 }
 

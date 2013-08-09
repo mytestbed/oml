@@ -25,12 +25,12 @@ struct OmlFilter;
 /** Filter instance creation function.
  *
  * If this filter needs to dynamically allocate instance date, this instance
- * MUST be allocated using xmalloc().
+ * MUST be allocated using oml_malloc().
  *
  * \param type OmlValueT of the sample stream that this instance will process
  * \param result pointer to a vector of OmlValue (of size output_count) where the oml_filter_output() will write
- * \return xmalloc()ed instance data
- * \see OmlFilter, oml_filter_output, xmalloc
+ * \return oml_malloc()ed instance data
+ * \see OmlFilter, oml_filter_output, oml_malloc
  */
 typedef void* (*oml_filter_create)(OmlValueT type, OmlValue* result);
 
@@ -122,7 +122,7 @@ typedef struct OmlFilter {
   /** Function returning describing complex outputs (optional) \see oml_filter_meta */
   oml_filter_meta meta;
 
-  /** Instance data, \see xmalloc, xfree */
+  /** Instance data, \see oml_malloc, oml_free */
   void* instance_data;
 
   /** Definition of the filter's output schema as an array of OmlFilterDef */

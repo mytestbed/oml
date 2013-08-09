@@ -20,7 +20,7 @@
 struct msg_queue*
 msg_queue_create (void)
 {
-  struct msg_queue *q = xmalloc (sizeof (struct msg_queue));
+  struct msg_queue *q = oml_malloc (sizeof (struct msg_queue));
   if (q == NULL)
     return NULL;
 
@@ -34,7 +34,7 @@ msg_queue_destroy (struct msg_queue *queue)
 {
   while (queue->length > 0)
     msg_queue_remove (queue);
-  xfree (queue);
+  oml_free (queue);
 }
 
 /** Create a new node at the end of the queue and return a pointer to it.
@@ -46,7 +46,7 @@ msg_queue_add (struct msg_queue *queue)
   if (queue == NULL)
     return NULL;
 
-  struct msg_queue_node *node = xmalloc (sizeof (struct msg_queue_node));
+  struct msg_queue_node *node = oml_malloc (sizeof (struct msg_queue_node));
   if (node == NULL)
     return NULL;
 
@@ -95,7 +95,7 @@ msg_queue_remove (struct msg_queue *queue)
   else
     queue->tail->next = head->next;
 
-  xfree (head);
+  oml_free (head);
 }
 
 /*

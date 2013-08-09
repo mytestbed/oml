@@ -1192,7 +1192,7 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
     case INT32_T:
     case UINT32_T: {
       size_t bytes = nof_elts * sizeof(uint32_t);
-      uint32_t *elts = xcalloc(nof_elts, sizeof(uint32_t));
+      uint32_t *elts = oml_calloc(nof_elts, sizeof(uint32_t));
       if(mbuf_read(mbuf, (uint8_t*)(elts), nof_elts * sizeof(uint32_t)) == -1) {
         logerror("%s(): failed to unmarshall OML_VECTOR_(U)INT32_VALUE\n", __func__);
         return 0;
@@ -1211,7 +1211,7 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
     case UINT64_T:
     case DOUBLE_T: {
       size_t bytes = nof_elts * sizeof(uint64_t);
-      uint64_t *elts = xcalloc(nof_elts, sizeof(uint64_t));
+      uint64_t *elts = oml_calloc(nof_elts, sizeof(uint64_t));
       if(mbuf_read(mbuf, (uint8_t*)(elts), nof_elts * sizeof(uint64_t)) == -1) {
         logerror("%s(): failed to unmarshall OML_VECTOR_(U)INT64_VALUE\n", __func__);
         return 0;
@@ -1229,7 +1229,7 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
     case BOOL_T: {
       uint8_t y[nof_elts];
       size_t bytes = nof_elts * sizeof(bool);
-      bool *elts = xcalloc(nof_elts, sizeof(bool));
+      bool *elts = oml_calloc(nof_elts, sizeof(bool));
       if(mbuf_read(mbuf, y, nof_elts) == -1) {
         logerror("%s(): failed to unmarshall OML_VECTOR_BOOL_VALUE\n", __func__);
         return 0;

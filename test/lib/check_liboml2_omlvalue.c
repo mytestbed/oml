@@ -77,9 +77,9 @@ START_TEST (test_stringU)
   fail_if(alloc_diff < strlen(test) + 1,
       "Copied test string allocated memory not big enough (%d instead of at least %d)",
       alloc_diff, strlen(test) + 1);
-  fail_unless(omlc_get_string_size(v) == xmalloc_usable_size(omlc_get_string_ptr(v)),
+  fail_unless(omlc_get_string_size(v) == oml_malloc_usable_size(omlc_get_string_ptr(v)),
       "Copied test string allocated size not set properly (%d instead of %d)",
-      omlc_get_string_size(v), xmalloc_usable_size(omlc_get_string_ptr(v)));
+      omlc_get_string_size(v), oml_malloc_usable_size(omlc_get_string_ptr(v)));
   fail_unless(omlc_get_string_is_const(v) == 0,
       "Copied test string should not be constant");
 
@@ -93,14 +93,14 @@ START_TEST (test_stringU)
   fail_unless(omlc_get_string_length(v2) == strlen(omlc_get_string_ptr(v2)),
       "Copied allocated string length not set properly (%d instead of %d)",
       omlc_get_string_length(v2), strlen(omlc_get_string_ptr(v2)) + 1);
-  alloc_diff = xmembytes() - bcount - sizeof(size_t); /* xmalloc() always allocates at least sizeof(size_t) more for bookkeeping */
+  alloc_diff = xmembytes() - bcount - sizeof(size_t); /* oml_malloc() always allocates at least sizeof(size_t) more for bookkeeping */
   bcount = xmembytes();
   fail_if(alloc_diff < strlen(omlc_get_string_ptr(v)) + 1,
       "Copied allocated string allocated memory not big enough (%d instead of at least %d)",
       alloc_diff, strlen(omlc_get_string_ptr(v)) + 1);
-  fail_unless(omlc_get_string_size(v) == xmalloc_usable_size(omlc_get_string_ptr(v2)),
+  fail_unless(omlc_get_string_size(v) == oml_malloc_usable_size(omlc_get_string_ptr(v2)),
       "Copied allocated string allocated size not set properly (%d instead of %d)",
-      omlc_get_string_size(v2), xmalloc_usable_size(omlc_get_string_ptr(v2)));
+      omlc_get_string_size(v2), oml_malloc_usable_size(omlc_get_string_ptr(v2)));
   fail_unless(omlc_get_string_is_const(v2) == 0,
       "Copied allocated string should not be constant");
 
@@ -157,9 +157,9 @@ START_TEST (test_stringU)
   fail_if(alloc_diff < strlen(const_test) + 1,
       "Const copy string allocated memory not big enough (%d instead of at least %d)",
       alloc_diff, strlen(const_test) + 1);
-  fail_unless(omlc_get_string_size(v) == xmalloc_usable_size(omlc_get_string_ptr(v)),
+  fail_unless(omlc_get_string_size(v) == oml_malloc_usable_size(omlc_get_string_ptr(v)),
       "Const copy string allocated size not set properly (%d instead of %d)",
-      omlc_get_string_size(v), xmalloc_usable_size(omlc_get_string_ptr(v)));
+      omlc_get_string_size(v), oml_malloc_usable_size(omlc_get_string_ptr(v)));
   fail_unless(omlc_get_string_is_const(v) == 0,
       "Const copy string should not be constant");
 
@@ -196,9 +196,9 @@ START_TEST (test_blobU)
   fail_if(alloc_diff < len,
       "Test blob allocated memory not big enough (%d instead of at least %d)",
       alloc_diff, len);
-  fail_unless(omlc_get_blob_size(v) == xmalloc_usable_size(omlc_get_string_ptr(v)),
+  fail_unless(omlc_get_blob_size(v) == oml_malloc_usable_size(omlc_get_string_ptr(v)),
       "Test blob allocated size not set properly (%d instead of %d)",
-      omlc_get_blob_size(v), xmalloc_usable_size(omlc_get_string_ptr(v)));
+      omlc_get_blob_size(v), oml_malloc_usable_size(omlc_get_string_ptr(v)));
 
   /* Duplicate blob*/
   omlc_copy_blob(v2, v);
@@ -214,9 +214,9 @@ START_TEST (test_blobU)
   fail_if(alloc_diff < len,
       "Copied allocated blob allocated memory not big enough (%d instead of at least %d)",
       alloc_diff, len);
-  fail_unless(omlc_get_blob_size(v) == xmalloc_usable_size(omlc_get_blob_ptr(v2)),
+  fail_unless(omlc_get_blob_size(v) == oml_malloc_usable_size(omlc_get_blob_ptr(v2)),
       "Copied allocated blob allocated size not set properly (%d instead of %d)",
-      omlc_get_blob_size(v2), xmalloc_usable_size(omlc_get_blob_ptr(v2)));
+      omlc_get_blob_size(v2), oml_malloc_usable_size(omlc_get_blob_ptr(v2)));
 
   /* Overwrite blob */
   omlc_set_blob(v, test2, len2);
@@ -312,14 +312,14 @@ START_TEST (test_string)
   fail_unless(omlc_get_string_length(*oml_value_get_value(&v2)) == strlen(omlc_get_string_ptr(*oml_value_get_value(&v2))),
       "Copied OmlValue string length not set properly (%d instead of %d)",
       omlc_get_string_length(*oml_value_get_value(&v2)), strlen(omlc_get_string_ptr(*oml_value_get_value(&v2))) + 1);
-  alloc_diff = xmembytes() - bcount - sizeof(size_t); /* xmalloc() always allocates at least sizeof(size_t) more for bookkeeping */
+  alloc_diff = xmembytes() - bcount - sizeof(size_t); /* oml_malloc() always allocates at least sizeof(size_t) more for bookkeeping */
   bcount = xmembytes();
   fail_if(alloc_diff < strlen(omlc_get_string_ptr(*oml_value_get_value(&v))) + 1,
       "Copied OmlValue string allocated memory not big enough (%d instead of at least %d)",
       alloc_diff, strlen(omlc_get_string_ptr(*oml_value_get_value(&v))) + 1);
-  fail_unless(omlc_get_string_size(*oml_value_get_value(&v2)) == xmalloc_usable_size(omlc_get_string_ptr(*oml_value_get_value(&v2))),
+  fail_unless(omlc_get_string_size(*oml_value_get_value(&v2)) == oml_malloc_usable_size(omlc_get_string_ptr(*oml_value_get_value(&v2))),
       "Copied OmlValue string allocated size not set properly (%d instead of %d)",
-      omlc_get_string_size(*oml_value_get_value(&v2)), xmalloc_usable_size(omlc_get_string_ptr(*oml_value_get_value(&v2))));
+      omlc_get_string_size(*oml_value_get_value(&v2)), oml_malloc_usable_size(omlc_get_string_ptr(*oml_value_get_value(&v2))));
   fail_unless(omlc_get_string_is_const(*oml_value_get_value(&v2)) == 0,
       "Copied OmlValue string should not be constant");
 
@@ -374,14 +374,14 @@ START_TEST (test_blob)
   fail_unless(omlc_get_blob_length(*oml_value_get_value(&v2)) == omlc_get_blob_length(*oml_value_get_value(&v)),
       "Copied OmlValue blob length not set properly (%d instead of %d)",
       omlc_get_blob_length(*oml_value_get_value(&v2)), omlc_get_blob_length(*oml_value_get_value(&v2)));
-  alloc_diff = xmembytes() - bcount - sizeof(size_t); /* xmalloc() always allocates at least sizeof(size_t) more for bookkeeping */
+  alloc_diff = xmembytes() - bcount - sizeof(size_t); /* oml_malloc() always allocates at least sizeof(size_t) more for bookkeeping */
   bcount = xmembytes();
   fail_if(alloc_diff < len,
       "Copied OmlValue blob allocated memory not big enough (%d instead of at least %d)",
       alloc_diff, len);
-  fail_unless(omlc_get_blob_size(*oml_value_get_value(&v2)) == xmalloc_usable_size(omlc_get_blob_ptr(*oml_value_get_value(&v2))),
+  fail_unless(omlc_get_blob_size(*oml_value_get_value(&v2)) == oml_malloc_usable_size(omlc_get_blob_ptr(*oml_value_get_value(&v2))),
       "Copied OmlValue blob allocated size not set properly (%d instead of %d)",
-      omlc_get_blob_size(*oml_value_get_value(&v2)), xmalloc_usable_size(omlc_get_blob_ptr(*oml_value_get_value(&v2))));
+      omlc_get_blob_size(*oml_value_get_value(&v2)), oml_malloc_usable_size(omlc_get_blob_ptr(*oml_value_get_value(&v2))));
 
   oml_value_set_type(&v, OML_UINT64_VALUE);
   fail_unless(xmembytes() < bcount,

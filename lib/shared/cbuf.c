@@ -46,7 +46,7 @@ cbuf_create(int default_size)
   if (default_size <= 0)
     default_size = CBUFFER_DEFAULT_SIZE;
 
-  cbuf = xmalloc (sizeof (CBuffer));
+  cbuf = oml_malloc (sizeof (CBuffer));
 
   if (cbuf == NULL)
     return NULL;
@@ -54,7 +54,7 @@ cbuf_create(int default_size)
   cbuf->page_size = default_size;
 
   if (cbuf_add_page (cbuf, -1) == -1) {
-    xfree (cbuf);
+    oml_free (cbuf);
     return NULL;
   }
 
@@ -74,13 +74,13 @@ cbuf_destroy (CBuffer *cbuf)
 
     do {
       if (current->buf)
-        xfree (current->buf);
+        oml_free (current->buf);
       next = current->next;
-      xfree (current);
+      oml_free (current);
       current = next;
     } while (current != NULL && current != head);
   }
-  xfree (cbuf);
+  oml_free (cbuf);
 }
 
 int
@@ -94,15 +94,15 @@ cbuf_add_page (CBuffer *cbuf, int size)
   if (size <= 0)
     size = cbuf->page_size;
 
-  page = xmalloc (sizeof (struct cbuffer_page));
+  page = oml_malloc (sizeof (struct cbuffer_page));
 
   if (page == NULL)
     return -1;
 
-  page->buf = xmalloc (size);
+  page->buf = oml_malloc (size);
 
   if (page->buf == NULL) {
-    xfree (page);
+    oml_free (page);
     return -1;
   }
 

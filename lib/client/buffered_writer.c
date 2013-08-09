@@ -94,7 +94,7 @@ bw_create(OmlOutStream* outStream, long  queueCapacity, long  chunkSize)
     return NULL;
   }
 
-  BufferedWriter* self = (BufferedWriter*)xmalloc(sizeof(BufferedWriter));
+  BufferedWriter* self = (BufferedWriter*)oml_malloc(sizeof(BufferedWriter));
   if (self == NULL) { return NULL; }
   memset(self, 0, sizeof(BufferedWriter));
 
@@ -168,7 +168,7 @@ bw_close(BufferedWriterHdl instance)
 
   self->outStream->close(self->outStream);
   destroyBufferChain(self);
-  xfree(self);
+  oml_free(self);
 }
 
 /** Add a chunk to the end of the queue.
@@ -359,7 +359,7 @@ createBufferChain(BufferedWriter* self)
   MBuffer* buf = mbuf_create2(self->chainLength, (size_t)(0.1 * self->chainLength));
   if (buf == NULL) { return NULL; }
 
-  BufferChain* chain = (BufferChain*)xmalloc(sizeof(BufferChain));
+  BufferChain* chain = (BufferChain*)oml_malloc(sizeof(BufferChain));
   if (chain == NULL) {
     mbuf_destroy(buf);
     return NULL;
@@ -402,7 +402,7 @@ destroyBufferChain(BufferedWriter* self) {
     self->firstChain = chain->next;
 
     mbuf_destroy(chain->mbuf);
-    xfree(chain);
+    oml_free(chain);
   }
 
   return 0;

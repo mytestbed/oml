@@ -108,7 +108,7 @@ sq3_dbdir_setup (void)
   if (!sqlite_database_dir) {
     const char *oml_sqlite_dir = getenv ("OML_SQLITE_DIR");
     if (oml_sqlite_dir) {
-      sqlite_database_dir = xstrndup (oml_sqlite_dir, strlen (oml_sqlite_dir));
+      sqlite_database_dir = oml_strndup (oml_sqlite_dir, strlen (oml_sqlite_dir));
     } else {
       sqlite_database_dir = PKG_LOCAL_STATE_DIR;
     }
@@ -242,7 +242,7 @@ sq3_create_database(Database* db)
     return -1;
   }
 
-  Sq3DB* self = xmalloc(sizeof(Sq3DB));
+  Sq3DB* self = oml_malloc(sizeof(Sq3DB));
   self->conn = conn;
   self->last_commit = time (NULL);
   db->backend_name = backend_name;
@@ -276,7 +276,7 @@ sq3_release(Database* db)
   Sq3DB* self = (Sq3DB*)db->handle;
   dba_end_transaction (db);
   sqlite3_close(self->conn);
-  xfree(self);
+  oml_free(self);
   db->handle = NULL;
 }
 
@@ -317,7 +317,7 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
     logwarn("sqlite:%s: BUG: Recreating Sq3Table handle for table %s\n",
         table->schema->name);
   }
-  sq3table = (Sq3Table*)xmalloc(sizeof(Sq3Table));
+  sq3table = (Sq3Table*)oml_malloc(sizeof(Sq3Table));
   table->handle = sq3table;
 
   /* XXX: Should not be done here, see #1056 */
@@ -340,7 +340,7 @@ sq3_table_create (Database* db, DbTable* table, int shallow)
 
  fail_exit:
   if (insert) { mstring_delete (insert); }
-  if (sq3table) { xfree (sq3table); }
+  if (sq3table) { oml_free (sq3table); }
   return -1;
 }
 
@@ -362,7 +362,7 @@ sq3_table_free (Database *database, DbTable* table)
       logwarn("sqlite:%s: Couldn't finalise statement for table '%s' (database error)\n",
           database->name, table->schema->name);
     }
-    xfree (sq3table);
+    oml_free (sq3table);
   }
   return ret;
 }
@@ -376,7 +376,7 @@ sq3_table_free (Database *database, DbTable* table)
 static char*
 sq3_prepared_var(Database *db, unsigned int order)
 {
-  char *s = xmalloc(2);
+  char *s = oml_malloc(2);
 
   (void)db;
 
@@ -511,7 +511,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
       json = NULL;
       json_sz = vector_double_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
       if(-1 != json_sz)
-        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
       else
         res = sqlite3_bind_null(stmt, idx);
       break;
@@ -519,7 +519,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
       json = NULL;
       json_sz = vector_int32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
       if(-1 != json_sz)
-        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
       else
         res = sqlite3_bind_null(stmt, idx);
       break;
@@ -527,7 +527,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
       json = NULL;
       json_sz = vector_uint32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
       if(-1 != json_sz)
-        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
       else
         res = sqlite3_bind_null(stmt, idx);
       break;
@@ -535,7 +535,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
       json = NULL;
       json_sz = vector_int64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
       if(-1 != json_sz)
-        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
       else
         res = sqlite3_bind_null(stmt, idx);
       break;
@@ -543,7 +543,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
       json = NULL;
       json_sz = vector_uint64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
       if(-1 != json_sz)
-        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
       else
         res = sqlite3_bind_null(stmt, idx);
       break;
@@ -551,7 +551,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
       json = NULL;
       json_sz = vector_bool_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
       if(-1 != json_sz)
-        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
       else
         res = sqlite3_bind_null(stmt, idx);
       break;
@@ -582,7 +582,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
  *
  * FIXME: Not using prepared statements (#168)
  *
- * The caller is responsible for xfree()ing the returned value when no longer
+ * The caller is responsible for oml_free()ing the returned value when no longer
  * needed.
  *
  * This function does a key lookup on a database table that is set up
@@ -608,9 +608,9 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
  * \param value_column name of the column to set the value in
  * \param key key to look for in key_column
  *
- * \return an xmalloc'd string value for the given key, or NULL
+ * \return an oml_malloc'd string value for the given key, or NULL
  *
- * \see sq3_set_key_value, xmalloc, xfree
+ * \see sq3_set_key_value, oml_malloc, oml_free
  */
 static char*
 sq3_get_key_value (Database* database, const char* table, const char* key_column,
@@ -651,7 +651,7 @@ sq3_get_key_value (Database* database, const char* table, const char* key_column
 
   if (strcmp (key, result[2]) == 0) {
     size_t len = strlen (result[3]);
-    value = xstrndup (result[3], len);
+    value = oml_strndup (result[3], len);
   }
 
   sqlite3_free_table (result);
@@ -694,7 +694,7 @@ sq3_set_key_value (Database* database, const char* table,
 
   }
   if (check_value != NULL) {
-    xfree (check_value);
+    oml_free (check_value);
   }
 
   if (n >= LENGTH (stmt)) {
@@ -742,7 +742,7 @@ sq3_add_sender_id(Database* database, const char* sender_id)
 
   if (id_str) {
     index = atoi (id_str);
-    xfree (id_str);
+    oml_free (id_str);
 
   } else {
     if (self->sender_cnt == 0) {

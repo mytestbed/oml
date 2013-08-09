@@ -510,7 +510,7 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
                             break;
                           }
   case OML_STRING_VALUE:
-    s = xmalloc(strlen(value_s)+1);
+    s = oml_malloc(strlen(value_s)+1);
     n = backslash_decode(value_s, s);
     omlc_reset_string(*value);
     omlc_set_string(*value, s);
@@ -522,7 +522,7 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
     s_sz = base64_validate_string(value_s);
     if(s_sz != -1) {
       blob_sz = base64_size_blob(s_sz);
-      blob = xmalloc(blob_sz);
+      blob = oml_malloc(blob_sz);
       base64_decode_string(s_sz, value_s, blob_sz, blob);
       omlc_set_blob_ptr(*value, blob);
       omlc_set_blob_length(*value, blob_sz);
@@ -544,14 +544,14 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
     nof_elts = strtod(value_s, &p);
     if(p - value_s) {
       size_t i, bytes;
-      double *elts = xcalloc(nof_elts, sizeof(double));
+      double *elts = oml_calloc(nof_elts, sizeof(double));
       if(elts) {
         for(i = 0; i < nof_elts; i++) {
           elts[i] = strtod(p, &q);
           if(q - p)
             p = q;
           else {
-            xfree(elts);
+            oml_free(elts);
             logerror("%s(): bad [double] vector element '%s'\n", __FUNCTION__, p);
             return -1;
           }
@@ -577,14 +577,14 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
     nof_elts = strtol(value_s, &p, 0);
     if(p - value_s) {
       size_t i;
-      int32_t *elts = xcalloc(nof_elts, sizeof(int32_t));
+      int32_t *elts = oml_calloc(nof_elts, sizeof(int32_t));
       if(elts) {
         for(i = 0; i < nof_elts; i++) {
           elts[i] = strtol(p, &q, 0);
           if(q - p)
             p = q;
           else {
-            xfree(elts);
+            oml_free(elts);
             logerror("%s(): bad [int32] vector element '%s'\n", __FUNCTION__, p);
             return -1;
           }
@@ -610,14 +610,14 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
     nof_elts = strtoul(value_s, &p, 0);
     if(p - value_s) {
       size_t i;
-      uint32_t *elts = xcalloc(nof_elts, sizeof(uint32_t));
+      uint32_t *elts = oml_calloc(nof_elts, sizeof(uint32_t));
       if(elts) {
         for(i = 0; i < nof_elts; i++) {
           elts[i] = strtoul(p, &q, 0);
           if(q - p)
             p = q;
           else {
-            xfree(elts);
+            oml_free(elts);
             logerror("%s(): bad [uint32] vector element '%s'\n", __FUNCTION__, p);
             return -1;
           }
@@ -643,14 +643,14 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
     nof_elts = strtoll(value_s, &p, 0);
     if(p - value_s) {
       size_t i;
-      int64_t *elts = xcalloc(nof_elts, sizeof(int64_t));
+      int64_t *elts = oml_calloc(nof_elts, sizeof(int64_t));
       if(elts) {
         for(i = 0; i < nof_elts; i++) {
           elts[i] = strtoll(p, &q, 0);
           if(q - p)
             p = q;
           else {
-            xfree(elts);
+            oml_free(elts);
             logerror("%s(): bad [int64] vector element '%s'\n", __FUNCTION__, p);
             return -1;
           }
@@ -676,14 +676,14 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
     nof_elts = strtoull(value_s, &p, 0);
     if(p - value_s) {
       size_t i;
-      uint64_t *elts = xcalloc(nof_elts, sizeof(uint64_t));
+      uint64_t *elts = oml_calloc(nof_elts, sizeof(uint64_t));
       if(elts) {
         for(i = 0; i < nof_elts; i++) {
           elts[i] = strtoull(p, &q, 0);
           if(q - p)
             p = q;
           else {
-            xfree(elts);
+            oml_free(elts);
             logerror("%s(): bad [uint64] vector element '%s'\n", __FUNCTION__, p);
             return -1;
           }
@@ -710,7 +710,7 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
     if(p - value_s) {
       char *n;
       size_t i;
-      bool *elts = xcalloc(nof_elts, sizeof(bool));
+      bool *elts = oml_calloc(nof_elts, sizeof(bool));
       if(elts) {
         for(i = 0; i < nof_elts; i++) {
           char *v = strtok_r(p, " ", &n);
@@ -718,7 +718,7 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
             elts[i] = strncasecmp(v, "false", strlen(v));
             p = n;
           } else {
-            xfree(elts);
+            oml_free(elts);
             logerror("%s(): bad [bool] '%s'\n", __FUNCTION__, p);
             return -1;
           }

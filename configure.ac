@@ -54,7 +54,7 @@ AC_SUBST([OML_BASE_VER], [`echo "$PACKAGE_VERSION" | sed 's/^\([[0-9]]\+\.[[0-9]
 AC_SUBST([OML_PKG_VER], [`echo "$PACKAGE_VERSION" | sed 's/^\([[0-9]]\+\(\.[[0-9]]\+\)\{1,2\}\)\([[-.a-zA-Z0-9]]\+\)\?.*$/\1~\3/;s/-/./g'`])
 
 LIBOML2_LT_VER_CUR=10
-LIBOML2_LT_VER_REV=0 # Revisions of LIBOML2_LT_VER_CUR
+LIBOML2_LT_VER_REV=1 # Revisions of LIBOML2_LT_VER_CUR
 LIBOML2_LT_VER_AGE=1 # Supported APIs prior to LIBOML2_LT_VER_CUR
 LIBOML2_LT_VER_MIN=$(($LIBOML2_LT_VER_CUR - $LIBOML2_LT_VER_AGE))
 LIBOCOMM_LT_VER_CUR=1

@@ -111,15 +111,15 @@ client_realloc_tables (ClientHandler *self, int ntables)
 
   if (ntables > self->table_count) {
     int error = 0;
-    DbTable **new_tables = xrealloc (self->tables, ntables*sizeof(DbTable*));
-    int *new_so = xrealloc (self->seqno_offsets, ntables*sizeof(int));
-    OmlValue **new_vv = xrealloc (self->values_vectors, ntables*sizeof(OmlValue*));
-    int *new_vv_counts = xrealloc (self->values_vector_counts, ntables * sizeof (int));
+    DbTable **new_tables = oml_realloc (self->tables, ntables*sizeof(DbTable*));
+    int *new_so = oml_realloc (self->seqno_offsets, ntables*sizeof(int));
+    OmlValue **new_vv = oml_realloc (self->values_vectors, ntables*sizeof(OmlValue*));
+    int *new_vv_counts = oml_realloc (self->values_vector_counts, ntables * sizeof (int));
 
     if (!new_tables || !new_so || !new_vv || !new_vv_counts) {
       logdebug ("%s: Failed to allocate memory for %d more client tables (current %d)\n",
           self->name, (ntables - self->table_count), self->table_count);
-      // Don't free anything because whatever got successfully xrealloc'd is still ok
+      // Don't free anything because whatever got successfully oml_realloc'd is still ok
       error = -1;
     }
 
@@ -137,7 +137,7 @@ client_realloc_tables (ClientHandler *self, int ntables)
     if (new_vv && new_vv_counts) {
       int i = 0;
       for (i = self->table_count; i < ntables; i++) {
-        self->values_vectors[i] = xcalloc (DEF_NUM_VALUES, sizeof (OmlValue));
+        self->values_vectors[i] = oml_calloc (DEF_NUM_VALUES, sizeof (OmlValue));
         if (self->values_vectors[i]) {
           self->values_vector_counts[i] = DEF_NUM_VALUES;
           oml_value_array_init(self->values_vectors[i], self->values_vector_counts[i]);
@@ -177,7 +177,7 @@ client_realloc_values (ClientHandler *self, int idx, int nvalues)
   curnvalues = self->values_vector_counts[idx];
 
   if (nvalues > curnvalues) {
-    OmlValue *new_values = xrealloc (self->values_vectors[idx],
+    OmlValue *new_values = oml_realloc (self->values_vectors[idx],
         nvalues * sizeof (OmlValue));
     if (!new_values) {
       logwarn("%s: Could not reallocate memory for values for table %d\n",
@@ -205,7 +205,7 @@ client_realloc_values (ClientHandler *self, int idx, int nvalues)
 ClientHandler*
 client_handler_new(Socket* new_sock)
 {
-  ClientHandler* self = xmalloc(sizeof(ClientHandler));
+  ClientHandler* self = oml_malloc(sizeof(ClientHandler));
   if (!self) return NULL;
 
   memset(self, 0, sizeof(*self));
@@ -233,26 +233,26 @@ void client_handler_free (ClientHandler* self)
   if (self->socket)
     socket_free (self->socket);
   if (self->tables)
-    xfree (self->tables);
+    oml_free (self->tables);
   if (self->seqno_offsets)
-    xfree (self->seqno_offsets);
+    oml_free (self->seqno_offsets);
   mbuf_destroy (self->mbuf);
   int i, j;
   for (i = 0; i < self->table_count; i++) {
     for (j = 0; j < self->values_vector_counts[i]; j++) {
       oml_value_reset(&self->values_vectors[i][j]);
     }
-    xfree (self->values_vectors[i]);
+    oml_free (self->values_vectors[i]);
   }
-  xfree (self->values_vectors);
-  xfree (self->values_vector_counts);
+  oml_free (self->values_vectors);
+  oml_free (self->values_vector_counts);
   if (self->sender_name)
-    xfree (self->sender_name);
+    oml_free (self->sender_name);
   if (self->app_name)
-    xfree (self->app_name);
-  xfree (self);
+    oml_free (self->app_name);
+  oml_free (self);
 
-  //  xmemreport ();
+  //  oml_memreport ();
 }
 
 void client_handler_update_name(ClientHandler *self)
@@ -497,7 +497,7 @@ process_meta(ClientHandler* self, char* key, char* value)
 
     } else {
       self->sender_id = self->database->add_sender_id(self->database, value);
-      self->sender_name = xstrndup (value, strlen (value));
+      self->sender_name = oml_strndup (value, strlen (value));
       return 0;
     }
 
@@ -508,7 +508,7 @@ process_meta(ClientHandler* self, char* key, char* value)
       return -1;
 
     } else {
-      self->app_name = xstrndup (value, strlen (value));
+      self->app_name = oml_strndup (value, strlen (value));
       return 0;
     }
 
@@ -772,7 +772,7 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
     if(o_log_level_active(O_LOG_DEBUG4)) {
       out = to_octets(mbuf_rdptr(mbuf), mbuf_rd_remaining(mbuf));
       logdebug("%s(bin): Packet follows\n%s", self->name, out);
-      xfree(out);
+      oml_free(out);
     }
     return 0;
   }
@@ -1004,7 +1004,7 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
     in = to_octets(buf, buf_size);
     logdebug("%s(%s): Received new packet\n%s\n",
         source->name, client_state_to_s (self->state), in);
-    xfree(in);
+    oml_free(in);
   }
 
   int result = mbuf_write (mbuf, buf, buf_size);

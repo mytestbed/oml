@@ -145,19 +145,19 @@ database_find (const char* name)
   }
 
   // need to create a new one
-  Database *self = xmalloc(sizeof(Database));
+  Database *self = oml_malloc(sizeof(Database));
   logdebug("%s: Creating or opening database\n", name);
   strncpy(self->name, name, MAX_DB_NAME_SIZE);
   self->ref_count = 1;
   self->create = database_create_function (dbbackend);
 
   if (self->create (self)) {
-    xfree(self);
+    oml_free(self);
     return NULL;
   }
 
   if (database_init (self) == -1) {
-    xfree (self);
+    oml_free (self);
     return NULL;
   }
 
@@ -166,7 +166,7 @@ database_find (const char* name)
   if (start_time_str != NULL)
     {
       self->start_time = strtol (start_time_str, NULL, 0);
-      xfree (start_time_str);
+      oml_free (start_time_str);
       logdebug("%s: Retrieved start-time = %lu\n", name, self->start_time);
     }
 
@@ -235,7 +235,7 @@ database_release(Database* self)
     mstring_delete(hook_command);
   }
 
-  xfree(self);
+  oml_free(self);
 }
 
 /** Close all open databases
@@ -285,19 +285,19 @@ database_find_table (Database *database, const char *name)
  *
  * \param database Database to add the DbTable to
  * \param schema schema structure for that tables
- * \return an xmalloc'd DbTable (already added to database), or NULL on error
+ * \return an oml_malloc'd DbTable (already added to database), or NULL on error
  *
  * \see database_find_table, schema_copy, database_release
  */
 DbTable*
 database_create_table (Database *database, const struct schema *schema)
 {
-  DbTable *table = xmalloc (sizeof (DbTable));
+  DbTable *table = oml_malloc (sizeof (DbTable));
   if (!table)
     return NULL;
   table->schema = schema_copy (schema);
   if (!table->schema) {
-    xfree (table);
+    oml_free (table);
     return NULL;
   }
   table->next = database->first_table;
@@ -358,7 +358,7 @@ database_find_or_create_table(Database *database, struct schema *schema)
       if (i == 1) {
         /* First time we need to increase the size */
         /* Add space for 2 characters and null byte, that is up to '_9', with MAX_TABLE_RENAME = 10 */
-        s->name = xrealloc(s->name, tnlen + 3);
+        s->name = oml_realloc(s->name, tnlen + 3);
         strncpy(s->name, schema->name, tnlen);
       }
       snprintf(&s->name[tnlen], 3, "_%d", ++i);
@@ -376,8 +376,8 @@ database_find_or_create_table(Database *database, struct schema *schema)
   if(i>1) {
     /* We had to change the table name*/
     logwarn("%s: Creating table '%s' for new stream '%s' with incompatible schema\n", database->name, s->name, schema->name);
-    xfree(schema->name);
-    schema->name = xstrndup(s->name, tnlen+3);
+    oml_free(schema->name);
+    schema->name = oml_strndup(s->name, tnlen+3);
   }
   schema_free(s);
 
@@ -413,7 +413,7 @@ database_table_free(Database *database, DbTable *table)
   if (database && table) {
     logdebug("%s: Freeing table '%s'\n", database->name, table->schema->name);
     schema_free (table->schema);
-    xfree(table);
+    oml_free(table);
   } else {
     logwarn("%s: Tried to free a NULL table (or database was NULL).\n",
             (database ? database->name : "NONE"));
@@ -463,13 +463,13 @@ database_make_sql_insert (Database *db, DbTable* table)
   /* Close column names, and add variables for the prepared statement */
   pvar = db->prepared_var(db, 1);
   n += mstring_sprintf (mstr, ") VALUES (%s", pvar);
-  xfree(pvar); /* XXX: Not really efficient, but we only do this rarely */
+  oml_free(pvar); /* XXX: Not really efficient, but we only do this rarely */
 
   max += 4; /* Number of metadata columns we want to be able to insert */
   for (i=2; i<=max; i++) {
     pvar = db->prepared_var(db, i);
     n += mstring_sprintf (mstr, ", %s", pvar);
-    xfree(pvar);
+    oml_free(pvar);
   }
 
   /* We're done */

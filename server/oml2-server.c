@@ -341,7 +341,7 @@ int main(int argc, const char **argv)
 
   oml_cleanup();
 
-  xmemreport(O_LOG_INFO);
+  oml_memreport(O_LOG_INFO);
 
   return 0;
 }

@@ -27,7 +27,7 @@
 /**
  * Resize the output buffer to at least new_sz octets. The buffer
  * pointed at by *str must be either NULL or have been allocated by
- * xmalloc(). On return the output buffer pointed to by *str will have
+ * oml_malloc(). On return the output buffer pointed to by *str will have
  * been zeroed.
  *
  * \param str A non-NULL pointer pointer to the buffer.
@@ -39,15 +39,15 @@ resize_buffer(char **str, size_t new_sz)
 {
   assert(str);
   ssize_t str_sz = -1;
-  if(NULL == *str || xmalloc_usable_size(*str) < new_sz) {
-    char *new = xrealloc(*str, new_sz);
+  if(NULL == *str || oml_malloc_usable_size(*str) < new_sz) {
+    char *new = oml_realloc(*str, new_sz);
     if(new) {
       *str = new;
       str_sz = new_sz;
       memset(*str, 0, str_sz);
     }
   } else {
-    str_sz = xmalloc_usable_size(*str);
+    str_sz = oml_malloc_usable_size(*str);
     memset(*str, 0, str_sz);
   }
   return str_sz;
@@ -56,7 +56,7 @@ resize_buffer(char **str, size_t new_sz)
 
 /**
  * Convert a vector of double values to a JSON string. The output
- * string is written to an output buffer which is xrealloc()ed if too
+ * string is written to an output buffer which is oml_realloc()ed if too
  * small to accommodate the output.
  *
  * \param v Pointer to an array of double values.
@@ -97,7 +97,7 @@ vector_double_to_json(const double *v, size_t v_sz, char **str)
 
 /**
  * Convert a vector of int32_t values to a JSON string. The output
- * string is written to an output buffer which is xrealloc()ed if too
+ * string is written to an output buffer which is oml_realloc()ed if too
  * small to accommodate the output.
  *
  * \param v Pointer to an array of int32_t values.
@@ -138,7 +138,7 @@ vector_int32_to_json(const int32_t *v, size_t v_sz, char **str)
 
 /**
  * Convert a vector of uint32_t values to a JSON string. The output
- * string is written to an output buffer which is xrealloc()ed if too
+ * string is written to an output buffer which is oml_realloc()ed if too
  * small to accommodate the output.
  *
  * \param v Pointer to an array of uint32_t values.
@@ -179,9 +179,9 @@ vector_uint32_to_json(const uint32_t *v, size_t v_sz, char **str)
 
 /**
  * Convert a vector of int64_t values to a JSON string. The output
- * string is written to an output buffer which is xrealloc()ed if too
+ * string is written to an output buffer which is oml_realloc()ed if too
  * small to accommodate the output.  It is, therefore, mandatory to
- * allocate the output buffer using xmalloc().
+ * allocate the output buffer using oml_malloc().
  *
  * \param v Pointer to an array of int64_t values.
  * \param v_sz Number of elements in v.
@@ -221,9 +221,9 @@ vector_int64_to_json(const int64_t *v, size_t v_sz, char **str)
 
 /**
  * Convert a vector of uint64_t values to a JSON string. The output
- * string is written to an output buffer which is xrealloc()ed if too
+ * string is written to an output buffer which is oml_realloc()ed if too
  * small to accommodate the output.  It is, therefore, mandatory to
- * allocate the output buffer using xmalloc().
+ * allocate the output buffer using oml_malloc().
  *
  * \param v Pointer to an array of uint64_t values.
  * \param v_sz Number of elements in v.
@@ -263,7 +263,7 @@ vector_uint64_to_json(const uint64_t *v, size_t v_sz, char **str)
 
 /**
  * Convert a vector of uint64_t values to a JSON string. The output
- * string is written to an output buffer which is xrealloc()ed if too
+ * string is written to an output buffer which is oml_realloc()ed if too
  * small to accommodate the output.
  *
  * \param v Pointer to an array of uint64_t values.
