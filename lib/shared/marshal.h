@@ -49,7 +49,7 @@ typedef struct {
 int marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now);
 int marshal_init(MBuffer* mbuf, OmlBinMsgType msgtype);
 int marshal_values(MBuffer* mbuffer, OmlValue* values, int value_count);
-inline int marshal_value(MBuffer* mbuf, OmlValueT val_type,  OmlValueU* val);
+int marshal_value(MBuffer* mbuf, OmlValueT val_type,  OmlValueU* val);
 int marshal_finalize(MBuffer*  mbuf);
 OmlBinMsgType marshal_get_msgtype (MBuffer *mbuf);
 

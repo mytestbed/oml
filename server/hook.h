@@ -36,7 +36,7 @@ extern int hookpipe[];
 void hook_setup (void);
 void hook_cleanup (void);
 
-inline int hook_enabled();
+int hook_enabled();
 
 ssize_t hook_write (const void *buf, size_t count);
 ssize_t hook_read (void *buf, size_t count);
