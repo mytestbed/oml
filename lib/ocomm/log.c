@@ -206,7 +206,7 @@ o_vlog(int log_level, const char* fmt, va_list va)
   if (difftime(now, last_time) < MAX_MESSAGE_RATE &&
       !strncmp(new_log, last_log, LOG_BUF_LEN) &&
       /* Same message and level at too high a rate */
-      log_level == log_level) {
+      last_level == log_level) {
 
     if(++nseen > exponent) {
       snprintf(new_log, LOG_BUF_LEN,

@@ -538,7 +538,7 @@ int marshal_values(MBuffer* mbuf, OmlValue* values, int value_count)
  * \return 1 on success, or 0 otherwise (marshalling should then restart from marshal_init())
  * \see marshal_values, marshal_init, mbuf_reset_write, mbuf_repack_message, mbuf_repack_message2, mbuf_resize
  */
-inline int
+int
 marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
 {
   switch (val_type) {

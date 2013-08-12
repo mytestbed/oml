@@ -153,7 +153,7 @@ clean_pipes:
 /** Determine whether an event hook has been enabled
  * \return 1 if hook enabled, 0 otherwise
  */
-inline int
+int
 hook_enabled(void) {
  return hookpipe[0] >= 0 && hookpipe[1] >= 0;
 }
