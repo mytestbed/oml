@@ -107,6 +107,41 @@ database_setup_backend (const char* backend)
   return 0;
 }
 
+
+/** Helper function to build and send a database-related event to the server hook.
+ *
+ * \param self Database on which the event happened
+ * \param event event to report
+ *
+ * \return 0 on success (even if the hook is disabled), -1 otherwise
+ *
+ * \see HOOK_CMD_DBCREATED, HOOK_CMD_DBOPENED, HOOK_CMD_DBCLOSED
+ */
+static int
+database_hook_send_event(Database *self, const char* event){
+  char dburi[PATH_MAX+1];
+  MString *hook_command = mstring_create();
+
+  if(hook_enabled()) {
+    if(!self->get_uri(self, dburi, sizeof(dburi))) {
+      logwarn("%s: Unable to get full URI to database for hook\n", self->name);
+
+    } else if (mstring_sprintf(hook_command, "%s %s\n",
+          event, dburi) == -1) {
+      logwarn("%s: Failed to construct command string for event hook\n", self->name);
+      mstring_delete(hook_command);
+      return -1;
+
+    } else if(hook_write(mstring_buf(hook_command), mstring_len(hook_command)) < (int)mstring_len(hook_command)) {
+      logwarn("%s: Failed to send command string to event hook: %s\n", self->name, strerror(errno));
+      mstring_delete(hook_command);
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
 /** Get the database-creation function for the selected backend.
  *
  * \param backend name of the selected backed
@@ -163,12 +198,16 @@ database_find (const char* name)
 
   char *start_time_str = self->get_metadata (self, "start_time");
 
-  if (start_time_str != NULL)
-    {
-      self->start_time = strtol (start_time_str, NULL, 0);
-      oml_free (start_time_str);
-      logdebug("%s: Retrieved start-time = %lu\n", name, self->start_time);
-    }
+  if (start_time_str == NULL) {
+    /* No start time: this is probably a new database */
+    database_hook_send_event(self, HOOK_CMD_DBCREATED);
+
+  } else {
+    database_hook_send_event(self, HOOK_CMD_DBOPENED);
+    self->start_time = strtol (start_time_str, NULL, 0);
+    oml_free (start_time_str);
+    logdebug("%s: Retrieved start-time = %lu\n", name, self->start_time);
+  }
 
   // hook this one into the list of active databases
   self->next = first_db;
@@ -184,9 +223,6 @@ database_find (const char* name)
 void
 database_release(Database* self)
 {
-  MString *hook_command = mstring_create();
-  char dburi[PATH_MAX+1];
-
   if (self == NULL) {
     logerror("NONE: Trying to release a NULL database.\n");
     return;
@@ -223,17 +259,7 @@ database_release(Database* self)
   loginfo ("%s: Closing database\n", self->name);
   self->release (self);
 
-  if(hook_enabled()) {
-    if(!self->get_uri(self, dburi, sizeof(dburi)))
-      logwarn("%s: Unable to get full URI to database for hook\n", self->name);
-    else if (mstring_sprintf(hook_command, "%s %s\n",
-          HOOK_CMD_DBCLOSED, dburi) == -1) {
-      logwarn("%s: Failed to construct command string for event hook\n", self->name);
-    }
-    if(hook_write(mstring_buf(hook_command), mstring_len(hook_command)) < (int)mstring_len(hook_command))
-      logwarn("%s: Failed to send command string to event hook: %s\n", self->name, strerror(errno));
-    mstring_delete(hook_command);
-  }
+  database_hook_send_event(self, HOOK_CMD_DBCLOSED);
 
   oml_free(self);
 }

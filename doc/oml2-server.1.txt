@@ -230,11 +230,25 @@ its standard input.
 EXIT::
 	Command the hook to cleanup and terminate. This command has no argument.
 
+DBCREATED 'uri'::
+	New database 'uri' (see link:#_database_uri_schemes[DATABASE URI SCHEMES]
+	below) has been created ("New" here means that the database
+	didn't have a 'start_time' metadatum; this is an idiosyncracy of
+	the current code, but this essentially behaves as one would
+	expect). Tasks such as giving permissions to specific user
+	groups can be performed in response to this event.
+
+DBOPENED 'uri'::
+	Database 'uri' was re-opened.
+
 DBCLOSED 'uri'::
-	Indication that the last client for a given database has now exited and
-	cleanup tasks on the data can be performed. This command has one
-	argument, 'uri', which is an URI identifying the database. The URI
-	schemes vary with the backend, and are as follows.
+	The last client for database 'uri' has now exited and cleanup
+	tasks on the data can be performed.
+
+DATABASE URI SCHEMES
+--------------------
+
+Database URI schemes vary with the backend, and are as follows.
 ifdef::have_pg[]
 	* PostgreSQL: 'postgresql://USER@HOST:PORT/dbname' where 'USER',
 	'HOST' and 'PORT' are the values of the equivalent '--pg-*'

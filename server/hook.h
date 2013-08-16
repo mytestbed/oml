@@ -31,6 +31,8 @@ extern int hookpipe[];
 
 #define HOOK_BANNER "OML HOOK READY"
 #define HOOK_CMD_EXIT "EXIT\n" /* No argument for this one */
+#define HOOK_CMD_DBCREATED "DBCREATED"
+#define HOOK_CMD_DBOPENED "DBOPENED"
 #define HOOK_CMD_DBCLOSED "DBCLOSED"
 
 void hook_setup (void);

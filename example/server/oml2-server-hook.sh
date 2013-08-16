@@ -46,8 +46,17 @@ echo "OML HOOK READY"
 while read COMMAND ARGUMENTS; do
 	# One report line must be printed in each control path;
 	# this first one puts out a timestamp and a dump of the received command, but no newline
-	log -n "`date`: ${COMMAND} ${ARGUMENTS}: "
+	if [ -z "$COMMAND" ]; then
+		continue
+	fi
+	log -n "`date`: '${COMMAND} ${ARGUMENTS}': "
 	case "${COMMAND}" in
+		"DBCREATED")
+			log "DB ${ARGUMENTS} created"
+			;;
+		"DBOPENED")
+			log "DB ${ARGUMENTS} opened"
+			;;
 		"DBCLOSED")
 			case "${ARGUMENTS}" in
 				file:*)
