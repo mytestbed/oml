@@ -229,9 +229,9 @@ psql_stmt(Database* db, const char* stmt)
 int
 psql_create_database(Database* db)
 {
-  MString *conninfo;
-  MString *str;
-  PGconn  *conn;
+  MString *conninfo = NULL;
+  MString *str = NULL;
+  PGconn  *conn = NULL;
   PGresult *res = NULL;
   int ret = -1;
 
@@ -275,6 +275,8 @@ psql_create_database(Database* db)
       goto cleanup_exit;
     }
   }
+  mstring_delete(str);
+  str = NULL;
 
   PQfinish (conn);
   mstring_delete(conninfo);
@@ -291,6 +293,8 @@ psql_create_database(Database* db)
     goto cleanup_exit;
   }
   PQsetNoticeReceiver(conn, psql_receive_notice, db->name);
+  mstring_delete(conninfo);
+  conninfo = NULL;
 
   PsqlDB* self = (PsqlDB*)oml_malloc(sizeof(PsqlDB));
   self->conn = conn;
@@ -324,8 +328,9 @@ cleanup_exit:
   if (res) { PQclear (res) ; }
   if (ret) { PQfinish (conn); } /* If return !=0, cleanup connection */
 
-  mstring_delete (str);
-  mstring_delete (conninfo);
+  if (str) { mstring_delete (str); }
+  if (conninfo) { mstring_delete (conninfo); }
+  /* All paths leading to here have conn uninitialised */
   return ret;
 }
 
