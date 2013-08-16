@@ -884,35 +884,43 @@ psql_get_table_list (Database *database, int *num_tables)
 
         schema_res = PQexecPrepared (self->conn, pschema_stmt, 1, &tablename, NULL, paramFormats, 0);
         if (PQresultStatus (schema_res) != PGRES_TUPLES_OK) {
-          logerror("psql:%s: Could not get schema for table %s: %s", /* PQerrorMessage strings already have '\n'  */
+          logwarn("psql:%s: Could not get schema for table %s, ignoring it: %s", /* PQerrorMessage strings already have '\n'  */
               database->name, tablename, PQerrorMessage(self->conn));
-          goto fail_exit;
-        }
 
-        meta = PQgetvalue (schema_res, 0, 0); /* We should only have one result row */
-        schema = schema_from_meta(meta);
-        PQclear(schema_res);
-        schema_res = NULL;
-
-        if (!schema) {
-          logerror("psql:%s: Could not parse schema '%s' (stored in DB) for table %s; is your database from an oml2-server<2.10?\n",
-              database->name, meta, tablename);
-          goto fail_exit;
-        }
-
-        t = table_descr_new (tablename, schema);
-        if (!t) {
-          logerror("psql:%s: Could create table descrition for table %s\n",
+        } else if (PQntuples(schema_res) <= 0) {
+          logwarn("psql:%s: No schema for table %s, ignoring it\n",
               database->name, tablename);
-          goto fail_exit;
+
+        } else {
+          meta = PQgetvalue (schema_res, 0, 0); /* We should only have one result row */
+          schema = schema_from_meta(meta);
+          PQclear(schema_res);
+          schema_res = NULL;
+
+          if (!schema) {
+            logwarn("psql:%s: Could not parse schema '%s' (stored in DB) for table %s, ignoring it; "
+                "is your database from an oml2-server<2.10?\n",
+                database->name, meta, tablename);
+
+          } else {
+
+            t = table_descr_new (tablename, schema);
+            if (!t) {
+              logerror("psql:%s: Could not create table descrition for table %s\n",
+                  database->name, tablename);
+              goto fail_exit;
+            }
+            schema = NULL; /* The pointer has been copied in t (see table_descr_new);
+                              we don't want to free it twice in case of error */
+          }
         }
-        schema = NULL; /* The pointer has been copied in t (see table_descr_new);
-                          we don't want to free it twice in case of error */
       }
 
-      t->next = tables;
-      tables = t;
-      (*num_tables)++;
+      if (t) {
+        t->next = tables;
+        tables = t;
+        (*num_tables)++;
+      }
     }
   } while (i < nrows);
 

@@ -800,35 +800,37 @@ sq3_get_table_list (Database *database, int *num_tables)
         }
 
         if(sqlite3_step(pschema_stmt) != SQLITE_ROW) {
-          logerror("sqlite:%s: Could not get schema for table %s: %s\n",
+          logwarn("sqlite:%s: Could not get schema for table %s (or not present), ignoring it: %s\n",
               database->name, tablename, sqlite3_errmsg(self->conn));
-          goto fail_exit;
-        }
 
-        meta = (const char*)sqlite3_column_text(pschema_stmt, 0); /* We should only have one result row */
-        schema = schema_from_meta(meta);
-        sqlite3_finalize(pschema_stmt);
-        pschema_stmt = NULL; /* Avoid double-finalisation in case of error */
+        } else {
+          meta = (const char*)sqlite3_column_text(pschema_stmt, 0); /* We should only have one result row */
+          schema = schema_from_meta(meta);
+          sqlite3_finalize(pschema_stmt);
+          pschema_stmt = NULL; /* Avoid double-finalisation in case of error */
 
-        if (!schema) {
-          logerror("sqlite:%s: Could not parse schema '%s' (stored in DB) for table %s; is your database from an oml2-server<2.10?\n",
-              database->name, meta, tablename);
-          goto fail_exit;
-        }
+          if (!schema) {
+            logerror("sqlite:%s: Could not parse schema '%s' (stored in DB) for table %s; is your database from an oml2-server<2.10?\n",
+                database->name, meta, tablename);
+            goto fail_exit;
+          }
 
-        t = table_descr_new (tablename, schema);
-        if (!t) {
-          logerror("sqlite:%s: Could create table descrition for table %s\n",
-              database->name, tablename);
-          goto fail_exit;
+          t = table_descr_new (tablename, schema);
+          if (!t) {
+            logerror("sqlite:%s: Could create table descrition for table %s\n",
+                database->name, tablename);
+            goto fail_exit;
+          }
+          schema = NULL; /* The pointer has been copied in t (see table_descr_new);
+                            we don't want to free it twice in case of error */
         }
-        schema = NULL; /* The pointer has been copied in t (see table_descr_new);
-                          we don't want to free it twice in case of error */
       }
 
-      t->next = tables;
-      tables = t;
-      (*num_tables)++;
+      if (t) {
+        t->next = tables;
+        tables = t;
+        (*num_tables)++;
+      }
     }
   } while (res == SQLITE_ROW);
 
