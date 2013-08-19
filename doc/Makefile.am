@@ -46,7 +46,7 @@ OMLCINJECT3_LINKS = \
 # How to publish documentation
 USER= # If set, should contain a trailing @
 WWWHOST=mytestbed.net
-HTDOCS=/var/www/redmine/doc/oml/$(OML_BASE_VER)
+HTDOCS=/var/www/redmine_mytestbed.net/public/doc/oml/$(OML_BASE_VER)
 
 # This rule will fail, purposefully, if some documentation cannot be generated
 publish: publish-man publish-doxygen
