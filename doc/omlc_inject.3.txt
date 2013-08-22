@@ -16,19 +16,42 @@ SYNOPSIS
 DESCRIPTION
 -----------
 
-*omlc_inject*() takes a vector of values and injects them as a
-measurement sample into a 'measurement point' (MP) previously defined
-via a call to linkoml:omlc_add_mp[3]. If linkoml:omlc_inject[3] is called prior to
-the start of measurement sampling, then it will be ignored.
-Measurement sampling is initiated by a call to linkoml:omlc_start[3].
+The main purpose of the linkoml:liboml[3] is to allow easy reporting of
+measurement tuples from within instrumented applications. This is called
+'injection'. A set of 'Measurement Points' (MPs) are first registered to
+the library, with a fixed schema describing the tuples to be reported
+through each MP. At run-time, the injected data is serialised as a
+'Measurement Stream' (MS), and sent towards a collection point.
 
-*omlc_inject_metadata*() injects a metadata 'key'/'value' pair about MP
-'mp', and its optional field 'fname'. Unlike other data injected in an
-MP, metadata is treated differently. It is sent along a specific
-metadata 'measurement stream' (MS), and ends up being stored in the
-timestamped '_experiment_metadata' table by the linkoml:oml2-server[1].
-At the moment, the only valid 'type' for 'value' is 'OML_STRING_VALUE';
-anything else will generate an error.
+*omlc_inject*() takes a vector of values and injects them as a
+measurement sample into an MP previously defined via a call to
+linkoml:omlc_add_mp[3]. If linkoml:omlc_inject[3] is called prior to the
+start of measurement sampling, it will be ignored.  Measurement sampling
+is initiated by a call to linkoml:omlc_start[3].
+
+The client library can also inject metadata which doesn't quite fit in
+the defined measurement points, or occurs too seldom to justify creating
+a new one. Example metadata includes ancillary information about the
+application such as version or command line, or some specific details
+about MPs or specific fields such as precision and units.  Metadata is
+sent along a specific MS named '_experiment_metadata'. Metadata
+information consists of 'key'/'value' pairs qualifying a 'subject'. The
+subject is a string formatted as '.[mpname[.fname]]', where '.'
+identifies the root of the application, and additional components allow
+to specify the entity to which the metadata refers more precisely.
+
+Metadata can be injected from the client side using the
+*omlc_inject_metadata*() function. The 'subject' is derived from 'mp'
+(which can be 'NULL') and that MP's optional field 'fname' (which is
+ignored if 'mp' is 'NULL'). The 'key' is specified as a nil-terminated
+C-string, and the 'value' as an  linkoml:OmlValueU[3], allowing some
+type flexibility.  At the moment, the only valid 'type' for 'value' is
+'OML_STRING_VALUE'; anything else will generate an error. Nonetheless it
+needs to be properly initialised (linkomlalias:omlc_zero[OmlValueU,3])
+and cleaned up (linkomlalias:omlc_reset_string[OmlValueU,3]).
+
+AN IMPORTANT NOTE ON THE GOODNESS OF GENERATED CODE
+---------------------------------------------------
 
 Prior to reading the following, it is worthy to note that
 linkoml:oml-scaffold[1] can be used to generate custom registration and
