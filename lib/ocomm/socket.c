@@ -87,20 +87,10 @@ typedef struct _socket {
   //! Local memory for debug name
   char nameBuf[64];
 
-  //! Link to next socket instance.
-  struct _socket* next;
-
   int is_disconnected; ///< True if detected a SIGPIPE on a sendto()
 
 } SocketInt;
 
-
-/*
-static int instance_cnt = 0;
-static SocketInt* instances[MAX_SOCKET_INSTANCES];
-*/
-
-static SocketInt* instances = NULL;
 
 int
 socket_set_non_blocking_mode(
@@ -244,29 +234,9 @@ Socket* socket_in_new(
   self->localport = ntohs(self->servAddr.sin_port);
   o_log(O_LOG_DEBUG, "socket:%s: Socket bound to port: %d\n", name, self->localport);
 
-  self->next = instances;
   instances = self;
   return (Socket*)self;
 }
-#if 0 // Suppress compiler warning b/c on_self_connected never used
-static void
-on_self_connected(
-  Socket* source,
-  SocketStatus status,
-  void* handle
-) {
-  (void)handle;  // FIXME: Check why this parameter is unused.
-  SocketInt* self = (SocketInt*)source;
-
-  switch (status) {
-  case SOCKET_CONN_REFUSED:
-    o_log(O_LOG_ERROR, "socket:%s: Connection refused\n", self->name);
-    break;
-  default:
-    o_log(O_LOG_ERROR, "socket:%s: Unknown socket status '%d'\n", self->name, status);
-  }
-}
-#endif
 
 /** Connect to remote addr.
  *
@@ -421,116 +391,6 @@ socket_server_new(
   return (Socket*)self;
 }
 
-static in_addr_t
-iface2addr(
-  char* name,
-  char* iface //! Name of the interface (eth0/eth1) to bind to
-) {
-  if (iface == NULL) {
-    // use DEFAULT interface
-    return INADDR_ANY;
-  }
-
-  struct ifreq ifr;
-  int ufd;
-  memset(&ifr, 0, sizeof(ifr));
-  strncpy(ifr.ifr_name, iface, IFNAMSIZ);
-  ifr.ifr_addr.sa_family = AF_INET;
-
-  if (((ufd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-      || ioctl(ufd, SIOCGIFADDR, &ifr) < 0)
-    {
-      o_log(O_LOG_ERROR, "socket:%s: Unable to resolve outgoing interface: %s",
-        name, iface);
-      return -1;
-    }
-  close(ufd);
-
-  return ((struct sockaddr_in *)&(ifr.ifr_addr))->sin_addr.s_addr;
-}
-
-
-
-Socket*
-socket_mc_in_new(
-  char* name,   //! Name used for debugging
-  char* addr,   //! IP address of the multicast socket/channel.
-  int port, //! Port used
-  char* iface //! Name of the interface (eth0/eth1) to bind to
-) {
-  SocketInt* self;
-  if ((self = (SocketInt*)socket_in_new(name, port, FALSE)) == NULL)
-    return NULL;
-
-  //  self->addr = addr;
-  //self->localport = port;
-  self->iface = iface;
-
-  // JOIN multicast group on default interface
-  self->imreq.imr_multiaddr.s_addr = inet_addr(addr);
-  self->imreq.imr_interface.s_addr = iface2addr(name, iface);
-
-  if (setsockopt(self->sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-         (const void *)&(self->imreq),
-         sizeof(struct ip_mreq)) < 0) {
-    o_log(O_LOG_ERROR, "socket:%s: Error while joining a multicast group\n", name);
-    return NULL;
-  }
-  o_log(O_LOG_DEBUG, "socket:%s: Ready to receive data on multicast address: %s\n",
-    name, addr);
-  return (Socket*)self;
-}
-
-Socket*
-socket_mc_out_new(
-  char* name,   //! Name used for debugging
-  char* mcast_addr,   //! IP address of the multicast socket/channel.
-  int mcast_port, //! Port used
-  char* iface //! Name of the interface (eth0/eth1) to bind to
-) {
-  SocketInt* self;
-//  if ((self = (SocketInt*)socket_new(name, mcast_addr, 0)) == NULL)
-//    return NULL;
-  if ((self = (SocketInt*)socket_new(name, FALSE)) == NULL)
-    return NULL;
-
-  // Multicast parameters
-  unsigned char ttl = 3;
-  unsigned char one = 3;  // loopback
-
-  struct in_addr addr;
-  addr.s_addr = iface2addr(name, iface);
-  o_log(O_LOG_DEBUG, "socket:%s: Binding to %x\n", name, addr.s_addr);
-  if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) < 0) {
-    o_log (O_LOG_ERROR, "socket:%s: Setting outgoing interface for socket\n\t%s",
-       name, strerror(errno));
-    socket_free((Socket*)socket);
-    return NULL;
-  }
-
-  if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl,
-        sizeof(unsigned char)) < 0) {
-    o_log(O_LOG_ERROR, "socket:%s: While setting TTL parameter for multicast socket\n\t%s",
-      name, strerror(errno));
-    socket_free((Socket*)socket);
-    return NULL;
-  }
-  if (setsockopt(self->sockfd, IPPROTO_IP, IP_MULTICAST_LOOP,
-         &one, sizeof(unsigned char)) < 0) {
-    o_log(O_LOG_ERROR, "socket%s: While setting the loopback on multicast socket\n\t%s",
-      name, strerror(errno));
-    socket_free((Socket*)socket);
-    return NULL;
-  }
-
-  //  self->addr = mcast_addr;
-  self->servAddr.sin_port = htons(mcast_port);
-  self->servAddr.sin_addr.s_addr = inet_addr(mcast_addr);
-  o_log(O_LOG_DEBUG, "socket:%s: Ready to send data on: %s:%d\n",
-    name, mcast_addr, mcast_port);
-  return (Socket*)self;
-}
-
 /** Prevent the remote sender from trasmitting more data.
  *
  * \param socket Socket object for which to shut communication down
@@ -561,26 +421,6 @@ socket_close(
     self->sockfd = -1;
   }
   return 0;
-}
-
-
-/*! Method for closing ALL communication channels
- * Return 0 on success, -1 otherwise
- */
-int
-socket_close_all()
-
-{
-  int result = 0;
-  SocketInt* sock = instances;
-
-  while (sock != NULL) {
-    if (socket_close((Socket*)sock) != 0) {
-      result = -1;
-    }
-    sock = sock->next;
-  }
-  return result;
 }
 
 int

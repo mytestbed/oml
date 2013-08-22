@@ -112,26 +112,6 @@ socket_in_new(
   int is_tcp  //! True if TCP, false for UDP
 );
 
-/*! Create a multicast socket object.
- */
-Socket*
-socket_mc_in_new(
-  char* name,   //! Name used for debugging
-  char* addr,   //! IP address of the multicast socket/channel.
-  int port, //! Port used
-  char* iface
-);
-
-/*! Create a multicast socket object.
- */
-Socket*
-socket_mc_out_new(
-  char* name,   //! Name used for debugging
-  char* addr,   //! IP address of the multicast socket/channel.
-  int port, //! Port used
-  char* iface //! Name of the interface (eth0/eth1) to bind to
-);
-
 /*! Create a server socket object.
  */
 Socket*
@@ -170,12 +150,6 @@ int
 socket_close(
   Socket* socket
 );
-
-/*! Method for closing ALL communication channels
- * Return 0 on success, -1 otherwise
- */
-int
-socket_close_all(void);
 
 void
 socket_free (
