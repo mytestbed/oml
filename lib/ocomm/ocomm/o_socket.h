@@ -125,15 +125,6 @@ socket_server_new(
 /** Create a outgoing TCP socket object. */
 Socket* socket_tcp_out_new(const char* name, const char* addr, const char *service);
 
-/*! Attempt to reconnect.
- *
- * Return true(1) on success, false(0) otherwise.
- */
-int
-socket_reconnect(
-  Socket* socket
-);
-
 /** Prevent the remote sender from trasmitting more data. */
 int socket_shutdown(Socket *socket);
 
