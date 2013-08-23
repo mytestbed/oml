@@ -346,23 +346,6 @@ socket_tcp_out_new(
   return (Socket*)self;
 }
 
-/** Attempt to reconnect an OComm Socket.
- *
- * \param socket OComm socket
- * \return 0 on failure, the new socket number otherwise
- * \see s_connect
- */
-int socket_reconnect(Socket* socket) {
-  SocketInt* self = (SocketInt*)socket;
-
-  if (self == NULL) {
-    o_log(O_LOG_ERROR, "Missing socket definition\n");
-    return 0;
-  }
-
-  return s_connect(self);
-}
-
 /** Eventloop callback called when a new connection is received on a listening Socket.
  *
  * This function accept()s the connection, and creates a SocketInt to wrap
