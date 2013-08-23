@@ -99,7 +99,7 @@ socket_is_listening (Socket* socket);
  */
 Socket*
 socket_new(
-  char* name,   //! Name used for debugging
+  const char* name,   //! Name used for debugging
   int is_tcp  //! True if TCP, false for UDP
 );
 
@@ -107,7 +107,7 @@ socket_new(
  */
 Socket*
 socket_in_new(
-  char* name,   //! Name used for debugging
+  const char* name,   //! Name used for debugging
   int port, //! Port used
   int is_tcp  //! True if TCP, false for UDP
 );
@@ -122,14 +122,8 @@ socket_server_new(
   void* handle //! opaque argument to callback
 );
 
-/*! Create a outgoing TCP socket object.
- */
-Socket*
-socket_tcp_out_new(
-  char* name,   //! Name used for debugging
-  char* addr,   //! IP address of the server to connect to.
-  int port //! Port of remote service
-);
+/** Create a outgoing TCP socket object. */
+Socket* socket_tcp_out_new(const char* name, const char* addr, const char *service);
 
 /*! Attempt to reconnect.
  *

@@ -27,6 +27,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "mem.h"
 #include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
 #include "ocomm/o_eventloop.h"
@@ -43,7 +44,7 @@
 static int nonblocking_mode = 1;
 
 //! Data-structure, to store communication related parameters and information.
-typedef struct _socket {
+typedef struct SocketInt {
 
   //! Name used for debugging
   char* name;
@@ -58,10 +59,10 @@ typedef struct _socket {
   int is_tcp;
 
   //! IP address of the multicast socket/channel.
-  //  char* addr;
+  char* dest;
 
   //! Remote port connected to
-  //  int port;
+  char* service;
 
   //! Local port used
   int localport;
@@ -87,7 +88,10 @@ typedef struct _socket {
   //! Local memory for debug name
   char nameBuf[64];
 
-  int is_disconnected; ///< True if detected a SIGPIPE on a sendto()
+  int is_disconnected; /** < True if detected a SIGPIPE or ECONNREFUSED on a sendto() */
+
+  struct addrinfo *results, /** < Results from getaddrinfo to iterate over */
+                  *rp;      /** < Current iterator over getaddrinfo results */
 
 } SocketInt;
 
@@ -129,14 +133,12 @@ socket_is_listening (
  * \return a pointer to the SocketInt object
  */
 static SocketInt*
-initialize(
-  char* name
-) {
-  SocketInt* self = (SocketInt *)malloc(sizeof(SocketInt));
+socket_initialize(const char* name) {
+  SocketInt* self = (SocketInt *)oml_malloc(sizeof(SocketInt));
   memset(self, 0, sizeof(SocketInt));
 
   self->name = self->nameBuf;
-  strcpy(self->name, name != NULL ? name : "UNKNOWN");
+  strncpy(self->name, name != NULL ? name : "UNKNOWN", sizeof(self->nameBuf));
 
   self->sendto = socket_sendto;
   self->get_sockfd = socket_get_sockfd;
@@ -152,32 +154,12 @@ initialize(
  * \see socket_new, socket_close
  */
 void socket_free (Socket* socket) {
+  SocketInt* self = (SocketInt *)socket;
   socket_close(socket);
-  free (socket);
-}
-
-/** Open a new system socket and link it to the SocketInt object.
- *
- * Also, take care of closing old sockets if they were still there.
- *
- * \param self OComm socket to link the system socket to
- * \return 1 on success, 0 otherwise
- */
-static int s_socket(SocketInt* self) {
-  if(self->sockfd > 0) {
-    close(self->sockfd);
-  }
-  if((self->sockfd = socket(PF_INET,
-                self->is_tcp ? SOCK_STREAM : SOCK_DGRAM, IPPROTO_IP)) < 0) {
-    o_log (O_LOG_ERROR, "socket: Error creating socket: %s\n", strerror(errno));
-    return 0;
-  }
-  if (nonblocking_mode) {
-    fcntl(self->sockfd, F_SETFL, O_NONBLOCK);
-  }
-  o_log(O_LOG_DEBUG, "socket:%s: Socket %d successfully created\n",
-    self->name, self->sockfd);
-  return 1;
+  if (self->dest) { oml_free(self->dest); }
+  if (self->service) { oml_free(self->service); }
+  if (self->results) { freeaddrinfo(self->results); }
+  oml_free (self);
 }
 
 /** Create an unbound Socket object.
@@ -187,13 +169,10 @@ static int s_socket(SocketInt* self) {
  * \return a pointer to the SocketInt object, cast as a Socket, with a newly opened system socket
  * \see socket_free, socket_close
  */
-Socket* socket_new(char* name, int is_tcp) {
-  SocketInt* self = initialize(name);
-  self->is_tcp = is_tcp;
-  if (!s_socket(self)) {
-    socket_free((Socket*)self);
-    return NULL;
-  }
+Socket* socket_new(const char* name, int is_tcp) {
+  SocketInt* self = socket_initialize(name);
+  self->is_tcp = is_tcp; /* XXX: replace is_tcp with a more meaningful variable to contain that */
+  self->is_disconnected = 1;
   return (Socket*)self;
 }
 
@@ -208,90 +187,161 @@ Socket* socket_new(char* name, int is_tcp) {
  * \return a pointer to the SocketInt object, cast as a Socket
  */
 Socket* socket_in_new(
-  char* name,
+  const char* name,
   int port,
   int is_tcp
 ) {
   SocketInt* self;
-  if ((self = (SocketInt*)socket_new(name, is_tcp)) == NULL)
+
+  if ((self = (SocketInt*)socket_new(name, is_tcp)) == NULL) {
     return NULL;
+  } else if(0 > (self->sockfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))) {
+    o_log(O_LOG_DEBUG, "socket(%s): Could not create listening socket for AF %d: %s\n",
+        self->name, PF_INET, strerror(errno));
+    socket_free((Socket*)self);
+    return NULL;
+  }
 
-
-//  o_log(O_LOG_DEBUG, "socket:%s: Attempt to join %s:%d\n", name, addr, port);
-
-  self->servAddr.sin_family = PF_INET;
+  self->servAddr.sin_family = AF_INET;
   self->servAddr.sin_port = htons(port);
   self->servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
   if(bind(self->sockfd, (struct sockaddr *)&self->servAddr,
-      sizeof(struct sockaddr_in)) < 0) {
-    o_log(O_LOG_ERROR, "socket:%s: Error binding socket to interface: %s\n",
-          name, strerror(errno));
+        sizeof(struct sockaddr_in)) < 0) {
+    o_log(O_LOG_ERROR, "socket(%s): Error binding socket to interface: %s\n",
+        name, strerror(errno));
     socket_free((Socket*)self);
     return NULL;
   }
 
   self->localport = ntohs(self->servAddr.sin_port);
-  o_log(O_LOG_DEBUG, "socket:%s: Socket bound to port: %d\n", name, self->localport);
+  o_log(O_LOG_DEBUG, "socket(%s): Socket bound to port: %d\n", name, self->localport);
 
   instances = self;
   return (Socket*)self;
 }
 
-/** Connect to remote addr.
+/** Connect the socket to remote peer.
  *
  * If addr is NULL, assume the servAddr is already populated, and ignore port.
  *
  * \param self OComm socket to use
- * \param addr string representation of the address to connect to, can be NULL
- * \param port port to connect to
  * \return 1 on success, 0 on error
  */
-static int s_connect(SocketInt* self, char* addr, int port) {
-  if (addr != NULL) {
-    struct hostent *server;
+static int
+s_connect(SocketInt* self) {
+  int hostlen=40,  /* IPv6: (8*4 + 7) + 1*/
+      servlen=7; /* ndigits(65536) + 1 */
+  char host[hostlen], serv[servlen];
+  struct addrinfo hints;
+  *host = 0;
+  *serv = 0;
+  memset(&hints, 0, sizeof(struct addrinfo));
+  /* XXX: This should be pulled up when we support UDP and/or multicast */
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_protocol = IPPROTO_TCP; /* FIXME: We should check self->is_tcp */
 
-    /* FIXME for #369: use getaddrinfo */
-    server = gethostbyname(addr);
-    if (server == NULL) {
-      o_log(O_LOG_ERROR, "socket:%s: Unknown host %s\n", self->name, addr);
+  if (!self->dest || !self->service) {
+    o_log(O_LOG_ERROR, "socket(%s): destination or service missing. Is this an outgoing socket?\n",
+        self->name);
+    return 0;
+  }
+
+  if (!self->rp) {
+    o_log(O_LOG_DEBUG, "socket(%s): Resolving %s:%s\n",
+        self->name, self->dest, self->service);
+    if (getaddrinfo(self->dest, self->service, &hints, &self->results)) {
+      o_log(O_LOG_ERROR, "socket(%s): Error resolving %s:%s: %s\n",
+          self->name, self->dest, self->service, strerror(errno));
       return 0;
     }
-
-    self->servAddr.sin_family = PF_INET;
-    self->servAddr.sin_port = htons(port);
-    bcopy((char *)server->h_addr,
-      (char *)&self->servAddr.sin_addr.s_addr,
-      server->h_length);
+    self->rp = self->results;
   }
-  if (connect(self->sockfd, (struct sockaddr *)&self->servAddr,
-          sizeof(struct sockaddr_in)) < 0) {
-    if (errno != EINPROGRESS) {
-      o_log(O_LOG_ERROR, "socket:%s: Error connecting to %s:%d: %s\n",
-        self->name, addr, port, strerror(errno));
-      return 0;
+
+  for (; self->rp != NULL; self->rp = self->rp->ai_next) {
+    if (!getnameinfo(self->rp->ai_addr, self->rp->ai_addrlen,
+          host, hostlen, serv, servlen,
+          NI_NUMERICHOST|NI_NUMERICSERV)) {
+      o_log(O_LOG_DEBUG, "socket(%s): Connecting to [%s]:%s (AF %d, proto %d)\n",
+          self->name, host, serv, self->rp->ai_family, self->rp->ai_protocol);
+    } else {
+      o_log(O_LOG_DEBUG, "socket(%s): Error converting AI %p back to name\n",
+          self->name, self->rp);
+      *host = 0;
+      *serv = 0;
+    }
+
+    /* If we are here, any old socket is invalid, clean them up and try again */
+    if(self->sockfd >= 0) {
+      o_log(O_LOG_DEBUG2, "socket(%s): FD %d already open, closing...\n",
+          self->name, self->sockfd);
+      close(self->sockfd);
+    }
+
+    if(0 > (self->sockfd =
+          socket(self->rp->ai_family, self->rp->ai_socktype, self->rp->ai_protocol))) {
+      o_log(O_LOG_DEBUG, "socket(%s): Could not create socket to [%s]:%s: %s\n",
+          self->name, host, serv, strerror(errno));
+
+    } else {
+      if (nonblocking_mode) {
+        fcntl(self->sockfd, F_SETFL, O_NONBLOCK);
+      }
+
+      if (0 != connect(self->sockfd, self->rp->ai_addr, self->rp->ai_addrlen)) {
+        o_log(O_LOG_DEBUG, "socket(%s): Could not connect to [%s]:%s: %s\n",
+            self->name, host, serv, strerror(errno));
+
+      } else {
+        if (!nonblocking_mode) {
+          o_log(O_LOG_DEBUG, "socket(%s): Connected to [%s]:%s\n",
+              self->name, host, serv);
+        }
+        self->is_disconnected = 0;
+
+        /* Get ready to try the next addrinfo in case this one failed */
+        //self->rp = self->rp->ai_next;
+        return 1;
+
+      }
     }
   }
-  return 1;
+  o_log(O_LOG_WARN, "socket(%s): Failed to connect\n",
+      self->name, self->dest, self->service);
+
+  freeaddrinfo(self->results);
+  self->results = NULL;
+  return 0;
 }
 
+/** Create a new outgoing TCP Socket.
+ *
+ * \param name name of this Socket, for debugging purposes
+ * \param dest DNS name or address of the destination
+ * \param service symbolic name or port number of the service to connect to
+ * \return a newly-allocated Socket, or NULL on error
+ */
 Socket*
 socket_tcp_out_new(
-  char* name,   //! Name used for debugging
-  char* addr,   //! IP address of the server to connect to.
-  int port //! Port of remote service
+  const char* name,   //! Name used for debugging
+  const char* dest,   //! IP address of the server to connect to.
+  const char* service //! Port of remote service
 ) {
   SocketInt* self;
 
-  if (addr == NULL) {
-    o_log(O_LOG_ERROR, "socket:%s: Missing address\n", name);
+  if (dest == NULL) {
+    o_log(O_LOG_ERROR, "socket(%s): Missing destination\n", name);
     return NULL;
   }
 
-  if ((self = (SocketInt*)socket_new(name, TRUE)) == NULL)
+  if ((self = (SocketInt*)socket_new(name, TRUE)) == NULL) {
     return NULL;
+  }
 
-  if (!s_connect(self, addr, port)) {
+  self->dest = oml_strndup(dest, strlen(dest));
+  self->service = oml_strndup(service, strlen(service));
+
+  if (!s_connect(self)) {
     socket_free((Socket*)self);
     return NULL;
   }
@@ -314,10 +364,7 @@ int socket_reconnect(Socket* socket) {
     return 0;
   }
 
-  if (!s_socket(self)) {
-    return 0;
-  }
-  return s_connect(self, NULL, -1);
+  return s_connect(self);
 }
 
 /** Eventloop callback called when a new connection is received on a listening Socket.
@@ -339,13 +386,13 @@ on_client_connect(
   (void)source; // FIXME: Check why source parameter is unused
   socklen_t cli_len;
   SocketInt* self = (SocketInt*)handle;
-  SocketInt* newSock = initialize(NULL);
+  SocketInt* newSock = socket_initialize(NULL);
   cli_len = sizeof(newSock->servAddr);
   newSock->sockfd = accept(self->sockfd,
                 (struct sockaddr*)&newSock->servAddr,
                  &cli_len);
   if (newSock->sockfd < 0) {
-    o_log(O_LOG_ERROR, "socket:%s: Error on accept: %s\n",
+    o_log(O_LOG_ERROR, "socket(%s): Error on accept: %s\n",
           self->name, strerror(errno));
     free(newSock);
     return;
@@ -368,6 +415,8 @@ on_client_connect(
  * \param callback function to call when a client connects
  * \param handle pointer to opaque data passed to callback function
  * \return a pointer to the SocketInt object (cast as a Socket)
+ *
+ * XXX: Fix server-side #369 here: register one socket per AP to the eventloop
  */
 Socket*
 socket_server_new(
@@ -400,9 +449,9 @@ socket_server_new(
 int socket_shutdown(Socket *socket) {
   int ret = -1;
 
-  o_log(O_LOG_DEBUG, "socket:%s: Shutting down for R/W\n", socket->name);
+  o_log(O_LOG_DEBUG, "socket(%s): Shutting down for R/W\n", socket->name);
   ret = shutdown(((SocketInt *)socket)->sockfd, SHUT_RDWR);
-  if(ret) o_log(O_LOG_WARN, "socket:%s: Failed to shut down: %s\n", socket->name, strerror(errno));
+  if(ret) o_log(O_LOG_WARN, "socket(%s): Failed to shut down: %s\n", socket->name, strerror(errno));
 
   return ret;
 }
@@ -432,6 +481,12 @@ socket_sendto(
   SocketInt *self = (SocketInt*)socket;
   int sent;
 
+  if (self->is_disconnected) {
+    if(!s_connect(self)) {
+      return 0;
+    }
+  }
+
   // TODO: Catch SIGPIPE signal if other side is half broken
   if ((sent = sendto(self->sockfd, buf, buf_size, 0,
                     (struct sockaddr *)&(self->servAddr),
@@ -439,10 +494,17 @@ socket_sendto(
     if (errno == EPIPE || errno == ECONNRESET) {
       // The other end closed the connection.
       self->is_disconnected = 1;
-      o_log(O_LOG_ERROR, "socket:%s: The remote peer closed the connection: %s\n",
+      o_log(O_LOG_ERROR, "socket(%s): The remote peer closed the connection: %s\n",
             self->name, strerror(errno));
+      return 0;
+    } else if (errno == ECONNREFUSED) {
+      self->is_disconnected = 1;
+      o_log(O_LOG_DEBUG, "socket(%s): Connection refused, trying next AI\n",
+            self->name);
+      self->rp = self->rp->ai_next;
+      return 0;
     } else if (errno == EINTR) {
-      o_log(O_LOG_WARN, "socket:%s: Sending data interrupted: %s\n",
+      o_log(O_LOG_WARN, "socket(%s): Sending data interrupted: %s\n",
             self->name, strerror(errno));
       return 0;
     } else {
