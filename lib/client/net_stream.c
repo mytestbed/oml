@@ -26,8 +26,6 @@
 #include "oml_util.h"
 #include "client.h"
 
-#define REATTEMP_INTERVAL 10    //! Seconds to wait before attempting to reach server again
-
 /** OmlOutStream writing out to an OComm Socket */
 typedef struct OmlNetOutStream {
 
@@ -200,13 +198,10 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;
 
   while (self->socket == NULL) {
-    loginfo ("%s: Connecting to server\n", self->dest);
+    logdebug ("%s: Connecting to server\n", self->dest);
     if (!open_socket(self)) {
-      logwarn("%s: connection attempt failed, sleeping for %ds\n", selt->dest, REATTEMP_INTERVAL);
-      sleep(REATTEMP_INTERVAL);
-    } else {
-      logdebug("%s: connection successful\n",
-             self->dest);
+      logdebug("%s: Connection attempt failed\n", self->dest);
+      return 0;
     }
   }
 

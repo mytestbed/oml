@@ -341,10 +341,6 @@ socket_tcp_out_new(
   self->dest = oml_strndup(dest, strlen(dest));
   self->service = oml_strndup(service, strlen(service));
 
-  if (!s_connect(self)) {
-    socket_free((Socket*)self);
-    return NULL;
-  }
 
   //  eventloop_on_out_channel((Socket*)self, on_self_connected, NULL);
   return (Socket*)self;
