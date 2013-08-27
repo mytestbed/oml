@@ -93,6 +93,8 @@ typedef struct SocketInt {
   struct addrinfo *results, /** < Results from getaddrinfo to iterate over */
                   *rp;      /** < Current iterator over getaddrinfo results */
 
+  Socket* next; /**< Pointer to the next OSocket in case more than one were instantiated. */
+
 } SocketInt;
 
 
@@ -176,49 +178,100 @@ Socket* socket_new(const char* name, int is_tcp) {
   return (Socket*)self;
 }
 
-
-/** Create an IP Socket object bound to ADDR and PORT.
+/** Create OSocket objects bound to name and service.
  *
- * This function binds the newly-created socket, but doesn't listen on it just yet.
+ * This function binds the newly-created socket, but doesn't listen on it just
+ * yet.  If name resolves to more than one AF, several sockets are created,
+ * linked through their `next' field.
  *
  * \param name name of the object, used for debugging
- * \param port port used
+ * \param node address or name to listen on; defaults to all if NULL
+ * \param service symbolic name or port number of the service to bind to
  * \param is_tcp true if TCP, false for UDP XXX: This should be more generic
- * \return a pointer to the SocketInt object, cast as a Socket
+ * \return a pointer to a linked list of SocketInt objects, cast as Socket
+ *
+ * \see getaddrinfo(3)
  */
-Socket* socket_in_new(
-  const char* name,
-  int port,
-  int is_tcp
-) {
-  SocketInt* self;
+Socket*
+socket_in_new(const char* name, const char* node, const char* service, int is_tcp)
+{
+  SocketInt *self = NULL, *list = NULL;
+  int hostlen=40,  /* IPv6: (8*4 + 7) + 1*/
+      servlen=7; /* ndigits(65536) + 1 */
+  char host[hostlen], serv[servlen];
+  struct addrinfo hints, *results, *rp;
+  *host = 0;
+  *serv = 0;
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_protocol = IPPROTO_TCP; /* FIXME: We should check self->is_tcp */
+  hints.ai_flags= AI_PASSIVE;
+  int val = 1;
 
-  if ((self = (SocketInt*)socket_new(name, is_tcp)) == NULL) {
-    return NULL;
-  } else if(0 > (self->sockfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))) {
-    o_log(O_LOG_DEBUG, "socket(%s): Could not create listening socket for AF %d: %s\n",
-        self->name, PF_INET, strerror(errno));
-    socket_free((Socket*)self);
-    return NULL;
+  if(getaddrinfo(node, service, &hints, &results)) {
+      o_log(O_LOG_ERROR, "socket(%s): Error resolving %s:%s: %s\n",
+          name, node, service, strerror(errno));
+      return NULL;
   }
 
-  self->servAddr.sin_family = AF_INET;
-  self->servAddr.sin_port = htons(port);
-  self->servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  for (rp = results; rp != NULL; rp = rp->ai_next) {
+    /* XXX: Duplicated with s_connect*/
+    if (!getnameinfo(rp->ai_addr, rp->ai_addrlen,
+          host, hostlen, serv, servlen,
+          NI_NUMERICHOST|NI_NUMERICSERV)) {
+      o_log(O_LOG_DEBUG, "socket(%s): Binding to [%s]:%s (AF %d, proto %d)\n",
+          name, host, serv, rp->ai_family, rp->ai_protocol);
+    } else {
+      o_log(O_LOG_DEBUG, "socket(%s): Error converting AI %p back to name\n",
+          self->name, rp);
+      *host = 0;
+      *serv = 0;
+    }
 
-  if(bind(self->sockfd, (struct sockaddr *)&self->servAddr,
-        sizeof(struct sockaddr_in)) < 0) {
-    o_log(O_LOG_ERROR, "socket(%s): Error binding socket to interface: %s\n",
-        name, strerror(errno));
-    socket_free((Socket*)self);
-    return NULL;
+    if (NULL == (self = (SocketInt*)socket_new(name, is_tcp))) {
+      o_log(O_LOG_WARN, "socket(%s): Could allocate Socket to listen on [%s]:%s: %s\n",
+          self->name, host, serv, strerror(errno));
+
+    } else if(0 > (self->sockfd =
+          socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol))) {
+      /* It's OK if some AFs fail, we check that in the end */
+      o_log(O_LOG_DEBUG, "socket(%s): Could not create socket to listen on [%s]:%s: %s\n",
+          self->name, host, serv, strerror(errno));
+      socket_free((Socket*)self);
+
+    } else if(0 != setsockopt(self->sockfd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(int))){
+      o_log(O_LOG_ERROR, "socket(%s): Could not set option SO_REUSEADDR on socket to listen on [%s]:%s: %s\n",
+          self->name, host, serv, strerror(errno));
+      close(self->sockfd);
+      /* XXX: Not optimal: we could reuse the Socket */
+      socket_free((Socket*)self);
+
+    } else if (0 != bind(self->sockfd, rp->ai_addr, rp->ai_addrlen)) {
+      o_log(O_LOG_ERROR, "socket(%s): Error binding socket to listen on [%s]:%s: %s\n",
+          self->name, host, serv, strerror(errno));
+      close(self->sockfd);
+      /* XXX: Not optimal: we could reuse the Socket */
+      socket_free((Socket*)self);
+
+    } else {
+      /* The last connected AFs (hence less important according to GAI) are
+       * now at the front, but it's not a big deal as we treat them all
+       * equally (i.e, we're going to listen on them all */
+      self->next = (Socket*)list;
+      list = self;
+      self = NULL;
+    }
+
   }
 
-  self->localport = ntohs(self->servAddr.sin_port);
-  o_log(O_LOG_DEBUG, "socket(%s): Socket bound to port: %d\n", name, self->localport);
+  freeaddrinfo(results);
 
-  instances = self;
-  return (Socket*)self;
+  if (NULL == list) {
+    o_log(O_LOG_ERROR, "socket(%s): Could not create any socket to listen on [%s]:%s: %s\n",
+        self->name, node, service, strerror(errno));
+  }
+
+  return (Socket*)list;
 }
 
 /** Connect the socket to remote peer.
@@ -259,6 +312,7 @@ s_connect(SocketInt* self) {
   }
 
   for (; self->rp != NULL; self->rp = self->rp->ai_next) {
+    /* XXX: Duplicated with socket_in_new */
     if (!getnameinfo(self->rp->ai_addr, self->rp->ai_addrlen,
           host, hostlen, serv, servlen,
           NI_NUMERICHOST|NI_NUMERICSERV)) {
@@ -384,39 +438,39 @@ on_client_connect(
   }
 }
 
-/** Create a listening Socket object and register it to the global EventLoop.
+/** Create listening OSocket objects, and register them with the EventLoop .
  *
  * If callback is non-NULL, it is registered to the OCOMM eventloop to handle
  * monitor_in events.
  *
- * \param name name of this object, used for debugging
- * \param port port to listen on
+ * \param name name of the object, used for debugging
+ * \param node address or name to listen on; defaults to all if NULL
+ * \param service symbolic name or port number of the service to bind to
  * \param callback function to call when a client connects
  * \param handle pointer to opaque data passed to callback function
- * \return a pointer to the SocketInt object (cast as a Socket)
+ * \return a pointer to a linked list of Socket objects
  *
- * XXX: Fix server-side #369 here: register one socket per AP to the eventloop
+ * \see socket_in_new
  */
 Socket*
-socket_server_new(
-  char* name,
-  int port,
-  o_so_connect_callback callback,
-  void* handle
-) {
-  SocketInt* self;
-  if ((self = (SocketInt*)socket_in_new(name, port, TRUE)) == NULL)
-    return NULL;
+socket_server_new(const char* name, const char* node, const char* service, o_so_connect_callback callback, void* handle)
+{
+  Socket *socketlist;
+  SocketInt *it;
 
-  listen(self->sockfd, 5);
-  self->connect_callback = callback;
-  self->connect_handle = handle;
+  socketlist = socket_in_new(name, node, service, TRUE);
 
-  if (callback) {
-    // Wait for a client to connect. Handle that in callback
-    eventloop_on_monitor_in_channel((Socket*)self, on_client_connect, NULL, self);
+  for (it=(SocketInt*)socketlist; it; it=(SocketInt*)it->next) {
+    listen(it->sockfd, 5);
+    it->connect_callback = callback;
+    it->connect_handle = handle;
+
+    if (callback) {
+      // Wait for a client to connect. Handle that in callback
+      eventloop_on_monitor_in_channel((Socket*)it, on_client_connect, NULL, it);
+    }
   }
-  return (Socket*)self;
+  return socketlist;
 }
 
 /** Prevent the remote sender from trasmitting more data.
