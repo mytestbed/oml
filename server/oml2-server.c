@@ -70,7 +70,7 @@ die (const char *fmt, ...)
 #define DEFAULT_PORT_STR "3003"
 #define DEFAULT_LOG_FILE "oml_server.log"
 
-static int listen_port = DEFAULT_PORT;
+static char* listen_service = DEFAULT_PORT_STR;
 static int log_level = O_LOG_INFO;
 static int socket_timeout = 60;
 static char* logfile_name = NULL;
@@ -89,7 +89,7 @@ extern char *pg_conninfo;
 
 struct poptOption options[] = {
   POPT_AUTOHELP
-  { "listen", 'l', POPT_ARG_INT, &listen_port, 0, "Port to listen for TCP based clients", DEFAULT_PORT_STR},
+  { "listen", 'l', POPT_ARG_STRING, &listen_service, 0, "Service to listen for TCP based clients", DEFAULT_PORT_STR},
   { "backend", 'b', POPT_ARG_STRING, &dbbackend, 0, "Database server backend", DEFAULT_DB_BACKEND},
   { "data-dir", 'D', POPT_ARG_STRING, &sqlite_database_dir, 0, "Directory to store database files (sqlite)", "DIR" },
 #if HAVE_LIBPQ
@@ -316,10 +316,10 @@ int main(int argc, const char **argv)
   eventloop_set_socket_timeout(socket_timeout);
 
   Socket* server_sock;
-  server_sock = socket_server_new("server", listen_port, on_connect, NULL);
+  server_sock = socket_server_new("server", NULL, listen_service, on_connect, NULL);
 
   if (!server_sock) {
-    die ("Failed to create listening socket on port %d\n", listen_port);
+    die ("Failed to create listening socket for service %d\n", listen_service);
   }
 
   drop_privileges (uidstr, gidstr);

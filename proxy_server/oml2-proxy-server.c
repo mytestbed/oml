@@ -32,12 +32,15 @@
 
 #define DEF_PORT 3003
 #define DEF_PORT_STR "3003"
+#define DEF_CTRL_PORT 3004
+#define DEF_CTRL_PORT_STR "3004"
 #define DEFAULT_LOG_FILE "oml_proxy_server.log"
 #define DEFAULT_RESULT_FILE "oml_result_proxy.res"
 #define DEF_PAGE_SIZE 1024
 #define DEFAULT_SERVER_ADDRESS "localhost"
 
-static int listen_port = DEF_PORT;
+static char* listen_service = DEF_PORT_STR;
+static char* control_service = DEF_CTRL_PORT_STR;
 
 static int log_level = O_LOG_INFO;
 static char* logfile_name = NULL;
@@ -53,7 +56,8 @@ extern void *client_send_thread (void* handle);
 
 struct poptOption options[] = {
   POPT_AUTOHELP
-  { "listen",      'l',  POPT_ARG_INT,    &listen_port,     0,   "Port to listen for TCP based clients", DEF_PORT_STR},
+  { "listen",      'l',  POPT_ARG_STRING, &listen_service,  0,   "Service to listen for TCP based clients", DEF_PORT_STR},
+  { "control",     'c',  POPT_ARG_STRING, &control_service, 0,   "Service to listen for commands",       DEF_CTRL_PORT_STR},
   { "debug-level", 'd',  POPT_ARG_INT,    &log_level,       0,   "Debug level - error:1 .. debug:4",     NULL},
   { "logfile",     '\0', POPT_ARG_STRING, &logfile_name,    0,   "File to log to",                       DEFAULT_LOG_FILE },
   { "version",     'v',  POPT_ARG_NONE,   NULL,             'v', "Print version information and exit",   NULL},
@@ -303,7 +307,7 @@ int
 main(int argc, const char *argv[])
 {
   Socket* serverSock, *controlSock;
-  int c;
+  int c, ret = -1;
 
   poptContext optCon = poptGetContext(NULL, argc, argv, options, 0);
   poptSetOtherOptionHelp(optCon, "configFile");
@@ -346,16 +350,23 @@ main(int argc, const char *argv[])
 
   session->state = ProxyState_PAUSED;
 
-  serverSock = socket_server_new("proxy_server", listen_port, on_connect, NULL);
-  controlSock = socket_server_new("proxy_server_control", listen_port + 1, on_control_connect, NULL);
+  serverSock = socket_server_new("proxy_server", NULL, listen_service, on_connect, NULL);
+  controlSock = socket_server_new("proxy_server_control", NULL, control_service, on_control_connect, NULL);
 
-  eventloop_on_stdin(stdin_handler, session);
-  eventloop_run();
+  if(!serverSock || !controlSock) {
+    logerror("Unable to listen for either client and/or control connections");
+    ret = -1;
+
+  } else {
+    eventloop_on_stdin(stdin_handler, session);
+    eventloop_run();
+    ret = 0;
+  }
 
   socket_free(serverSock);
   socket_free(controlSock);
 
-  return(0);
+  return ret;
 }
 
 /*
