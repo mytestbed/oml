@@ -103,24 +103,11 @@ socket_new(
   int is_tcp  //! True if TCP, false for UDP
 );
 
-/** Create an IP Socket object bound to ADDR and PORT.
- */
-Socket*
-socket_in_new(
-  const char* name,   //! Name used for debugging
-  int port, //! Port used
-  int is_tcp  //! True if TCP, false for UDP
-);
+/** Create OSocket objects bound to node and service. */
+Socket* socket_in_new(const char* name, const char* node, const char* service, int is_tcp);
 
-/*! Create a server socket object.
- */
-Socket*
-socket_server_new(
-  char* name,   //! Name used for debugging
-  int port, //! Port to listen on
-  o_so_connect_callback callback, //! Called when new client connects
-  void* handle //! opaque argument to callback
-);
+/** Create listening OSocket objects, and register them with the EventLoop .*/
+Socket* socket_server_new(const char* name, const char* node, const char* service, o_so_connect_callback callback, void* handle);
 
 /** Create a outgoing TCP socket object. */
 Socket* socket_tcp_out_new(const char* name, const char* addr, const char *service);
