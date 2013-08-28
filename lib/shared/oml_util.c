@@ -213,6 +213,121 @@ OmlURIType oml_uri_type(const char* uri) {
   return OML_URI_UNKNOWN;
 }
 
+/** Parse a collection URI of the form [proto:]path[:service].
+ *
+ * path can be a hostname, an IPv4 address or an IPv6 address within brackets
+ * if proto is a network protocol. service is invalid if proto indicates a
+ * local file.
+ *
+ * \param uri string containing the URI to parse
+ * \param protocol pointer to be updated to a string containing the selected protocol, to be oml_free()'d by the caller
+ * \param path pointer to be updated to a string containing the node name or address, to be oml_free()'d by the caller
+ * \param service pointer to be updated to a string  containing the service name or port number, to be oml_free()'d by the caller
+ * \return 0 on success, -1 otherwise
+ *
+ * \see oml_strndup, oml_free, oml_uri_type
+ */
+int
+parse_uri (const char *uri, const char **protocol, const char **path, const char **port)
+{
+  const int MAX_PARTS = 3;
+  char *parts[3] = { NULL, NULL, NULL }, *tmp, *orig;
+  size_t lengths[3] = { 0, 0, 0 };
+  int is_valid = 1;
+  int i;
+  OmlURIType uri_type;
+
+  if (uri) {
+    uri_type = oml_uri_type(uri);
+
+    orig = parts[2] = oml_strndup (uri, strlen (uri));
+    parts[0] = strsep(&parts[2], "[");
+    if (parts[2]) {
+      i = 0;
+      if (*parts[i] != '\0') {
+        /* there was something before the brackets, clean it some more */
+        tmp = parts[i];
+        parts[i] = strsep(&tmp, ":");
+        lengths[i] = parts[i] ? strlen (parts[i]) : 0;
+        i++;
+      } 
+
+      parts[i] = strsep(&parts[2], "]");
+      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
+      i++;
+
+      parts[i] = parts[2];
+      tmp = strsep(&parts[i], ":");
+      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
+
+    } else {
+      /* restart the parsing */
+      parts[2] = parts[0];
+
+      i = 0;
+
+      parts[i] = strsep(&parts[2], ":");
+      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
+      i++;
+
+      parts[i] = strsep(&parts[2], ":");
+      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
+      i++;
+
+      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
+    }
+
+    /* make sure unused items are clearly so */
+    for(++i; i<MAX_PARTS; i++) {
+      parts[i] = NULL;
+      lengths[i] = 0;
+    }
+
+#define trydup(i) (parts[(i)] && lengths[(i)]>0 ? oml_strndup (parts[(i)], lengths[(i)]) : NULL)
+    *protocol = *path = *port = NULL;
+    if (lengths[0] > 0 && lengths[1] > 0) {
+      /* Case 1:  "abc:xyz" or "abc:xyz:123" -- if abc is a transport, use it; otherwise, it's a hostname/path */
+      if (oml_uri_is_network(uri_type)) {
+        *protocol = trydup (0);
+        *path = trydup (1);
+        *port = trydup (2);
+      } else if (oml_uri_is_file(uri_type)) {
+        *protocol = trydup (0);
+        *path = trydup (1);
+        *port = NULL;
+      } else {
+        *protocol = NULL;
+        *path = trydup (0);
+        *port = trydup (1);
+      }
+    } else if (lengths[0] > 0 && lengths[2] > 0) {
+      /* Case 2:  "abc::123" -- not valid, as we can't infer a hostname/path */
+      logwarn ("Server URI '%s' is invalid as it does not contain a hostname/path\n", uri);
+      is_valid = 0;
+    } else if (lengths[0] > 0) {
+      *protocol = NULL;
+      *path = trydup (0);
+      *port = NULL;
+
+      /* Look for potential user errors and issue a warning but proceed as normal */
+      if (uri_type != OML_URI_UNKNOWN) {
+        logwarn ("Server URI with unknown scheme, assuming 'tcp:%s'\n",
+                 *path);
+      }
+    } else {
+      logerror ("Server URI '%s' seems to be empty\n", uri);
+      is_valid = 0;
+    }
+#undef trydup
+
+    oml_free (orig);
+  }
+  if (is_valid)
+    return 0;
+  else
+    return -1;
+}
+
 /*
  Local Variables:
  mode: C

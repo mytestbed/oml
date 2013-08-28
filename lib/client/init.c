@@ -644,79 +644,6 @@ print_filters(void)
   printf ("\n");
 }
 
-int
-parse_dest_uri (const char *uri, const char **protocol, const char **path, const char **port)
-{
-  const int MAX_PARTS = 3;
-  char *parts[3] = { NULL, NULL, NULL };
-  size_t lengths[3] = { 0, 0, 0 };
-  int is_valid = 1;
-  OmlURIType uri_type;
-
-  if (uri) {
-    int i, j;
-    uri_type = oml_uri_type(uri);
-    parts[0] = oml_strndup (uri, strlen (uri));
-    for (i = 1, j = 0; i < MAX_PARTS; i++, j = 0) {
-      parts[i] = parts[i-1];
-      while (*parts[i] != ':' && *parts[i] != '\0') {
-        j++;
-        parts[i]++;
-      }
-      if (*parts[i] == ':')
-        *(parts[i]++) = '\0';
-    }
-
-    for (i = 0; i < MAX_PARTS; i++) {
-      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
-    }
-
-#define trydup(i) (parts[(i)] && lengths[(i)]>0 ? oml_strndup (parts[(i)], lengths[(i)]) : NULL)
-    *protocol = *path = *port = NULL;
-    if (lengths[0] > 0 && lengths[1] > 0) {
-      /* Case 1:  "abc:xyz" or "abc:xyz:123" -- if abc is a transport, use it; otherwise, it's a hostname/path */
-      if (oml_uri_is_network(uri_type)) {
-        *protocol = trydup (0);
-        *path = trydup (1);
-        *port = trydup (2);
-      } else if (oml_uri_is_file(uri_type)) {
-        *protocol = trydup (0);
-        *path = trydup (1);
-        *port = NULL;
-      } else {
-        *protocol = NULL;
-        *path = trydup (0);
-        *port = trydup (1);
-      }
-    } else if (lengths[0] > 0 && lengths[2] > 0) {
-      /* Case 2:  "abc::123" -- not valid, as we can't infer a hostname/path */
-      logwarn ("Server URI '%s' is invalid as it does not contain a hostname/path\n", uri);
-      is_valid = 0;
-    } else if (lengths[0] > 0) {
-      *protocol = NULL;
-      *path = trydup (0);
-      *port = NULL;
-
-      /* Look for potential user errors and issue a warning but proceed as normal */
-      if (uri_type != OML_URI_UNKNOWN) {
-        logwarn ("Server URI with unknown scheme, assuming 'tcp:%s'\n",
-                 *path);
-      }
-    } else {
-      logerror ("Server URI '%s' seems to be empty\n", uri);
-      is_valid = 0;
-    }
-#undef trydup
-
-    if (parts[0])
-      oml_free (parts[0]);
-  }
-  if (is_valid)
-    return 0;
-  else
-    return -1;
-}
-
 /** Create either a file writer or a network writer
  * \param uri collection URI
  * \param encoding StreamEncoding to use for the output, either SE_Text or SE_Binary
@@ -750,7 +677,7 @@ create_writer(const char* uri, enum StreamEncoding encoding)
   const char *path;
   const char *port;
 
-  if (parse_dest_uri (uri, &transport, &path, &port) == -1) {
+  if (parse_uri (uri, &transport, &path, &port) == -1) {
     logerror ("Error parsing server destination URI '%s'; failed to create stream for this destination\n",
               uri);
     if (transport) oml_free ((void*)transport);

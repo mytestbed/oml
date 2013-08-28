@@ -89,6 +89,72 @@ START_TEST (test_util_find)
 }
 END_TEST
 
+static struct uri {
+  char *uri;
+  int ret;
+  char *scheme;
+  char *node;
+  char *service;
+} test_uris[] = {
+  { "localhost", 0, NULL, "localhost", NULL},
+  { "tcp:localhost", 0, "tcp", "localhost", NULL},
+  { "tcp:localhost:3003", 0, "tcp", "localhost", "3003"},
+  { "localhost:3003", 0, NULL, "localhost", "3003"},
+  { "127.0.0.1", 0, NULL, "127.0.0.1", NULL},
+  { "tcp:127.0.0.1", 0, "tcp", "127.0.0.1", NULL},
+  { "tcp:127.0.0.1:3003", 0, "tcp", "127.0.0.1", "3003"},
+  { "127.0.0.1:3003", 0, NULL, "127.0.0.1", "3003"},
+  { "[127.0.0.1]", 0, NULL, "127.0.0.1", NULL},
+  { "tcp:[127.0.0.1]", 0, "tcp", "127.0.0.1", NULL},
+  { "tcp:[127.0.0.1]:3003", 0, "tcp", "127.0.0.1", "3003"},
+  { "[127.0.0.1]:3003", 0, NULL, "127.0.0.1", "3003"},
+  { "[::1]", 0, NULL, "::1", NULL},
+  { "tcp:[::1]", 0, "tcp", "::1", NULL},
+  { "tcp:[::1]:3003", 0, "tcp", "::1", "3003"},
+  { "[::1]:3003", 0, NULL, "::1", "3003"},
+  { "::1", -1, NULL, NULL, NULL},
+  { "tcp:::1", -1, NULL, NULL, NULL},
+  { "tcp:::1:3003", -1, "tcp", NULL, "3003"},
+  { "::1:3003", -1, NULL, "[::1]", "3003"},
+};
+
+START_TEST(test_util_parse_uri)
+{
+  int ret;
+  const char *scheme=NULL, *node=NULL, *service=NULL;
+
+  ret = parse_uri(test_uris[_i].uri, &scheme, &node, &service);
+
+  logdebug("%s:%d: %s => %s %s %s\n", __FUNCTION__, _i, test_uris[_i].uri, scheme, node, service);
+
+  fail_unless(test_uris[_i].ret == ret, "Unexpected status from parse_uri(%s, ...): %d instead of %d",
+      test_uris[_i].uri, ret, test_uris[_i].ret);
+  if (test_uris[_i].ret == 0) {
+    if (NULL == test_uris[_i].scheme) {
+      fail_unless(test_uris[_i].scheme == NULL, "Unexpected scheme from parse_uri(%s, ...): %s instead of %s",
+          test_uris[_i].uri, scheme, test_uris[_i].ret);
+    } else {
+      fail_if(strcmp(scheme, test_uris[_i].scheme), "Unexpected scheme from parse_uri(%s, ...): %s instead of %s",
+          test_uris[_i].uri, scheme, test_uris[_i].ret);
+    }
+    if (NULL == test_uris[_i].node) {
+      fail_unless(test_uris[_i].node == NULL, "Unexpected node from parse_uri(%s, ...): %s instead of %s",
+          test_uris[_i].uri, node, test_uris[_i].ret);
+    } else {
+      fail_if(strcmp(node, test_uris[_i].node), "Unexpected node from parse_uri(%s, ...): %s instead of %s",
+          test_uris[_i].uri, node, test_uris[_i].ret);
+    }
+    if (NULL == test_uris[_i].service) {
+      fail_unless(test_uris[_i].service == NULL, "Unexpected service from parse_uri(%s, ...): %s instead of %s",
+          test_uris[_i].uri, service, test_uris[_i].ret);
+    } else {
+      fail_if(strcmp(service, test_uris[_i].service), "Unexpected service from parse_uri(%s, ...): %s instead of %s",
+          test_uris[_i].uri, service, test_uris[_i].ret);
+    }
+  }
+}
+END_TEST
+
 Suite* util_suite (void)
 {
   Suite* s = suite_create ("Util");
@@ -97,6 +163,7 @@ Suite* util_suite (void)
 
   tcase_add_test (tc_util, test_util_uri);
   tcase_add_test (tc_util, test_util_find);
+  tcase_add_loop_test (tc_util, test_util_parse_uri, 0, LENGTH(test_uris));
 
   suite_add_tcase (s, tc_util);
 
