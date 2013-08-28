@@ -602,7 +602,7 @@ usage(void)
   printf("  --oml-list-filters     .. List the available types of filters\n");
   printf("  --oml-help             .. Print this message\n");
   printf("\n");
-  printf("Valid URI: [tcp:]host[:port], (file|flush):localPath\n");
+  printf("Valid URI: [tcp:]host[:service], (file|flush):localPath\n");
   printf("\n");
   printf("The following environment variables are recognized:\n");
   printf("  OML_NAME=id            .. Name to identify this app instance (--oml-id)\n");
@@ -777,12 +777,14 @@ create_writer(const char* uri, enum StreamEncoding encoding)
   }
 
   /* Default transport is tcp if not specified */
-  if (!transport)
+  if (!transport) {
     transport = oml_strndup ("tcp", strlen ("tcp"));
+  }
 
   /* If not file transport, use the OML default port if unspecified */
-  if (!port && !oml_uri_is_file(uri_type))
+  if (!port && !oml_uri_is_file(uri_type)) {
     port = oml_strndup (DEF_PORT_STRING, strlen (DEF_PORT_STRING));
+  }
 
   OmlOutStream* out_stream;
   if (oml_uri_is_file(uri_type)) {
@@ -799,6 +801,10 @@ create_writer(const char* uri, enum StreamEncoding encoding)
     logerror ("Failed to create stream for URI %s\n", uri);
     return NULL;
   }
+
+  oml_free ((void*)transport);
+  oml_free ((void*)path);
+  oml_free ((void*)port);
 
   // Now create a write on top of the stream
   OmlWriter* writer = NULL;

@@ -69,10 +69,12 @@ static int net_stream_close(OmlOutStream* hdl);
 static ssize_t socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length);
 
 /** Create a new out stream for sending over the network
- * \param transport string representing the protocol used to establish the connection
- * \param hostname string representing the host to connect to
- * \param service symbolic name or port number of the service to connect to
+ * \param transport string representing the protocol used to establish the connection (oml_strndup()'d locally)
+ * \param hostname string representing the host to connect to (oml_strndup()'d locally)
+ * \param service symbolic name or port number of the service to connect to (oml_strndup()'d locally)
  * \return a new OmlOutStream instance
+ *
+ * \see oml_strndup
  */
 OmlOutStream*
 net_stream_new(const char *transport, const char *hostname, const char *service)
