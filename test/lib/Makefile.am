@@ -3,7 +3,7 @@ AM_TESTS_ENVIRONMENT = CK_VERBOSITY=verbose
 
 if HAVE_CHECK
 TESTS = check_liboml2 check_libshared
-check_PROGRAMS = check_liboml2 check_libshared
+check_PROGRAMS = check_libshared check_liboml2
 
 AM_CPPFLAGS = \
 	-I  $(top_srcdir)/lib/client \
