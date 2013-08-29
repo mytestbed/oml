@@ -26,6 +26,9 @@
 
 #include <check.h>
 
+extern Suite* base64_suite (void);
+extern Suite* string_utils_suite (void);
+extern Suite* json_suite (void);
 extern Suite* mstring_suite (void);
 extern Suite* util_suite (void);
 extern Suite* headers_suite (void);

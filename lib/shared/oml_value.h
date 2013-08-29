@@ -51,6 +51,7 @@ static inline int32_t oml_value_clamp_long (long value)
 #define oml_value_get_value(v) \
   ((OmlValueU*)&(v)->value)
 
+
 /** Get the type of an OmlValue.
  *
  * \param v pointer to the OmlValue to manipulate

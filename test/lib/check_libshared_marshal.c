@@ -20,6 +20,7 @@
  * THE SOFTWARE.
  *
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -164,6 +165,69 @@ static int64_t int64_values[] = {
   0x123456789ABCDEF1LL
 };
 
+static bool bool_values[] = {
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  true,
+  false,
+  false,
+  true,
+  true,
+  false,
+  false,
+  true,
+  false,
+  false,
+  true,
+  true,
+  false,
+  false,
+  true,
+  true,
+  true,
+  false,
+  true,
+  false,
+  true,
+  false,
+  true,
+  false,
+  false,
+  true,
+  true,
+  false,
+  false,
+  true,
+  true,
+  false,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  false,
+  true,
+  false,
+  true,
+  false,
+  true,
+  false,
+  true,
+  true,
+  true,
+  false,
+  false,
+  true
+};
+
 static char* string_values[] = {
   "",
   "a",
@@ -253,12 +317,6 @@ static const oml_guid_t guid_values[] = {
   UINT64_C(0xcef251ecf411bfa3),
   UINT64_C(0x7684bfeadcde2648),
   UINT64_C(0x0222091b4aa762b0)
-};
-
-static const uint8_t bool_values[] = {
-  0,
-  1,
-  2,
 };
 
 double
@@ -378,7 +436,7 @@ START_TEST (test_marshal_value_int64)
   uint64_t nv = 0;
   memcpy (&nv, FIRST_VALPTR (mbuf) + 1, 8);
   uint64_t hv = ntohll (nv);
-  int64_t val = (int64_t)hv;
+   int64_t val = (int64_t)hv;
 
   fail_if (result != 1);
   fail_if ((int)*(FIRST_VALPTR(mbuf)) != INT64_T); // INT64_T
@@ -491,6 +549,8 @@ START_TEST (test_marshal_value_string)
 END_TEST
 
 #warning test_marshal_value_blob is missing
+
+#warning test_marshall_array_double
 
 START_TEST(test_marshal_guid)
 {
@@ -865,7 +925,7 @@ START_TEST (test_marshal_unmarshal_double)
 
   MBuffer* mbuf = mbuf_create ();
   marshal_init (mbuf, OMB_DATA_P);
-  result = marshal_measurements (mbuf, 42, 43, 42.0);
+  result = marshal_measurements (mbuf, 98, 99, 100.0);
 
   fail_if (mbuf->base == NULL);
   fail_if (result == -1);
@@ -911,8 +971,10 @@ START_TEST (test_marshal_unmarshal_double)
   marshal_finalize (mbuf);
 
   OmlBinaryHeader header;
-  unmarshal_init (mbuf, &header);
-  fail_unless (header.type == OMB_DATA_P);
+  unmarshal_init(mbuf, &header);
+  fail_unless(header.type == OMB_DATA_P);
+  fail_unless(header.stream == 98);
+  fail_unless(header.seqno == 99);
 
   for (i = 0; i < LENGTH (double_values); i++) {
     unmarshal_value (mbuf, &value);
@@ -1136,6 +1198,169 @@ START_TEST (test_marshal_unmarshal_bool)
 }
 END_TEST
 
+START_TEST(test_marshal_unmarshal_vector_double)
+{
+  size_t i;
+  int result;
+  const size_t NVALUES = sizeof(double_values)/sizeof(double_values[0]);
+
+  MBuffer* mbuf = mbuf_create();
+  marshal_init(mbuf, OMB_DATA_P);
+  result = marshal_measurements (mbuf, 98, 99, 100.0);
+  fail_if(-1 == result);
+  fail_if(mbuf->base == NULL);
+  int values_offset = mbuf_fill(mbuf);
+
+  OmlValueU out;
+  omlc_zero(out);
+  omlc_set_vector_double(out, double_values, NVALUES);
+  result = marshal_value(mbuf, OML_VECTOR_DOUBLE_VALUE, &out);
+  fail_if (result != 1);
+  marshal_finalize (mbuf);
+
+  OmlBinaryHeader header;
+  result = unmarshal_init (mbuf, &header);
+  fail_unless(1 == result);
+  fail_unless(header.type == OMB_DATA_P);
+  fail_unless(header.stream == 98);
+  fail_unless(header.seqno == 99);
+
+  OmlValue in;
+  oml_value_init(&in);
+  result = unmarshal_value(mbuf, &in);
+  fail_unless(1 == result);
+
+  fail_unless(OML_VECTOR_DOUBLE_VALUE == oml_value_get_type(&in));
+  fail_unless(omlc_get_vector_nof_elts(*oml_value_get_value(&in)) == NVALUES);
+  double *actual_values = omlc_get_vector_ptr(in.value);
+  for(i = 0; i < NVALUES; i++) {
+    fail_unless(double_values[i] == actual_values[i]);
+  }
+}
+END_TEST
+
+START_TEST(test_marshal_unmarshal_vector_int32)
+{
+  size_t i;
+  int result;
+  const size_t NVALUES = sizeof(int32_values)/sizeof(int32_values[0]);
+
+  MBuffer* mbuf = mbuf_create();
+  marshal_init(mbuf, OMB_DATA_P);
+  result = marshal_measurements (mbuf, 98, 99, 100.0);
+  fail_if(-1 == result);
+  fail_if(mbuf->base == NULL);
+  int values_offset = mbuf_fill(mbuf);
+
+  OmlValueU out;
+  omlc_zero(out);
+  omlc_set_vector_int32(out, int32_values, NVALUES);
+  result = marshal_value(mbuf, OML_VECTOR_INT32_VALUE, &out);
+  fail_if (result != 1);
+  marshal_finalize (mbuf);
+
+  OmlBinaryHeader header;
+  result = unmarshal_init (mbuf, &header);
+  fail_unless(1 == result);
+  fail_unless(header.type == OMB_DATA_P);
+  fail_unless(header.stream == 98);
+  fail_unless(header.seqno == 99);
+
+  OmlValue in;
+  oml_value_init(&in);
+  result = unmarshal_value(mbuf, &in);
+  fail_unless(1 == result);
+
+  fail_unless(OML_VECTOR_INT32_VALUE == oml_value_get_type(&in));
+  fail_unless(omlc_get_vector_nof_elts(*oml_value_get_value(&in)) == NVALUES);
+  int32_t *actual_values = omlc_get_vector_ptr(in.value);
+  for(i = 0; i < NVALUES; i++) {
+    fail_unless(int32_values[i] == actual_values[i]);
+  }
+}
+END_TEST
+
+START_TEST(test_marshal_unmarshal_vector_int64)
+{
+  size_t i;
+  int result;
+  const size_t NVALUES = sizeof(int64_values)/sizeof(int64_values[0]);
+
+  MBuffer* mbuf = mbuf_create();
+  marshal_init(mbuf, OMB_DATA_P);
+  result = marshal_measurements (mbuf, 98, 99, 100.0);
+  fail_if(-1 == result);
+  fail_if(mbuf->base == NULL);
+  int values_offset = mbuf_fill(mbuf);
+
+  OmlValueU out;
+  omlc_zero(out);
+  omlc_set_vector_int64(out, int64_values, NVALUES);
+  result = marshal_value(mbuf, OML_VECTOR_INT64_VALUE, &out);
+  fail_if (result != 1);
+  marshal_finalize (mbuf);
+
+  OmlBinaryHeader header;
+  result = unmarshal_init (mbuf, &header);
+  fail_unless(1 == result);
+  fail_unless(header.type == OMB_DATA_P);
+  fail_unless(header.stream == 98);
+  fail_unless(header.seqno == 99);
+
+  OmlValue in;
+  oml_value_init(&in);
+  result = unmarshal_value(mbuf, &in);
+  fail_unless(1 == result);
+
+  fail_unless(OML_VECTOR_INT64_VALUE == oml_value_get_type(&in));
+  fail_unless(omlc_get_vector_nof_elts(*oml_value_get_value(&in)) == NVALUES);
+  int64_t *actual_values = omlc_get_vector_ptr(in.value);
+  for(i = 0; i < NVALUES; i++) {
+    fail_unless(int64_values[i] == actual_values[i]);
+  }
+}
+END_TEST
+
+START_TEST(test_marshal_unmarshal_vector_bool)
+{
+  size_t i;
+  int result;
+  const size_t NVALUES = sizeof(bool_values)/sizeof(bool_values[0]);
+
+  MBuffer* mbuf = mbuf_create();
+  marshal_init(mbuf, OMB_DATA_P);
+  result = marshal_measurements (mbuf, 98, 99, 100.0);
+  fail_if(-1 == result);
+  fail_if(mbuf->base == NULL);
+  int values_offset = mbuf_fill(mbuf);
+
+  OmlValueU out;
+  omlc_zero(out);
+  omlc_set_vector_bool(out, bool_values, NVALUES);
+  result = marshal_value(mbuf, OML_VECTOR_BOOL_VALUE, &out);
+  fail_if (result != 1);
+  marshal_finalize (mbuf);
+
+  OmlBinaryHeader header;
+  result = unmarshal_init (mbuf, &header);
+  fail_unless(1 == result);
+  fail_unless(header.type == OMB_DATA_P);
+  fail_unless(header.stream == 98);
+  fail_unless(header.seqno == 99);
+
+  OmlValue in;
+  oml_value_init(&in);
+  result = unmarshal_value(mbuf, &in);
+  fail_unless(1 == result);
+
+  fail_unless(OML_VECTOR_BOOL_VALUE == oml_value_get_type(&in));
+  fail_unless(omlc_get_vector_nof_elts(*oml_value_get_value(&in)) == NVALUES);
+  bool *actual_values = omlc_get_vector_ptr(in.value);
+  for(i = 0; i < NVALUES; i++) {
+    fail_unless(bool_values[i] == actual_values[i]);
+  }
+}
+END_TEST
 
 #define dumpmessage(mbuf)                                                                                   \
   do {                                                                                                      \
@@ -1175,19 +1400,19 @@ START_TEST (test_marshal_full)
   msg = mbuf_message(mbuf);
   offset = 0;
   fail_unless(msg[offset] == 0xAA,
-      "Fist sync byte not set properly; found '%#x' at offset %d",
-      msg[offset], offset);
+              "Fist sync byte not set properly; found '%#x' at offset %d",
+              msg[offset], offset);
   offset++;
   fail_unless(msg[offset] == 0xAA,
-      "Second sync byte not set properly; found '%#x' at offset %d",
-      msg[offset], offset);
+              "Second sync byte not set properly; found '%#x' at offset %d",
+              msg[offset], offset);
   offset++;
   fail_unless(msg[offset] == OMB_DATA_P,
-      "Packet type not set properly; found '%#x' at offset %d",
-      msg[offset], offset);
+              "Packet type not set properly; found '%#x' at offset %d",
+              msg[offset], offset);
   offset++;
   fail_unless(mbuf_message_length(mbuf) == 5,
-      "Current message should be 5 bytes");
+              "Current message should be 5 bytes");
   offset+=2;
 
   /* Verify length */
@@ -1610,6 +1835,10 @@ marshal_suite (void)
   tcase_add_test (tc_marshal, test_marshal_unmarshal_string);
   tcase_add_test (tc_marshal, test_marshal_unmarshal_guid);
   tcase_add_test (tc_marshal, test_marshal_unmarshal_bool);
+  tcase_add_test (tc_marshal, test_marshal_unmarshal_vector_double);
+  tcase_add_test (tc_marshal, test_marshal_unmarshal_vector_int32);
+  tcase_add_test (tc_marshal, test_marshal_unmarshal_vector_int64);
+  tcase_add_test (tc_marshal, test_marshal_unmarshal_vector_bool);
 
   /* Do the full marshalling/unmarshalling test, types above should also be tested there */
   tcase_add_test (tc_marshal, test_marshal_full);

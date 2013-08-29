@@ -117,6 +117,58 @@
  *  --+---------------+--
  * \endverbatim
  *
+ * Vectors (\ref VECTOR_T) are represented by specifying the type of
+ * the vector elements and then the size of the vector (a sixteen bit
+ * unsigned integer in network byte order) and followed by the vector
+ * of values themselves.
+ *
+ * The vector elements are marshalled depending on the their type. For
+ * vectors of integers of INT32_T or (U)INT32_T the elements are
+ * packed in network-byte order as shown below:
+ * \verbatim
+ * --+---------------+-----------------+---------------+---------------+
+ *   |   VECTOR_T    |   (U)INT32_T    |      n-H      |      n-L      |
+ * --+---------------+-----------------+---------------+---------------+
+ *   |int[0]-byte-HH |int[0]-byte-HL   |int[0]-byte-LH |int[0]-byte-LL |
+ *   +---------------+-----------------+---------------+---------------+
+ *   |int[1]-byte-HH |int[1]-byte-HL   |int[1]-byte-LH |int[1]-byte-LL |
+ *   +---------------+-----------------+---------------+---------------+
+ *   | 
+ *   +--
+ * \endverbatim
+ * Similarly for the INT64_T and UINT64_T the elements are packed in
+ * network byte order (i.e. with the most significant octet first).
+ *
+ * For vectors of boolean values the vector elements are represented
+ * by a one-octet values which must be either BOOL_TRUE_T or
+ * BOOL_FALSE_T.
+ * \verbatim
+ * --+---------------+-----------------+---------------+---------------+
+ *   |   VECTOR_T    |     BOOL_T      |      n-H      |      n-L      |
+ * --+---------------+-----------------+---------------+---------------+
+ *   |    bool[0]    |     bool[1]     |    bool[2]    |    bool[3]    |
+ *   +---------------+-----------------+---------------+---------------+
+ *   |    bool[4]    |  
+ *   +---------------+--
+ * \endverbatim
+ *
+ * For vectors of double an IEEE 754 binary64 value is transferred and
+ * we require that the byte ordering within that value is in network
+ * byte order (IEEE 754 does not specify byte ordering but wikipedia
+ * page suggests that it is reasonable to assume that, for a given
+ * host, the endian-ness of doubles is the same as for integers).
+ * \verbatim
+ * --+---------------+-----------------+---------------+---------------+
+ *   |   VECTOR_T    |    DOUBLE_T     |      n-H      |      n-L      |
+ * --+---------------+-----------------+---------------+---------------+
+ *   |dbl[0]-MS-byte |  dbl[0]-byte-7  | dbl[0]-byte-6 | dbl[0]-byte-5 |
+ *   +---------------+-----------------+---------------+---------------+
+ *   | dbl[0]-byte-4 |  dbl[0]-byte-3  | dbl[0]-byte-2 |dbl[0]-LS-byte |
+ *   +---------------+-----------------+---------------+---------------+
+ *   | 
+ *   +--
+ * \endverbatim
+ *
  * \see marshal_init, marshal_header_short, marshal_header_long, marshal_measurements, marshal_values, marshal_finalize
  */
 #include <math.h>
@@ -164,6 +216,10 @@
 #define BOOL_FALSE_T  0xB
 /** Marshalled data type for a True OML_BOOL_VALUE */
 #define BOOL_TRUE_T   0xC
+/** Marshalled data type for vectors OML_VECTOR_VALUE */
+#define VECTOR_T       0xD
+/** Marshalled data type for boolean vectors */
+#define BOOL_T        0xE
 
 /** Synchronisation byte repeated twice before a new marshalled message */
 #define SYNC_BYTE 0xAA
@@ -182,6 +238,7 @@
 #define UINT64_T_SIZE     8
 #define BLOB_T_MAX_SIZE   UINT32_MAX
 #define GUID_T_SIZE       8
+#define VECTOR_T_SIZE     4
 
 #define MAX_STRING_LENGTH STRING_T_MAX_SIZE
 
@@ -252,6 +309,29 @@ static const size_t oml_size_map [] =
     BLOB_T_MAX_SIZE,
     UINT64_T_SIZE
   };
+
+/** Map from OML_VECTOR_*_VALUE to vector element protocol types
+ */
+static const uint8_t vector_protocol_map[] = {
+  [OML_VECTOR_DOUBLE_VALUE] = DOUBLE_T,
+  [OML_VECTOR_INT32_VALUE]  = INT32_T,
+  [OML_VECTOR_UINT32_VALUE] = UINT32_T,
+  [OML_VECTOR_INT64_VALUE]  = INT64_T,
+  [OML_VECTOR_UINT64_VALUE] = UINT64_T,
+  [OML_VECTOR_BOOL_VALUE]   = BOOL_T,
+};
+
+/** Map from vector element protocol type to OML_VECTOR_*_VALUE
+ */
+static const OmlValueT vector_type_map[] = {
+  [DOUBLE_T] = OML_VECTOR_DOUBLE_VALUE,
+  [INT32_T]  = OML_VECTOR_INT32_VALUE,
+  [UINT32_T] = OML_VECTOR_UINT32_VALUE,
+  [INT64_T]  = OML_VECTOR_INT64_VALUE,
+  [UINT64_T] = OML_VECTOR_UINT64_VALUE,
+  [BOOL_T]   = OML_VECTOR_BOOL_VALUE,
+};
+
 
 /** Find two synchronisation bytes (SYNC_BYTE) back to back.
  *
@@ -405,20 +485,21 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
 
 /** Marshal the array of values into an MBuffer.
  *
- * Metadata of the measurement stream should already have been written with
- * marshal_measurements(). Each element of values is written with
- * marshal_value().  Finally, the number of elements in the message is updated
- * in its header, by incrementing the relevant field (depending on its
- * OmlBinMsgType) by value_count.
+ * Metadata of the measurement stream should already have been written
+ * with marshal_measurements(). Each element of values is written with
+ * marshal_value().  Finally, the number of elements in the message is
+ * updated in its header, by incrementing the relevant field
+ * (depending on its OmlBinMsgType) by value_count.
  *
- * If the returned number is negative, marshalling didn't finish as the
- * provided buffer was short of the number of bytes returned (when multiplied
- * by -1); the entire message has been reset (by marshal_value()), and
- * marshalling should restart with marshal_init(), after the MBuffer has been
- * adequately resized or repacked.
+ * If the returned number is negative, marshalling didn't finish as
+ * the provided buffer was short of the number of bytes returned (when
+ * multiplied by -1); the entire message has been reset (by
+ * marshal_value()), and marshalling should restart with
+ * marshal_init(), after the MBuffer has been adequately resized or
+ * repacked.
  *
- * Once all data has been marshalled, marshal_finalize() should be called to
- * finish preparing the message.
+ * Once all data has been marshalled, marshal_finalize() should be
+ * called to finish preparing the message.
  *
  * \param mbuf MBuffer to write marshalled data to
  * \param values array of OmlValue of length value_count
@@ -645,10 +726,88 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     break;
   }
 
- default:
-   logerror("%s: Unsupported value type '%d'\n", __FUNCTION__, val_type);
-   return 0;
- }
+  case OML_VECTOR_INT32_VALUE:
+  case OML_VECTOR_UINT32_VALUE: {
+    size_t i;
+    uint8_t buf[VECTOR_T_SIZE] = { VECTOR_T, 0, 0, 0 };
+    uint16_t hn = omlc_get_vector_nof_elts(*val);
+    uint16_t nn = htons(hn);
+    buf[1] = vector_protocol_map[val_type];
+    memcpy(&buf[2], &nn, sizeof(nn));
+    if(mbuf_write(mbuf, buf, VECTOR_T_SIZE) == 0) {
+      uint32_t elts[hn];
+      uint32_t *v = omlc_get_vector_ptr(*val);
+      for(i = 0; i < hn; i++)
+        elts[i] = htonl(*((uint32_t*)(v+i)));
+      if(mbuf_write(mbuf, (const uint8_t*)(elts), sizeof(elts)) == -1) {
+        logerror("%s(): failed to marshal %s of size %" PRIu16 " (mbuf_write())\n", __func__, oml_type_to_s(val_type), hn);
+        mbuf_reset_write(mbuf);
+        return 0;
+      }
+    } else {
+      logerror("%s(): failed to marshal %s length (mbuf_write())\n", __func__, oml_type_to_s(val_type));
+      mbuf_reset_write(mbuf);
+      return 0;
+    }
+    break;
+  }
+
+  case OML_VECTOR_INT64_VALUE:
+  case OML_VECTOR_UINT64_VALUE:
+  case OML_VECTOR_DOUBLE_VALUE: {
+    size_t i;
+    uint8_t buf[VECTOR_T_SIZE] = { VECTOR_T, 0, 0, 0 };
+    uint16_t hn = omlc_get_vector_nof_elts(*val);
+    uint16_t nn = htons(hn);
+    buf[1] = vector_protocol_map[val_type];
+    memcpy(&buf[2], &nn, sizeof(nn));
+    if(mbuf_write(mbuf, buf, VECTOR_T_SIZE) == 0) {
+      uint64_t elts[hn];
+      uint64_t *v = omlc_get_vector_ptr(*val);
+      for(i = 0; i < hn; i++)
+        elts[i] = htonll(*((uint64_t*)(v+i)));
+      if(mbuf_write(mbuf, (const uint8_t*)(elts), sizeof(elts)) == -1) {
+        logerror("%s(): failed to marshal %s of size %" PRIu16 " (mbuf_write())\n", __func__, oml_type_to_s(val_type), hn);
+        mbuf_reset_write(mbuf);
+        return 0;
+      }
+    } else {
+      logerror("%s(): failed to marshal %s length (mbuf_write())\n", __func__, oml_type_to_s(val_type));
+      mbuf_reset_write(mbuf);
+        return 0;
+    }
+    break;
+  }
+
+  case OML_VECTOR_BOOL_VALUE: {
+    size_t i;
+    uint8_t buf[VECTOR_T_SIZE] = { VECTOR_T, 0, 0, 0 };
+    uint16_t hn = omlc_get_vector_nof_elts(*val);
+    uint16_t nn = htons(hn);
+    buf[1] = vector_protocol_map[val_type];
+    memcpy(&buf[2], &nn, sizeof(nn));
+    if(mbuf_write(mbuf, buf, VECTOR_T_SIZE) == 0) {
+      uint8_t elts[hn];
+      bool *v = omlc_get_vector_ptr(*val);
+      for(i = 0; i < hn; i++)
+        elts[i] = v[i] ? BOOL_TRUE_T : BOOL_FALSE_T;
+      if(mbuf_write(mbuf, (const uint8_t*)(elts), hn) == -1) {
+        logerror("%s(): failed to marshal %s of size %" PRIu16 " (mbuf_write())\n", __func__, oml_type_to_s(val_type), hn);
+        mbuf_reset_write(mbuf);
+        return 0;
+      }
+    } else {
+      logerror("%s(): failed to marshal %s length (mbuf_write())\n", __func__, oml_type_to_s(val_type));
+      mbuf_reset_write(mbuf);
+      return 0;
+    }
+    break;
+  }
+
+  default:
+    logerror("%s(): Unsupported value type '%d'\n", __func__, val_type);
+    return 0;
+  }
 
   return 1;
 }
@@ -676,7 +835,6 @@ marshal_finalize(MBuffer*  mbuf)
             len, UINT32_MAX);
     len = UINT32_MAX;
   }
-
 
   if (type == OMB_DATA_P && len > UINT16_MAX) {
     /*
@@ -880,145 +1038,214 @@ int
 unmarshal_value(MBuffer *mbuf, OmlValue *value)
 {
   if (mbuf_rd_remaining(mbuf) == 0) {
-      o_log(O_LOG_ERROR, "Tried to unmarshal a value from the buffer, but didn't receive enough data to do that\n");
-      return 0;
+    logerror("Tried to unmarshal a value from the buffer, but didn't receive enough data to do that\n");
+    return 0;
   }
 
   int type = mbuf_read_byte (mbuf);
   if (type == -1) return 0;
-  OmlValueT oml_type = protocol_type_map[type];
 
   switch (type) {
   case LONG_T: {
-                 uint8_t buf [LONG_T_SIZE];
+    uint8_t buf [LONG_T_SIZE];
 
-                 if (mbuf_read (mbuf, buf, LENGTH (buf)) == -1)
-                 {
-                   logerror("Failed to unmarshal OML_LONG_VALUE; not enough data?\n");
-                   return 0;
-                 }
+    if (mbuf_read (mbuf, buf, LENGTH (buf)) == -1)
+    {
+      logerror("Failed to unmarshal OML_LONG_VALUE; not enough data?\n");
+      return 0;
+    }
 
-                 uint32_t hv = ntohl(*((uint32_t*)buf));
-                 int32_t v = (int32_t)(hv);
+    uint32_t hv = ntohl(*((uint32_t*)buf));
+    int32_t v = (int32_t)(hv);
 
-                 /*
-                  * The server no longer needs to know about OML_LONG_VALUE, as the
-                  * marshalling process now maps OML_LONG_VALUE into OML_INT32_VALUE
-                  * (by truncating to [INT_MIN, INT_MAX].  Therefore, unmarshall a
-                  * LONG_T value into an OML_INT32_VALUE object.
-                  */
-                 oml_value_set_type(value, OML_INT32_VALUE);
-                 value->value.int32Value = v;
-                 break;
-               }
+    /*
+     * The server no longer needs to know about OML_LONG_VALUE, as the
+     * marshalling process now maps OML_LONG_VALUE into OML_INT32_VALUE
+     * (by truncating to [INT_MIN, INT_MAX].  Therefore, unmarshall a
+     * LONG_T value into an OML_INT32_VALUE object.
+     */
+    oml_value_set_type(value, OML_INT32_VALUE);
+    value->value.int32Value = v;
+    break;
+  }
   case INT32_T:
   case UINT32_T:
   case INT64_T:
   case UINT64_T: {
-                   uint8_t buf [UINT64_T_SIZE]; // Maximum integer size
-
-                   if (mbuf_read (mbuf, buf, protocol_size_map[type]) == -1)
-                   {
-                     logerror("Failed to unmarshall %d value; not enough data?\n",
-                         type);
-                     return 0;
-                   }
-
-                   oml_value_set_type(value, oml_type);
-                   if (protocol_size_map[type] == 4)
-                     value->value.uint32Value = ntohl(*((uint32_t*)buf));
-                   else
-                     value->value.uint64Value = ntohll(*((uint64_t*)buf));
-                   break;
-                 }
+    uint8_t buf [UINT64_T_SIZE]; // Maximum integer size
+    OmlValueT oml_type = protocol_type_map[type];
+    if (mbuf_read (mbuf, buf, protocol_size_map[type]) == -1)
+    {
+      logerror("Failed to unmarshall %d value; not enough data?\n",
+               type);
+      return 0;
+    }
+    oml_value_set_type(value, oml_type);
+    if (protocol_size_map[type] == 4)
+      value->value.uint32Value = ntohl(*((uint32_t*)buf));
+    else
+      value->value.uint64Value = ntohll(*((uint64_t*)buf));
+    break;
+  }
   case DOUBLE_T: {
-                   uint8_t buf [DOUBLE_T_SIZE];
+    uint8_t buf [DOUBLE_T_SIZE];
+    OmlValueT oml_type = protocol_type_map[type];
+    if (mbuf_read (mbuf, buf, LENGTH (buf)) == -1)
+    {
+      logerror("Failed to unmarshal OML_DOUBLE_VALUE; not enough data?\n");
+      return 0;
+    }
 
-                   if (mbuf_read (mbuf, buf, LENGTH (buf)) == -1)
-                   {
-                     logerror("Failed to unmarshal OML_DOUBLE_VALUE; not enough data?\n");
-                     return 0;
-                   }
-
-                   int hmant = (int)ntohl(*((uint32_t*)buf));
-                   double mant = hmant * 1.0 / (1 << BIG_L);
-                   int exp = (int8_t) buf[4];
-                   double v = ldexp(mant, exp);
-                   oml_value_set_type(value, oml_type);
-                   value->value.doubleValue = v;
-                   break;
-                 }
-  case DOUBLE_NAN: {
-                     mbuf_read_skip(mbuf, DOUBLE_T_SIZE); /* The data is irrelevant */
-                     oml_value_set_type(value, oml_type);
-                     value->value.doubleValue = NAN;
-                     logdebug("Received NaN\n");
-                     break;
-                   }
+    int hmant = (int)ntohl(*((uint32_t*)buf));
+    double mant = hmant * 1.0 / (1 << BIG_L);
+    int exp = (int8_t) buf[4];
+    double v = ldexp(mant, exp);
+    oml_value_set_type(value, oml_type);
+    value->value.doubleValue = v;
+    break;
+  }
   case STRING_T: {
-                   int len = 0;
-                   uint8_t buf [STRING_T_MAX_SIZE];
+    int len = 0;
+    uint8_t buf [STRING_T_MAX_SIZE];
+    
+    len = mbuf_read_byte (mbuf);
+      
+    if (len == -1 || mbuf_read (mbuf, buf, len) == -1)
+    {
+      logerror("Failed to unmarshal OML_STRING_VALUE; not enough data?\n");
+      return 0;
+    }
 
-                   len = mbuf_read_byte (mbuf);
-
-                   if (len == -1 || mbuf_read (mbuf, buf, len) == -1)
-                   {
-                     logerror("Failed to unmarshal OML_STRING_VALUE; not enough data?\n");
-                     return 0;
-                   }
-
-                   oml_value_set_type(value, OML_STRING_VALUE);
-                   omlc_set_string_copy(*oml_value_get_value(value), buf, len);
-                   break;
-                 }
+    oml_value_set_type(value, OML_STRING_VALUE);
+    omlc_set_string_copy(*oml_value_get_value(value), buf, len);
+    break;
+  }
   case BLOB_T: {
-                 uint32_t n_len;
+    uint32_t n_len;
 
-                 if (mbuf_read (mbuf, (uint8_t*)&n_len, 4) == -1) {
-                   logerror ("Failed to unmarshal OML_BLOB_VALUE length field; not enough data?\n");
-                   return 0;
-                 }
+    if (mbuf_read (mbuf, (uint8_t*)&n_len, 4) == -1) {
+      logerror ("Failed to unmarshal OML_BLOB_VALUE length field; not enough data?\n");
+      return 0;
+    }
 
-                 size_t len = ntohl (n_len);
-                 size_t remaining = mbuf_rd_remaining (mbuf);
+    size_t len = ntohl (n_len);
+    size_t remaining = mbuf_rd_remaining (mbuf);
 
-                 if (len > remaining) {
-                   logerror ("Failed to unmarshal OML_BLOB_VALUE data:  not enough data available "
-                       "(wanted %d, but only have %d bytes\n",
-                       len, remaining);
-                   return 0;
-                 }
+    if (len > remaining) {
+      logerror ("Failed to unmarshal OML_BLOB_VALUE data:  not enough data available "
+                "(wanted %d, but only have %d bytes\n",
+                len, remaining);
+      return 0;
+    }
 
-                 void *ptr = mbuf_rdptr (mbuf);
-                 oml_value_set_type(value, OML_BLOB_VALUE);
-                 omlc_set_blob (*oml_value_get_value(value), ptr, len); /*XXX*/
-                 mbuf_read_skip (mbuf, len);
-                 break;
-               }
+    void *ptr = mbuf_rdptr (mbuf);
+    oml_value_set_type(value, OML_BLOB_VALUE);
+    omlc_set_blob (*oml_value_get_value(value), ptr, len); /*XXX*/
+    mbuf_read_skip (mbuf, len);
+    break;
+  }
 
   case GUID_T: {
-                 uint64_t nv64;
-                 uint8_t buf[GUID_T_SIZE];
-                 if(mbuf_read(mbuf, buf, GUID_T_SIZE) == -1) {
-                   logerror("Failed to unmarshall OML_GUID_VALUE data; not enough data?\n");
-                   return 0;
-                 }
-                 memcpy(&nv64, buf, sizeof(nv64));
-                 oml_value_set_type(value, OML_GUID_VALUE);
-                 omlc_set_guid(*oml_value_get_value(value), ntohll(nv64));
-                 break;
-               }
+    uint64_t nv64;
+    uint8_t buf[GUID_T_SIZE];
+    if(mbuf_read(mbuf, buf, GUID_T_SIZE) == -1) {
+      logerror("Failed to unmarshall OML_GUID_VALUE data; not enough data?\n");
+      return 0;
+    }
+    memcpy(&nv64, buf, sizeof(nv64));
+    oml_value_set_type(value, OML_GUID_VALUE);
+    omlc_set_guid(*oml_value_get_value(value), ntohll(nv64));
+    break;
+  }
 
   case BOOL_FALSE_T:
   case BOOL_TRUE_T:
-               oml_value_set_type(value, OML_BOOL_VALUE);
-               omlc_set_bool(*oml_value_get_value(value),
-                   (type == BOOL_TRUE_T)?OMLC_BOOL_TRUE:OMLC_BOOL_FALSE);
-               break;
+    oml_value_set_type(value, OML_BOOL_VALUE);
+    omlc_set_bool(*oml_value_get_value(value),
+                  (type == BOOL_TRUE_T)?OMLC_BOOL_TRUE:OMLC_BOOL_FALSE);
+    break;
+
+  case VECTOR_T: {
+    uint16_t i, nof_elts;
+    int type = mbuf_read_byte(mbuf);
+    if(-1 == type) {
+      logerror("%s(): failed to unmarshall VECTOR_T length\n", __func__);
+      return 0;
+    }
+    if(mbuf_read(mbuf,(uint8_t*)(&nof_elts), sizeof(nof_elts)) == -1) {
+      logerror("%s(): failed to unmarshall VECTOR_T length\n", __func__);
+      return 0;
+    }
+    nof_elts = ntohs(nof_elts);
+
+    OmlValueT oml_type = vector_type_map[type];
+    OmlValueU *v = oml_value_get_value(value);
+    switch(type) {
+    case INT32_T:
+    case UINT32_T: {
+      size_t bytes = nof_elts * sizeof(uint32_t);
+      uint32_t *elts = xcalloc(nof_elts, sizeof(uint32_t));
+      if(mbuf_read(mbuf, (uint8_t*)(elts), nof_elts * sizeof(uint32_t)) == -1) {
+        logerror("%s(): failed to unmarshall OML_VECTOR_(U)INT32_VALUE\n", __func__);
+        return 0;
+      }
+      for(i = 0; i < nof_elts; i++)
+        elts[i] = ntohl(elts[i]);
+      oml_value_set_type(value, oml_type);
+      omlc_set_vector_ptr(*v, elts);
+      omlc_set_vector_length(*v, bytes);
+      omlc_set_vector_size(*v, bytes);
+      omlc_set_vector_nof_elts(*v, nof_elts);
+      omlc_set_vector_elt_size(*v, sizeof(uint32_t));
+      break;
+    }
+    case INT64_T:
+    case UINT64_T:
+    case DOUBLE_T: {
+      size_t bytes = nof_elts * sizeof(uint64_t);
+      uint64_t *elts = xcalloc(nof_elts, sizeof(uint64_t));
+      if(mbuf_read(mbuf, (uint8_t*)(elts), nof_elts * sizeof(uint64_t)) == -1) {
+        logerror("%s(): failed to unmarshall OML_VECTOR_(U)INT64_VALUE\n", __func__);
+        return 0;
+      }
+      for(i = 0; i < nof_elts; i++)
+        elts[i] = ntohll(elts[i]);
+      oml_value_set_type(value, oml_type);
+      omlc_set_vector_ptr(*v, elts);
+      omlc_set_vector_length(*v, bytes);
+      omlc_set_vector_size(*v, bytes);
+      omlc_set_vector_nof_elts(*v, nof_elts);
+      omlc_set_vector_elt_size(*v, sizeof(uint64_t));
+      break;
+    }
+    case BOOL_T: {
+      uint8_t y[nof_elts];
+      size_t bytes = nof_elts * sizeof(bool);
+      bool *elts = xcalloc(nof_elts, sizeof(bool));
+      if(mbuf_read(mbuf, y, nof_elts) == -1) {
+        logerror("%s(): failed to unmarshall OML_VECTOR_BOOL_VALUE\n", __func__);
+        return 0;
+      }
+      for(i = 0; i < nof_elts; i++)
+        elts[i] = ((BOOL_TRUE_T == y[i]) ? true : false);
+      oml_value_set_type(value, oml_type);
+      omlc_set_vector_ptr(*v, elts);
+      omlc_set_vector_length(*v, bytes);
+      omlc_set_vector_size(*v, bytes);
+      omlc_set_vector_nof_elts(*v, nof_elts);
+      omlc_set_vector_elt_size(*v, sizeof(bool));
+      break;
+    }
+    default:
+      logerror("%s(): bad type for array (t=%d)\n", __func__, type);
+      break;
+    }
+    break;
+  }
 
   default:
-               logerror("%s: Unsupported value type '%d'\n", __FUNCTION__, type);
-               return 0;
+    logerror("%s: Unsupported value type '%d'\n", __FUNCTION__, type);
+    return 0;
   }
 
   return 1;

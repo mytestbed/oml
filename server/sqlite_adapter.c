@@ -18,12 +18,14 @@
 #include <sqlite3.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "mstring.h"
 #include "htonll.h"
+#include "json.h"
 #include "guid.h"
 #include "oml_value.h"
 #include "oml_util.h"
@@ -54,6 +56,15 @@ static db_typemap sq3_type_pair [] = {
   { OML_BOOL_VALUE,     "INTEGER" }, /* See [0]: "SQLite does not have a separate Boolean storage class.
                                         Instead, Boolean values are stored as integers 0 (false) and 1 (true)."
                                         [0] https://www.sqlite.org/datatype3.html */
+
+  /* Vector types are rendered as JSON-format text */
+  { OML_VECTOR_DOUBLE_VALUE, "TEXT" },
+  { OML_VECTOR_INT32_VALUE,  "TEXT" },
+  { OML_VECTOR_UINT32_VALUE, "TEXT" },
+  { OML_VECTOR_INT64_VALUE,  "TEXT" },
+  { OML_VECTOR_UINT64_VALUE, "TEXT" },
+  { OML_VECTOR_BOOL_VALUE,   "TEXT" },
+
 };
 
 static int sql_stmt(Sq3DB* self, const char* stmt);
@@ -389,6 +400,8 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
   int i;
   double time_stamp_server;
   sqlite3_stmt* stmt = sq3table->insert_stmt;
+  char *json = NULL;
+  ssize_t json_sz;
   struct timeval tv;
   gettimeofday(&tv, NULL);
   time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
@@ -493,8 +506,55 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
     case OML_BOOL_VALUE:
       res = sqlite3_bind_int(stmt, idx, (int)omlc_get_bool(*oml_value_get_value(v)));
       break;
-      break;
 
+    case OML_VECTOR_DOUBLE_VALUE:
+      json = NULL;
+      json_sz = vector_double_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
+    case OML_VECTOR_INT32_VALUE:
+      json = NULL;
+      json_sz = vector_int32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
+    case OML_VECTOR_UINT32_VALUE:
+      json = NULL;
+      json_sz = vector_uint32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
+    case OML_VECTOR_INT64_VALUE:
+      json = NULL;
+      json_sz = vector_int64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
+    case OML_VECTOR_UINT64_VALUE:
+      json = NULL;
+      json_sz = vector_uint64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
+    case OML_VECTOR_BOOL_VALUE:
+      json = NULL;
+      json_sz = vector_bool_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, xfree);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
     default:
       logerror("sqlite:%s: Unknown type %d in col '%s' of table '%s; this is probably a bug'\n",
           db->name, schema->fields[i].type, schema->fields[i].name, table->schema->name);

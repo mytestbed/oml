@@ -36,7 +36,7 @@ $integer_alias = :int32
 
 $types = {
   :boolean => {
-    :ctype => "uint8_t",
+    :ctype => "uint8_t %s",
     :setter => "bool",
     :defval => "(val%5)",
     :omltype => "OML_BOOL_VALUE",
@@ -46,7 +46,7 @@ $types = {
   },
   :string => {                      # type used in the AppDescription
     # Code generation
-    :ctype => "const char*",        # type used for OML-injectable variables of this types
+    :ctype => "const char *%s",     # type used for OML-injectable variables of this types
     :setter => "string",            # appended to "omlc_set_"
     :defval => "\"foo\"",           # example argument(s) passed to injection helper, can use the variable "val"
     :omltype => "OML_STRING_VALUE", # OML type for Measurement Point definition
@@ -56,7 +56,7 @@ $types = {
     :poptdefval => "\"\"",          # default value for this variable if none is specified on the CLI
   },
   :long => {
-    :ctype => "long*",
+    :ctype => "long *%s",
     :setter => "long",
     :defval => "(long)val",
     :omltype => "OML_LONG_VALUE",
@@ -65,7 +65,7 @@ $types = {
     :poptdefval => "0",
   },
   :int32 => {
-    :ctype => "int32_t",
+    :ctype => "int32_t %s",
     :setter => "int32",
     :defval => "((int32_t)-val)",
     :omltype => "OML_INT32_VALUE",
@@ -74,7 +74,7 @@ $types = {
     :poptdefval => "0",
   },
   :uint32 => {
-    :ctype => "uint32_t",
+    :ctype => "uint32_t %s",
     :setter => "uint32",
     :defval => "((uint32_t)val)",
     :omltype => "OML_UINT32_VALUE",
@@ -83,7 +83,7 @@ $types = {
     :poptdefval => "0",
   },
   :int64 => {
-    :ctype => "int64_t",
+    :ctype => "int64_t %s",
     :setter => "int64",
     :defval => "((int64_t)-val)",
     :omltype => "OML_INT64_VALUE",
@@ -92,7 +92,7 @@ $types = {
     :poptdefval => "0",
   },
   :uint64 => {
-    :ctype => "uint64_t",
+    :ctype => "uint64_t %s",
     :setter => "uint64",
     :defval => "((uint64_t)val)",
     :omltype => "OML_UINT64_VALUE",
@@ -101,7 +101,7 @@ $types = {
     :poptdefval => "0",
   },
   :double => {
-    :ctype => "double",
+    :ctype => "double %s",
     :setter => "double",
     :defval => "1.0/val",
     :omltype => "OML_DOUBLE_VALUE",
@@ -110,7 +110,7 @@ $types = {
     :poptdefval => "0.",
   },
   :blob => {
-    :ctype => "const void*",
+    :ctype => "const void *%s",
     :setter => "blob",
     :defval => "NULL, 0",
     :omltype => "OML_BLOB_VALUE",
@@ -119,11 +119,65 @@ $types = {
     #:poptdefval => false,
   },
   :guid => {
-    :ctype => "oml_guid_t",
+    :ctype => "oml_guid_t %s",
     :setter => "guid",
     :defval => "OMLC_GUID_NULL",
     :omltype => "OML_GUID_VALUE",
     #:popttype => false, # no GUID on the command line
+    #:poptctype => false,
+    #:poptdefval => false,
+  },
+  :"[double]" => {
+    :ctype => "const double %s[]",
+    :setter => "vector_double",
+    :defval => "",
+    :omltype => "OML_VECTOR_DOUBLE_VALUE",
+    #:popttype => false,
+    #:poptctype => false,
+    #:poptdefval => false,
+  },
+  :"[int32]" => {
+    :ctype => "const int32_t %s[]",
+    :setter => "vector_int32",
+    :defval => "NULL, 0",
+    :omltype => "OML_VECTOR_INT32_VALUE",
+    #:popttype => false,
+    #:poptctype => false,
+    #:poptdefval => false,
+  },
+  :"[uint32]" => {
+    :ctype => "const uint32_t %s[]",
+    :setter => "vector_uint32",
+    :defval => "",
+    :omltype => "OML_VECTOR_UINT32_VALUE",
+    #:popttype => false,
+    #:poptctype => false,
+    #:poptdefval => false,
+  },
+  :"[int64]" => {
+    :ctype => "const int64_t %s[]",
+    :setter => "vector_int64",
+    :defval => "",
+    :omltype => "OML_VECTOR_INT64_VALUE",
+    #:popttype => false,
+    #:poptctype => false,
+    #:poptdefval => false,
+  },
+  :"[uint64]" => {
+    :ctype => "const uint64_t %s[]",
+    :setter => "vector_uint64",
+    :defval => "",
+    :omltype => "OML_VECTOR_UINT64_VALUE",
+    #:popttype => false,
+    #:poptctype => false,
+    #:poptdefval => false,
+  },
+  :"[bool]" => {
+    :ctype => "const bool %s[]",
+    :setter => "vector_bool",
+    :defval => "",
+    :omltype => "OML_VECTOR_BOOL_VALUE",
+    #:popttype => false,
     #:poptctype => false,
     #:poptdefval => false,
   },
@@ -410,7 +464,6 @@ class Metric < Struct.new(:name, :type, :opts)
   # \return a Metric
   def initialize(name, type, opts = {})
     super
-
     self.type = type.to_sym
   end
 
@@ -449,6 +502,32 @@ class Metric < Struct.new(:name, :type, :opts)
       $stderr.puts "ERROR\tUnknown type #{type}"
       exit -1
     end
+  end
+
+  def is_vector?
+    return /\[\w+\]/ =~ type.to_s
+  end
+
+  ## Write an example vector for this metric
+  # \param stream stream to write code snippet to
+  def write_example_vector(stream)
+    stream.print "\n  static ", c_type % name, " = {\n"
+    case type
+      when :"[double]"
+        stream.print "    0.0, M_E, M_PI, HUGE, 1.0/0.0\n"
+      when :"[int32]"
+        stream.print "    0, -1, 1, INT32_MIN, INT32_MAX\n"
+      when :"[uint32]"
+        stream.print "    0, 1, 2, UINT32_MAX -2, UINT32_MAX -1, UINT32_MAX\n"
+      when :"[int64]"
+        stream.print "    0, -1, 1, INT32_MIN - UINT64_C(1), INT64_MIN, INT32_MAX + UINT64_C(1), INT64_MAX\n"
+      when :"[uint64]"
+        stream.print "    0, 1, 2, UINT32_MAX + UINT64_C(1), UINT64_MAX -1, UINT64_MAX\n"
+      when :"[bool]"
+        stream.print "    true, false, true, false\n"
+    end
+    stream.print "  };\n"
+    stream.print "  static const size_t #{name}_len = sizeof(#{name})/sizeof(#{name}[0]);\n"
   end
 end
 
@@ -491,12 +570,14 @@ class MeasurementPoint
   # \see Metric::c_type
   def write_oml_helper_function(stream)
     stream.print "static inline void
-oml_inject_#{@name}(OmlMP* mp"
+oml_inject_#{@name}(OmlMP *mp"
     @ms.each do |m|
-      stream.print ", #{m.c_type} #{m.name}"
-      # Blobs injection helpers also need to know the size of the blob
-      if m.type == :blob || m.type == "blob"
-	stream.print ", size_t #{m.name}_len"
+      stream.print ", #{m.c_type}" % m.name
+      # Blob and vector injection helpers also must pass the size blob/vector size
+      if m.type == :blob
+        stream.print ", size_t #{m.name}_len"
+      elsif m.is_vector?
+        stream.print ", size_t #{m.name}_len"
       end
     end
     stream.puts ")\n{"
@@ -505,8 +586,10 @@ oml_inject_#{@name}(OmlMP* mp"
     i = 0
     @ms.each do |m|
       stream.print "  omlc_set_#{$types[m.type][:setter]}(v[#{i}], #{m.name}"
-      if m.type == :blob || m.type == "blob"
-	stream.print ", #{m.name}_len"
+      if m.type == :blob
+        stream.print ", #{m.name}_len"
+      elsif m.is_vector?
+        stream.print ", #{m.name}_len"
       end
       stream.puts ");"
       i = i + 1
@@ -514,9 +597,12 @@ oml_inject_#{@name}(OmlMP* mp"
     stream.puts "\n  omlc_inject(mp, v);\n\n"
     i = 0
     @ms.each do |m|
-      # Strings and blobs need to be reset (Metric already converts string types "blah" to keywords :blah
+      # Strings, blobs and vectors need to be reset
+      # Metric.initialize() already converts strings "blah" to symbols :blah
       if m.type == :string || m.type == :blob
-	stream.puts "  omlc_reset_#{$types[m.type][:setter]}(v[#{i}]);"
+        stream.puts "  omlc_reset_#{$types[m.type][:setter]}(v[#{i}]);"
+      elsif m.is_vector?
+        stream.puts "  omlc_reset_vector(v[#{i}]);"
       end
       i = i + 1
     end
@@ -529,10 +615,24 @@ oml_inject_#{@name}(OmlMP* mp"
     stream.print "    oml_inject_#{@name}(oml_mps->#{@name}"
     i = 0
     @ms.each do |m|
-      stream.print ", #{$types[m.type][:defval]}"
+      if m.is_vector?
+        stream.print ", #{m.name}, #{m.name}_len"
+      else
+        stream.print ", #{$types[m.type][:defval]}"
+      end
       i = i + 1
     end
     stream.print ");\n"
+  end
+
+  ## Write an example vector
+  # \param stream stream to write code snippet to
+  def write_example_vectors(stream)
+    @ms.each do |m|
+      if m.is_vector?
+        m.write_example_vector(stream)
+      end
+    end 
   end
 end
 
@@ -594,7 +694,7 @@ class AppDefinition
   # \param stream stream to write header snippet into
   def write_oml_mps_t(s)
     @mps.each do |mp|
-      s.puts "  OmlMP* #{mp.name};"
+      s.puts "  OmlMP *#{mp.name};"
     end
   end
 
@@ -667,13 +767,13 @@ class AppDefinition
       return "#{ENV['USER'] || 'XXX'}:app:#{@name}"
     when :app_path
       if @path.nil?
-	$stderr.puts "ERROR\tApplication path is empty; did you specify 'app.path'?"
-	exit -1
+        $stderr.puts "ERROR\tApplication path is empty; did you specify \'app.path\'?"
+        exit -1
       end
       return @path
     when :options_t
       @properties.each do |p|
-	p.write_opts_t(s)
+        p.write_opts_t(s)
       end
     when :options_default
       write_opts_default(s)
@@ -718,7 +818,9 @@ class AppDefinition
 extern "C" {
 #endif
 
-/* Get size_t and NULL from <stddef.h>.  */
+/* Define HUGE etc.. */
+#include <math.h>
+/* Get size_t and NULL from <stddef.h> */
 #include <stddef.h>
 
 #include <oml2/omlc.h>
@@ -888,9 +990,14 @@ $(PROGRAM)_oml.h: $(PROGRAM).rb
 
 /* Do application-specific work here */
 void
-run(opts_t* opts, oml_mps_t* oml_mps)
+run(opts_t *opts, oml_mps_t *oml_mps)
 {
   long val = 1;
+|
+    @mps.each do |mps|
+      mps.write_example_vectors(stream)
+    end
+    stream.puts %Q|
 
   do {
     /* The oml_inject_MPNAME() helpers are defined in #{template(:app_name)}_oml.h*/

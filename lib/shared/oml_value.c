@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2010-2013 National ICT Australia Limited (NICTA)
  *
@@ -11,6 +12,7 @@
  * \brief Support functions for manipulating OmlValue objects
  */
 
+#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,16 +41,22 @@ static struct {
   OmlValueT type;
   const char * const name;
 } type_names[] = {
-  { OML_LONG_VALUE,    "long"    },
-  { OML_INT32_VALUE,   "int32"   },
-  { OML_UINT32_VALUE,  "uint32"  },
-  { OML_INT64_VALUE,   "int64"   },
-  { OML_UINT64_VALUE,  "uint64"  },
-  { OML_DOUBLE_VALUE,  "double"  },
-  { OML_STRING_VALUE,  "string"  },
-  { OML_BLOB_VALUE,    "blob"    },
-  { OML_GUID_VALUE,    "guid"    },
-  { OML_BOOL_VALUE,    "bool"    },
+  { OML_LONG_VALUE,          "long"    },
+  { OML_INT32_VALUE,         "int32"   },
+  { OML_UINT32_VALUE,        "uint32"  },
+  { OML_INT64_VALUE,         "int64"   },
+  { OML_UINT64_VALUE,        "uint64"  },
+  { OML_DOUBLE_VALUE,        "double"  },
+  { OML_STRING_VALUE,        "string"  },
+  { OML_BLOB_VALUE,          "blob"    },
+  { OML_GUID_VALUE,          "guid"    },
+  { OML_BOOL_VALUE,          "bool"    },
+  { OML_VECTOR_DOUBLE_VALUE, "[double]" },
+  { OML_VECTOR_INT32_VALUE,  "[int32]"  },
+  { OML_VECTOR_UINT32_VALUE, "[uint32]" },
+  { OML_VECTOR_INT64_VALUE,  "[int64]"  },
+  { OML_VECTOR_UINT64_VALUE, "[uint64]" },
+  { OML_VECTOR_BOOL_VALUE,   "[bool]"   },
 };
 
 /** Initialise one OmlValues.
@@ -65,6 +73,7 @@ oml_value_init(OmlValue *v)
 {
   oml_value_array_init(v, 1);
 }
+
 /** Initialise arrays of OmlValues.
  *
  * It is *MANDATORY* to use this function before any OmlValue setting,
@@ -150,6 +159,19 @@ oml_value_set(OmlValue *to, const OmlValueU *value, OmlValueT type)
       omlc_copy_blob(*oml_value_get_value(to), *value);
       break;
 
+    case OML_VECTOR_DOUBLE_VALUE:
+    case OML_VECTOR_INT32_VALUE:
+    case OML_VECTOR_UINT32_VALUE:
+    case OML_VECTOR_INT64_VALUE:
+    case OML_VECTOR_UINT64_VALUE:
+    case OML_VECTOR_BOOL_VALUE:
+      if (!omlc_get_vector_ptr(*value)) {
+        logwarn("Trying to copy OML_VECTOR_*_VALUE from a NULL source\n");
+        return -1;
+      }
+      omlc_copy_vector(*oml_value_get_value(to), *value);
+      break;
+
   default:
       logerror("%s() for type '%d' not implemented'\n", __FUNCTION__, type);
       return -1;
@@ -198,6 +220,15 @@ oml_value_reset(OmlValue* v)
     omlc_reset_blob(v->value);
     break;
 
+  case OML_VECTOR_DOUBLE_VALUE:
+  case OML_VECTOR_INT32_VALUE:
+  case OML_VECTOR_UINT32_VALUE:
+  case OML_VECTOR_INT64_VALUE:
+  case OML_VECTOR_UINT64_VALUE:
+  case OML_VECTOR_BOOL_VALUE:
+    omlc_reset_vector(v->value);
+    break;
+
   default:
     logwarn("%s() for type '%d' not implemented, zeroing storage\n", __FUNCTION__, v->type);
   }
@@ -232,6 +263,7 @@ oml_value_duplicate(OmlValue* dst, OmlValue* src)
 {
   return oml_value_set(dst, oml_value_get_value(src), oml_value_get_type(src));
 }
+
 
 /** Get a string representing the given OmlValueT type.
  *
@@ -277,7 +309,6 @@ oml_type_from_s (const char *s)
 
   if (NULL == s) {
     logwarn("%s(): trying to resolve a NULL type string\n", __FUNCTION__);
-
   } else {
     for (i = 0; i < n; i++) {
       if (strcmp (s, type_names[i].name) == 0) {
@@ -305,7 +336,7 @@ oml_type_from_s (const char *s)
  * \see oml_value_ut_to_s
  */
 char*
-oml_value_to_s (OmlValue *value, char *buf, size_t size)
+oml_value_to_s(OmlValue *value, char *buf, size_t size)
 {
   OmlValueU* v = oml_value_get_value(value);
   OmlValueT type = oml_value_get_type(value);
@@ -325,7 +356,7 @@ oml_value_to_s (OmlValue *value, char *buf, size_t size)
 static char*
 oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size)
 {
-  int i, n = 0;
+  size_t i, m, n = 0;
 
   switch (type) {
   case OML_LONG_VALUE:
@@ -339,30 +370,69 @@ oml_value_ut_to_s(OmlValueU* value, OmlValueT type, char *buf, size_t size)
   case OML_DOUBLE_VALUE: n += snprintf(buf, size, "%f", omlc_get_double(*value)); break;
   case OML_STRING_VALUE: n += snprintf(buf, size, "%s", omlc_get_string_ptr(*value)); break;
   case OML_BLOB_VALUE:
-    strncpy (buf, "0x", size);
-    for (n = 2, i = 0; n < size && i < omlc_get_blob_length(*value); i++) /* n = 2 because of the 0x prefix */
-      n += sprintf(buf + n, "%02x", *((uint8_t*)(omlc_get_blob_ptr(*value) + i)));
-    if (n == size && i < omlc_get_blob_length(*value)) /* if there was more data than we could write */
-      strncpy(buf+size-4, "...", 4);
+    strncpy(buf, "0x", size);
+    for(n = 2, i = 0; i < omlc_get_blob_length(*value) &&  n < size; i++) /* n = 2 because of the 0x prefix */
+      n += snprintf(buf + n, size - n, "%02x", ((uint8_t*)(omlc_get_blob_ptr(*value)))[i]);
     break;
   case OML_GUID_VALUE:
     n += omlc_guid_to_string(omlc_get_guid(*value), buf);
     break;
   case OML_BOOL_VALUE:
-    n += snprintf(buf, size, "%s", (omlc_get_bool(*value)==OMLC_BOOL_FALSE)?"false":"true");
+    n += snprintf(buf, size, "%s", (omlc_get_bool(*value)==OMLC_BOOL_FALSE) ? "false" : "true");
+    break;
+  case OML_VECTOR_DOUBLE_VALUE:
+    m = omlc_get_vector_nof_elts(*value);
+    n += snprintf(buf, size, "%zu", m);
+    for(i = 0; i < m && n < size; i++)
+      n += snprintf(&buf[n], size - n, " %.*g", DBL_DIG, ((double*)(omlc_get_vector_ptr(*value)))[i]);
+    break;
+  case OML_VECTOR_INT32_VALUE:
+    m = omlc_get_vector_nof_elts(*value);
+    n += snprintf(buf, size, "%zu", m);
+    for(i = 0; i < m && n < size; i++)
+      n += snprintf(&buf[n], size - n, " %" PRId32, ((int32_t*)(omlc_get_vector_ptr(*value)))[i]);
+    break;
+  case OML_VECTOR_UINT32_VALUE:
+    m = omlc_get_vector_nof_elts(*value);
+    n += snprintf(buf, size, "%zu", m);
+    for(i = 0; i < m && n < size; i++)
+      n += snprintf(&buf[n], size - n, " %" PRIu32, ((uint32_t*)(omlc_get_vector_ptr(*value)))[i]);
+    break;
+  case OML_VECTOR_INT64_VALUE:
+    m = omlc_get_vector_nof_elts(*value);
+    n += snprintf(buf, size, "%zu", m);
+    for(i = 0; i < m && n < size; i++)
+      n += snprintf(&buf[n], size - n, " %" PRId64, ((int64_t*)(omlc_get_vector_ptr(*value)))[i]);
+    break;
+  case OML_VECTOR_UINT64_VALUE:
+    m = omlc_get_vector_nof_elts(*value);
+    n += snprintf(buf, size, "%zu", m);
+    for(i = 0; i < m && n < size; i++)
+      n += snprintf(&buf[n], size - n, " %" PRIu64, ((uint64_t*)(omlc_get_vector_ptr(*value)))[i]);
+    break;
+  case OML_VECTOR_BOOL_VALUE:
+    m = omlc_get_vector_nof_elts(*value);
+    n += snprintf(buf, size, "%zu", m);
+    for(i = 0; i < m && n < size; i++)
+      n += snprintf(&buf[n], size - n, " %s", ((bool*)(omlc_get_vector_ptr(*value)))[i] ? "true" : "false");
     break;
   default:
     logerror("%s() for type '%d' not implemented'\n", __FUNCTION__, type);
     return NULL;
   }
 
-  /* It is not guaranteed that snprintf() nul-terminates... */
-  if (n >= size)
-    /* snprintf() returns the full length of what would have been written if there was room;
-     * if larger than size, there wasn't, and we don't want to overshoot */
-    buf[size] = '\0';
-  else
+  /* Ensure string is NUL-terminated... */
+  if(n < size)
     buf[n] = '\0';
+  else {
+    /* Indicate truncation when space permits */
+    const char ldots[] = "...";
+    const size_t ldots_sz = sizeof(ldots);
+    if(ldots_sz < size)
+      strcpy(buf + size - ldots_sz, ldots);
+    else
+      buf[size] = '\0';
+  }
 
   return buf;
 }
@@ -416,9 +486,11 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
 {
   char *s, *eptr;
   ssize_t n;
-  size_t s_sz, blob_sz;
+  size_t s_sz, blob_sz, nof_elts, bytes;
   uint8_t *blob;
   oml_guid_t c;
+  char *p;
+  char *q;
 
   switch (type) {
   case OML_LONG_VALUE:
@@ -465,6 +537,207 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
 
   case OML_BOOL_VALUE:
     omlc_set_bool(*value, oml_value_string_to_bool(value_s));
+    break;
+
+  case OML_VECTOR_DOUBLE_VALUE:
+    omlc_reset_vector(*value);
+    nof_elts = strtod(value_s, &p);
+    if(p - value_s) {
+      size_t i, bytes;
+      double *elts = xcalloc(nof_elts, sizeof(double));
+      if(elts) {
+        for(i = 0; i < nof_elts; i++) {
+          elts[i] = strtod(p, &q);
+          if(q - p)
+            p = q;
+          else {
+            xfree(elts);
+            logerror("%s(): bad [double] vector element '%s'\n", __FUNCTION__, p);
+            return -1;
+          }
+        }
+        bytes = nof_elts * sizeof(double);
+        omlc_set_vector_ptr(*value, elts);
+        omlc_set_vector_length(*value, bytes);
+        omlc_set_vector_size(*value, bytes);
+        omlc_set_vector_nof_elts(*value, nof_elts);
+        omlc_set_vector_elt_size(*value, sizeof(double));
+      } else {
+        logerror("%s(): out of memory reading [double] of size %zu\n", __FUNCTION__, nof_elts);
+        return -1;
+      }
+    } else {
+      logerror("%s(): bad [double] size '%s'\n", __FUNCTION__, value_s);
+      return -1;
+    }
+    break;
+
+  case OML_VECTOR_INT32_VALUE:
+    omlc_reset_vector(*value);
+    nof_elts = strtol(value_s, &p, 0);
+    if(p - value_s) {
+      size_t i;
+      int32_t *elts = xcalloc(nof_elts, sizeof(int32_t));
+      if(elts) {
+        for(i = 0; i < nof_elts; i++) {
+          elts[i] = strtol(p, &q, 0);
+          if(q - p)
+            p = q;
+          else {
+            xfree(elts);
+            logerror("%s(): bad [int32] vector element '%s'\n", __FUNCTION__, p);
+            return -1;
+          }
+        }
+        bytes = nof_elts * sizeof(int32_t);
+        omlc_set_vector_ptr(*value, elts);
+        omlc_set_vector_length(*value, bytes);
+        omlc_set_vector_size(*value, bytes);
+        omlc_set_vector_nof_elts(*value, nof_elts);
+        omlc_set_vector_elt_size(*value, sizeof(int32_t));
+      } else {
+        logerror("%s(): out of memory reading [int32] of size %zu\n", __FUNCTION__, nof_elts);
+        return -1;
+      }
+    } else {
+      logerror("%s(): bad [int32] size '%s'\n", __FUNCTION__, value_s);
+      return -1;
+    }
+    break;
+
+  case OML_VECTOR_UINT32_VALUE:
+    omlc_reset_vector(*value);
+    nof_elts = strtoul(value_s, &p, 0);
+    if(p - value_s) {
+      size_t i;
+      uint32_t *elts = xcalloc(nof_elts, sizeof(uint32_t));
+      if(elts) {
+        for(i = 0; i < nof_elts; i++) {
+          elts[i] = strtoul(p, &q, 0);
+          if(q - p)
+            p = q;
+          else {
+            xfree(elts);
+            logerror("%s(): bad [uint32] vector element '%s'\n", __FUNCTION__, p);
+            return -1;
+          }
+        }
+        bytes = nof_elts * sizeof(uint32_t);
+        omlc_set_vector_ptr(*value, elts);
+        omlc_set_vector_length(*value, bytes);
+        omlc_set_vector_size(*value, bytes);
+        omlc_set_vector_nof_elts(*value, nof_elts);
+        omlc_set_vector_elt_size(*value, sizeof(uint32_t));
+      } else {
+        logerror("%s(): out of memory reading [uint32] of size %zu\n", __FUNCTION__, nof_elts);
+        return -1;
+      }
+    } else {
+      logerror("%s(): bad [uint32] size '%s'\n", __FUNCTION__, value_s);
+      return -1;
+    }
+    break;
+
+  case OML_VECTOR_INT64_VALUE: 
+    omlc_reset_vector(*value);
+    nof_elts = strtoll(value_s, &p, 0);
+    if(p - value_s) {
+      size_t i;
+      int64_t *elts = xcalloc(nof_elts, sizeof(int64_t));
+      if(elts) {
+        for(i = 0; i < nof_elts; i++) {
+          elts[i] = strtoll(p, &q, 0);
+          if(q - p)
+            p = q;
+          else {
+            xfree(elts);
+            logerror("%s(): bad [int64] vector element '%s'\n", __FUNCTION__, p);
+            return -1;
+          }
+        }
+        bytes = nof_elts * sizeof(int64_t);
+        omlc_set_vector_ptr(*value, elts);
+        omlc_set_vector_length(*value, bytes);
+        omlc_set_vector_size(*value, bytes);
+        omlc_set_vector_nof_elts(*value, nof_elts);
+        omlc_set_vector_elt_size(*value, sizeof(int64_t));
+      } else {
+        logerror("%s(): out of memory reading [int64] of size %zu\n", __FUNCTION__, nof_elts);
+        return -1;
+      }
+    } else {
+      logerror("%s(): bad [int64] size '%s'\n", __FUNCTION__, value_s);
+      return -1;
+    }
+    break;
+
+  case OML_VECTOR_UINT64_VALUE:
+    omlc_reset_vector(*value);
+    nof_elts = strtoull(value_s, &p, 0);
+    if(p - value_s) {
+      size_t i;
+      uint64_t *elts = xcalloc(nof_elts, sizeof(uint64_t));
+      if(elts) {
+        for(i = 0; i < nof_elts; i++) {
+          elts[i] = strtoull(p, &q, 0);
+          if(q - p)
+            p = q;
+          else {
+            xfree(elts);
+            logerror("%s(): bad [uint64] vector element '%s'\n", __FUNCTION__, p);
+            return -1;
+          }
+        }
+        bytes = nof_elts * sizeof(uint64_t);
+        omlc_set_vector_ptr(*value, elts);
+        omlc_set_vector_length(*value, bytes);
+        omlc_set_vector_size(*value, bytes);
+        omlc_set_vector_nof_elts(*value, nof_elts);
+        omlc_set_vector_elt_size(*value, sizeof(uint64_t));
+      } else {
+        logerror("%s(): out of memory reading [uint64] of size %zu\n", __FUNCTION__, nof_elts);
+        return -1;
+      }
+    } else {
+      logerror("%s(): bad [uint64] size '%s'\n", __FUNCTION__, value_s);
+      return -1;
+    }
+    break;
+
+  case OML_VECTOR_BOOL_VALUE:
+    omlc_reset_vector(*value);
+    nof_elts = strtoul(value_s, &p, 0);
+    if(p - value_s) {
+      char *n;
+      size_t i;
+      bool *elts = xcalloc(nof_elts, sizeof(bool));
+      if(elts) {
+        for(i = 0; i < nof_elts; i++) {
+          char *v = strtok_r(p, " ", &n);
+          if(v) {
+            elts[i] = strncasecmp(v, "false", strlen(v));
+            p = n;
+          } else {
+            xfree(elts);
+            logerror("%s(): bad [bool] '%s'\n", __FUNCTION__, p);
+            return -1;
+          }
+        }
+        omlc_set_vector_bool(*value, elts, nof_elts);
+        bytes = nof_elts * sizeof(bool);
+        omlc_set_vector_ptr(*value, elts);
+        omlc_set_vector_length(*value, bytes);
+        omlc_set_vector_size(*value, bytes);
+        omlc_set_vector_nof_elts(*value, nof_elts);
+        omlc_set_vector_elt_size(*value, sizeof(bool));
+      } else {
+        logerror("%s(): out of memory reading [bool] of size %zu\n", __FUNCTION__, nof_elts);
+        return -1;
+      }
+    } else {
+      logerror("%s(): bad [bool] size '%s'\n", __FUNCTION__, value_s);
+      return -1;
+    }
     break;
 
   default:

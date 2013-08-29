@@ -25,6 +25,7 @@
 #include "mem.h"
 #include "mstring.h"
 #include "guid.h"
+#include "json.h"
 #include "oml_value.h"
 #include "oml_util.h"
 #include "database.h"
@@ -54,6 +55,13 @@ static db_typemap psql_type_pair[] = {
   { OML_UINT64_VALUE,   "BIGINT" },
   { OML_GUID_VALUE,     "BIGINT" },
   { OML_BOOL_VALUE,     "BOOLEAN" },
+  /* Vector types */
+  { OML_VECTOR_DOUBLE_VALUE, "TEXT" },
+  { OML_VECTOR_INT32_VALUE,  "TEXT" },
+  { OML_VECTOR_UINT32_VALUE, "TEXT" },
+  { OML_VECTOR_INT64_VALUE,  "TEXT" },
+  { OML_VECTOR_UINT64_VALUE, "TEXT" },
+  { OML_VECTOR_BOOL_VALUE,   "TEXT" },
 };
 
 static int sql_stmt(PsqlDB* self, const char* stmt);
@@ -496,7 +504,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   unsigned char *escaped_blob;
   size_t eblob_len=-1;
 
-  char * paramValues[4+value_count];
+  char *paramValues[4+value_count];
   for (i=0;i<4+value_count;i++) {
     paramValues[i] = xmalloc(512*sizeof(char));
   }
@@ -573,6 +581,26 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
                              paramValues[4+i] = NULL;
                            }
                            break;
+
+    case OML_VECTOR_DOUBLE_VALUE:
+      vector_double_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+    case OML_VECTOR_INT32_VALUE:
+      vector_int32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+    case OML_VECTOR_UINT32_VALUE:
+      vector_uint32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+    case OML_VECTOR_INT64_VALUE:
+      vector_int64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+    case OML_VECTOR_UINT64_VALUE:
+      vector_uint64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+    case OML_VECTOR_BOOL_VALUE:
+      vector_bool_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+
     default:
       logerror("psql:%s: Unknown type %d in col '%s' of table '%s'; this is probably a bug\n",
           db->name, field->type, field->name, table->schema->name);
