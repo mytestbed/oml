@@ -256,8 +256,8 @@ static void drop_privileges (const char *uidstr, const char *gidstr)
 static void on_connect(Socket* new_sock, void* handle)
 {
   (void)handle;
-  ClientHandler *client = client_handler_new(new_sock);
-  logdebug("%s: New client connected\n", client->name);
+  (void)client_handler_new(new_sock);
+  logdebug("%s: New client connected\n", new_sock->name);
 }
 
 int main(int argc, const char **argv)

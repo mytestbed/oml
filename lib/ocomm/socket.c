@@ -8,7 +8,9 @@
  * in the License.
  */
 /** \file socket.c
- * \brief A thin abstraction layer that manages sockets and provides some additional state management functions.
+ * \brief OComm Socket (OSocket) are a thin abstraction layer that manages
+ * sockets and provides some additional state management functions.
+ * \author Max Ott (max@winlab.rutgers.edu), Olivier Mehani <olivier.mehani@nicta.com.au>
  */
 #include <assert.h>
 #include <sys/timeb.h>
@@ -39,90 +41,84 @@
 # define FALSE !TRUE
 #endif
 
-#define MAX_SOCKET_INSTANCES 100
+#define MAX_SOCKET_INSTANCES  100
+#define HOSTLEN               256 /* RFC 1035, section 2.3.4 + 1 */
+#define ADDRLEN               INET6_ADDRSTRLEN
+#define SERVLEN               7   /* ndigits(65536) + 1          */
+#define SOCKNAMELEN           (HOSTLEN+SERVLEN+2)
 
 static int nonblocking_mode = 1;
 
-//! Data-structure, to store communication related parameters and information.
+/** Implementation of the Socket interface store communication related parameters and information. */
 typedef struct SocketInt {
 
-  //! Name used for debugging
-  char* name;
+  char* name;               /**< Name used for debugging */
 
-  o_socket_sendto sendto;
-  o_get_sockfd get_sockfd;
+  o_socket_sendto sendto;   /**< Function called when data needs to be sent */
+  o_get_sockfd get_sockfd;  /**< Function called to get the underlying socket(3) file descriptor */
 
-  //! Socket file descriptor of the communication socket created to send/receive.
-  int sockfd;
+  int sockfd;               /**< File descriptor of the underlying socket(3) */
 
-  //! True for TCP, false for UDP
-  int is_tcp;
+  int is_tcp;               /**< True if TCP is used for this socket (XXX: anything else is broken */
 
-  //! IP address of the multicast socket/channel.
-  char* dest;
+  char* dest;               /**< String representing the destination of the connection */
 
-  //! Remote port connected to
-  char* service;
+  char* service;            /**< Remote service to connect to */
 
-  //! Local port used
-  int localport;
+  sockaddr_t servAddr;      /**< System's representation of the local address */
 
-  //! Name of the interface (eth0/eth1) to bind to
-  char* iface;
+  o_so_connect_callback connect_callback; /**< Callback for when new clients connect to listening sockets */
 
-  //! Hold the server address.
-  struct sockaddr_in servAddr;
+  void* connect_handle;     /**< Opaque argument to connect_callback (TCP servers only) */
 
-  //! Inet address of the local machine/host.
-  struct in_addr iaddr;
-
-  //! Hold the multicast channel information.
-  struct ip_mreq imreq;
-
-  //! Called when new client connects (TCP servers only)
-  o_so_connect_callback connect_callback;
-
-  //! opaque argument to callback (TCP servers only)
-  void* connect_handle;
-
-  //! Local memory for debug name
-  char nameBuf[64];
-
-  int is_disconnected; /** < True if detected a SIGPIPE or ECONNREFUSED on a sendto() */
+  int is_disconnected;      /**< 1 if a SIGPIPE or ECONNREFUSED was received on a sendto() */
 
   struct addrinfo *results, /** < Results from getaddrinfo to iterate over */
                   *rp;      /** < Current iterator over getaddrinfo results */
 
-  Socket* next; /**< Pointer to the next OSocket in case more than one were instantiated. */
+  Socket* next;             /**< Pointer to the next OSocket in case more than one were instantiated. */
 
 } SocketInt;
 
 
+/** Set a global flag which, when set true will cause all newly created sockets
+ * to be put in non-blocking mode, otherwise the sockets remain in the system
+ * default mode.
+ *
+ * \param flag non-zero to enable nonblocking_mode
+ * \return flag
+ */
 int
-socket_set_non_blocking_mode(
-  int flag
-) {
+socket_set_non_blocking_mode(int flag) {
   return nonblocking_mode = flag;
 }
 
+/** If the return value is non-zero all newly created sockets will be put in
+ * non-blocking mode, otherwise the sockets remain in the system default mode.
+ */
 int
 socket_get_non_blocking_mode()
-
 {
   return nonblocking_mode;
 }
 
+/** Get information about the connected state of a Socket
+ * \param socket Socket to examine
+ * \return 0 if the socket is connected, non-zero otherwise
+ **/
 int
-socket_is_disconnected (
- Socket* socket
-) {
+socket_is_disconnected (Socket* socket)
+{
   return ((SocketInt*)socket)->is_disconnected;
 }
 
+/** Get information about the listening state of a Socket
+ * \param socket Socket to examine
+ * \return 0 if the socket is listening, non-zero otherwise
+ **/
 int
-socket_is_listening (
- Socket* socket
-) {
+socket_is_listening (Socket* socket)
+{
   return (NULL != ((SocketInt*)socket)->connect_callback);
 }
 
@@ -135,12 +131,13 @@ socket_is_listening (
  * \return a pointer to the SocketInt object
  */
 static SocketInt*
-socket_initialize(const char* name) {
+socket_initialize(const char* name)
+{
+  const char* sock_name = (name != NULL)?name:"UNKNOWN";
   SocketInt* self = (SocketInt *)oml_malloc(sizeof(SocketInt));
   memset(self, 0, sizeof(SocketInt));
 
-  self->name = self->nameBuf;
-  strncpy(self->name, name != NULL ? name : "UNKNOWN", sizeof(self->nameBuf));
+  self->name = oml_strndup(sock_name, strlen(sock_name));
 
   self->sendto = socket_sendto;
   self->get_sockfd = socket_get_sockfd;
@@ -155,9 +152,12 @@ socket_initialize(const char* name) {
  * \param socket Socket to free
  * \see socket_new, socket_close
  */
-void socket_free (Socket* socket) {
+void
+socket_free (Socket* socket)
+{
   SocketInt* self = (SocketInt *)socket;
   socket_close(socket);
+  if (self->name) { oml_free(self->name); }
   if (self->dest) { oml_free(self->dest); }
   if (self->service) { oml_free(self->service); }
   if (self->results) { freeaddrinfo(self->results); }
@@ -171,7 +171,9 @@ void socket_free (Socket* socket) {
  * \return a pointer to the SocketInt object, cast as a Socket, with a newly opened system socket
  * \see socket_free, socket_close
  */
-Socket* socket_new(const char* name, int is_tcp) {
+Socket*
+socket_new(const char* name, int is_tcp)
+{
   SocketInt* self = socket_initialize(name);
   self->is_tcp = is_tcp; /* XXX: replace is_tcp with a more meaningful variable to contain that */
   self->is_disconnected = 1;
@@ -196,59 +198,54 @@ Socket*
 socket_in_new(const char* name, const char* node, const char* service, int is_tcp)
 {
   SocketInt *self = NULL, *list = NULL;
-  int hostlen=40,  /* IPv6: (8*4 + 7) + 1*/
-      servlen=7; /* ndigits(65536) + 1 */
-  char host[hostlen], serv[servlen];
+  char nameserv[SOCKNAMELEN], *namestr = NULL;
+  size_t namestr_size;
   struct addrinfo hints, *results, *rp;
-  *host = 0;
-  *serv = 0;
+  int ret;
+
+  *nameserv = 0;
   memset(&hints, 0, sizeof(struct addrinfo));
+
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP; /* FIXME: We should check self->is_tcp */
   hints.ai_flags= AI_PASSIVE;
   int val = 1;
 
-  if(getaddrinfo(node, service, &hints, &results)) {
+  if((ret=getaddrinfo(node, service, &hints, &results))) {
       o_log(O_LOG_ERROR, "socket(%s): Error resolving %s:%s: %s\n",
-          name, node, service, strerror(errno));
+          name, node, service, gai_strerror(ret));
       return NULL;
   }
 
   for (rp = results; rp != NULL; rp = rp->ai_next) {
-    /* XXX: Duplicated with s_connect*/
-    if (!getnameinfo(rp->ai_addr, rp->ai_addrlen,
-          host, hostlen, serv, servlen,
-          NI_NUMERICHOST|NI_NUMERICSERV)) {
-      o_log(O_LOG_DEBUG, "socket(%s): Binding to [%s]:%s (AF %d, proto %d)\n",
-          name, host, serv, rp->ai_family, rp->ai_protocol);
-    } else {
-      o_log(O_LOG_DEBUG, "socket(%s): Error converting AI %p back to name\n",
-          self->name, rp);
-      *host = 0;
-      *serv = 0;
-    }
+    sockaddr_get_name((sockaddr_t*)rp->ai_addr, rp->ai_addrlen, nameserv, SOCKNAMELEN);
+    namestr_size = strlen(name) + strlen(nameserv + 2);
+    namestr = oml_realloc(namestr, namestr_size);
+    snprintf(namestr, namestr_size, "%s-%s", name, nameserv);
+    o_log(O_LOG_DEBUG, "socket(%s): Binding to %s (AF %d, proto %d)\n",
+        name, nameserv, rp->ai_family, rp->ai_protocol);
 
-    if (NULL == (self = (SocketInt*)socket_new(name, is_tcp))) {
-      o_log(O_LOG_WARN, "socket(%s): Could allocate Socket to listen on [%s]:%s: %s\n",
-          self->name, host, serv, strerror(errno));
+    if (NULL == (self = (SocketInt*)socket_new(namestr, is_tcp))) {
+      o_log(O_LOG_WARN, "socket(%s): Could allocate Socket to listen on %s: %s\n",
+          self->name, nameserv, strerror(errno));
 
     } else if(0 > (self->sockfd =
           socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol))) {
       /* It's OK if some AFs fail, we check that in the end */
-      o_log(O_LOG_DEBUG, "socket(%s): Could not create socket to listen on [%s]:%s: %s\n",
-          self->name, host, serv, strerror(errno));
+      o_log(O_LOG_DEBUG, "socket(%s): Could not create socket to listen on %s: %s\n",
+          self->name, nameserv, strerror(errno));
       socket_free((Socket*)self);
 
     } else if(0 != setsockopt(self->sockfd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(int))){
-      o_log(O_LOG_ERROR, "socket(%s): Could not set option SO_REUSEADDR on socket to listen on [%s]:%s: %s\n",
-          self->name, host, serv, strerror(errno));
+      o_log(O_LOG_ERROR, "socket(%s): Could not set option SO_REUSEADDR on socket to listen on %s: %s\n",
+          self->name, nameserv, strerror(errno));
       close(self->sockfd);
       /* XXX: Not optimal: we could reuse the Socket */
       socket_free((Socket*)self);
 
     } else if (0 != bind(self->sockfd, rp->ai_addr, rp->ai_addrlen)) {
-      o_log(O_LOG_ERROR, "socket(%s): Error binding socket to listen on [%s]:%s: %s\n",
-          self->name, host, serv, strerror(errno));
+      o_log(O_LOG_ERROR, "socket(%s): Error binding socket to listen on %s: %s\n",
+          self->name, nameserv, strerror(errno));
       close(self->sockfd);
       /* XXX: Not optimal: we could reuse the Socket */
       socket_free((Socket*)self);
@@ -264,6 +261,7 @@ socket_in_new(const char* name, const char* node, const char* service, int is_tc
 
   }
 
+  if (namestr) { oml_free(namestr); }
   freeaddrinfo(results);
 
   if (NULL == list) {
@@ -282,13 +280,14 @@ socket_in_new(const char* name, const char* node, const char* service, int is_tc
  * \return 1 on success, 0 on error
  */
 static int
-s_connect(SocketInt* self) {
-  int hostlen=40,  /* IPv6: (8*4 + 7) + 1*/
-      servlen=7; /* ndigits(65536) + 1 */
-  char host[hostlen], serv[servlen];
+s_connect(SocketInt* self)
+{
+  char name[SOCKNAMELEN];
   struct addrinfo hints;
-  *host = 0;
-  *serv = 0;
+  int ret;
+
+  *name = 0;
+
   memset(&hints, 0, sizeof(struct addrinfo));
   /* XXX: This should be pulled up when we support UDP and/or multicast */
   hints.ai_socktype = SOCK_STREAM;
@@ -303,27 +302,19 @@ s_connect(SocketInt* self) {
   if (!self->rp) {
     o_log(O_LOG_DEBUG, "socket(%s): Resolving %s:%s\n",
         self->name, self->dest, self->service);
-    if (getaddrinfo(self->dest, self->service, &hints, &self->results)) {
+    if ((ret=getaddrinfo(self->dest, self->service, &hints, &self->results))) {
       o_log(O_LOG_ERROR, "socket(%s): Error resolving %s:%s: %s\n",
-          self->name, self->dest, self->service, strerror(errno));
+          self->name, self->dest, self->service, gai_strerror(ret));
       return 0;
     }
     self->rp = self->results;
   }
 
   for (; self->rp != NULL; self->rp = self->rp->ai_next) {
-    /* XXX: Duplicated with socket_in_new */
-    if (!getnameinfo(self->rp->ai_addr, self->rp->ai_addrlen,
-          host, hostlen, serv, servlen,
-          NI_NUMERICHOST|NI_NUMERICSERV)) {
-      o_log(O_LOG_DEBUG, "socket(%s): Connecting to [%s]:%s (AF %d, proto %d)\n",
-          self->name, host, serv, self->rp->ai_family, self->rp->ai_protocol);
-    } else {
-      o_log(O_LOG_DEBUG, "socket(%s): Error converting AI %p back to name\n",
-          self->name, self->rp);
-      *host = 0;
-      *serv = 0;
-    }
+    sockaddr_get_name((sockaddr_t*)self->rp->ai_addr, self->rp->ai_addrlen,
+        name, SOCKNAMELEN);
+    o_log(O_LOG_DEBUG, "socket(%s): Connecting to %s (AF %d, proto %d)\n",
+        self->name, name, self->rp->ai_family, self->rp->ai_protocol);
 
     /* If we are here, any old socket is invalid, clean them up and try again */
     if(self->sockfd >= 0) {
@@ -334,8 +325,8 @@ s_connect(SocketInt* self) {
 
     if(0 > (self->sockfd =
           socket(self->rp->ai_family, self->rp->ai_socktype, self->rp->ai_protocol))) {
-      o_log(O_LOG_DEBUG, "socket(%s): Could not create socket to [%s]:%s: %s\n",
-          self->name, host, serv, strerror(errno));
+      o_log(O_LOG_DEBUG, "socket(%s): Could not create socket to %s %s\n",
+          self->name, name, strerror(errno));
 
     } else {
       if (nonblocking_mode) {
@@ -343,13 +334,13 @@ s_connect(SocketInt* self) {
       }
 
       if (0 != connect(self->sockfd, self->rp->ai_addr, self->rp->ai_addrlen)) {
-        o_log(O_LOG_DEBUG, "socket(%s): Could not connect to [%s]:%s: %s\n",
-            self->name, host, serv, strerror(errno));
+        o_log(O_LOG_DEBUG, "socket(%s): Could not connect to %s: %s\n",
+            self->name, name, strerror(errno));
 
       } else {
         if (!nonblocking_mode) {
-          o_log(O_LOG_DEBUG, "socket(%s): Connected to [%s]:%s\n",
-              self->name, host, serv);
+          o_log(O_LOG_DEBUG, "socket(%s): Connected to %s\n",
+              self->name, name);
         }
         self->is_disconnected = 0;
 
@@ -376,11 +367,8 @@ s_connect(SocketInt* self) {
  * \return a newly-allocated Socket, or NULL on error
  */
 Socket*
-socket_tcp_out_new(
-  const char* name,   //! Name used for debugging
-  const char* dest,   //! IP address of the server to connect to.
-  const char* service //! Port of remote service
-) {
+socket_tcp_out_new(const char* name, const char* dest, const char* service)
+{
   SocketInt* self;
 
   if (dest == NULL) {
@@ -411,19 +399,22 @@ socket_tcp_out_new(
  * \param handle pointer to opaque data passed when creating the listening Socket
  */
 static void
-on_client_connect(
-  SockEvtSource* source,
-  //  SocketStatus status,
-  void* handle
-) {
+on_client_connect(SockEvtSource* source, void* handle)
+{
   (void)source; // FIXME: Check why source parameter is unused
+  char host[ADDRLEN], serv[SERVLEN];
+  size_t namesize;
+  *host = 0;
+  *serv = 0;
+
   socklen_t cli_len;
   SocketInt* self = (SocketInt*)handle;
   SocketInt* newSock = socket_initialize(NULL);
-  cli_len = sizeof(newSock->servAddr);
+  cli_len = sizeof(newSock->servAddr.sa_stor);
   newSock->sockfd = accept(self->sockfd,
-                (struct sockaddr*)&newSock->servAddr,
+                &newSock->servAddr.sa,
                  &cli_len);
+
   if (newSock->sockfd < 0) {
     o_log(O_LOG_ERROR, "socket(%s): Error on accept: %s\n",
           self->name, strerror(errno));
@@ -431,14 +422,30 @@ on_client_connect(
     return;
   }
 
-  sprintf(newSock->name, "%s-io:%d", self->name, newSock->sockfd);
+  /* XXX: Duplicated somewhat with socket_in_new and s_connect */
+  if (!getnameinfo(&newSock->servAddr.sa, cli_len,
+        host, ADDRLEN, serv, SERVLEN,
+        NI_NUMERICHOST|NI_NUMERICSERV)) {
+    namesize =  strlen(host) + strlen(serv) + 3 + 1;
+    newSock->name = oml_realloc(newSock->name, namesize);
+    snprintf(newSock->name, namesize, "[%s]:%s", host, serv);
+
+  } else {
+    namesize =  strlen(host) + 4 + 10 + 1; /* XXX: 10 is arbitrarily chosen for the
+                                              number of characters in sockfd's decimal
+                                              representation */
+    newSock->name = oml_realloc(newSock->name, namesize);
+    snprintf(newSock->name, namesize, "%s-io:%d", self->name, newSock->sockfd);
+    o_log(O_LOG_WARN, "socket(%s): Error resolving new client source, defaulting to %s: %s\n",
+        self->name, newSock->name, strerror(errno));
+  }
 
   if (self->connect_callback) {
     self->connect_callback((Socket*)newSock, self->connect_handle);
   }
 }
 
-/** Create listening OSocket objects, and register them with the EventLoop .
+/** Create listening OSocket objects, and register them with the EventLoop.
  *
  * If callback is non-NULL, it is registered to the OCOMM eventloop to handle
  * monitor_in events.
@@ -479,7 +486,9 @@ socket_server_new(const char* name, const char* node, const char* service, o_so_
  *
  * \see shutdown(3)
  */
-int socket_shutdown(Socket *socket) {
+int
+socket_shutdown(Socket *socket)
+{
   int ret = -1;
 
   o_log(O_LOG_DEBUG, "socket(%s): Shutting down for R/W\n", socket->name);
@@ -489,13 +498,13 @@ int socket_shutdown(Socket *socket) {
   return ret;
 }
 
-/*! Method for closing communication channel, i.e.
-  closing the multicast socket.
+/** Close the communication channel associated to an OSocket.
+ * \param socket Socket to close
+ * \return 0 on success, -1 otherwise
  */
 int
-socket_close(
-  Socket* socket
-) {
+socket_close(Socket* socket)
+{
   SocketInt *self = (SocketInt*)socket;
   if (self->sockfd >= 0) {
     close(self->sockfd);
@@ -505,12 +514,18 @@ socket_close(
   return 0;
 }
 
+/** Send a message through the socket
+ *
+ * \param socket Socket to send message through
+ * \param buf data to send
+ * \param buf_size amount of data to read from buf
+ * \return the amount of data sent
+ *
+ * \see sendto(3)
+ */
 int
-socket_sendto(
-  Socket* socket,
-  char* buf,
-  int buf_size
-) {
+socket_sendto(Socket* socket, char* buf, int buf_size)
+{
   SocketInt *self = (SocketInt*)socket;
   int sent;
 
@@ -522,8 +537,8 @@ socket_sendto(
 
   // TODO: Catch SIGPIPE signal if other side is half broken
   if ((sent = sendto(self->sockfd, buf, buf_size, 0,
-                    (struct sockaddr *)&(self->servAddr),
-                    sizeof(self->servAddr))) < 0) {
+                    &(self->servAddr.sa),
+                    sizeof(self->servAddr.sa_stor))) < 0) {
     if (errno == EPIPE || errno == ECONNRESET) {
       // The other end closed the connection.
       self->is_disconnected = 1;
@@ -549,39 +564,152 @@ socket_sendto(
   return sent;
 }
 
+/** Get the socket FD of an OComm Socket object
+ *
+ * \param socket OSocket
+ * \return the underlying socket descriptor
+ */
 int
-socket_get_sockfd(
-  Socket* socket
-) {
+socket_get_sockfd(Socket* socket)
+{
   SocketInt *self = (SocketInt*)socket;
-
   return self->sockfd;
 }
 
+/** Get the port of socket contained in an OComm Socket object
+ *
+ * \param socket OSocket
+ * \return the underlying socket descriptor
+ */
 uint16_t
 socket_get_port(Socket *s)
 {
   assert(s);
   SocketInt *self = (SocketInt*)s;
-  return ntohs(self->servAddr.sin_port);
+  return ntohs(self->servAddr.sa_in.sin_port);
 }
 
+/** Get the size needed to store a string representation of an OSocket's address
+ *
+ * This is just a dummy function exposing SOCKNAMELEN
+ *
+ * \param s Socket under consideration
+ */
 size_t
 socket_get_addr_sz(Socket *s)
 {
   assert(s);
-  return INET_ADDRSTRLEN;
+  return SOCKNAMELEN;
 }
 
+/** Get the peer address of an OSocket.
+ *
+ * \param s OSocket
+ * \param addr memory buffer to return the string in (nil-terminated)
+ * \param namelen length of name, using socket_get_addr_sz() is a good idea
+ *
+ * \see sockaddr_get_name, getsockname(3), socket_get_addr_sz
+ */
 void
-socket_get_addr(Socket *s, char *addr, size_t addr_sz)
+socket_get_peer_addr(Socket *s, char *addr, size_t addr_sz)
 {
-  assert(s);
+  int ret;
+  sockaddr_t sa;
+  socklen_t sa_len = sizeof(sa);
+  SocketInt *self = (SocketInt*)s;
+
+  assert(self);
+  assert(self->sockfd>=0);
   assert(addr);
   assert(socket_get_addr_sz(s) <= addr_sz);
-  SocketInt *self = (SocketInt*)s;
-  const char *tmp = inet_ntop(AF_INET, &self->servAddr.sin_addr, addr, addr_sz);
-  assert(tmp == addr);
+
+  memset(&sa, 0, sa_len);
+
+  if(getpeername(self->sockfd, &sa.sa, &sa_len)) {
+    o_log(O_LOG_WARN, "%s: Error getting peer address: %s\n",
+        self->name, strerror(errno));
+    snprintf(addr, addr_sz, "Unknown peer");
+
+  } else if ((ret=getnameinfo(&sa.sa, sa_len, addr, addr_sz, NULL, 0, NI_NUMERICHOST))) {
+    o_log(O_LOG_WARN, "%s: Error converting peer address to name: %s\n",
+        self->name, gai_strerror(ret));
+    snprintf(addr, addr_sz, "Unknown address (AF%d)", sa.sa.sa_family);
+  }
+}
+
+/** Get the name (address+service) of an OSocket.
+ *
+ * \param s OSocket
+ * \param name memory buffer to return the string in (nil-terminated)
+ * \param namelen length of name, using socket_get_addr_sz() is a good idea
+ * \param remote 0 if the local name is needed, non-zero for the remote peer
+ *
+ * \see sockaddr_get_name, getsockname(3), socket_get_addr_sz
+ */
+void
+socket_get_name(Socket *s, char *name, size_t namelen, int remote)
+{
+  sockaddr_t sa;
+  socklen_t sa_len = sizeof(sa);
+  SocketInt *self = (SocketInt*) s;
+
+  assert(self);
+  assert(name);
+  assert(self->sockfd);
+
+  memset(&sa, 0, sa_len);
+
+  if(remote) {
+    if(!getpeername(self->sockfd, &sa.sa, &sa_len)) {
+      sockaddr_get_name(&sa, sa_len, name, namelen);
+
+    } else {
+      logwarn("%s: Cannot get details of socket peer: %s", s->name, strerror(errno));
+      *name = 0;
+    }
+
+  } else {
+    if(!getsockname(self->sockfd, &sa.sa, &sa_len)) {
+      sockaddr_get_name(&sa, sa_len, name, namelen);
+
+    } else {
+      logwarn("%s: Cannot get details of socket: %s", s->name, strerror(errno));
+      *name = 0;
+    }
+  }
+
+}
+
+/** Get the name (address+service) of a socket.
+ *
+ * \param sa sockaddr_t containig the data
+ * \param sa_len length of sa
+ * \param name memory buffer to return the string in (nil-terminated)
+ * \param namelen length of nam, SOCKNAMELEN is a good idea
+ *
+ * \see socket_get_name, getnameinfo(3)
+ */
+void
+sockaddr_get_name(const sockaddr_t *sa, socklen_t sa_len, char *name, size_t namelen)
+{
+  char host[ADDRLEN], serv[SERVLEN];
+  int ret;
+
+  assert(sa);
+  assert(name);
+
+  *host = 0;
+  *serv = 0;
+
+  if (!(ret=getnameinfo(&sa->sa, sa_len,
+        host, ADDRLEN, serv, SERVLEN,
+        NI_NUMERICHOST|NI_NUMERICSERV))) {
+    snprintf(name, namelen, "[%s]:%s", host, serv);
+
+  } else {
+    o_log(O_LOG_DEBUG, "Error converting sockaddr %p to name: %s\n", sa, gai_strerror(ret));
+    snprintf(name, namelen, "AF%d", sa->sa.sa_family);
+  }
 }
 
 /*

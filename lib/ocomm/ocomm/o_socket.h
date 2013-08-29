@@ -1,107 +1,88 @@
 /*
  * Copyright 2007-2013 National ICT Australia (NICTA), Australia
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
+ * This software may be used and distributed solely under the terms of
+ * the MIT license (License).  You should find a copy of the License in
+ * COPYING or at http://opensource.org/licenses/MIT. By downloading or
+ * using this software you accept the terms and the liability disclaimer
+ * in the License.
  */
-/*! \file o_socket.h
-  \brief Header file for socket library
-  \author Max Ott (max@winlab.rutgers.edu)
+/** \file o_socket.h
+ * \brief Header file for the OComm Socket library. OSockets are a thin
+ * abstraction layer that manages sockets and provides some additional state
+ * management functions.
+ * \author Max Ott (max@winlab.rutgers.edu), Olivier Mehani <olivier.mehani@nicta.com.au>
  */
-
 
 #ifndef O_SOCKET_H
 #define O_SOCKET_H
 
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct _Socket;
+struct Socket;
 
-/*! Send a message through the socket
- *
- * Return 0 on success, -1 otherwise
+/** Send a message through the socket
+ * \return 0 on success, -1 otherwise
  */
-typedef int (*o_socket_sendto)(struct _Socket* socket, char* buf, int buf_size);
+typedef int (*o_socket_sendto)(struct Socket* socket, char* buf, int buf_size);
 
 
 /*! Return the file descripter associated with this socket
- *
- * Return socket's fd, -1 otherwise
+ * \return socket's fd, -1 otherwise
  */
-typedef int (*o_get_sockfd)(struct _Socket* socket);
+typedef int (*o_get_sockfd)(struct Socket* socket);
 
-typedef struct _Socket {
+/** An opaque data type for Ocomm Sockets */
+typedef struct Socket {
 
-  //! Name used for debugging
-  char* name;
+  char* name;               /**< Name used for debugging */
 
-  //! Function to send message through this socket
-  o_socket_sendto sendto;
-
-  //! Socket file descriptor of the communication socket created to send/receive.
-  o_get_sockfd get_sockfd;
-
-  //int sockfd;
+  o_socket_sendto sendto;   /**< Function called when data needs to be sent */
+  o_get_sockfd get_sockfd;  /**< Function called to get the underlying socket(3) file descriptor */
 
 } Socket;
 
-/*! Defines the signature of a callback to report a new IN socket
+/** A union to allow easy manipulation of sockaddr without casting */
+typedef union {
+  struct sockaddr sa;
+  struct sockaddr_in sa_in;
+  struct sockaddr_in6 sa_in6;
+  struct sockaddr_storage sa_stor;
+} sockaddr_t;
+
+/** Define the signature of a callback to report a new IN socket
  * from a client connecting to a listening socket.
+ * \param newSock newly-created Socket to handle the client
+ * \param opaque argument to connect_callback
  */
-  typedef void (*o_so_connect_callback)(Socket* newSock, void* handle);
+typedef void (*o_so_connect_callback)(Socket* newSock, void* handle);
 
-/*! Set a global flag which, when set true will
- * cause all newly created sockets to be put in
- * non-blocking mode, otherwise the sockets remain
- * in the system default mode.
+/** Set a global flag which, when set true will cause all newly created sockets
+ * to be put in non-blocking mode, otherwise the sockets remain in the system
+ * default mode.
  */
-int
-socket_set_non_blocking_mode(
-  int flag
-);
+int socket_set_non_blocking_mode(int flag);
 
-/*! If the return value is '1' all
- * newly created sockets will be put in
- * non-blocking mode, otherwise the sockets remain
- * in the system default mode.
+/** If the return value is non-zero all newly created sockets will be put in
+ * non-blocking mode, otherwise the sockets remain in the system default mode.
  */
-int
-socket_get_non_blocking_mode(void);
+int socket_get_non_blocking_mode(void);
 
-int
-socket_is_disconnected (Socket* socket);
+/** Get information about the connected state of a Socket */
+int socket_is_disconnected (Socket* socket);
 
-int
-socket_is_listening (Socket* socket);
+/** Get information about the listening state of a Socket */
+int socket_is_listening (Socket* socket);
 
-/** Create an unbound socket object.
- */
-Socket*
-socket_new(
-  const char* name,   //! Name used for debugging
-  int is_tcp  //! True if TCP, false for UDP
-);
+/** Create an unbound socket object.  */
+Socket* socket_new(const char* name, int is_tcp);
 
 /** Create OSocket objects bound to node and service. */
 Socket* socket_in_new(const char* name, const char* node, const char* service, int is_tcp);
@@ -115,63 +96,32 @@ Socket* socket_tcp_out_new(const char* name, const char* addr, const char *servi
 /** Prevent the remote sender from trasmitting more data. */
 int socket_shutdown(Socket *socket);
 
-/*! Close the communication channel.
- * Return 0 on success, -1 otherwise
- */
-int
-socket_close(
-  Socket* socket
-);
+/** Close the communication channel associated to an OSocket. */
+int socket_close(Socket* socket);
 
-void
-socket_free (
-  Socket* socket
-);
+/** Free memory associated to an OSocket. */
+void socket_free (Socket* socket);
 
+/** Send a message through the socket */
+int socket_sendto(Socket* socket, char* buf, int buf_size);
 
-/*! Send a message through the socket
- *
- * Return 0 on success, -1 otherwise
- */
-int
-socket_sendto(
-  Socket* socket,
-  char* buf,
-  int buf_size
-);
+/* Return the file descripter associated with this socket */
+int socket_get_sockfd(Socket* socket);
 
-/*! Return the file descripter associated with this socket
- *
- * Return socket's fd, -1 otherwise
- */
-int
-socket_get_sockfd(
-  Socket* socket
-);
+/** Return the port number for this socket. */
+uint16_t socket_get_port(Socket *s);
 
-/*! Return the port number for this socket.
- *
- * \return A uint16_t containing the port number.
- */
-uint16_t
-socket_get_port(Socket *s);
+/** Get the size needed to store a string representation of an OSocket's address */
+size_t socket_get_addr_sz(Socket *s);
 
-/*! Return the maximum size of the human-readable address for this
-    socket (including the terminating NUL character).
- *
- * \return A size_t specifying the worst-case string.
- */
-size_t
-socket_get_addr_sz(Socket *s);
+/** Get the peer address of an OSocket. */
+void socket_get_peer_addr(Socket *s, char *addr, size_t addr_sz);
 
-/*! Return the address of the this socket in human-readable form.
- *
- * \param s A non-NULL pointer to the socket.
- * \param addr A non-NULL pointer to the string buffer.
- * \param addr_sz The size of the buffer pointed to by addr.
- */
-void
-socket_get_addr(Socket *s, char *addr, size_t addr_sz);
+/** Get the name (address+service) of a socket. */
+void sockaddr_get_name(const sockaddr_t *sa, socklen_t sa_len, char *name, size_t namelen);
+
+/** Get the name (address+service) of an OSocket.  */
+void socket_get_name(Socket *s, char *name, size_t namelen, int remote);
 
 #ifdef __cplusplus
 }
