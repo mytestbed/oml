@@ -14,6 +14,8 @@ The following tests are currently present:
    (headers then text), for msggen to compare to its expectations;
  - issue610: test case for a reported bug where the timestamp sent in text mode
    would not be properly recorded [0].
+ - selftest: test case for server instrumentation. Starts a stub python client
+   which connects and disconnects and has the server log these events to itself.
 
 [0] http://oml.mytestbed.net/projects/oml/issues/610
 

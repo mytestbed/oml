@@ -265,6 +265,9 @@ AM_CONDITIONAL([IS_ARCH], [test "x$isarch" != "x"])
 AM_CONDITIONAL([IS_DEBIAN], [test "x$isdebian" != "x"])
 AM_CONDITIONAL([IS_REDHAT], [test "x$isredhat" != "x"])
 
+AX_WITH_PROG([PYTHON],[python],[missing_python="yes"])
+AM_CONDITIONAL([HAVE_PYTHON], [test x"${missing_python}" != xyes])
+
 AX_WITH_PROG([RUBY],[ruby])
 AX_PROG_RUBY_VERSION([1.8.7],
 		     [
