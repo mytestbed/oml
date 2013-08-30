@@ -1234,7 +1234,11 @@ START_TEST(test_marshal_unmarshal_vector_double)
   fail_unless(omlc_get_vector_nof_elts(*oml_value_get_value(&in)) == NVALUES);
   double *actual_values = omlc_get_vector_ptr(in.value);
   for(i = 0; i < NVALUES; i++) {
-    fail_unless(double_values[i] == actual_values[i]);
+
+    if(isnan(double_values[i]))
+      fail_unless(isnan(double_values[i]), isnan(actual_values[i]));
+    else
+      fail_unless(double_values[i] == actual_values[i]);
   }
 }
 END_TEST

@@ -1104,6 +1104,14 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
     value->value.doubleValue = v;
     break;
   }
+  case DOUBLE_NAN: {
+    OmlValueT oml_type = protocol_type_map[type];
+    mbuf_read_skip(mbuf, DOUBLE_T_SIZE); /* The data is irrelevant */
+    oml_value_set_type(value, oml_type);
+    value->value.doubleValue = NAN;
+    logdebug("Received NaN\n");
+    break;
+  }
   case STRING_T: {
     int len = 0;
     uint8_t buf [STRING_T_MAX_SIZE];
