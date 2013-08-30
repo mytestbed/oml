@@ -149,15 +149,15 @@ omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValu
       }
     }
     omlc_set_string(v[0], mstring_buf(subject));
-    omlc_set_string(v[1], key); /* We're not sure where this one comes from, so duplicate it */
+    omlc_set_string(v[1], key);
     omlc_copy_string(v[2], *value);
-    mstring_delete(subject);
 
     omlc_inject(schema0, v);
 
     omlc_reset_string(v[0]);
     omlc_reset_string(v[1]);
     omlc_reset_string(v[2]);
+    mstring_delete(subject);
 
     ret = 0;
   }
