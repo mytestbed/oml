@@ -60,7 +60,7 @@ oml2-server_oml.h: oml2-server.rb
 	$(SCAFFOLD) --oml $<
 
 oml2-server.rb: oml2-server.rb.in
-	VER=`echo $(VERSION) | $(SED) "s/.*+oml//;s/\([0-9]\{1,\}\(\.[0-9]\{1,\}\)\{1,2\}\).*/\1/;s/\./, /g"`; \
+	VER=`echo $(VERSION) | $(SED) "s/.*+oml//;s/-dirty//;s/\([0-9]\{1,\}\(\.[0-9]\{1,\}\)\{1,2\}\).*/\1/;s/\./, /g"`; \
 	    $(SED) -e 's|@bindir[@]|$(bindir)|g' \
 		-e "/app\.path/s/oml2-server/$(installed_name)/" \
 		-e "s/app\.version.*/app.version($$VER)/" \
