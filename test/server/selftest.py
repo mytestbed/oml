@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/en python
 
 # A test to see if self-instrumentation of connection/disconections is
 # working as expected. The client opens a text-protocol connection to
@@ -28,7 +28,12 @@ if float(sys.version[:3])<3:
 else:
     def to_bytes(s):
         return bytes(s, "UTF-8")
-
+# Python3's range used to be Python2's xrange
+#
+try:
+    xrange
+except NameError:
+    xrange = range
 
 # Perform a client connection selftest
 #
@@ -105,7 +110,8 @@ def selftest():
         except socket.error as e:
             sys.stderr.write("ERROR\tCould not connect to OML server: %s\n" %  e)
             exit(2)
-        except Exception, x:
+        except Exception:
+            x = sys.exc_info()[1]
             sys.stderr.write("ERROR\tUnexpected " + str(x) + "\n")
             exit(3)
 
