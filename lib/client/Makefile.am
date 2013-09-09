@@ -1,4 +1,5 @@
 ACLOCAL_AMFLAGS = -I ../m4 -Wnone
+AUTOMAKE_OPTIONS = subdir-objects
 
 AM_CPPFLAGS = \
 	-I $(top_srcdir)/lib/client \
