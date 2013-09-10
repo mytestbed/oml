@@ -107,7 +107,8 @@ def selftest():
             # disconnect
             sock.close()
 
-        except socket.error as e:
+        except socket.error:
+            e = sys.exc_info()[1]
             sys.stderr.write("ERROR\tCould not connect to OML server: %s\n" %  e)
             exit(2)
         except Exception:
