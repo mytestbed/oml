@@ -792,7 +792,7 @@ sq3_get_table_list (Database *database, int *num_tables)
   const char *schema_stmt = "SELECT value FROM _experiment_metadata WHERE key='table_%s';";
   MString *schema_stmt_ms = NULL;
   sqlite3_stmt *ptable_stmt = NULL, *pschema_stmt = NULL;
-  struct schema *schema;
+  struct schema *schema = NULL;
   int res, have_meta = 0;
 
   /* Get a list of table names */

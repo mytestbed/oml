@@ -842,7 +842,7 @@ psql_get_table_list (Database *database, int *num_tables)
   const char *pschema_stmt = "OMLGetTableSchema";
   const int paramFormats[] = {0};
   PGresult *res = NULL, *schema_res = NULL;
-  struct schema *schema;
+  struct schema *schema = NULL;
   int have_meta = 0;
   int i, nrows;
 
