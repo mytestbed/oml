@@ -48,9 +48,12 @@ typedef struct OmlFileOutStream {
 static size_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
 static inline int file_stream_close(OmlOutStream* hdl);
 
-/** Create a new OmlWriter
- * \param fileName the destination file
- * \return a new OmlWriter
+/** Create a new out stream for writing into a local file.
+ *
+ * \param file destination file (oml_strndup()'d locally)
+ * \return a new OmlOutStream instance
+ *
+ * \see oml_strndup
  */
 OmlOutStream*
 file_stream_new(const char *file)

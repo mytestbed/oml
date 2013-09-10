@@ -376,10 +376,10 @@ Send measurement output to the collection point indicated by the
 protocol, together with a host and port number to connect to.  For
 example:
 @example
---oml-collect tcp:10.0.0.1:1234
+--oml-collect tcp:[2001:db8::1]:1234
 @end example
 @noindent
-would connect to port 1234 on machine 10.0.0.1 using TCP protocol.
+would connect to port 1234 on machine 192.0.2.1 using TCP protocol.
 
 @node omlsamples
 @subsubsection @option{--oml-samples} @var{n}
@@ -728,7 +728,7 @@ XML configuration file.
         </mp>
     </collect>
 
-    <collect url="tcp:10.0.0.1:15502">
+    <collect url="tcp:192.0.2.1:15502">
         <mp name="omlsigar" interval="2" >
             <f fname="avg" sname="rx_bytes" pname="rx_bytes"/>
             <f fname="histogram" sname="rx_hist" pname="rx_bytes">
@@ -747,7 +747,7 @@ XML configuration file.
 @end smallexample
 
 This example sends data to an OML sever at the localhost port 15500,
-to another OML server at remote machine 10.0.0.1 port 15502, and to
+to another OML server at remote machine 192.0.2.1 port 15502, and to
 the standard output on the local machine.  The localhost server
 records the average CPU user time; the remote server records both the
 average received bytes and a histogram of the average received bytes;

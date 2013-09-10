@@ -26,8 +26,6 @@
 #include "oml_util.h"
 #include "client.h"
 
-#define REATTEMP_INTERVAL 10    //! Seconds to wait before attempting to reach server again
-
 /** OmlOutStream writing out to an OComm Socket */
 typedef struct OmlNetOutStream {
 
@@ -54,8 +52,8 @@ typedef struct OmlNetOutStream {
   char*       protocol;
   /** Host to connect to */
   char*       host;
-  /** Port to connect to */
-  int         port;
+  /** Service to connect to */
+  char*       service;
 
   /** Old storage, no longer used, kept for compatibility */
   char  storage;
@@ -71,30 +69,31 @@ static int net_stream_close(OmlOutStream* hdl);
 static ssize_t socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length);
 
 /** Create a new out stream for sending over the network
- * \param transport string representing the protocol used to establish the connection
- * \param hostname string representing the host to connect to
- * \param port string representing the port to connect to
+ * \param transport string representing the protocol used to establish the connection (oml_strndup()'d locally)
+ * \param hostname string representing the host to connect to (oml_strndup()'d locally)
+ * \param service symbolic name or port number of the service to connect to (oml_strndup()'d locally)
  * \return a new OmlOutStream instance
+ *
+ * \see oml_strndup
  */
 OmlOutStream*
-net_stream_new(const char *transport, const char *hostname, const char *port)
+net_stream_new(const char *transport, const char *hostname, const char *service)
 {
   MString *dest;
-  assert(transport != NULL && hostname != NULL && port != NULL);
+  assert(transport != NULL && hostname != NULL && service != NULL);
   OmlNetOutStream* self = (OmlNetOutStream *)oml_malloc(sizeof(OmlNetOutStream));
   memset(self, 0, sizeof(OmlNetOutStream));
 
   dest = mstring_create();
-  mstring_sprintf(dest, "%s:%s:%s", transport, hostname, port);
+  mstring_sprintf(dest, "%s:%s:%s", transport, hostname, service);
   self->dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
   mstring_delete(dest);
 
   self->protocol = (char*)oml_strndup (transport, strlen (transport));
   self->host = (char*)oml_strndup (hostname, strlen (hostname));
-  self->port = atoi (port);
+  self->service = (char*)oml_strndup (service, strlen (service));
 
-  logdebug("OmlNetOutStream: connecting to host %s://%s:%d\n",
-          self->protocol, self->host, self->port);
+  logdebug("%s: Created OmlNetOutStream\n", self->dest);
   socket_set_non_blocking_mode(0);
 
   /* // Now see if we can connect to server */
@@ -120,10 +119,11 @@ net_stream_close(OmlOutStream* stream)
     socket_close(self->socket);
     self->socket = NULL;
   }
-  logdebug("Destroying OmlNetOutStream to host %s at %p\n", self->dest, self);
+  logdebug("%s: Destroying OmlNetOutStream at %p\n", self->dest, self);
   oml_free(self->dest);
   oml_free(self->host);
   oml_free(self->protocol);
+  oml_free(self->service);
   oml_free(self);
   return 0;
 }
@@ -161,14 +161,14 @@ open_socket(OmlNetOutStream* self)
   }
   if (strcmp(self->protocol, "tcp") == 0) {
     Socket* sock;
-    if ((sock = socket_tcp_out_new("sock", (char*)self->host, self->port)) == NULL) {
+    if ((sock = socket_tcp_out_new(self->dest, self->host, self->service)) == NULL) {
       return 0;
     }
 
     self->socket = sock;
     self->header_written = 0;
   } else {
-    logerror("OmlNetOutStream: unsupported transport protocol '%s'\n", self->protocol);
+    logerror("%s: Unsupported transport protocol '%s'\n", self->dest, self->protocol);
     return 0;
   }
 
@@ -200,14 +200,10 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;
 
   while (self->socket == NULL) {
-    loginfo ("OmlNetOutStream: attempting to connect to server at %s://%s:%d\n",
-             self->protocol, self->host, self->port);
+    logdebug ("%s: Connecting to server\n", self->dest);
     if (!open_socket(self)) {
-      logwarn("OmlNetOutStream: connection attempt failed, sleeping for %ds\n", REATTEMP_INTERVAL);
-      sleep(REATTEMP_INTERVAL);
-    } else {
-      logdebug("OmlNetOutStream: connection to %s://%s:%d successful\n",
-             self->protocol, self->host, self->port);
+      logdebug("%s: Connection attempt failed\n", self->dest);
+      return 0;
     }
   }
 
@@ -215,7 +211,7 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
   if (! self->header_written) {
     if(o_log_level_active(O_LOG_DEBUG4)) {
       char *out = to_octets(header, header_length);
-      logdebug("%s: Sending header %s\n", __FUNCTION__, out);
+      logdebug("%s: Sending header %s\n", self->dest, out);
       oml_free(out);
     }
     if ((count = socket_write(self, header, header_length)) < header_length) {
@@ -224,7 +220,7 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
       // to deal with and we assume it doesn't happen.
       if (count > 0) {
         // PANIC
-        logerror("OmlNetOutStream: only wrote parts of the header; this might cause problem later on\n");
+        logwarn("%s: Only wrote parts of the header; this might cause problem later on\n", self->dest);
       }
       return 0;
     }
@@ -232,7 +228,7 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
   }
   if(o_log_level_active(O_LOG_DEBUG4)) {
     char *out = to_octets(buffer, length);
-    logdebug("%s: Sending data %s\n", __FUNCTION__, out);
+    logdebug("%s: Sending data %s\n", self->dest, out);
     oml_free(out);
   }
   count = socket_write(self, buffer, length);
@@ -254,8 +250,7 @@ socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length)
   int result = socket_sendto(self->socket, (char*)buffer, length);
 
   if (result == -1 && socket_is_disconnected (self->socket)) {
-    logwarn ("OmlNetOutStream: connection to server at %s://%s:%d was lost\n",
-             self->protocol, self->host, self->port);
+    logwarn ("%s: Connection lost\n", self->dest);
     self->socket = NULL;      // Server closed the connection
   }
   return result;
