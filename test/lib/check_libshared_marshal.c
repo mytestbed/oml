@@ -1209,7 +1209,6 @@ START_TEST(test_marshal_unmarshal_vector_double)
   result = marshal_measurements (mbuf, 98, 99, 100.0);
   fail_if(-1 == result);
   fail_if(mbuf->base == NULL);
-  int values_offset = mbuf_fill(mbuf);
 
   OmlValueU out;
   omlc_zero(out);
@@ -1254,7 +1253,6 @@ START_TEST(test_marshal_unmarshal_vector_int32)
   result = marshal_measurements (mbuf, 98, 99, 100.0);
   fail_if(-1 == result);
   fail_if(mbuf->base == NULL);
-  int values_offset = mbuf_fill(mbuf);
 
   OmlValueU out;
   omlc_zero(out);
@@ -1295,7 +1293,6 @@ START_TEST(test_marshal_unmarshal_vector_int64)
   result = marshal_measurements (mbuf, 98, 99, 100.0);
   fail_if(-1 == result);
   fail_if(mbuf->base == NULL);
-  int values_offset = mbuf_fill(mbuf);
 
   OmlValueU out;
   omlc_zero(out);
@@ -1336,7 +1333,6 @@ START_TEST(test_marshal_unmarshal_vector_bool)
   result = marshal_measurements (mbuf, 98, 99, 100.0);
   fail_if(-1 == result);
   fail_if(mbuf->base == NULL);
-  int values_offset = mbuf_fill(mbuf);
 
   OmlValueU out;
   omlc_zero(out);

@@ -64,27 +64,37 @@ START_TEST (test_util_find)
 
   /* XXX: This should really be using a loop test */
 
-  fail_unless((got=skip_white(ws)) == ws+sizeof(ws)-1,
+  got=skip_white(ws);
+  fail_unless(got == ws+sizeof(ws)-1,
       "exp: %p :'%s'; got: %p: '%s'", ws+sizeof(ws)-1, ws+sizeof(ws)-1, got, got);
-  fail_unless((got=skip_white(ts)) == tsnwf,
+  got=skip_white(ts);
+  fail_unless(got == tsnwf,
       "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
-  fail_unless((got=skip_white(tsnwf)) == tsnwf,
+  got=skip_white(tsnwf);
+  fail_unless(got == tsnwf,
       "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
-  fail_unless((got=skip_white(tsnw)) == tsnw,
+  got=skip_white(tsnw);
+  fail_unless(got == tsnw,
       "exp: %p :'%s'; got: %p: '%s'", tsnw, tsnw, got, got);
 
-  fail_unless((got=find_white(ts)) == ts,
+  got=find_white(ts);
+  fail_unless(got == ts,
       "exp: %p :'%s'; got: %p: '%s'", ts, ts, got, got);
-  fail_unless((got=find_white(tsnwf)) == tsnw - 1,
+  got=find_white(tsnwf);
+  fail_unless(got == tsnw - 1,
       "exp: %p :'%s'; got: %p: '%s'", tsnw-1, tsnw-1, got, got);
-  fail_unless((got=find_white(tsnw)) == tsnw+strlen(tsnw),
+  got=find_white(tsnw);
+  fail_unless(got == tsnw+strlen(tsnw),
       "exp: %p :'%s'; got: %p: '%s'", tsnw+strlen(tsnw), tsnw+strlen(tsnw), got, got);
 
-  fail_unless((got=find_charn(ts, 'a', sizeof(ts))) == tsnwf,
+  got=find_charn(ts, 'a', sizeof(ts));
+  fail_unless(got == tsnwf,
       "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
-  fail_unless((got=find_charn(ts, 'z', sizeof(ts) + 10)) == NULL,
+  got=find_charn(ts, 'z', sizeof(ts) + 10);
+  fail_unless(got == NULL,
       "exp: %p :'%s'; got: %p: '%s'", NULL, NULL, got, got);
-  fail_unless((got=find_charn(ts, 'a', 1)) == NULL,
+  got=find_charn(ts, 'a', 1);
+  fail_unless(got == NULL,
       "exp: %p :'%s'; got: %p: '%s'", NULL, NULL, got, got);
 }
 END_TEST
@@ -124,8 +134,6 @@ START_TEST(test_util_parse_uri)
   const char *scheme=NULL, *node=NULL, *service=NULL;
 
   ret = parse_uri(test_uris[_i].uri, &scheme, &node, &service);
-
-  logdebug("%s:%d: %s => %s %s %s\n", __FUNCTION__, _i, test_uris[_i].uri, scheme, node, service);
 
   fail_unless(test_uris[_i].ret == ret, "Unexpected status from parse_uri(%s, ...): %d instead of %d",
       test_uris[_i].uri, ret, test_uris[_i].ret);

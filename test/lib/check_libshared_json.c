@@ -119,7 +119,7 @@ START_TEST(vector_double_test_precision)
     2.345678901234567,
     3.456789012345678
   };
-  char *s = oml_malloc(1), *o = s;
+  char *s = oml_malloc(1);
   ssize_t n = vector_double_to_json(v, sizeof(v)/sizeof(v[0]), &s);
 
   /* ensure it succeeded */
