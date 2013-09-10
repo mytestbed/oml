@@ -16,6 +16,8 @@ AM_CPPFLAGS = \
 
 bin_PROGRAMS = oml2-server
 
+noinst_LTLIBRARIES = libserver-test.la
+
 oml2_server_SOURCES = \
 	oml2-server.c \
 	oml2-server_oml.h \
@@ -33,6 +35,20 @@ oml2_server_SOURCES = \
 	sqlite_adapter.h \
 	table_descr.c \
 	table_descr.h
+
+libserver_test_la_CPPFLAGS = $(AM_CPPFLAGS) -UHAVE_CONFIG_H -DNOOML
+libserver_test_la_SOURCES = \
+			    client_handler.c \
+			    hook.c \
+			    hook.h \
+			    sqlite_adapter.c \
+			    sqlite_adapter.h \
+			    database_adapter.c \
+			    database_adapter.h \
+			    database.c \
+			    database.h \
+			    table_descr.c \
+			    table_descr.h
 
 BUILT_SOURCES = oml2-server.rb \
 		oml2-server_oml.h
