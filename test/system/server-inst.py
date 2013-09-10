@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 # A test to see if self-instrumentation of connection/disconections is
 # working as expected. The client opens a text-protocol connection to
@@ -28,20 +28,25 @@ if float(sys.version[:3])<3:
 else:
     def to_bytes(s):
         return bytes(s, "UTF-8")
-
+# Python3's range used to be Python2's xrange
+#
+try:
+    xrange
+except NameError:
+    xrange = range
 
 # Perform a client connection selftest
 #
 def selftest():
 
     """
-    This is an automated selftest for OML.
+    This is an automated server instrumentation selftest for OML.
     """
 
     # process the command line
     parser = argparse.ArgumentParser()
-    parser.add_argument("--oml-id", default="testclient", help="node identifier")
-    parser.add_argument("--oml-domain", default="selftest", help="experimental domain")
+    parser.add_argument("--oml-id", default="selftest", help="node identifier")
+    parser.add_argument("--oml-domain", default="server-inst", help="experimental domain")
     parser.add_argument("--oml-collect", default="localhost:3003", help="URI for a remote collection point")
     parser.add_argument("--timeout", type=int, default=2, help="time to sleep before disconnecting")
     parser.add_argument("--count", type=int, default=3, help="number of connection attempts")
@@ -91,7 +96,7 @@ def selftest():
             header += "domain: " + args.oml_domain + "\n"
             header += "start-time: " + str(time()) + "\n"
             header += "sender-id: " + str(args.oml_id) + "\n"
-            header += "app-name: selftest\n"
+            header += "app-name: server-inst\n"
             header += "schema: 0 _experiment_metadata subject:string key:string value:string\n"
             header += "content: text\n\n"
             sock.send(to_bytes(header))
@@ -105,7 +110,8 @@ def selftest():
         except socket.error as e:
             sys.stderr.write("ERROR\tCould not connect to OML server: %s\n" %  e)
             exit(2)
-        except Exception, x:
+        except Exception:
+            x = sys.exc_info()[1]
             sys.stderr.write("ERROR\tUnexpected " + str(x) + "\n")
             exit(3)
 

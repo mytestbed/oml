@@ -5,23 +5,23 @@
 # This script should be run by user with permissions to
 # read/write/delete DBDIR. 
 
-TESTDIR=`dirname $0`
-OMLDIR=(`cd ${TESTDIR}/../..; pwd`)
-DBDIR="${TESTDIR}/testdb"
-SQLDB="${DBDIR}/selftest.sq3"
+DBDIR="${PWD}/testdb"
+DOMAIN=server-inst
+SQLDB="${DBDIR}/${DOMAIN}.sq3"
 
 # Clean up DB
 [ -e "$DBDIR" ] && rm -fr "$DBDIR"
 mkdir -p "$DBDIR"
 
+port=$((RANDOM + 32766))
+
 # Start an OML server
-DOMAIN=selftest
-${OMLDIR}/server/oml2-server -D "$DBDIR" --oml-collect localhost --oml-domain "$DOMAIN" --oml-id oml2-server &
+${top_builddir}/server/oml2-server -l $port -D "$DBDIR" --oml-collect localhost:$port --oml-domain "$DOMAIN" --oml-id oml2-server > oml_server.log 2>&1 &
 OMLPID=$!
 
 # Wait for server to begin then connect/disconnect
 sleep 5
-${TESTDIR}/selftest.py
+${srcdir}/server-inst.py --oml-collect localhost:$port
 
 # Wait a bit more and terminate server
 sleep 20
@@ -31,7 +31,7 @@ wait $OMLPID
 # Now check table was written
 if [ -e "${SQLDB}" ]; then
 
-	 COUNT="${TESTDIR}/rowcount"
+	 COUNT="${PWD}/rowcount"
 	 sqlite3 "${SQLDB}" <<EOF
 .output ${COUNT}
 SELECT COUNT(*) FROM server_clients;

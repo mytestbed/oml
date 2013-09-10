@@ -7,10 +7,6 @@ if HAVE_RUBY_MIN_1_8_7
 TESTS += msggen.rb
 endif
 
-if HAVE_PYTHON
-TESTS += selftest.sh
-endif
-
 TESTS_ENVIRONMENT=TOPBUILDDIR=$(top_builddir)
 check_PROGRAMS = msgloop check_server
 
