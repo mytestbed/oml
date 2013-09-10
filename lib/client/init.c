@@ -567,6 +567,8 @@ omlc_close(void)
       while( (w =  w->close(w)) );
     }
 
+    unregister_filters ();
+
     oml_free(omlc_instance);
   }
 
