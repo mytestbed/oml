@@ -206,7 +206,7 @@ file_stream_close(OmlOutStream* hdl)
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
   int ret = -1;
 
-  if (self->f != 0) {
+  if (self->f != NULL) {
     ret = fclose(self->f);
     self->f = NULL;
   }

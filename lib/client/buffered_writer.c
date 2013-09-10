@@ -157,7 +157,6 @@ bw_close(BufferedWriterHdl instance)
 
   pthread_cond_signal (&self->semaphore);
   oml_unlock (&self->lock, __FUNCTION__);
-  //  pthread_cond_destroy(&self->semaphore, NULL);
   switch (pthread_join (self->readerThread, NULL)) {
   case 0:
     logdebug ("%s: Buffered queue reader thread finished OK...\n", self->outStream->dest);
@@ -415,6 +414,9 @@ destroyBufferChain(BufferedWriter* self) {
     oml_free(chain);
   }
 
+  pthread_cond_destroy(&self->semaphore);
+  pthread_mutex_destroy(&self->lock);
+
   return 0;
 }
 
@@ -435,8 +437,6 @@ threadStart(void* handle)
     // Process all chains which have data in them
     while(1) {
       if (mbuf_message(chain->mbuf) > mbuf_rdptr(chain->mbuf)) {
-        // got something to read from this chain
-        //while (!processChain(self, chain));
         processChain(self, chain);
       }
       // stop if we caught up to the writer
@@ -447,6 +447,8 @@ threadStart(void* handle)
     }
     oml_unlock(&self->lock, "bufferedWriter");
   }
+  /* Drain this writer before terminating */
+  while (!processChain(self, chain));
   return NULL;
 }
 
