@@ -101,7 +101,7 @@ Section: libs
 Architecture: any
 Replaces: liboml
 Breaks: liboml (<< 2.4)
-Depends: libc6, libocomm, libxml2, ${misc:Depends}
+Depends: libc6, libocomm (= ${binary:Version}), libxml2, ${misc:Depends}
 Suggests: oml2-example
 Description: OML: The O? Measurement Library
  This library allows application writers to define customizable
