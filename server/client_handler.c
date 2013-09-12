@@ -70,7 +70,7 @@ client_event_report(ClientHandler *self, const char *event, const char *message)
   assert(event);
   const size_t ADDR_SZ = socket_get_addr_sz(self->socket);
   char addr[ADDR_SZ];
-  socket_get_addr(self->socket, addr, ADDR_SZ);
+  socket_get_peer_addr(self->socket, addr, ADDR_SZ);
   uint16_t port = socket_get_port(self->socket);
   const char *oml_id = self->sender_name ? self->sender_name : "";
   const char *domain = self->database && self->database->name ? self->database->name : "";
@@ -314,7 +314,7 @@ process_schema(ClientHandler* self, char* value)
   }
 
   int idx = schema->index;
-  loginfo("%s: New MS schema %s\n", self->name, value); /* Value contains the index */
+  logdebug("%s: New MS schema %s\n", self->name, value); /* Value contains the index */
 
   DbTable* table = database_find_or_create_table(self->database, schema);
   if (table == NULL) {
@@ -598,7 +598,7 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     self->state = self->content;
     client_handler_update_name(self);
     client_event_report(self, "Ready", "");
-    loginfo("%s: Client '%s' ready to send data\n", self->event->name, self->name);
+    loginfo("%s: Client %s ready to send data\n", self->name, self->event->name);
     return 0;
   }
 
@@ -1081,13 +1081,13 @@ status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* h
     case SOCKET_CONN_CLOSED:
       /* Client closed the connection */
       client_event_report(self, event, message);
-      loginfo("%s: Client '%s' closed connection\n", source->name, self->name);
+      loginfo("%s: Client %s closed connection\n", self->name, source->name);
       client_handler_free (self);
       break;
     case SOCKET_IDLE:
       /* Server dropped idle connection */
       client_event_report(self, event, message);
-      loginfo("%s: Client '%s' dropped due to idleness\n", source->name, self->name);
+      loginfo("%s: Client %s dropped due to idleness\n", self->name, source->name);
       client_handler_free (self);
       break;
     case SOCKET_UNKNOWN:

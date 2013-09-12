@@ -39,4 +39,6 @@ libshared_la_SOURCES = \
 	string_utils.c \
 	string_utils.h \
 	guid.c \
-	guid.h
+	guid.h \
+	json.c \
+	json.h

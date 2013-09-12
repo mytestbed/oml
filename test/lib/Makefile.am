@@ -3,7 +3,7 @@ AM_TESTS_ENVIRONMENT = CK_VERBOSITY=verbose
 
 if HAVE_CHECK
 TESTS = check_liboml2 check_libshared
-check_PROGRAMS = check_liboml2 check_libshared
+check_PROGRAMS = check_libshared check_liboml2
 
 AM_CPPFLAGS = \
 	-I  $(top_srcdir)/lib/client \
@@ -15,7 +15,6 @@ check_liboml2_SOURCES = \
 	check_util.h \
 	check_liboml2.c \
 	check_liboml2_api.c \
-	check_liboml2_base64.c \
 	check_liboml2_bswap.c \
 	check_liboml2_cbuf.c \
 	check_liboml2_config.c \
@@ -24,12 +23,14 @@ check_liboml2_SOURCES = \
 	check_liboml2_mbuf.c \
 	check_liboml2_omlvalue.c \
 	check_liboml2_suites.h \
-	check_liboml2_string_utils.c \
 	check_liboml2_writers.c \
 	$(top_srcdir)/lib/client/oml2/omlc.h \
 	$(top_srcdir)/lib/client/oml2/oml_filter.h
 
 check_libshared_SOURCES = \
+	check_libshared_base64.c \
+	check_libshared_json.c \
+	check_libshared_string_utils.c \
 	check_util.c \
 	check_util.h \
 	check_libshared.c \

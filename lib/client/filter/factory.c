@@ -273,6 +273,22 @@ void register_builtin_filters ()
   omlf_register_filter_delta ();
 }
 
+/** Unregister all built-in filters.
+ */
+void unregister_filters ()
+{
+  FilterType* ft = filter_types;
+  logdebug("Unregistering filters\n");
+
+  while(ft) {
+    filter_types = ft->next;
+
+    oml_free(ft->definition);
+    oml_free(ft);
+
+    ft = filter_types;
+  };
+}
 
 /*
  Local Variables:

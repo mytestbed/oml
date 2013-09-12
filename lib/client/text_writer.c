@@ -11,12 +11,12 @@
  * \brief An implementation of the OmlWriter interface functions (see oml2/oml_writer.h) that serializes measurement tuples using the OML text protocol \ref omsptext.
  */
 
-#include <alloca.h>
+#include <assert.h>
+#include <float.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
-#include <assert.h>
 
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
@@ -213,6 +213,66 @@ owt_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
     case OML_BOOL_VALUE:
       res = mbuf_print(mbuf, "\t%c", (omlc_get_bool(*oml_value_get_value(v))!=OMLC_BOOL_FALSE)?'T':'F');
       break;
+
+    case OML_VECTOR_DOUBLE_VALUE: {
+      OmlValueU *u = oml_value_get_value(v);
+      size_t nof_elts = omlc_get_vector_nof_elts(*u);
+      double *elts = omlc_get_vector_ptr(*u);
+      res = mbuf_print(mbuf, "\t%zu", nof_elts);
+      for(i = 0; 0 == res && i < nof_elts; i++)
+        res = mbuf_print(mbuf, " %.*g", DBL_DIG, elts[i]);
+      break;
+    }
+
+    case OML_VECTOR_INT32_VALUE: {
+      OmlValueU *u = oml_value_get_value(v);
+      size_t nof_elts = omlc_get_vector_nof_elts(*u);
+      int32_t *elts = omlc_get_vector_ptr(*u);
+      res = mbuf_print(mbuf, "\t%zu", nof_elts);
+      for(i = 0; 0 == res && i < nof_elts; i++)
+        res = mbuf_print(mbuf, " %" PRId32, elts[i]);
+      break;
+    }
+
+    case OML_VECTOR_UINT32_VALUE: {
+      OmlValueU *u = oml_value_get_value(v);
+      size_t nof_elts = omlc_get_vector_nof_elts(*u);
+      uint32_t *elts = omlc_get_vector_ptr(*u);
+      res = mbuf_print(mbuf, "\t%zu", nof_elts);
+      for(i = 0; 0 == res && i < nof_elts; i++)
+        res = mbuf_print(mbuf, " %" PRIu32, elts[i]);
+      break;
+    }
+
+    case OML_VECTOR_INT64_VALUE: {
+      OmlValueU *u = oml_value_get_value(v);
+      size_t nof_elts = omlc_get_vector_nof_elts(*u);
+      int64_t *elts = omlc_get_vector_ptr(*u);
+      res = mbuf_print(mbuf, "\t%zu", nof_elts);
+      for(i = 0; 0 == res && i < nof_elts; i++)
+        res = mbuf_print(mbuf, " %" PRId64, elts[i]);
+      break;
+    }
+
+    case OML_VECTOR_UINT64_VALUE: {
+      OmlValueU *u = oml_value_get_value(v);
+      size_t nof_elts = omlc_get_vector_nof_elts(*u);
+      uint64_t *elts = omlc_get_vector_ptr(*u);
+      res = mbuf_print(mbuf, "\t%zu", nof_elts);
+      for(i = 0; 0 == res && i < nof_elts; i++)
+        res = mbuf_print(mbuf, " %" PRIu64, elts[i]);
+      break;
+    }
+
+    case OML_VECTOR_BOOL_VALUE: {
+      OmlValueU *u = oml_value_get_value(v);
+      size_t nof_elts = omlc_get_vector_nof_elts(*u);
+      bool *elts = omlc_get_vector_ptr(*u);
+      res = mbuf_print(mbuf, "\t%zu", nof_elts);
+      for(i = 0; 0 == res && i < nof_elts; i++)
+        res = mbuf_print(mbuf, " %s", elts[i] ? "True" : "False");
+      break;
+    }
 
     default:
       res = -1;

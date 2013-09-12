@@ -20,7 +20,6 @@ main (void)
 
   o_set_log_file ("check_liboml2_oml.log");
   SRunner* sr = srunner_create (omlvalue_suite());
-  srunner_add_suite (sr, base64_suite ());
   srunner_add_suite (sr, bswap_suite ());
   srunner_add_suite (sr, mbuf_suite ());
   srunner_add_suite (sr, cbuf_suite ());
@@ -31,7 +30,6 @@ main (void)
   /* The log_suite has to be last, lest it messes up logging for suites
    * following it */
   srunner_add_suite (sr, log_suite ());
-  srunner_add_suite (sr, string_utils_suite ());
 
   srunner_run_all (sr, CK_ENV);
   number_failed += srunner_ntests_failed (sr);

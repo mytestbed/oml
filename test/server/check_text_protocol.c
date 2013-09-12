@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <math.h>
 #include <check.h>
 #include <sqlite3.h>
@@ -167,7 +168,6 @@ START_TEST(test_text_types)
   char tablebase[] = "text_type_";
   char table[sizeof(tablebase)+MAXTYPETESTNAME+1];
   double time1 = 1.096202;
-  int d1 = 3319660544;
 
   char h[200];
   char s[50];

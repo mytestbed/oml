@@ -34,6 +34,9 @@ main (void)
 
   o_set_log_file ("check_libshared_oml.log");
   SRunner *sr = srunner_create (mstring_suite ());
+  srunner_add_suite (sr, base64_suite ());
+  srunner_add_suite (sr, json_suite ());
+  srunner_add_suite (sr, string_utils_suite ());
   srunner_add_suite (sr, util_suite ());
   srunner_add_suite (sr, headers_suite ());
   srunner_add_suite (sr, marshal_suite ());

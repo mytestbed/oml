@@ -54,7 +54,7 @@ AC_SUBST([OML_BASE_VER], [`echo "$PACKAGE_VERSION" | sed 's/^\([[0-9]]\+\.[[0-9]
 AC_SUBST([OML_PKG_VER], [`echo "$PACKAGE_VERSION" | sed 's/^\([[0-9]]\+\(\.[[0-9]]\+\)\{1,2\}\)\([[-.a-zA-Z0-9]]\+\)\?.*$/\1~\3/;s/-/./g'`])
 
 LIBOML2_LT_VER_CUR=10
-LIBOML2_LT_VER_REV=0 # Revisions of LIBOML2_LT_VER_CUR
+LIBOML2_LT_VER_REV=1 # Revisions of LIBOML2_LT_VER_CUR
 LIBOML2_LT_VER_AGE=1 # Supported APIs prior to LIBOML2_LT_VER_CUR
 LIBOML2_LT_VER_MIN=$(($LIBOML2_LT_VER_CUR - $LIBOML2_LT_VER_AGE))
 LIBOCOMM_LT_VER_CUR=1
@@ -264,6 +264,9 @@ AM_CONDITIONAL([BUILD_RPM], [test "x$RPMBUILD" != "x"])
 AM_CONDITIONAL([IS_ARCH], [test "x$isarch" != "x"])
 AM_CONDITIONAL([IS_DEBIAN], [test "x$isdebian" != "x"])
 AM_CONDITIONAL([IS_REDHAT], [test "x$isredhat" != "x"])
+
+AX_WITH_PROG([PYTHON],[python],[missing_python="yes"])
+AM_CONDITIONAL([HAVE_PYTHON], [test x"${missing_python}" != xyes])
 
 AX_WITH_PROG([RUBY],[ruby])
 AX_PROG_RUBY_VERSION([1.8.7],

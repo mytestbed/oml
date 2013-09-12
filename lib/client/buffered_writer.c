@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <time.h>
 
 #include "oml2/omlc.h"
 #include "ocomm/o_log.h"
@@ -71,7 +72,14 @@ typedef struct BufferedWriter {
   /** Thread in charge of reading the queue and writing the data out */
   pthread_t  readerThread;
 
+  /** Time of the last failure, to backoff for REATTEMP_INTERVAL before retryying **/
+  time_t last_failure_time;
+
+  /** Backoff time, in seconds */
+  uint8_t backoff;
+
 } BufferedWriter;
+#define REATTEMP_INTERVAL 5    //! Seconds to open the stream again
 
 static BufferChain* getNextWriteChain(BufferedWriter* self, BufferChain* current);
 static BufferChain* createBufferChain(BufferedWriter* self);
@@ -99,6 +107,8 @@ bw_create(OmlOutStream* outStream, long  queueCapacity, long  chunkSize)
   memset(self, 0, sizeof(BufferedWriter));
 
   self->outStream =outStream;
+  /* This forces a 'connected' INFO message upon first connection */
+  self->backoff = 1;
 
   long bufSize = chunkSize > 0 ? chunkSize : DEF_CHAIN_BUFFER_SIZE;
   self->chainLength = bufSize;
@@ -147,7 +157,6 @@ bw_close(BufferedWriterHdl instance)
 
   pthread_cond_signal (&self->semaphore);
   oml_unlock (&self->lock, __FUNCTION__);
-  //  pthread_cond_destroy(&self->semaphore, NULL);
   switch (pthread_join (self->readerThread, NULL)) {
   case 0:
     logdebug ("%s: Buffered queue reader thread finished OK...\n", self->outStream->dest);
@@ -405,6 +414,9 @@ destroyBufferChain(BufferedWriter* self) {
     oml_free(chain);
   }
 
+  pthread_cond_destroy(&self->semaphore);
+  pthread_mutex_destroy(&self->lock);
+
   return 0;
 }
 
@@ -425,8 +437,7 @@ threadStart(void* handle)
     // Process all chains which have data in them
     while(1) {
       if (mbuf_message(chain->mbuf) > mbuf_rdptr(chain->mbuf)) {
-        // got something to read from this chain
-        while (!processChain(self, chain));
+        processChain(self, chain);
       }
       // stop if we caught up to the writer
 
@@ -436,6 +447,8 @@ threadStart(void* handle)
     }
     oml_unlock(&self->lock, "bufferedWriter");
   }
+  /* Drain this writer before terminating */
+  while (!processChain(self, chain));
   return NULL;
 }
 
@@ -455,23 +468,38 @@ processChain(BufferedWriter* self, BufferChain* chain)
   chain->reading = 1;
   MBuffer* meta = self->meta_buf;
 
+  /* XXX: Should we use a timer instead? */
+  time_t now;
+  time(&now);
+  if (difftime(now, self->last_failure_time) < self->backoff) {
+    logdebug("%s: Still in back-off period (%ds)\n", self->outStream->dest, self->backoff);
+    return 0;
+  }
+
   while (size > sent) {
     long cnt = self->outStream->write(self->outStream, (void*)(buf + sent), size - sent,
                                meta->rdptr, meta->fill);
     if (cnt > 0) {
       sent += cnt;
+      if (self->backoff) {
+        self->backoff = 0;
+        loginfo("%s: Connected\n", self->outStream->dest);
+      }
     } else {
-      /* ERROR: Sleep a bit and try again */
       /* To be on the safe side, we rewind to the beginning of the
        * chain and try to resend everything - this is especially important
-       * if the underlying stream needs to reopen and resync.
-       */
-      /* XXX: Should we really do that? How about returning 0 and letting
-       * threadStart call us again?. See #1104 */
+       * if the underlying stream needs to reopen and resync. */
       mbuf_reset_read(chain->mbuf);
       size = mbuf_message_offset(chain->mbuf) - mbuf_read_offset(chain->mbuf);
       sent = 0;
-      sleep(1);
+      self->last_failure_time = now;
+      if (!self->backoff) {
+        self->backoff = 1;
+      } else if (self->backoff < UINT8_MAX) {
+        self->backoff *= 2;
+      }
+      logwarn("%s: Error sending, backing off for %ds\n", self->outStream->dest, self->backoff);
+      return 0;
     }
   }
   // get lock back to see what happened while we were busy

@@ -14,6 +14,7 @@
 #ifndef OML_OMLC_H_
 #define OML_OMLC_H_
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -42,6 +43,12 @@ typedef enum OmlValueT {
   OML_BLOB_VALUE,
   OML_GUID_VALUE,
   OML_BOOL_VALUE,
+  OML_VECTOR_DOUBLE_VALUE,
+  OML_VECTOR_INT32_VALUE,
+  OML_VECTOR_UINT32_VALUE,
+  OML_VECTOR_INT64_VALUE,
+  OML_VECTOR_UINT64_VALUE,
+  OML_VECTOR_BOOL_VALUE,
   OML_LAST_VALUE /* For easy range checks */
 } OmlValueT;
 
@@ -62,9 +69,17 @@ typedef enum OmlValueT {
   ((t) == OML_BLOB_VALUE)
 #define omlc_is_guid_type(t) \
   ((t) == OML_GUID_VALUE)
-
 #define omlc_is_bool_type(t) \
   ((t) == OML_BOOL_VALUE)
+#define omlc_is_vector_type(t) \
+  (((t) == OML_VECTOR_DOUBLE_VALUE) ||                       \
+   ((t) == OML_VECTOR_INT32_VALUE)  ||                       \
+   ((t) == OML_VECTOR_UINT32_VALUE) ||                       \
+   ((t) == OML_VECTOR_INT64_VALUE)  ||                       \
+   ((t) == OML_VECTOR_UINT64_VALUE) ||                       \
+   ((t) == OML_VECTOR_BOOL_VALUE))
+#define omlc_is_scalar_type(t) \
+  (!omlc_isvector_type(t))
 
 #define omlc_is_integer(v) \
   omlc_is_integer_type((v).type)
@@ -78,6 +93,28 @@ typedef enum OmlValueT {
   omlc_is_guid_type((v).type)
 #define omlc_is_bool(v) \
   omlc_is_bool_type((v).type)
+#define omlc_is_vector(v) \
+  omlc_is_vector_type((v).type)
+
+/**  Representation of a vector value. */
+typedef struct OmlVector {
+
+  /** Pointer to the base of the vector */
+  void *ptr;
+
+  /** The amount of storage (in bytes) used by this vector */
+  size_t length;
+
+  /** The size of underlying allocated storage (in bytes) in ptr */
+  size_t size;
+
+  /** The number of elements of this vector */
+  uint16_t nof_elts;
+
+  /** The size (in octets) of an individual element */
+  uint16_t elt_sz;
+
+} OmlVector;
 
 /**  Representation of a string measurement value.  */
 typedef struct OmlString {
@@ -119,9 +156,9 @@ typedef uint64_t oml_guid_t;
 /** Multi-typed variable container without type information.
  *
  * WARNING: OmlValueU MUST be omlc_zero()d out before use. Additionally, if the
- * last type of data they contained was an OML_STRING_VALUE or OML_BLOB_VALUE,
- * they should be omlc_reset_(string|blob)(). Not doing so might result in
- * memory problems (double free or memory leak).
+ * last type of data they contained was an OML_STRING_VALUE, OML_BLOB_VALUE or
+ * OML_VECTOR_*_VALUE, they should be omlc_reset_(string|blob|vector)(). Not doing
+ * so might result in memory problems (double free or memory leak).
  *
  * When wrapped in OmlValue, the right thing is done, by the initialisation/reset functions.
  *
@@ -139,6 +176,7 @@ typedef union OmlValueU {
   OmlBlob   blobValue;
   oml_guid_t    guidValue;
   uint8_t   boolValue;
+  OmlVector vectorValue;
 } OmlValueU;
 
 /* Declarations from internal "mem.h", to be used in the macros below
@@ -155,6 +193,7 @@ size_t oml_malloc_usable_size(void *ptr);
  */
 #define omlc_zero(var) \
   memset(&(var), 0, sizeof(OmlValueU))
+
 /** Zero out a freshly declared array of OmlValueU.
  *
  * \param var OmlValueU to manipulate
@@ -177,6 +216,7 @@ size_t oml_malloc_usable_size(void *ptr);
  */
 #define _omlc_get_intrinsic_value(var, type) \
   ((var).type ## Value)
+
 /** Set an intrinsic C value in an OmlValueU.
  *
  * DO NOT USE THIS MACRO DIRECTLY!
@@ -237,10 +277,10 @@ size_t oml_malloc_usable_size(void *ptr);
 #define omlc_set_long(var, val) \
   _omlc_set_intrinsic_value(var, long, (long)(val))
 /** \see _omlc_set_intrinsic_value */
-#define omlc_set_guid(var, val)                            \
+#define omlc_set_guid(var, val) \
   _omlc_set_intrinsic_value(var, guid, (oml_guid_t)(val))
 /** \see _omlc_set_intrinsic_value */
-#define omlc_set_bool(var, val)                            \
+#define omlc_set_bool(var, val) \
   _omlc_set_intrinsic_value(var, bool, (val != OMLC_BOOL_FALSE))
 
 /** Get fields of an OmlValueU containing pointer to possibly dynamically allocated storage.
@@ -352,7 +392,7 @@ size_t oml_malloc_usable_size(void *ptr);
  *
  * \param var OmlValueU to operate on
  * \param type type of data contained in the OmlValueU
- * \see omlc_reset_string, omlc_reset_blob
+ * \see omlc_reset_string, omlc_reset_blob, omlc_reset_vector
  */
 #define _omlc_reset_storage(var, type)                    \
   do {                                                    \
@@ -479,6 +519,86 @@ size_t oml_malloc_usable_size(void *ptr);
 #define omlc_copy_blob(dst, src) \
   _omlc_set_storage_copy((dst), blob, omlc_get_blob_ptr(src), omlc_get_blob_length(src))
 
+/** \see _oml_get_storage_field */
+#define omlc_get_vector_ptr(var) \
+  (_oml_get_storage_field((var), vector, ptr))
+/** \see _oml_get_storage_field */
+#define omlc_get_vector_length(var) \
+  (_oml_get_storage_field((var), vector, length))
+/** \see _oml_get_storage_field */
+#define omlc_get_vector_size(var) \
+  (_oml_get_storage_field((var), vector, size))
+/** \see _oml_get_storage_field */
+#define omlc_get_vector_elt_size(var) \
+  (_oml_get_storage_field((var), vector, elt_sz))
+/** \see _oml_get_storage_field */
+#define omlc_get_vector_nof_elts(var) \
+  (_oml_get_storage_field((var), vector, nof_elts))
+
+/** \see _oml_set_storage_field */
+#define omlc_set_vector_ptr(var, val)                   \
+  _oml_set_storage_field((var), vector, ptr, (void*)(val))
+/** \see _oml_set_storage_field */
+#define omlc_set_vector_length(var, val) \
+  _oml_set_storage_field((var), vector, length, (size_t)(val))
+/** \see _oml_set_storage_field */
+#define omlc_set_vector_size(var, val) \
+  _oml_set_storage_field((var), vector, size, (size_t)(val))
+/** \see _oml_set_storage_field */
+#define omlc_set_vector_elt_size(var, val) \
+  _oml_set_storage_field((var), vector, elt_sz, (size_t)(val))
+/** \see _oml_get_storage_field */
+#define omlc_set_vector_nof_elts(var, val) \
+  (_oml_set_storage_field((var), vector, nof_elts, (uint16_t)(val)))
+
+/** \see _omlc_free_storage */
+#define omlc_free_vector(var) \
+    _omlc_free_storage((var), vector)                       
+/** \see _omlc_reset_storage */
+#define omlc_reset_vector(var)                                   \
+  do {                                                           \
+    _omlc_reset_storage((var), vector);                          \
+    omlc_set_vector_elt_size((var), 0);                          \
+    omlc_set_vector_nof_elts((var), 0);                          \
+  } while(0);
+
+/** Set an vector into the dedicated storage area of an OmlValueU.
+ *
+ * DO NOT USE THIS MACRO DIRECTLY!
+ *
+ * It is a helper for specific manipulation macros, which share its behaviour,
+ * but have fewer parameters.
+ *
+ * \param var The OMLValueU to set.
+ * \param data Non-null pointer to the base of the vector.
+ * \param nof_elts The number of elements in the vector.
+ * \param size The size (in bytes) of each vector element.
+ */
+#define _omlc_set_vector_copy(var, data, nof_elts, size)         \
+  do {                                                           \
+    size_t bytes = (nof_elts) * (size);                          \
+    _omlc_set_storage_copy((var), vector, data, bytes);          \
+    omlc_set_vector_nof_elts((var), (nof_elts));                 \
+    omlc_set_vector_elt_size((var), (size));                     \
+  } while(0)
+  
+#define omlc_set_vector_double(var, val, nof_elts) \
+  _omlc_set_vector_copy((var), (val), (nof_elts), sizeof(double))
+#define omlc_set_vector_long(var, val, nof_elts) \
+  _omlc_set_vector_copy((var), (val), (nof_elts), sizeof(long))
+#define omlc_set_vector_int32(var, val, nof_elts) \
+  _omlc_set_vector_copy((var), (val), (nof_elts), sizeof(int32_t))
+#define omlc_set_vector_uint32(var, val, nof_elts) \
+  _omlc_set_vector_copy((var), (val), (nof_elts), sizeof(uint32_t))
+#define omlc_set_vector_int64(var, val, nof_elts) \
+  _omlc_set_vector_copy((var), (val), (nof_elts), sizeof(int64_t))
+#define omlc_set_vector_uint64(var, val, nof_elts) \
+  _omlc_set_vector_copy((var), (val), (nof_elts), sizeof(uint64_t))
+#define omlc_set_vector_bool(var, val, nof_elts) \
+  _omlc_set_vector_copy((var), (val), (nof_elts), sizeof(bool))
+
+#define omlc_copy_vector(dst, src) \
+  _omlc_set_vector_copy((dst), omlc_get_vector_ptr(src), omlc_get_vector_nof_elts(src), omlc_get_vector_elt_size(src))
 
 /** Typed container for an OmlValueU
  *

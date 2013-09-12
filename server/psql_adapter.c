@@ -25,6 +25,7 @@
 #include "mem.h"
 #include "mstring.h"
 #include "guid.h"
+#include "json.h"
 #include "oml_value.h"
 #include "oml_util.h"
 #include "database.h"
@@ -54,6 +55,13 @@ static db_typemap psql_type_pair[] = {
   { OML_UINT64_VALUE,   "BIGINT" },
   { OML_GUID_VALUE,     "BIGINT" },
   { OML_BOOL_VALUE,     "BOOLEAN" },
+  /* Vector types */
+  { OML_VECTOR_DOUBLE_VALUE, "TEXT" },
+  { OML_VECTOR_INT32_VALUE,  "TEXT" },
+  { OML_VECTOR_UINT32_VALUE, "TEXT" },
+  { OML_VECTOR_INT64_VALUE,  "TEXT" },
+  { OML_VECTOR_UINT64_VALUE, "TEXT" },
+  { OML_VECTOR_BOOL_VALUE,   "TEXT" },
 };
 
 static int sql_stmt(PsqlDB* self, const char* stmt);
@@ -229,9 +237,9 @@ psql_stmt(Database* db, const char* stmt)
 int
 psql_create_database(Database* db)
 {
-  MString *conninfo;
-  MString *str;
-  PGconn  *conn;
+  MString *conninfo = NULL;
+  MString *str = NULL;
+  PGconn  *conn = NULL;
   PGresult *res = NULL;
   int ret = -1;
 
@@ -275,6 +283,8 @@ psql_create_database(Database* db)
       goto cleanup_exit;
     }
   }
+  mstring_delete(str);
+  str = NULL;
 
   PQfinish (conn);
   mstring_delete(conninfo);
@@ -291,6 +301,8 @@ psql_create_database(Database* db)
     goto cleanup_exit;
   }
   PQsetNoticeReceiver(conn, psql_receive_notice, db->name);
+  mstring_delete(conninfo);
+  conninfo = NULL;
 
   PsqlDB* self = (PsqlDB*)oml_malloc(sizeof(PsqlDB));
   self->conn = conn;
@@ -324,8 +336,9 @@ cleanup_exit:
   if (res) { PQclear (res) ; }
   if (ret) { PQfinish (conn); } /* If return !=0, cleanup connection */
 
-  mstring_delete (str);
-  mstring_delete (conninfo);
+  if (str) { mstring_delete (str); }
+  if (conninfo) { mstring_delete (conninfo); }
+  /* All paths leading to here have conn uninitialised */
   return ret;
 }
 
@@ -496,7 +509,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   unsigned char *escaped_blob;
   size_t eblob_len=-1;
 
-  char * paramValues[4+value_count];
+  char *paramValues[4+value_count];
   for (i=0;i<4+value_count;i++) {
     paramValues[i] = oml_malloc(512*sizeof(char));
   }
@@ -573,6 +586,26 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
                              paramValues[4+i] = NULL;
                            }
                            break;
+
+    case OML_VECTOR_DOUBLE_VALUE:
+      vector_double_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+    case OML_VECTOR_INT32_VALUE:
+      vector_int32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+    case OML_VECTOR_UINT32_VALUE:
+      vector_uint32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+    case OML_VECTOR_INT64_VALUE:
+      vector_int64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+    case OML_VECTOR_UINT64_VALUE:
+      vector_uint64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+    case OML_VECTOR_BOOL_VALUE:
+      vector_bool_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &paramValues[4+i]);
+      break;
+
     default:
       logerror("psql:%s: Unknown type %d in col '%s' of table '%s'; this is probably a bug\n",
           db->name, field->type, field->name, table->schema->name);
@@ -809,7 +842,7 @@ psql_get_table_list (Database *database, int *num_tables)
   const char *pschema_stmt = "OMLGetTableSchema";
   const int paramFormats[] = {0};
   PGresult *res = NULL, *schema_res = NULL;
-  struct schema *schema;
+  struct schema *schema = NULL;
   int have_meta = 0;
   int i, nrows;
 
@@ -884,35 +917,43 @@ psql_get_table_list (Database *database, int *num_tables)
 
         schema_res = PQexecPrepared (self->conn, pschema_stmt, 1, &tablename, NULL, paramFormats, 0);
         if (PQresultStatus (schema_res) != PGRES_TUPLES_OK) {
-          logerror("psql:%s: Could not get schema for table %s: %s", /* PQerrorMessage strings already have '\n'  */
+          logwarn("psql:%s: Could not get schema for table %s, ignoring it: %s", /* PQerrorMessage strings already have '\n'  */
               database->name, tablename, PQerrorMessage(self->conn));
-          goto fail_exit;
-        }
 
-        meta = PQgetvalue (schema_res, 0, 0); /* We should only have one result row */
-        schema = schema_from_meta(meta);
-        PQclear(schema_res);
-        schema_res = NULL;
-
-        if (!schema) {
-          logerror("psql:%s: Could not parse schema '%s' (stored in DB) for table %s; is your database from an oml2-server<2.10?\n",
-              database->name, meta, tablename);
-          goto fail_exit;
-        }
-
-        t = table_descr_new (tablename, schema);
-        if (!t) {
-          logerror("psql:%s: Could create table descrition for table %s\n",
+        } else if (PQntuples(schema_res) <= 0) {
+          logwarn("psql:%s: No schema for table %s, ignoring it\n",
               database->name, tablename);
-          goto fail_exit;
+
+        } else {
+          meta = PQgetvalue (schema_res, 0, 0); /* We should only have one result row */
+          schema = schema_from_meta(meta);
+          PQclear(schema_res);
+          schema_res = NULL;
+
+          if (!schema) {
+            logwarn("psql:%s: Could not parse schema '%s' (stored in DB) for table %s, ignoring it; "
+                "is your database from an oml2-server<2.10?\n",
+                database->name, meta, tablename);
+
+          } else {
+
+            t = table_descr_new (tablename, schema);
+            if (!t) {
+              logerror("psql:%s: Could not create table descrition for table %s\n",
+                  database->name, tablename);
+              goto fail_exit;
+            }
+            schema = NULL; /* The pointer has been copied in t (see table_descr_new);
+                              we don't want to free it twice in case of error */
+          }
         }
-        schema = NULL; /* The pointer has been copied in t (see table_descr_new);
-                          we don't want to free it twice in case of error */
       }
 
-      t->next = tables;
-      tables = t;
-      (*num_tables)++;
+      if (t) {
+        t->next = tables;
+        tables = t;
+        (*num_tables)++;
+      }
     }
   } while (i < nrows);
 

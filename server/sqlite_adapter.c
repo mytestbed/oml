@@ -18,12 +18,14 @@
 #include <sqlite3.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "mstring.h"
 #include "htonll.h"
+#include "json.h"
 #include "guid.h"
 #include "oml_value.h"
 #include "oml_util.h"
@@ -54,6 +56,15 @@ static db_typemap sq3_type_pair [] = {
   { OML_BOOL_VALUE,     "INTEGER" }, /* See [0]: "SQLite does not have a separate Boolean storage class.
                                         Instead, Boolean values are stored as integers 0 (false) and 1 (true)."
                                         [0] https://www.sqlite.org/datatype3.html */
+
+  /* Vector types are rendered as JSON-format text */
+  { OML_VECTOR_DOUBLE_VALUE, "TEXT" },
+  { OML_VECTOR_INT32_VALUE,  "TEXT" },
+  { OML_VECTOR_UINT32_VALUE, "TEXT" },
+  { OML_VECTOR_INT64_VALUE,  "TEXT" },
+  { OML_VECTOR_UINT64_VALUE, "TEXT" },
+  { OML_VECTOR_BOOL_VALUE,   "TEXT" },
+
 };
 
 static int sql_stmt(Sq3DB* self, const char* stmt);
@@ -389,6 +400,8 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
   int i;
   double time_stamp_server;
   sqlite3_stmt* stmt = sq3table->insert_stmt;
+  char *json = NULL;
+  ssize_t json_sz;
   struct timeval tv;
   gettimeofday(&tv, NULL);
   time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
@@ -462,7 +475,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
       res = sqlite3_bind_int64(stmt, idx, (int64_t)omlc_get_int64(*oml_value_get_value(v)));
       break;
     case OML_UINT64_VALUE:
-      if (omlc_get_uint64(*oml_value_get_value(v)) > (uint64_t)9223372036854775808u) {
+      if (omlc_get_uint64(*oml_value_get_value(v)) > (uint64_t)9223372036854775808ull) {
         logwarn("sqlite:%s: Trying to store value %" PRIu64 " (>2^63) in column '%s' of table '%s', this might lead to a loss of resolution\n",
             db->name, (uint64_t)omlc_get_uint64(*oml_value_get_value(v)), schema->fields[i].name, table->schema->name);
       }
@@ -493,8 +506,55 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
     case OML_BOOL_VALUE:
       res = sqlite3_bind_int(stmt, idx, (int)omlc_get_bool(*oml_value_get_value(v)));
       break;
-      break;
 
+    case OML_VECTOR_DOUBLE_VALUE:
+      json = NULL;
+      json_sz = vector_double_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
+    case OML_VECTOR_INT32_VALUE:
+      json = NULL;
+      json_sz = vector_int32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
+    case OML_VECTOR_UINT32_VALUE:
+      json = NULL;
+      json_sz = vector_uint32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
+    case OML_VECTOR_INT64_VALUE:
+      json = NULL;
+      json_sz = vector_int64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
+    case OML_VECTOR_UINT64_VALUE:
+      json = NULL;
+      json_sz = vector_uint64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
+    case OML_VECTOR_BOOL_VALUE:
+      json = NULL;
+      json_sz = vector_bool_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &json);
+      if(-1 != json_sz)
+        res = sqlite3_bind_text(stmt, idx, json, json_sz, oml_free);
+      else
+        res = sqlite3_bind_null(stmt, idx);
+      break;
     default:
       logerror("sqlite:%s: Unknown type %d in col '%s' of table '%s; this is probably a bug'\n",
           db->name, schema->fields[i].type, schema->fields[i].name, table->schema->name);
@@ -732,7 +792,7 @@ sq3_get_table_list (Database *database, int *num_tables)
   const char *schema_stmt = "SELECT value FROM _experiment_metadata WHERE key='table_%s';";
   MString *schema_stmt_ms = NULL;
   sqlite3_stmt *ptable_stmt = NULL, *pschema_stmt = NULL;
-  struct schema *schema;
+  struct schema *schema = NULL;
   int res, have_meta = 0;
 
   /* Get a list of table names */
@@ -800,35 +860,37 @@ sq3_get_table_list (Database *database, int *num_tables)
         }
 
         if(sqlite3_step(pschema_stmt) != SQLITE_ROW) {
-          logerror("sqlite:%s: Could not get schema for table %s: %s\n",
+          logwarn("sqlite:%s: Could not get schema for table %s (or not present), ignoring it: %s\n",
               database->name, tablename, sqlite3_errmsg(self->conn));
-          goto fail_exit;
-        }
 
-        meta = (const char*)sqlite3_column_text(pschema_stmt, 0); /* We should only have one result row */
-        schema = schema_from_meta(meta);
-        sqlite3_finalize(pschema_stmt);
-        pschema_stmt = NULL; /* Avoid double-finalisation in case of error */
+        } else {
+          meta = (const char*)sqlite3_column_text(pschema_stmt, 0); /* We should only have one result row */
+          schema = schema_from_meta(meta);
+          sqlite3_finalize(pschema_stmt);
+          pschema_stmt = NULL; /* Avoid double-finalisation in case of error */
 
-        if (!schema) {
-          logerror("sqlite:%s: Could not parse schema '%s' (stored in DB) for table %s; is your database from an oml2-server<2.10?\n",
-              database->name, meta, tablename);
-          goto fail_exit;
-        }
+          if (!schema) {
+            logerror("sqlite:%s: Could not parse schema '%s' (stored in DB) for table %s; is your database from an oml2-server<2.10?\n",
+                database->name, meta, tablename);
+            goto fail_exit;
+          }
 
-        t = table_descr_new (tablename, schema);
-        if (!t) {
-          logerror("sqlite:%s: Could create table descrition for table %s\n",
-              database->name, tablename);
-          goto fail_exit;
+          t = table_descr_new (tablename, schema);
+          if (!t) {
+            logerror("sqlite:%s: Could create table descrition for table %s\n",
+                database->name, tablename);
+            goto fail_exit;
+          }
+          schema = NULL; /* The pointer has been copied in t (see table_descr_new);
+                            we don't want to free it twice in case of error */
         }
-        schema = NULL; /* The pointer has been copied in t (see table_descr_new);
-                          we don't want to free it twice in case of error */
       }
 
-      t->next = tables;
-      tables = t;
-      (*num_tables)++;
+      if (t) {
+        t->next = tables;
+        tables = t;
+        (*num_tables)++;
+      }
     }
   } while (res == SQLITE_ROW);
 

@@ -20,6 +20,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -56,7 +57,9 @@ random_open()
   if(!fp) {
     fp = fopen(random_path, "r");
     if(!fp) {
-      logerror("Failed to fopen(\"%s\", \"r\"): %s\n", random_path, sys_errlist[errno]);
+      char msg[4096];
+      strerror_r(errno, msg, sizeof(msg));
+      logerror("Failed to fopen(\"%s\", \"r\"): %s\n", random_path, msg);
       exit(EXIT_FAILURE);
     }
     atexit(random_close);
@@ -76,7 +79,9 @@ omlc_guid_generate()
   oml_guid_t out = OMLC_GUID_NULL;
   while(OMLC_GUID_NULL == out) {
     if(fread(&out, sizeof(out), 1, fp) != 1) {
-      logerror("Failed to read from %s: %s\n", random_path, sys_errlist[errno]);
+      char msg[4096];
+      strerror_r(errno, msg, sizeof(msg));
+      logerror("Failed to read from %s: %s\n", random_path, msg);
       exit(EXIT_FAILURE);
     }
   }
