@@ -1050,10 +1050,10 @@ main(int argc, const char *argv[])
   /* Inject some metadata about this application */
   OmlValueU v;
   omlc_zero(v);
-  omlc_set_string(v, "#{template(:app_name)}");
+  omlc_set_string(v, PACKAGE_NAME);
   omlc_inject_metadata(NULL, "appname", &v, OML_STRING_VALUE, NULL);
 
-  omlc_set_string(v, "#{@version[0]}.#{@version[1]}.#{@version[2]}");
+  omlc_set_string(v, PACKAGE_VERSION);
   omlc_inject_metadata(NULL, "version", &v, OML_STRING_VALUE, NULL);
 
   omlc_set_string(v, cmdline);
