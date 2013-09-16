@@ -20,12 +20,12 @@ echo -n > $LOG
 #
 # Rudimentary TAP output helpers
 #
-function test_plan()
+test_plan()
 {
-	echo 1..`grep ^[^#]*tap_test $0 | grep -v function | wc -l`
+	echo 1..`grep ^[^#]*tap_test $0 | grep -v "()" | wc -l`
 }
 
-function tap_test()
+tap_test()
 {
 	DESC=$1
 	shift
@@ -33,13 +33,14 @@ function tap_test()
 	shift
 	CMD=$*
 
+	tested=$((tested + 1))
 	echo "$ $CMD" >> $LOG
 	$CMD >> $LOG 2>&1
 	if [ x$? = x0 ]; then
-		echo "ok $((++i)) - $DESC"
+		echo "ok $tested - $DESC"
 
 	elif [ x$FATAL = xno ]; then
-		echo "not ok $((++i)) - cannot $DESC"
+		echo "not ok $tested - cannot $DESC"
 		failed=$((failed + 1))
 
 	else
@@ -48,16 +49,17 @@ function tap_test()
 	fi
 }
 
-function tap_skip()
+tap_skip()
 {
 	DESC=$1
-	echo "not ok $((++i)) - SKIP: $DESC"
+	tested=$((tested + 1))
+	echo "not ok $tested - SKIP: $DESC"
 	skipped=$((skipped + 1))
 }
 
-function tap_summary()
+tap_summary()
 {
-	echo "# $failed/$i tests failed; $skipped skipped"
+	echo "# $failed/$tested tests failed; $skipped skipped"
 }
 
 tested=0
