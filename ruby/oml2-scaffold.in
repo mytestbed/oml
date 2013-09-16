@@ -977,6 +977,8 @@ $(PROGRAM)_oml.h: $(PROGRAM).rb
     write_file_header(stream, "Please edit to suit your needs; the run() function should contain application code.")
     stream.puts %Q|
 #include <unistd.h> /* Needed for sleep(3) in run() */
+#include <signal.h>
+#include <string.h>
 #include <popt.h>
 #include <oml2/omlc.h>
 
@@ -988,11 +990,30 @@ $(PROGRAM)_oml.h: $(PROGRAM).rb
 
 #include "config.h"
 
-/* Do application-specific work here */
+int loop = 1;
+
+static void
+sighandler (int signum) {
+  switch (signum) {
+    case SIGINT:
+      /* Terminate on SIGINT */
+      loop = 0;
+      break;
+
+  }
+}
+
+/* Do application-specific work here.
+ */
 void
 run(opts_t *opts, oml_mps_t *oml_mps)
 {
   long val = 1;
+  struct sigaction sa;
+
+  bzero(&sa, sizeof(struct sigaction));
+  sa.sa_handler = sighandler;
+  sigaction(SIGINT, &sa, NULL);
 |
     @mps.each do |mps|
       mps.write_example_vectors(stream)
@@ -1008,7 +1029,7 @@ run(opts_t *opts, oml_mps_t *oml_mps)
     stream.puts %Q|
     val += 2;
     sleep(1);
-  } while (1);
+  } while (loop);
 }
 
 int
