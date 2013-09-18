@@ -67,23 +67,27 @@ static void xcount_freed (size_t bytes) {
   xbytes -= bytes; oml_freed += bytes;
 }
 
-/** Report the current memory allocation tracked by x*() functions */
+/** Report the current memory allocation tracked by oml_mem*() functions */
 size_t xmembytes() { return xbytes; }
-/** Report the cumulated allocated memory tracked by x*() functions */
+/** Report the cumulated allocated memory tracked by oml_mem*() functions */
 size_t xmemnew() { return xnew; }
-/** Report the cumulated freed memory tracked by x*() functions */
+/** Report the cumulated freed memory tracked by oml_mem*() functions */
 size_t xmemfreed() { return oml_freed; }
+/** Report the high water mark of memory allocated by oml_mem* functions */
+size_t xmaxbytes() { return xmax; }
 
-/** Create a summary of the dynamically allocated memory tracked by x*() functions
+/** Create a summary of the dynamically allocated memory tracked by x*() functions.
+ * This version of the function is re-entrant and requires the user to provide the
+ * buffer into which the report is written.
  *
- * \return a pointer to a statically allocated, nul-terminated, string containing the summary
- * \see oml_memreport
+ * \param summary A pointer to a buffer into which to write the report
+ * \param summary_sz The size of the buffer
+ * \return a pointer to the nul-terminated string containing the summary
+ * \see oml_memsummary
  * */
 char*
-oml_memsummary ()
+oml_memsummary_r (char *summary, size_t summary_sz)
 {
-  static char summary[1024];
-
   size_t xbytes_h = xbytes;
   char *units = "bytes";
   if (xbytes_h > 10*(1<<10)) {
@@ -95,7 +99,7 @@ oml_memsummary ()
     xbytes_h >>= 10;
   }
 
-  snprintf(summary, 1024, "%"PRIuMAX" %s currently allocated [%"
+  snprintf(summary, summary_sz, "%"PRIuMAX" %s currently allocated [%"
              PRIuMAX" allocated overall, %"
              PRIuMAX" freed, %"
              PRIuMAX" current, %"
@@ -103,10 +107,23 @@ oml_memsummary ()
              (uintmax_t)xbytes_h, units,
              (uintmax_t)xnew, (uintmax_t)oml_freed, (uintmax_t)xbytes,
              (uintmax_t)xmax);
-  summary[1023] = '\0';
+  summary[summary_sz - 1] = '\0';
 
   return summary;
 }
+
+/** Create a summary of the dynamically allocated memory tracked by x*() functions
+ *
+ * \return a pointer to a statically allocated, nul-terminated, string containing the summary
+ * \see oml_memreport
+ * */
+char*
+oml_memsummary ()
+{
+  static char summary[1024];
+  return oml_memsummary_r(summary, sizeof(summary));;
+}
+
 /** Log a summary of the dynamically allocated memory tracked by x*() functions
  *
  * \param loglevel log level at which the message should be issued
@@ -115,7 +132,8 @@ oml_memsummary ()
 void
 oml_memreport (int loglevel)
 {
-  o_log(loglevel, "%s\n", oml_memsummary());
+  char summary[1024];
+  o_log(loglevel, "%s\n", oml_memsummary_r(summary, sizeof(summary)));
 }
 
 #define xreturn(ptr, size, str)                                         \

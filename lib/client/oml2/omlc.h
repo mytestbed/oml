@@ -740,6 +740,12 @@ typedef struct OmlMStream {
   /** Length of writers */
   int nwriters;
 
+  /** Number of tuples successfully injected */
+  uint32_t written;
+
+  /** Number of tuples dropped */
+  uint32_t dropped;
+
 } OmlMStream;
 
 /* Initialise the measurement library. */

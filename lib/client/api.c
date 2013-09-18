@@ -76,13 +76,14 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
   LOGDEBUG("Injecting data into MP '%s'\n", mp->name);
 
   oml_value_init(&v);
-
   if (mp_lock(mp) == -1) {
     logwarn("Cannot lock MP '%s' for injection\n", mp->name);
     return -1;
   }
-  ms = mp->streams;
-  while (ms) {
+  
+  uint64_t written = 0;
+  uint64_t dropped = 0;
+  for (ms = mp->streams; ms; ms = ms->next) {
     LOGDEBUG("Filtering MP '%s' data into MS '%s'\n", mp->name, ms->table_name);
     OmlFilter* f = ms->filters;
     for (; f != NULL; f = f->next) {
@@ -93,10 +94,29 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
       f->input(f, &v);
     }
     omlc_ms_process(ms);
-    ms = ms->next;
+    written += ms->written;
+    dropped += ms->dropped;
   }
   mp_unlock(mp);
   oml_value_reset(&v);
+
+  /* do we need to send client instrumentation? */
+  if(mp != omlc_instance->client_instr && omlc_instance->instr_delay) {
+    time_t now;
+    time(&now);
+    if(omlc_instance->instr_time + omlc_instance->instr_delay <= now) {
+      OmlValueU values[6];
+      omlc_zero_array(values, 6);
+      omlc_set_uint32(values[0], written);
+      omlc_set_uint32(values[1], dropped);
+      omlc_set_uint64(values[2], xmemnew());
+      omlc_set_uint64(values[3], xmemfreed());
+      omlc_set_uint64(values[4], xmembytes());
+      omlc_set_uint64(values[5], xmaxbytes());
+      omlc_inject(omlc_instance->client_instr, values);
+      omlc_instance->instr_time = now;
+    }
+  }
 
   return 0;
 }

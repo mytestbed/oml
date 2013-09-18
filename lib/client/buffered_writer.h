@@ -24,6 +24,7 @@ BufferedWriterHdl bw_create(OmlOutStream* outStream, long queueCapacity, long ch
 void bw_close(BufferedWriterHdl instance);
 
 int bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size);
+int _bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size);
 int bw_push_meta(BufferedWriterHdl instance, uint8_t* chunk, size_t size);
 int _bw_push_meta(BufferedWriterHdl instance, uint8_t* chunk, size_t size);
 

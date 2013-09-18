@@ -76,6 +76,15 @@ typedef struct OmlClient {
   /** Default writer used when no configuration is provided by --oml-collect */
   OmlWriter*  default_writer; /* XXX: after first_writer */
 
+  /** Measurement point for client instrumentation */
+  OmlMP *client_instr;
+
+  /** Time we last injected instrumentation to server */
+  time_t instr_time;
+
+  /** Minimum period between client instrumentation reports (0 == disabled) */
+  uint32_t instr_delay;
+
 } OmlClient;
 
 /** Global OmlClient instance */

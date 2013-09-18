@@ -37,7 +37,7 @@ oml_setup(int *argc, const char **argv)
 {
   int result;
   /* connect to the monitoring server */
-    result = omlc_init("server", argc, argv, NULL);
+  result = omlc_init("server", argc, argv, NULL);
   if(0 == result) {
     logdebug("Initialised OML client library\n");
     oml_register_mps();

@@ -1,6 +1,7 @@
 #ifndef MEM_H__
 #define MEM_H__
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "ocomm/o_log.h"
@@ -17,7 +18,9 @@ void oml_free (void *ptr);
 size_t xmembytes();
 size_t xmemnew();
 size_t xmemfreed();
+size_t xmaxbytes();
 char *oml_memsummary ();
+char *oml_memsummary_r (char *s, size_t s_sz);
 void oml_memreport (int loglevel);
 
 /* Duplicate nil-terminated string
