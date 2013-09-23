@@ -9,6 +9,86 @@
  */
 /** \file api.c
  * \brief Implement the user-visible API of OML.
+ *
+ * \page api OML User-visible API
+ *
+ * The OML API is used to generate measurement streams (MS) using the \ref omsp
+ * "OML Measurement Stream Protocol".
+ *
+ * The client library implement Injection Points. The user-visible AP consists
+ * in a few primitives:
+ *
+ *   - init (\ref omlc_init)
+ *   - start (\ref omlc_start)
+ *   - addMP (\ref omlc_add_mp)
+ *   - inject (\ref omlc_inject)
+ *   - injectMetadata (\ref omlc_inject_metadata)
+ *   - close (\ref omlc_close)
+ *
+ * The mapping between API calls and \ref omsp "OMSP" output can be summarised as follows.
+ *
+ * @startuml{api2omsp}
+ * Application --> InjectionPoint: init
+ *
+ * Application --> InjectionPoint: addMP(1)
+ * InjectionPoint --> InjectionPoint: add MP 1 definition to headers or\nlist to declare later via schema0
+ *
+ * Application --> InjectionPoint: start
+ * note right: with support of schema0 and addition of MP at any time,\nstart could be a noop
+ *
+ * group Connection/headers can be sent immediately, or wait for first injection
+ *
+ * InjectionPoint --> CollectionPoint: initial headers
+ *
+ * Application --> InjectionPoint: addMP(2)
+ * InjectionPoint --> CollectionPoint: schema0 MP 2 definition
+ *
+ *
+ * Application --> InjectionPoint: addMP(3)
+ * InjectionPoint --> CollectionPoint: schema0 MP 3 definition
+ * end
+ *
+ * group Data can be buffered after timestamping
+ * Application --> InjectionPoint: inject(1)
+ * InjectionPoint --> InjectionPoint: timestamp data
+ * InjectionPoint --> CollectionPoint: schema1 timestamp + data
+ *
+ * Application --> InjectionPoint: inject(3)
+ * note right: injections can happen in any order
+ * InjectionPoint --> InjectionPoint: timestamp data
+ * InjectionPoint --> CollectionPoint: schema3 timestamp + data
+ *
+ * Application --> InjectionPoint: inject(2)
+ * InjectionPoint --> InjectionPoint: timestamp data
+ * InjectionPoint --> CollectionPoint: schema2 timestamp + data
+ *
+ * Application --> InjectionPoint: injectMetadata
+ * note right: subject (.[MPNAME[.FNAME]]), key, value
+ * InjectionPoint --> InjectionPoint: timestamp metadata
+ * InjectionPoint --> CollectionPoint: schema0 metadata
+ *
+ * Application --> InjectionPoint: addMP(4)
+ * note right: MPs can be added at any time
+ * InjectionPoint --> CollectionPoint: schema0 MP 4 definition
+ *
+ * Application --> InjectionPoint: inject(4)
+ * InjectionPoint --> InjectionPoint: timestamp data
+ * InjectionPoint --> CollectionPoint: schema4 timestamp + data
+ * end
+ *
+ * == Network error ==
+ *
+ * Application --> InjectionPoint: inject(3)
+ * InjectionPoint --> InjectionPoint: timestamp data
+ * InjectionPoint --> CollectionPoint: initial headers
+ * note right: first reestablish the connection\nand resend headers
+ * InjectionPoint --> CollectionPoint: all schema0
+ * note right: schema0 MP definitions are required,\nculling metadata might be considered at some point
+ * InjectionPoint --> CollectionPoint: schema3 timestamp + data
+ *
+ * Application --> InjectionPoint: close
+ * InjectionPoint --> CollectionPoint: all buffered data
+ * @enduml
  */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
