@@ -27,7 +27,7 @@
  *
  * The mapping between API calls and \ref omsp "OMSP" output can be summarised as follows.
  *
- * @startuml{api2omsp}
+ * @startuml{api2omsp.png}
  * Application --> InjectionPoint: init
  *
  * Application --> InjectionPoint: addMP(1)

@@ -308,6 +308,8 @@ AS_IF([test "x$enable_doc" != "xno"],
 AM_CONDITIONAL([ENABLE_DOC], [test "x$enable_doc" != "xno"])
 AM_CONDITIONAL([HAVE_A2X], [test "x$A2X" != "xno"])
 AM_CONDITIONAL([HAVE_ASCIIDOC], [test "x$ASCIIDOC" != "xno"])
+AX_WITH_PROG([PLANTUML],[plantuml],[no])
+AM_CONDITIONAL([HAVE_PLANTUML], [test "x$PLANTUML" != "xno"])
 
 DX_DOT_FEATURE(ON)
 DX_PDF_FEATURE(OFF) dnl XXX: Fails not finding existing files...
