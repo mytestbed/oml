@@ -10,7 +10,8 @@
 /** \file marshal.c
  * \brief Binary mode OMSP (\ref omsp \ref omspbin) marhsalling and unmarshalling of OML types.
  *
- * \page omspbin OMSP Binary Marshalling
+ * \page omsp
+ * \section omspbin OMSP Binary Marshalling
  *
  * Marshalling is done directly into Mbuffers. A marshalled packet is
  * structured as follows.
@@ -20,38 +21,35 @@
  *
  * A short header (\ref OMB_DATA_P), created by marshal_header_short(), is 5
  * bytes long.
- * \verbatim
- *    0                   1                   2                   3
- *    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
- *    +---------------+---------------+---------------+---------------+
- *    |   SYNC_BYTE   |   SYNC_BYTE   |  OMB_DATA_P   |   msg-len-H   |
- *    +---------------+---------------+---------------+---------------+
- *    |   msg-len-L   |
- *    +-------+-------+--
- * \endverbatim
+ *
+ *     0                   1                   2                   3
+ *     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *     +---------------+---------------+---------------+---------------+
+ *     |   SYNC_BYTE   |   SYNC_BYTE   |  OMB_DATA_P   |   msg-len-H   |
+ *     +---------------+---------------+---------------+---------------+
+ *     |   msg-len-L   |
+ *     +-------+-------+--
  *
  * A long header (\ref OMB_LDATA_P), created by marshal_header_long(), allows
  * two more bytes for the length.
- * \verbatim
- *    0                   1                   2                   3
- *    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
- *    +---------------+---------------+---------------+---------------+
- *    |   SYNC_BYTE   |   SYNC_BYTE   |  OMB_LDATA_P  |   msg-len-HH  |
- *    +---------------+---------------+---------------+---------------+
- *    |   msg-len-HL  |   msg-len-LH  |   msg-len-LL  |
- *    +---------------+---------------+---------------+--
- * \endverbatim
+ *
+ *     0                   1                   2                   3
+ *     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *     +---------------+---------------+---------------+---------------+
+ *     |   SYNC_BYTE   |   SYNC_BYTE   |  OMB_LDATA_P  |   msg-len-HH  |
+ *     +---------------+---------------+---------------+---------------+
+ *     |   msg-len-HL  |   msg-len-LH  |   msg-len-LL  |
+ *     +---------------+---------------+---------------+--
  *
  * This header is followed by metadata about its content, in the form of one
  * byte indicating the number of measuments, and one the MS number (identifying
  * the schema). The former is is updated at the end, by marshal_finalize(),
  * that function also takes care of promoting a short header to a long one if
  * too much data was written into the packet.
- * \verbatim
+ *
  *                  --+---------------+---------------+-
  *                    |   num-meas    |   ms-index    |
  *                  --+---------------+---------------+-
- * \endverbatim
  *
  * Then, num-meas marshalled values follow, respecting the schema defined by
  * ms-index. The values are marshalled after a one-byte header identifying
@@ -65,57 +63,51 @@
  *
  * 32-bit integers (\ref INT32_T and \ref UINT32_T; and longs, \ref LONG_T)
  * are put on the wire verbatim, in network byte order.
- * \verbatim
- *  --+---------------+---------------+---------------+---------------+
- *    |  (U)INT32_T   |  int-byte-HH  |  int-byte-HL  |  int-byte-LH  |
- *  --+---------------+---------------+---------------+---------------+
- *    |  int-byte-LL  |
- *    +---------------+--
- * \endverbatim
+ *
+ *     --+---------------+---------------+---------------+---------------+
+ *       |  (U)INT32_T   |  int-byte-HH  |  int-byte-HL  |  int-byte-LH  |
+ *     --+---------------+---------------+---------------+---------------+
+ *       |  int-byte-LL  |
+ *       +---------------+--
  *
  * The same goes for 64-bit integers (\ref INT64_T and \ref UINT64_T). GUIDs
  * are marshalled in the same way, but use the \ref GUID_T type.
- * \verbatim
- *  --+---------------+---------------+---------------+---------------+
- *    |  (U)INT64_T   |  int-byte-HHH |  int-byte-HHL |  int-byte-HLH |
- *  --+---------------+---------------+---------------+---------------+
- *    |  int-byte-HLL |  int-byte-LHH |  int-byte-LHL |  int-byte-LLH |
- *    +---------------+---------------+---------------+---------------+
- *    |  int-byte-LLL |
- *    +---------------+--
- * \endverbatim
+ *
+ *     --+---------------+---------------+---------------+---------------+
+ *       |  (U)INT64_T   |  int-byte-HHH |  int-byte-HHL |  int-byte-HLH |
+ *     --+---------------+---------------+---------------+---------------+
+ *       |  int-byte-HLL |  int-byte-LHH |  int-byte-LHL |  int-byte-LLH |
+ *       +---------------+---------------+---------------+---------------+
+ *       |  int-byte-LLL |
+ *       +---------------+--
  *
  * Doubles (\ref DOUBLE_T) are represented with a 4-byte mantissa \f$M\f$ and a
  * one-byte exponent \f$x\f$, so that \f$v=\frac{2^xM}{2^{30}}\f$. In case the
  * conversion fails, \ref DOUBLE_NAN is used as a type instead of \ref DOUBLE_T.
- * \verbatim
- *  --+---------------+---------------+---------------+---------------+
- *    |   DOUBLE_T    |  mant-byte-HH |  mant-byte-HL |  mant-byte-LH |
- *  --+---------------+---------------+---------------+---------------+
- *    |  mant-byte-LL |   exponent    |
- *    +---------------+---------------+--
- * \endverbatim
+ *
+ *     --+---------------+---------------+---------------+---------------+
+ *       |   DOUBLE_T    |  mant-byte-HH |  mant-byte-HL |  mant-byte-LH |
+ *     --+---------------+---------------+---------------+---------------+
+ *       |  mant-byte-LL |   exponent    |
+ *       +---------------+---------------+--
  *
  * Strings (\ref STRING_T) and blobs (\ref BLOB_T) are serialised as bytes,
  * with the second byte (i.e., first after the type), being their length.
- * \verbatim
- *  --+---------------+---------------+---------------+---------------+
- *    |STRING_T|BLOB_T|       n       |   1st byte    |               |
- *  --+---------------+---------------+---------------+---------------+
- *    |               |              ...              |               |
- *    +---------------+---------------+---------------+---------------+
- *    |              ...              |   nth byte    |
- *    +---------------+---------------+---------------+--
- * \endverbatim
+ *
+ *     --+---------------+---------------+---------------+---------------+
+ *       |STRING_T|BLOB_T|       n       |   1st byte    |               |
+ *     --+---------------+---------------+---------------+---------------+
+ *       |               |              ...              |               |
+ *       +---------------+---------------+---------------+---------------+
+ *       |              ...              |   nth byte    |
+ *       +---------------+---------------+---------------+--
  *
  * Boolean values are only encoded as one byte, with a different type depending
  * on there truth value (\ref BOOL_FALSE_T or \ref BOOL_TRUE_T
  *
- * \verbatim
- *  --+---------------+--
- *    |  BOOL_xxx_T   |
- *  --+---------------+--
- * \endverbatim
+ *     --+---------------+--
+ *       |  BOOL_xxx_T   |
+ *     --+---------------+--
  *
  * Vectors (\ref VECTOR_T) are represented by specifying the type of
  * the vector elements and then the size of the vector (a sixteen bit
@@ -125,49 +117,44 @@
  * The vector elements are marshalled depending on the their type. For
  * vectors of integers of INT32_T or (U)INT32_T the elements are
  * packed in network-byte order as shown below:
- * \verbatim
- * --+---------------+-----------------+---------------+---------------+
- *   |   VECTOR_T    |   (U)INT32_T    |      n-H      |      n-L      |
- * --+---------------+-----------------+---------------+---------------+
- *   |int[0]-byte-HH |int[0]-byte-HL   |int[0]-byte-LH |int[0]-byte-LL |
- *   +---------------+-----------------+---------------+---------------+
- *   |int[1]-byte-HH |int[1]-byte-HL   |int[1]-byte-LH |int[1]-byte-LL |
- *   +---------------+-----------------+---------------+---------------+
- *   | 
- *   +--
- * \endverbatim
- * Similarly for the INT64_T and UINT64_T the elements are packed in
- * network byte order (i.e. with the most significant octet first).
+ *
+ *     --+---------------+-----------------+---------------+---------------+
+ *       |   VECTOR_T    |   (U)INT32_T    |      n-H      |      n-L      |
+ *     --+---------------+-----------------+---------------+---------------+
+ *       |int[0]-byte-HH |int[0]-byte-HL   |int[0]-byte-LH |int[0]-byte-LL |
+ *       +---------------+-----------------+---------------+---------------+--
+ *       |int[1]-byte-HH |int[1]-byte-HL   |int[1]-byte-LH |int[1]-byte-LL |
+ *       +---------------+-----------------+---------------+---------------+--
+ *
+ * Similarly for the \ref INT64_T and \ref UINT64_T the elements are packed in
+ * network byte order (i.e., with the most significant octet first).
  *
  * For vectors of boolean values the vector elements are represented
- * by a one-octet values which must be either BOOL_TRUE_T or
- * BOOL_FALSE_T.
- * \verbatim
- * --+---------------+-----------------+---------------+---------------+
- *   |   VECTOR_T    |     BOOL_T      |      n-H      |      n-L      |
- * --+---------------+-----------------+---------------+---------------+
- *   |    bool[0]    |     bool[1]     |    bool[2]    |    bool[3]    |
- *   +---------------+-----------------+---------------+---------------+
- *   |    bool[4]    |  
- *   +---------------+--
- * \endverbatim
+ * by a one-octet values which must be either \ref BOOL_TRUE_T or
+ * \ref BOOL_FALSE_T.
  *
- * For vectors of double an IEEE 754 binary64 value is transferred and
- * we require that the byte ordering within that value is in network
- * byte order (IEEE 754 does not specify byte ordering but wikipedia
- * page suggests that it is reasonable to assume that, for a given
+ *     --+---------------+-----------------+---------------+---------------+
+ *       |   VECTOR_T    |     BOOL_T      |      n-H      |      n-L      |
+ *     --+---------------+-----------------+---------------+---------------+
+ *       |    bool[0]    |     bool[1]     |    bool[2]    |    bool[3]    |
+ *       +---------------+-----------------+---------------+---------------+
+ *       |    bool[4]    |
+ *       +---------------+--
+ *
+ * For vectors of double an IEEE 754 binary64 value is transferred and we
+ * require that the byte ordering within that value is in network byte order
+ * (IEEE 754 does not specify byte ordering but <a
+ * href="https://en.wikipedia.org/wiki/Endianness#Floating-point_and_endianness">the
+ * Wikipedia suggests that it is reasonable to assume that</a>, for a given
  * host, the endian-ness of doubles is the same as for integers).
- * \verbatim
- * --+---------------+-----------------+---------------+---------------+
- *   |   VECTOR_T    |    DOUBLE_T     |      n-H      |      n-L      |
- * --+---------------+-----------------+---------------+---------------+
- *   |dbl[0]-MS-byte |  dbl[0]-byte-7  | dbl[0]-byte-6 | dbl[0]-byte-5 |
- *   +---------------+-----------------+---------------+---------------+
- *   | dbl[0]-byte-4 |  dbl[0]-byte-3  | dbl[0]-byte-2 |dbl[0]-LS-byte |
- *   +---------------+-----------------+---------------+---------------+
- *   | 
- *   +--
- * \endverbatim
+ *
+ *     --+---------------+-----------------+---------------+---------------+
+ *       |   VECTOR_T    |    DOUBLE_T     |      n-H      |      n-L      |
+ *     --+---------------+-----------------+---------------+---------------+
+ *       |dbl[0]-MS-byte |  dbl[0]-byte-7  | dbl[0]-byte-6 | dbl[0]-byte-5 |
+ *       +---------------+-----------------+---------------+---------------+--
+ *       | dbl[0]-byte-4 |  dbl[0]-byte-3  | dbl[0]-byte-2 |dbl[0]-LS-byte |
+ *       +---------------+-----------------+---------------+---------------+--
  *
  * \see marshal_init, marshal_header_short, marshal_header_long, marshal_measurements, marshal_values, marshal_finalize
  */

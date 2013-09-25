@@ -1,20 +1,107 @@
-/*
- * Copyright 2007-2013 National ICT Australia Limited (NICTA)
+/** Copyright 2007-2013 National ICT Australia Limited (NICTA)
  *
- * This software may be used and distributed solely under the terms of
- * the MIT license (License).  You should find a copy of the License in
- * COPYING or at http://opensource.org/licenses/MIT. By downloading or
- * using this software you accept the terms and the liability disclaimer
- * in the License.
+ * This software may be used and distributed solely under the terms of the MIT
+ * license (License).  You should find a copy of the License in COPYING or at
+ * http://opensource.org/licenses/MIT. By downloading or using this software
+ * you accept the terms and the liability disclaimer in the License.
  */
-/** \file schema.c
- * \brief Manipulate schema structures, and convert to/from string or SQL representation.
+/** \file schema.c \brief Manipulate schema structures, and convert to/from
+ * string or SQL representation.
  *
- * \page omspschema OMSP Schema Specification
+ * \page omsp
+ * \section omspschema OMSP Schema Specification
  *
- * XXX: The contents of
- * http://oml.mytestbed.net/projects/oml/wiki/OML_Measurement_Stream_Protocol_%28OMSP%29_Specification#Schema-Definition
- * should be wrapped into this documentation.
+ * Schemas describe the name, type and order of the values defining a sample in
+ * a measurement stream.
+ *
+ * Schema declarations are a space-delimited concatenation sequence of
+ * name/type pairs. The name and type in each pair are separated by a colon
+ * `:`.
+ *
+ * Valid types in OMSP the following.
+ * - `int32` (V>=1)
+ * - `uint32` (V>=2)
+ * - `int64` (V>=2)
+ * - `uint64` (V>=2)
+ * - `double` (V>=2)
+ * - `string` (V>=1)
+ * - `blob` (V>=3)
+ * - `guid` (V>=4)
+ * - `bool` (V>=4)
+ * - `guid` (V>=4)
+ *
+ * Additionally, some deprecated values are kept for backwards compatibility,
+ * and interpreted in the latest version as indicated. They should not be used
+ * in new implementations.
+ * - `int` (V<2, mapped to `int32` in V>=3)
+ * - `integer` (V<2, mapped to `int32` in V>=3)
+ * - `long` (V<2, clamped and mapped to `int32` in V>=3)
+ * - `float` (V<2, mapped to `double` in V>=3)
+ *
+ * A full schema also has a name, prepended to its definition and separated by
+ * a space. This must consist of only alpha-numeric characters and underscores
+ * and must start with a letter or an underscore, i.e., matching
+ * `/[_A-Za-z][_A-Za-z0-9]/`. The same rule applies to the names of the
+ * elements of the schema. Each schema is also associated with a numeric MS
+ * identifier, which is used to link it to all associated measurement tuples
+ * later sent. In <a href="https://en.wikipedia.org/wiki/Augmented_Backus%E2%80%93Naur_Form">ABNF</a>,
+ * a schema is defined as follows.
+ *
+ *     schema = ms-id ws schema-name ws field-definition 0*63(ws field-definition)
+ *
+ *     ms-id = integer
+ *     schema-name = 1*letter-or-decimal-or-underscore
+ *     field-definition = field-name ":" oml-type
+ *
+ *     field-name = 1*letter-or-decimal-or-underscore
+ *     oml-type = current-oml-type / deprecated-oml-type
+ *
+ *     current-oml-type = "int32" / "uint32" / "int64" / "uint64" / "double" / "string" / "blob" / "guid" / "bool" / "guid"
+ *     deprecated-oml-type = "int" / "integer" / "long" / "float"
+ *
+ *     integer = 1*decimal
+ *     letter-or-decimal-or-underscore = letter / decimal / "_"
+ *
+ *     decimal = "0"-"9"
+ *     letter = "a"-"z" / "A"-"Z"
+ *     ws = " "
+ *
+ * Each client should number its measurement streams sequentially starting from
+ * 1 (not 0), and prepend that number to their schema definition. It will later
+ * be used to label tuples following this schema, and allow to group them
+ * together in the storage backend.
+ *
+ * \subsection omspschemaexample Example
+ *
+ *    1 generator_sin label:string phase:double value:double
+ *    2 generator_lin label:string counter:long
+ *
+ * \subsection schema0 Schema 0 (OMSP V>=4)
+ *
+ * Schema 0 is a specific hard-coded stream for metadata. Its core elements are
+ * two fields, named `key` and `value`. Data from this stream is stored in the
+ * same way as any other data, but its semantic is different in that it only
+ * describes and adds information about other measurement streams. Metadata
+ * follows an Subject-Key-Value model where the key/value pair is an attribute
+ * of a specific subject. Subjects are expressed in dotted notation. The
+ * default subject, `.`, is the experiment itself. At the second level are
+ * schemas, and their fields at the third level (e.g., `.a` refers to all of
+ * schema `a`, while `.a.f` refers only to its field `f`).
+ *
+ * To support this, schema 0 is therefore:
+ *
+ *     0 _experiment_metadata subject:string key:string value:string
+ *
+ * On the \ref oml2-server "server side", everything gets stored in the
+ * `_experiment_metadata` table. However, additional processing might happen.
+ * For example, if key `schema` is defined for subject `.` (the experiment
+ * root), a new schema is defined at the collection point so new MSs can be
+ * sent.
+ *
+ * In case of reconnection, it is up to the client MUST re-send the \ref
+ * headers headers, as well as all schema0 metadata with key `schema` (see \ref
+* api). Other metadata MAY be restransmitted as well. The server MAY store
+* duplicate metadata if this happens.
  */
 #include <stdlib.h>
 #include <string.h>

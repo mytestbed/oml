@@ -8,7 +8,44 @@
  * in the License.
  */
 /** \file database.c
- * Generic interface for database backends
+ * \brief Generic interface for database backends
+ *
+ * \ page oml2-server XXX: Broken section ordering
+ * \page datastorage Information storage
+ *
+ * With the current SQL backends, the information is used or stored as follows (V<=4; OML<=2.11).
+ * - The `protocol` and `content` keys are specific to the protocol and never
+ *     appear in the backend storage;
+ * - The `domain` is used to group measurements together (i.e., in the same
+ *     database with that name);
+ * - The `start-time` of the earliest client (with some offset towards the
+ *     past) is saved as a key/value pair in the `_experiment_metadata` table;
+ * - The `sender-id` is associated to a unique integer by the server. This
+ *     mapping is stored in the `_senders` table, and reused to label tuples
+ *     originating from this sender in other tables (`oml_sender_id` column);
+ *     *TODO* can this be wrapped as metadata? Maybe not...
+ * - The `app-name` is used to name tables from a specific application by
+ *     prepending it to the name of the Measurement Point (e.g, `APPNAME_MPNAME`);
+ *     *XXX* This is actually done on the client side, `app-name` is never used by
+ *     the collection point *TODO* In the future, we will only use the measurement
+ *     point name, and store the `sender-id`/`app-name` together (see #1055).
+ * - The `schema` are used to define new tables to store measurement tuples,
+ *     named as per the previous scheme; it is also stored in the
+ *     `_experiment_metadata` table. These tables contain at least the following
+ *     columns:
+ *  - `oml_id` a primary key for the table, each row has a different,
+ *    monotonically increasing ID;
+ *  - `oml_sender_id` an integer which can be found in the `_senders`
+ *     table;
+ *  - `oml_seq` a record of the `seq_no` sent with each tuple;
+ *  - `oml_ts_client` the offset from `start-time` of when that tuple was
+ *    serialised;
+ *  - `oml_ts_server` the \ref timestamps "same offset rebased in the server's timeframe"
+ *    (by adding the difference of the server's time and the `start-time`
+ *    \ref omspheader "header" upon connection from the particular sender);
+ *  - Each element of the \ref omspschema "schema", in order, with a database type able to
+ *    store the information of the OML type;
+ *
  */
 #ifdef HAVE_CONFIG_H
 #include "config.h"

@@ -410,7 +410,8 @@ process_meta(ClientHandler* self, char* key, char* value)
 
     } else {
 
-      /** \publicsection \page timestamps OML Timestamping
+      /** \ page oml2-server XXX: Broken section ordering
+       * \page timestamps OML Server-side Timestamping
        *
        * OML provides a timestamping mechanism based on each reporting node's
        * time (`oml_ts_client`). Each server remaps the MSs they receive to an
