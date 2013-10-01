@@ -127,7 +127,7 @@ $types = {
     #:poptctype => false,
     #:poptdefval => false,
   },
-  :"[double]" => {
+  :vector_double => {
     :ctype => "const double %s[]",
     :setter => "vector_double",
     :defval => "",
@@ -136,7 +136,7 @@ $types = {
     #:poptctype => false,
     #:poptdefval => false,
   },
-  :"[int32]" => {
+  :vector_int32 => {
     :ctype => "const int32_t %s[]",
     :setter => "vector_int32",
     :defval => "NULL, 0",
@@ -145,7 +145,7 @@ $types = {
     #:poptctype => false,
     #:poptdefval => false,
   },
-  :"[uint32]" => {
+  :vector_uint32 => {
     :ctype => "const uint32_t %s[]",
     :setter => "vector_uint32",
     :defval => "",
@@ -154,7 +154,7 @@ $types = {
     #:poptctype => false,
     #:poptdefval => false,
   },
-  :"[int64]" => {
+  :vector_int64 => {
     :ctype => "const int64_t %s[]",
     :setter => "vector_int64",
     :defval => "",
@@ -163,7 +163,7 @@ $types = {
     #:poptctype => false,
     #:poptdefval => false,
   },
-  :"[uint64]" => {
+  :vector_uint64 => {
     :ctype => "const uint64_t %s[]",
     :setter => "vector_uint64",
     :defval => "",
@@ -172,7 +172,7 @@ $types = {
     #:poptctype => false,
     #:poptdefval => false,
   },
-  :"[bool]" => {
+  :vector_bool => {
     :ctype => "const bool %s[]",
     :setter => "vector_bool",
     :defval => "",
@@ -391,7 +391,7 @@ class Property < Struct.new(:name, :description, :parameter, :options)
     options[:shortName] ||= options[:mnemonic]
     options[:var_name] ||= name.gsub(/-/, '_')
 
-    # Only call the superclass' constructor when the options hash is good
+    # Only call the superclass constructor when the options hash is good
     super
   end
 
@@ -505,7 +505,7 @@ class Metric < Struct.new(:name, :type, :opts)
   end
 
   def is_vector?
-    return /\[\w+\]/ =~ type.to_s
+    return /vector_\w+/ =~ type.to_s
   end
 
   ## Write an example vector for this metric
@@ -513,17 +513,17 @@ class Metric < Struct.new(:name, :type, :opts)
   def write_example_vector(stream)
     stream.print "\n  static ", c_type % name, " = {\n"
     case type
-      when :"[double]"
+      when :vector_double
         stream.print "    0.0, M_E, M_PI, HUGE, 1.0/0.0\n"
-      when :"[int32]"
+      when :vector_int32
         stream.print "    0, -1, 1, INT32_MIN, INT32_MAX\n"
-      when :"[uint32]"
+      when :vector_uint32
         stream.print "    0, 1, 2, UINT32_MAX -2, UINT32_MAX -1, UINT32_MAX\n"
-      when :"[int64]"
+      when :vector_int64
         stream.print "    0, -1, 1, INT32_MIN - UINT64_C(1), INT64_MIN, INT32_MAX + UINT64_C(1), INT64_MAX\n"
-      when :"[uint64]"
+      when :vector_uint64
         stream.print "    0, 1, 2, UINT32_MAX + UINT64_C(1), UINT64_MAX -1, UINT64_MAX\n"
-      when :"[bool]"
+      when :vector_bool
         stream.print "    true, false, true, false\n"
     end
     stream.print "  };\n"
