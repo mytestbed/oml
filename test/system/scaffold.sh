@@ -76,34 +76,27 @@ DIR=`tail -n 1 $LOG`
 cd $DIR
 echo "# working in $DIR; it won't be cleaned up in case of bail out"
 
-#tap_test "generate AppDefinition skeleton" yes $SCAFFOLD --app $APPNAME
-tap_test "generate AppDefinition skeleton XFAIL due to #1444" no $SCAFFOLD --app $APPNAME
+tap_test "generate AppDefinition skeleton" yes $SCAFFOLD --app $APPNAME
 
-#tap_test "generate main file" yes $SCAFFOLD --main ${APPNAME}.rb
-tap_test "generate main file XFAIL due to #1444" no $SCAFFOLD --main ${APPNAME}.rb
+tap_test "generate main file" yes $SCAFFOLD --main ${APPNAME}.rb
 
-#tap_test "generate Makefile" yes $SCAFFOLD --make ${APPNAME}.rb
-tap_test "generate Makefile XFAIL due to #1444" no $SCAFFOLD --make ${APPNAME}.rb
+tap_test "generate Makefile" yes $SCAFFOLD --make ${APPNAME}.rb
 
-#tap_test "generate OML header" no $SCAFFOLD --oml ${APPNAME}.rb
-#tap_test "generate popt(3) header" no $SCAFFOLD --opts ${APPNAME}.rb
-tap_test "generate OML header XFAIL due to #1444" no $SCAFFOLD --oml ${APPNAME}.rb
-tap_test "generate popt(3) header XFAIL due to #1444" no $SCAFFOLD --opts ${APPNAME}.rb
+tap_test "generate OML header" no $SCAFFOLD --oml ${APPNAME}.rb
+tap_test "generate popt(3) header" no $SCAFFOLD --opts ${APPNAME}.rb
 
 export SCAFFOLD
 export CC="$top_builddir/../libtool compile gcc"
 export CCLD="$top_builddir/../libtool link --tag=CC gcc"
 export CFLAGS="-I$top_srcdir/../lib/client"
 export LDFLAGS="-L$top_builddir/../lib/client/.libs -L$top_builddir/../lib/ocomm/.libs"
-#tap_test "build generated application" yes make -e
-tap_test "build generated application XFAIL due to #1444" no make -e
+tap_test "build generated application" yes make -e
 
 if [ -z "$TIMEOUT" ]; then
 	tap_skip "TIMEOUT not specified"
 
 else
-	#tap_test "run generated application" yes $TIMEOUT --preserve-status -s INT 5 \
-	tap_test "run generated application XFAIL due to #1444" no $TIMEOUT --preserve-status -s INT 5 \
+	tap_test "run generated application" yes $TIMEOUT --preserve-status -s INT 5 \
 		./$APPNAME --oml-id genid --oml-domain gendomain --oml-collect file:-
 fi
 
