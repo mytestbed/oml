@@ -1,5 +1,8 @@
 
-TESTS_ENVIRONMENT = top_builddir=$(top_builddir) srcdir=$(srcdir) POSTGRES=$(POSTGRES) TIMEOUT=$(TIMEOUT) VERSION=$(VERSION) CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" LIBADD="$(LIBADD)"
+TESTS_ENVIRONMENT = top_srcdir=$(top_srcdir) srcdir=$(srcdir) \
+		    top_builddir=$(top_builddir) builddir=$(builddir) \
+		    VERSION=$(VERSION) CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" LIBADD="$(LIBADD)" \
+		    POSTGRES=$(POSTGRES) TIMEOUT="$(TIMEOUT)"
 TESTS = scaffold.sh run.sh run-long.sh
 if HAVE_LIBPQ
 if HAVE_POSTGRES

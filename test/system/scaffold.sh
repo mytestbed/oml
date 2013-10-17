@@ -5,7 +5,7 @@
 # [0] http://oml.mytestbed.net/projects/oml/wiki/Quick_Start_Tutorial
 #
 # Can be run manually as
-#  top_srcdir=../.. top_builddir=../.. TIMEOUT=`which timeout` [SCAFFOLD=/full/path/to/scaffold] ./run.sh
+#  top_srcdir=../.. top_builddir=../.. TIMEOUT=`which timeout` [SCAFFOLD=/full/path/to/scaffold] ./scaffold.sh
 
 APPNAME=generator
 BASEDIR=$PWD
@@ -88,16 +88,24 @@ tap_test "generate popt(3) header" no $SCAFFOLD --opts ${APPNAME}.rb
 export SCAFFOLD
 export CC="$top_builddir/../libtool compile gcc"
 export CCLD="$top_builddir/../libtool link --tag=CC gcc"
-export CFLAGS="-I$top_srcdir/../lib/client"
+export CFLAGS="-I$top_srcdir/../lib/client -I$top_srcdir/../lib/ocomm"
 export LDFLAGS="-L$top_builddir/../lib/client/.libs -L$top_builddir/../lib/ocomm/.libs"
 tap_test "build generated application" yes make -e
+
+testrun()
+{
+	($TIMEOUT -s INT 5 \
+		./$APPNAME --oml-id genid --oml-domain gendomain --oml-collect file:- \
+		|| test $? = 124) \
+		&& return 0
+}
 
 if [ -z "$TIMEOUT" ]; then
 	tap_skip "TIMEOUT not specified"
 
 else
-	tap_test "run generated application" yes $TIMEOUT --preserve-status -s INT 5 \
-		./$APPNAME --oml-id genid --oml-domain gendomain --oml-collect file:-
+	export LD_LIBRARY_PATH="$top_builddir/../lib/client/.libs:$top_builddir/../lib/ocomm/.libs"
+	tap_test "run generated application" yes testrun
 fi
 
 cd - >/dev/null
