@@ -114,6 +114,18 @@ install.md: $(top_srcdir)/INSTALL
 example.md: $(top_srcdir)/example/liboml2/README
 	$(call README-mdfy,#example) $< > $@
 
+if HAVE_PLANTUML
+EXTRA_DIST += images/
+images/: plantuml-diagrams
+DX_EXTRA_DOC += plantuml-diagrams
+
+# XXX: Somehow, it seems automake doesn't have a variable holding the full path
+# to the current directory...
+plantuml-diagrams:
+	$(PLANTUML) -o "`pwd`/$(srcdir)/images"  "$(top_srcdir)/**.(c|h|md)"
+endif
+
+
 publish-doxygen: @DX_DOCDIR@/@PACKAGE@.tag
 	ssh $(USER)$(WWWHOST) mkdir -p $(HTDOCS)/
 	ssh $(USER)$(WWWHOST) rm -rf $(HTDOCS)/doxygen/

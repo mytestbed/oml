@@ -10,15 +10,64 @@
 /** \file text.c
  * \brief Text mode OMSP (\ref omsp \ref omsptext) serialisation of OML tuples.
  *
- * \page omsptext OMSP Text Protocol
+ * \page omsp
+ * \section omsptext OMSP Text Protocol
  *
- * XXX: The contents of
- * http://oml.mytestbed.net/projects/oml/wiki/OML_Measurement_Stream_Protocol_%28OMSP%29_Specification#Text-Protocol
- * should be wrapped into this documentation.
+ * The text protocol is meant to simplify sourcing of measurement streams from
+ * applications written in languages which are not supported by the OML library
+ * or where the OML library is considered too heavy. It is primarily envisioned
+ * for low-volume streams which do not require additional client side
+ * filtering. There are native instrumentation (liboml2, <a
+ * href="https://rubygems.org/gems/oml4r">OML4R</a>, <a
+ * href="https://pypi.python.org/pypi/oml4py/">OML4Py</a>) but implementing the
+ * protocol from scratch in any language of choice should be very straight
+ * forward.
  *
- * Also, all text manipulation should be wrapped into here (see
- * http://oml.mytestbed.net/issues/1088 and
- * http://oml.mytestbed.net/issues/1101).
+ * The text protocol simply serialises metadata and values of a tuple as one
+ * newline-terminated (`\n`), tab-separated (`\t`) line per sample.
+ *
+ * The textual representation of the types defined above is as follows:
+ * - All numeric types are represented as *decimal* strings suitable for
+ *   <a href="http://linux.die.net/man/3/strtod">strtod(3) and siblings</a>; using
+ *   <a href="http://linux.die.net/man/3/snprintf">snprintf(3)</a>, with the relevant
+ *   <a href="http://linux.die.net/man/0/inttypes.h">`PRIuN` format</a> if needed, should
+ *   provide good functionality (at least V>=2; as of V<=3, there is no
+ *   guarantee for the interpretation of non-decimal notations)
+ * - Strings are represented directly (except for the nil-terminator) but some
+ *   character values require special processing;
+ *   - As the text protocol assigns special meaning to the tab and newline
+ *     characters they would confused the parser if they appeared verbatim. To
+ *     avoid this a simple backslash encoding is used: tab characters are
+ *     represented by the *string* "`\t`", newlines by the *string* "`\n`" and
+ *     backslash itself by the *string* "`\\`" (V>=4; no other backslash expansion
+ *     is made *TODO* what if `\whatever` is input?);
+ * - BLOBs are encoded using <a
+ *   href="https://tools.ietf.org/html/rfc4648#section-4">BASE64 encoding</a>
+ *   and the resulting string is sent. No line breaks are permitted within the
+ *   BASE64-encoded string (V>=4);
+ * - GUIDs are globally unique IDs used to link different measurements. These
+ *   are treated as large numbers and thus represented as UINT64, unsigned
+ *   decimal strings. (V>=4);
+ * - booleans are encoded as any case-insensitive stem of FALSE or TRUE (e.g.,
+ *   `fAL`, `trUe`, but generally `F` and `T` will suffice), being respectively
+ *   False or True; any other value is considered True, *including '0'* (V>=4).
+ *
+ * \subsection omsptextexample Example
+ *
+ * This example shows two streams, matching the \ref omspschemaexample "schema"
+ * and \ref omspheadersexample "headers" examples.
+ *
+ *     0.903816 2 0 sample-1  1
+ *     0.903904 1 0 sample-1  0.000000  0.000000
+ *     1.903944 2 1 sample-2  2
+ *     1.903961 1 1 sample-2  0.628319  0.587785
+ *     2.460049 2 3 sample-3  3
+ *     2.460557 1 3 sample-3  1.256637  0.951057
+ *     3.461064 2 4 sample-4  4
+ *     3.461103 1 4 sample-4  1.884956  0.951056
+ *
+ * *TODO*: Add example string and blob
+ *
  */
 #include "mbuf.h"
 #include "marshal.h"

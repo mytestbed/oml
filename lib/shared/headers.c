@@ -10,28 +10,156 @@
 /** \file headers.c
  * \brief Implements OMSP header-parsing functions.
  *
- * \page omsp OML Measurement Stream Protocol (OMSP)
+ * XXX: Headers code should be factored from text/binary writers, and moved here (#1101).
+ */
+/** \page omsp OML Measurement Stream Protocol (OMSP)
  *
- * XXX: The contents of
- * http://oml.mytestbed.net/projects/oml/wiki/OML_Measurement_Stream_Protocol_%28OMSP%29_Specification
- * (Generalities, Timestamping, Key/Value and Protocol)
- * should be wrapped into this documentation.
+ * The OML Measurement Stream Protocol is used to describe and transport
+ * measurement tuples between Injection Points and Processing/Collection
+ * Points. All data injected in a Measurement Point (MP) (with \ref
+ * omlc_inject) is timestamped and sent to the destination as a
+ * Measurement Stream (MS).
  *
- * \li \subpage omspschema
- * \li \subpage omspheaders
- * \li \subpage omsptext
- * \li \subpage omspbin
+ * The liboml2 provides an \ref api "API"
+ * allowing to generate this MSs using this protocol and send them to
+ * a remote host, or store them in a local file.
  *
+ * Upon connection to a collection point, a set of \ref omspheaders "headers"
+ * is first sent, describing the injection point (protocol version, name,
+ * application, local timestamp), along with the \ref omspschema "schemata of
+ * the transported MSs".
  *
- * \page omspheaders OMSP Headers
+ * Once done, timestamped measurement data is serialised, either using a
+ * \ref omspbin "binary encoding", or a \ref omsptext "text encoding".
  *
- * XXX: The contents of
- * http://oml.mytestbed.net/projects/oml/wiki/OML_Measurement_Stream_Protocol_%28OMSP%29_Specification#Headers
- * should be wrapped into this documentation.
+ * \section Generalities
  *
- * Also, all text manipulation should be wrapped into here (see
- * http://oml.mytestbed.net/issues/1088 and
- * http://oml.mytestbed.net/issues/1101).
+ * There are 4 versions of the OML protocol.
+ *
+ * - OMSP V1 was the initial protocol, inherited from OML (version 1!);
+ * - OMSP V2 introduced more precise types
+ *     (<a href="http://git.mytestbed.net/?p=oml.git;a=shortlog;h=28daef3f">commit:28daef3f</a>),
+ *     and was released with OML 2.4.0;
+ * - OMSP V3 introduced changes to the binary protocol to support blobs
+ *     and, incidentally, longer marshalled packets (<a
+ *     href="http://git.mytestbed.net/?p=oml.git;a=shortlog;h=6d8f0597">commit:6d8f0597</a>),
+ *     and was released with OML 2.5.0;
+ * - OMSP V4 which is the current, most recent and implemented
+ *     version (since OML 2.10.0); its main advantages are the support for
+ *     the definition of new Measurement Points (and Measurement Stream
+ *     Schemas) at any time, and the ability to inject metadata.
+ *
+ * The protocol is loosely modelled after HTTP. The client first start
+ * with a few \ref omspheaders "textual headers", then switches into
+ * either the \ref omsptext "text" or \ref omspbin "binary" protocol for
+ * the serialisation of tuples, following a previously advertised \ref
+ * omspschema "schema". Both modes include contextual information with
+ * each tuple. There is no feedback communication from the server.
+ *
+ * The client first opens a connection to an OML server and sends a
+ * header followed by a sequence of measurement tuples. The header
+ * consists of a sequence of key/value pairs representing parameters
+ * valid for the whole connection, each terminated by a new line. The
+ * headers are also used to declare the schema following which
+ * measurement tuples will be streamed. The end of the header section is
+ * identified by an empty line. Each measurement tuple is then
+ * serialised following the mode selected in the headers. For the
+ * \ref omsptext "text mode", this is a
+ * series of newline-terminated strings containing tab-separated
+ * text-based serialisations of each element, while the
+ * \ref omspbin "binary mode" encodes
+ * the data following a specific marshalling. Clients end the session by
+ * simply closing the TCP connection.
+ *
+ * \subsection kv Key/Value Parameters
+ *
+ * The connection is initially configured through setting the value of a few
+ * property, using a key/value model. The properties (and their keys) are the
+ * following.
+ *
+ * - `protocol`: OMSP version, as specified in this document. The
+ *     \ref oml2-server "oml2-server" currently supports 1--4;
+ * - `domain` (`experiment-id` in V<4): string identifying the experimental
+ *     domain (should match `/[-_A-Za-z0-9]+/`);
+ * - `start-time`: local UNIX time in seconds taken at the time the header is
+ *     being sent (see <a href="http://linux.die.net/man/3/gettimeofday">gettimeofday(3)</a>),
+ *     \ref timestamps "the server uses this information to rebase timestamps within its own timeline";
+ * - `sender-id* (`start_time` in V<4): string identifying the source of this
+ *     stream (should match `/[_A-Za-z0-9]+/`);
+ * - `app-name`: string identifying the application producing the
+ *     a measurements (should match `/[_A-Za-z0-9]+/`), in the storage backend, this
+ *     may be used to identify specific measurements collections (e.g., tables in SQL);
+ * - `content`: encoding of forthcoming tuples, can be either `binary` for
+ *     the \ref omspbin "binary protocol" or `text` for the \ref omsptext "text protocol".
+ * - `schema`: describes the \ref omspschema "schema of each measurement stream".
+ *
+ * These parameters can only be set as part of the \ref omspheaders "headers",
+ * and are not valid once the server expects serialised measurements (V<4).
+ *
+ * Since V>=4, key/value metadata can be sent along with tuples using the \ref
+ * schema0 "schema 0", the rest of the key/value parameters presented here
+ * are all invalid in schema 0, and will be rejected by the server, _except_
+ * for key `schema` itself, allowing to (re)define schemata (*XXX* not including
+ * schema 0?).
+ *
+ * \subsection timestamping Time-stamping and book-keeping
+ * Regardless of the mode (\ref omspbin "binary" or \ref omsptext "text"), each
+ * measurement tuple is prefixed with some per-sample metadata.
+ *
+ * Prior to serialising tuples according to their schema, three elements are
+ * inserted.
+ * - `timestamp`: a *double* timestamp in seconds relative to the
+ *     `start-time` sent in the headers,
+ *     \ref timestamps "the server uses this information to rebase timestamps within its own timeline";
+ * - `stream_id:` an *integer* (marshalled specifically as a `uint8_t` in
+ *      \ref omspbin "binary mode") indicating which previously defined schema
+ *      this tuple follows;
+ * - `seq_no:` an *int32* monotonically increasing sequence number in the
+ *     context of this measurement stream.
+ *
+ * The order of these fields varies depending on the mode (\ref omsptext "text"
+ * or \ref omspbin "binary").
+ */
+/**
+ * \section omspheaders OMSP Headers
+ *
+ * The headers are text-based, and used to transfer the
+ * \ref kv "key/value  parameters of the experiment".  All of them have to appear
+ * exactly once, in the order they were introduced in \ref kv "that section".
+ * The only exception is the `schema` key which needs to appear once for
+ * every measurement stream carried by the connection.
+ *
+ * \subsection omspheadersexample Examples
+ *
+ * Protocol version 3 and below can only define MSs at the time headers are sent.
+ *
+ *     protocol: 3
+ *     experiment-id: exv3
+ *     start_time: 1281591603
+ *     sender-id: senderv3
+ *     app-name: generator
+ *     schema: 1 generator_sin label:string phase:double value:double
+ *     schema: 2 generator_lin label:string counter:long
+ *     content: text
+ *
+ * Protocol version 4 added the possibility to declare MP after headers are
+ * sent, though the use of the newly introduced _schema0_ metadata stream.
+ * Here, MS `generator_d_sin` created by sending a tuple with subject `.` (the
+ * experiment root), key `schema`, and a value representing the schema of
+ * the new MS, including its schema number and stream name, using the text
+ * protocol.
+ *
+ *     protocol: 4
+ *     domain: exv4
+ *     start-time: 1281591603
+ *     sender-id: senderv4
+ *     app-name: generator
+ *     schema: 0 _experiment_metadata subject:string key:string value:string
+ *     schema: 1 generator_d_lin label:string seq_no:uint32
+ *     content: text
+ *     
+ *     0.163925        0       1       .       schema  2 generator_d_sin label:string phase:double value:double
+ *
  */
 
 #include <stdlib.h>

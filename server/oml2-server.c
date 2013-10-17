@@ -9,6 +9,17 @@
  */
 /** \file oml2-server.c
  * \brief Main oml2-server functions
+ *
+ * \page oml2-server The oml2-server Collection Point
+ *
+ * The `oml2-server` acts as a collection point for \ref omsp "OMSP streams"
+ * (it is backward compatible with versions 1--4) It listens on a TCP/IP socket
+ * (0.0.0.0:3003 by default) for incoming connection from upstream Injection
+ * Points or Processing Points, and stores the received data into an SQL
+ * database. Currently, SQLite3 and PostgreSQL are supported as backends.
+ *
+ * - \subpage datastorage
+ * - \subpage timestamps
  */
 
 #ifdef HAVE_CONFIG_H

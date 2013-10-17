@@ -308,9 +308,11 @@ AS_IF([test "x$enable_doc" != "xno"],
 AM_CONDITIONAL([ENABLE_DOC], [test "x$enable_doc" != "xno"])
 AM_CONDITIONAL([HAVE_A2X], [test "x$A2X" != "xno"])
 AM_CONDITIONAL([HAVE_ASCIIDOC], [test "x$ASCIIDOC" != "xno"])
+AX_WITH_PROG([PLANTUML],[plantuml],[no])
+AM_CONDITIONAL([HAVE_PLANTUML], [test "x$PLANTUML" != "xno"])
 
 DX_DOT_FEATURE(ON)
-DX_PDF_FEATURE(OFF) dnl XXX: Fails not finding existing files...
+DX_PDF_FEATURE(OFF)
 DX_PS_FEATURE(OFF)
 DX_INIT_DOXYGEN([oml2], [], [doxygen])
 AC_ARG_ENABLE([doxygen-private],
@@ -335,7 +337,6 @@ AC_ARG_ENABLE([doxygen-callgraph],
 AS_IF([test x$enable_doxygen_callgraph = xno],
       [DX_ENV_APPEND(ENABLE_CALLGRAPH, [NO])],
       [DX_ENV_APPEND(ENABLE_CALLGRAPH, [YES])])
-DX_ENV_APPEND(GENERATE_LATEX, [NO]) dnl generates files not cleaned up, and DX_PDF_FEATURE and DX_PS_FEATURE are currently off
 DX_ENV_APPEND(TOPSRCDIR, [\$(top_srcdir)]) dnl let make deal with it
 
 AC_CONFIG_FILES([Makefile
