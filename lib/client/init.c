@@ -98,7 +98,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   const char** arg = argv;
 
   if (!app_name) {
-    logerror("Found illegal whitespace in application name '%s'\n", application);
+    logerror("Illegal application name '%s': missing or containing whitespaces or dashes\n", application);
     return -1;
   }
 
@@ -320,7 +320,7 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
 
   if (omlc_instance == NULL) { return NULL; }
   if (!validate_name (mp_name)) {
-    logerror("Found illegal MP name '%s'.  MP will not be created\n", mp_name);
+    logerror("Illegal MP name '%s': missing or containing whitespaces or dashes; MP will not be created\n", mp_name);
     return NULL;
   }
 
@@ -340,7 +340,7 @@ omlc_add_mp (const char* mp_name, OmlMPDef* mp_def)
     }
 
     if (!validate_name (dp->name)) {
-      logerror ("Found illegal field name '%s' in MP '%s'.  MP will not be created\n",
+      logerror("Illegal field name '%s' in MP %s: missing or containing whitespaces or dashes; MP will not be created\n",
           dp->name, mp_name);
       oml_free (mp);
       return NULL;
