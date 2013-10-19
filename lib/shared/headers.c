@@ -34,20 +34,23 @@
  *
  * \section Generalities
  *
- * There are 4 versions of the OML protocol.
+ * There are 5 versions of the OML protocol.
  *
  * - OMSP V1 was the initial protocol, inherited from OML (version 1!);
- * - OMSP V2 introduced more precise types
- *     (<a href="http://git.mytestbed.net/?p=oml.git;a=shortlog;h=28daef3f">commit:28daef3f</a>),
- *     and was released with OML 2.4.0;
- * - OMSP V3 introduced changes to the binary protocol to support blobs
- *     and, incidentally, longer marshalled packets (<a
- *     href="http://git.mytestbed.net/?p=oml.git;a=shortlog;h=6d8f0597">commit:6d8f0597</a>),
- *     and was released with OML 2.5.0;
- * - OMSP V4 which is the current, most recent and implemented
- *     version (since OML 2.10.0); its main advantages are the support for
- *     the definition of new Measurement Points (and Measurement Stream
- *     Schemas) at any time, and the ability to inject metadata.
+ * - OMSP V2 introduced more precise types (<a
+ *   href="http://git.mytestbed.net/?p=oml.git;a=shortlog;h=28daef3f">commit:28daef3f</a>),
+ *   and was released with OML 2.4.0;
+ * - OMSP V3 introduced changes to the binary protocol to support blobs and,
+ *   incidentally, longer marshalled packets (<a
+ *   href="http://git.mytestbed.net/?p=oml.git;a=shortlog;h=6d8f0597">commit:6d8f0597</a>),
+ *   and was released with OML 2.5.0;
+ * - OMSP V4 was introduced with OML 2.10.0; its main additions are the support
+ *   for the definition of new Measurement Points (and Measurement Stream
+ *   Schemas) at any time, and the ability to inject metadata.
+ * - OMSP V5 which is the current, most recent and implemented version (since
+ *   OML 2.11); its main advantages are the support for vectors, and the
+ *   introduction of a DOUBLE64_T IEEE 754 binary64 for more precision in
+ *   representing doubles in binary mode (vectors only).
  *
  * The protocol is loosely modelled after HTTP. The client first start
  * with a few \ref omspheaders "textual headers", then switches into

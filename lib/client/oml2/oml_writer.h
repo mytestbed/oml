@@ -22,7 +22,12 @@
 
 #include <oml2/omlc.h>
 
-#define OML_PROTOCOL_VERSION 4
+/** The OMSP version that this library speaks.
+ *
+ * This also defines the highest protocol revision that the oml2-server built
+ * along can understand.
+ */
+#define OML_PROTOCOL_VERSION 5
 
 struct OmlWriter;
 

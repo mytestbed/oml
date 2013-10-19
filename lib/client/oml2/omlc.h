@@ -31,6 +31,7 @@ typedef enum OmlValueT {
   OML_DB_PRIMARY_KEY = -3,
   OML_INPUT_VALUE = -2,
   OML_UNKNOWN_VALUE = -1,
+
   /* Concrete value types */
   OML_DOUBLE_VALUE = 0,
   OML_LONG_VALUE,
@@ -43,12 +44,15 @@ typedef enum OmlValueT {
   OML_BLOB_VALUE,
   OML_GUID_VALUE,
   OML_BOOL_VALUE,
+
+  /* Vector types */
   OML_VECTOR_DOUBLE_VALUE,
   OML_VECTOR_INT32_VALUE,
   OML_VECTOR_UINT32_VALUE,
   OML_VECTOR_INT64_VALUE,
   OML_VECTOR_UINT64_VALUE,
   OML_VECTOR_BOOL_VALUE,
+
   OML_LAST_VALUE /* For easy range checks */
 } OmlValueT;
 

@@ -70,8 +70,9 @@
  *       |  int-byte-LL  |
  *       +---------------+--
  *
- * The same goes for 64-bit integers (\ref INT64_T and \ref UINT64_T). GUIDs
- * are marshalled in the same way, but use the \ref GUID_T type.
+ * The same goes for 64-bit integers (\ref INT64_T and \ref UINT64_T). GUIDs,
+ * introduced with OMSPv4, are marshalled in the same way, but use the \ref
+ * GUID_T type.
  *
  *     --+---------------+---------------+---------------+---------------+
  *       |  (U)INT64_T   |  int-byte-HHH |  int-byte-HHL |  int-byte-HLH |
@@ -103,16 +104,17 @@
  *       +---------------+---------------+---------------+--
  *
  * Boolean values are only encoded as one byte, with a different type depending
- * on there truth value (\ref BOOL_FALSE_T or \ref BOOL_TRUE_T
+ * on there truth value (\ref BOOL_FALSE_T or \ref BOOL_TRUE_T). They were
+ * introduced with OMSPv4.
  *
  *     --+---------------+--
  *       |  BOOL_xxx_T   |
  *     --+---------------+--
  *
- * Vectors (\ref VECTOR_T) are represented by specifying the type of
- * the vector elements and then the size of the vector (a sixteen bit
- * unsigned integer in network byte order) and followed by the vector
- * of values themselves.
+ * Vectors (\ref VECTOR_T) are represented by specifying the type of the vector
+ * elements and then the size of the vector (a sixteen bit unsigned integer in
+ * network byte order) and followed by the vector of values themselves.
+ * Vectors were introduced in OMSPv5.
  *
  * The vector elements are marshalled depending on the their type. For
  * vectors of integers of INT32_T or (U)INT32_T the elements are
@@ -149,7 +151,7 @@
  * host, the endian-ness of doubles is the same as for integers).
  *
  *     --+---------------+-----------------+---------------+---------------+
- *       |   VECTOR_T    |    DOUBLE_T     |      n-H      |      n-L      |
+ *       |   VECTOR_T    |   DOUBLE64_T    |      n-H      |      n-L      |
  *     --+---------------+-----------------+---------------+---------------+
  *       |dbl[0]-MS-byte |  dbl[0]-byte-7  | dbl[0]-byte-6 | dbl[0]-byte-5 |
  *       +---------------+-----------------+---------------+---------------+--
@@ -207,6 +209,8 @@
 #define VECTOR_T       0xD
 /** Marshalled data type for boolean vectors */
 #define BOOL_T        0xE
+/** Marshalled data type for double, using IEEE 754 binary64 representation */
+#define DOUBLE64_T        0xF
 
 /** Synchronisation byte repeated twice before a new marshalled message */
 #define SYNC_BYTE 0xAA
@@ -231,76 +235,59 @@
 
 #define MIN_LENGTH 64
 
-/** Map from OML_*_VALUE types to protocol types. */
-/* This array must be ordered identically to the OmlValueT enum. */
-static const int oml_type_map [] =
-  {
-    DOUBLE_T,
-    LONG_T,
-    -1,
-    STRING_T,
-    INT32_T,
-    UINT32_T,
-    INT64_T,
-    UINT64_T,
-    BLOB_T,
-    GUID_T
-  };
+/** Map from OML_*_VALUE types to protocol types.
+ *
+ * This array must be ordered identically to the conrete OmlValueT types in
+ * oml/omlc.h. It is used for marshalling.
+ *
+ * \see OmlValueT, marshal_value, oml_size_map
+ */
+static const int oml_type_map[] = {
+  DOUBLE_T,
+  LONG_T,
+  -1, /* OML_PADDING1_VALUE */
+  STRING_T,
+  INT32_T,
+  UINT32_T,
+  INT64_T,
+  UINT64_T,
+  BLOB_T,
+  GUID_T,
+  /* XXX: Booleans are marshalled differently */
+  /* XXX: Vectors are marshalled differently */
+};
 
-/** Map from protocol types to OML_*_VALUE types.  */
-/* This array must be ordered identically to the values of the protocol types. */
-static const size_t protocol_type_map [] =
-  {
-    OML_UNKNOWN_VALUE,
-    OML_LONG_VALUE,
-    OML_DOUBLE_VALUE, // DOUBLE_T
-    OML_DOUBLE_VALUE, // DOUBLE_NAN
-    OML_STRING_VALUE,
-    OML_INT32_VALUE,
-    OML_UINT32_VALUE,
-    OML_INT64_VALUE,
-    OML_UINT64_VALUE,
-    OML_BLOB_VALUE,
-    OML_GUID_VALUE
-  };
+/** Map from OML_*_VALUE types to size of protocol types on the wire.
+ *
+ * This array must be ordered identically to the conrete OmlValueT types in
+ * oml/omlc.h. It is used for marshalling.
+ *
+ * \see OmlValueT, marshal_value, oml_type_map
+ */
+static const size_t oml_size_map[] = {
+  DOUBLE_T_SIZE,
+  LONG_T_SIZE,
+  -1, /* OML_PADDING1_VALUE */
+  STRING_T_MAX_SIZE,
+  INT32_T_SIZE,
+  UINT32_T_SIZE,
+  INT64_T_SIZE,
+  UINT64_T_SIZE,
+  BLOB_T_MAX_SIZE,
+  UINT64_T_SIZE, /* GUIDs are uint64s */
+  /* XXX: Booleans are marshalled differently */
+  /* XXX: Vectors are marshalled differently */
+};
 
-/** Map from protocol types to protocol sizes. */
-/* NOTE: This array must be ordered identically to the values of the protocol types. */
-static const size_t protocol_size_map [] =
-  {
-    -1,
-    LONG_T_SIZE,
-    DOUBLE_T_SIZE,
-    DOUBLE_T_SIZE,
-    STRING_T_MAX_SIZE,
-    INT32_T_SIZE,
-    UINT32_T_SIZE,
-    INT64_T_SIZE,
-    UINT64_T_SIZE,
-    BLOB_T_MAX_SIZE,
-    UINT64_T_SIZE,
-  };
-
-/** Map from OML_*_VALUE types to size of protocol types on the wire. */
-/* NOTE: This array must be ordered identically to the OmlValueT enum. */
-static const size_t oml_size_map [] =
-  {
-    DOUBLE_T_SIZE,
-    LONG_T_SIZE,
-    -1,
-    STRING_T_MAX_SIZE,
-    INT32_T_SIZE,
-    UINT32_T_SIZE,
-    INT64_T_SIZE,
-    UINT64_T_SIZE,
-    BLOB_T_MAX_SIZE,
-    UINT64_T_SIZE
-  };
-
-/** Map from OML_VECTOR_*_VALUE to vector element protocol types
+/** Map from OML_VECTOR_*_VALUE to vector element protocol types.
+ *
+ * This array must be ordered identically to the vector OmlValueT types in
+ * oml/omlc.h. It is used for marshalling.
+ *
+ * \see OmlValueT, marshal_value, oml_type_map
  */
 static const uint8_t vector_protocol_map[] = {
-  [OML_VECTOR_DOUBLE_VALUE] = DOUBLE_T,
+  [OML_VECTOR_DOUBLE_VALUE] = DOUBLE64_T,
   [OML_VECTOR_INT32_VALUE]  = INT32_T,
   [OML_VECTOR_UINT32_VALUE] = UINT32_T,
   [OML_VECTOR_INT64_VALUE]  = INT64_T,
@@ -308,17 +295,67 @@ static const uint8_t vector_protocol_map[] = {
   [OML_VECTOR_BOOL_VALUE]   = BOOL_T,
 };
 
+/** Map from protocol types to OML_*_VALUE types.
+ *
+ * This array must be ordered identically to the conrete OmlValueT types in
+ * oml/omlc.h.  It is used for unmarshalling.
+ *
+ * \see OmlValueT, unmarshal_value, protocol_size_map
+ */
+static const size_t protocol_type_map[] = {
+  OML_UNKNOWN_VALUE,
+  OML_LONG_VALUE,
+  OML_DOUBLE_VALUE, // DOUBLE_T
+  OML_DOUBLE_VALUE, // DOUBLE_NAN
+  OML_STRING_VALUE,
+  OML_INT32_VALUE,
+  OML_UINT32_VALUE,
+  OML_INT64_VALUE,
+  OML_UINT64_VALUE,
+  OML_BLOB_VALUE,
+  OML_GUID_VALUE,
+  /* XXX: Booleans are unmarshalled differently */
+  /* XXX: Vectors are unmarshalled differently */
+};
+
+/** Map from protocol types to protocol sizes.
+ *
+ * This array must be ordered identically to the conrete OmlValueT types in
+ * oml/omlc.h.  It is used for unmarshalling.
+ *
+ * \see OmlValueT, unmarshal_value, protocol_type_map
+ */
+static const size_t protocol_size_map[] = {
+  -1,
+  LONG_T_SIZE,
+  DOUBLE_T_SIZE,
+  DOUBLE_T_SIZE,
+  STRING_T_MAX_SIZE,
+  INT32_T_SIZE,
+  UINT32_T_SIZE,
+  INT64_T_SIZE,
+  UINT64_T_SIZE,
+  BLOB_T_MAX_SIZE,
+  UINT64_T_SIZE, /* GUIDs are uint64s */
+  /* XXX: Booleans are unmarshalled differently */
+  /* XXX: Vectors are unmarshalled differently */
+};
+
 /** Map from vector element protocol type to OML_VECTOR_*_VALUE
+ *
+ * This array must be ordered identically to the vector OmlValueT types in
+ * oml/omlc.h.  It is used for unmarshalling.
+ *
+ * \see OmlValueT, unmarshal_value, protocol_type_map
  */
 static const OmlValueT vector_type_map[] = {
-  [DOUBLE_T] = OML_VECTOR_DOUBLE_VALUE,
+  [DOUBLE64_T] = OML_VECTOR_DOUBLE_VALUE,
   [INT32_T]  = OML_VECTOR_INT32_VALUE,
   [UINT32_T] = OML_VECTOR_UINT32_VALUE,
   [INT64_T]  = OML_VECTOR_INT64_VALUE,
   [UINT64_T] = OML_VECTOR_UINT64_VALUE,
   [BOOL_T]   = OML_VECTOR_BOOL_VALUE,
 };
-
 
 /** Find two synchronisation bytes (SYNC_BYTE) back to back.
  *
@@ -1196,7 +1233,7 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
     }
     case INT64_T:
     case UINT64_T:
-    case DOUBLE_T: {
+    case DOUBLE64_T: {
       size_t bytes = nof_elts * sizeof(uint64_t);
       uint64_t *elts = oml_calloc(nof_elts, sizeof(uint64_t));
       if(mbuf_read(mbuf, (uint8_t*)(elts), nof_elts * sizeof(uint64_t)) == -1) {
