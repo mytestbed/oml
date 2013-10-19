@@ -11,10 +11,14 @@ endif #HAVE_POSTGRES
 endif #HAVE_LIBPQ
 
 if HAVE_PYTHON
-TESTS += server-inst.sh
+TESTS += self-inst.sh
 endif
 
-EXTRA_DIST = scaffold.sh run.sh run-long.sh runpg.sh runpg-long.sh server-inst.sh server-inst.py
+EXTRA_DIST = \
+	     tap_helper.sh \
+	     run.sh run-long.sh runpg.sh runpg-long.sh \
+	     scaffold.sh \
+	     self-inst.sh self-inst.py
 
 check_PROGRAMS = blobgen
 
@@ -28,7 +32,9 @@ CLEANFILES = memstats.csv \
 	     serverblobgenpg.csv \
 	     serverblobgensq3.csv \
 	     scaffold.log \
-	     oml_server.log
+	     self-inst.sq3 \
+	     self-inst.log \
+	     self-inst_server.log
 
 blobgen_SOURCES = blobgen.c
 
