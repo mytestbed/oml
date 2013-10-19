@@ -181,6 +181,10 @@ bw_close(BufferedWriterHdl instance)
 }
 
 /** Add a chunk to the end of the queue.
+ *
+ * This function tries to acquire the lock on the BufferedWriter, and releases
+ * it when done.
+ *
  * \param instance BufferedWriter handle
  * \param chunk Pointer to chunk to add
  * \param chunkSize size of chunk
@@ -189,8 +193,30 @@ bw_close(BufferedWriterHdl instance)
 int
 bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
 {
+  int result = 0;
   BufferedWriter* self = (BufferedWriter*)instance;
-  if (oml_lock(&self->lock, __FUNCTION__)) { return 0; }
+  if (oml_lock(&self->lock, __FUNCTION__) == 0) {
+    result =_bw_push(instance, chunk, size);
+    oml_unlock(&self->lock, __FUNCTION__);
+  }
+  return result;
+}
+
+/** Add a chunk to the end of the queue.
+ * \see bw_push
+ *
+ * This function is the same as bw_push except it assumes that the
+ * lock is already acquired.
+ *
+ * \param instance BufferedWriter handle
+ * \param chunk Pointer to chunk to add
+ * \param chunkSize size of chunk
+ * \return 1 if success, 0 otherwise
+ */
+int
+_bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
+{
+  BufferedWriter* self = (BufferedWriter*)instance;
   if (!self->active) { return 0; }
 
   BufferChain* chain = self->writerChain;
@@ -206,7 +232,6 @@ bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
 
   pthread_cond_signal(&self->semaphore);
 
-  oml_unlock(&self->lock, __FUNCTION__);
   return 1;
 }
 
@@ -226,13 +251,12 @@ bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
 int
 bw_push_meta(BufferedWriterHdl instance, uint8_t* chunk, size_t size)
 {
+  int result = 0;
   BufferedWriter* self = (BufferedWriter*)instance;
-  int result;
-
-  if (oml_lock(&self->lock, __FUNCTION__)) { return 0; }
-  result = _bw_push_meta(instance, chunk, size);
-  oml_unlock(&self->lock, __FUNCTION__);
-
+  if (oml_lock(&self->lock, __FUNCTION__) == 0) {
+    result = _bw_push_meta(instance, chunk, size);
+    oml_unlock(&self->lock, __FUNCTION__);
+  }
   return result;
 }
 

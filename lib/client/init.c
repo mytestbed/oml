@@ -49,6 +49,17 @@ static OmlMPDef _experiment_metadata[] = {
 };
 OmlMP *schema0;
 
+static OmlMPDef _client_instrumentation[] = {
+  /* some sequence stuff to spot missing readings */
+  {"measurements_injected", OML_UINT32_VALUE },
+  {"measurements_dropped", OML_UINT32_VALUE },
+  {"bytes_allocated", OML_UINT64_VALUE },
+  {"bytes_freed", OML_UINT64_VALUE },
+  {"bytes_in_use", OML_UINT64_VALUE },
+  {"bytes_max", OML_UINT64_VALUE },
+  {NULL, (OmlValueT)0}
+};
+
 /** A function pointer suitable for sigaction(3) */
 typedef void(*sighandler) (int);
 
@@ -91,10 +102,12 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   const char* config_file = NULL;
   const char* local_data_file = NULL;
   const char* collection_uri = NULL;
+  char *start = NULL, *end = NULL; /* For strtoX(3) */
   enum StreamEncoding default_encoding = SE_None;
   int sample_count = 0;
   double sample_interval = 0.0;
   int max_queue = 0;
+  uint32_t instr_interval = 1000;
   const char** arg = argv;
 
   if (!app_name) {
@@ -204,6 +217,23 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
         }
         max_queue = atoi(*++arg);
         *pargc -= 2;
+      } else if (strcmp(*arg, "--oml-instr-interval") == 0) {
+        start = (char *)*++arg; /* XXX: Drop arg's const */
+        end = NULL;
+        if (--i <= 0) {
+          logerror("Missing argument to '--oml-instr-interval'\n");
+          return -1;
+        }
+        instr_interval = strtoul(start, &end, 10);
+        if(end == *arg || *end != '\0') {
+          logwarn("Invalid argument to '--oml-instr-interval'\n");
+          instr_interval = 0;
+        }
+        *pargc -= 2;
+        if(0 == instr_interval) {
+          loginfo("Client instrumentation disabled\n");
+        }
+
       } else if (strcmp(*arg, "--oml-noop") == 0) {
         *pargc -= 1;
         omlc_close();
@@ -256,6 +286,8 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   omlc_instance->sample_interval = sample_interval;
   omlc_instance->default_encoding = default_encoding;
   omlc_instance->max_queue = max_queue;
+  omlc_instance->instr_time = 0;
+  omlc_instance->instr_interval = instr_interval;
 
   if (local_data_file != NULL) {
     // dump every sample into local_data_file
@@ -270,6 +302,8 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   register_builtin_filters ();
 
   schema0 = omlc_add_mp("_experiment_metadata", _experiment_metadata);
+
+  omlc_instance->client_instr = omlc_add_mp("_client_instrumentation", _client_instrumentation);
 
   loginfo ("OML Client V%s [Protocol V%d] %s\n",
            VERSION,
@@ -897,7 +931,7 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
    *
    */
   namestr = mstring_create();
-  if (mp!=schema0) {
+  if ((mp != schema0) && (mp != omlc_instance->client_instr)) {
     mstring_set (namestr, omlc_instance->app_name);
     mstring_cat (namestr, "_");
   }
