@@ -8,42 +8,76 @@ liboml2 - OML2 client library
 SYNOPSIS
 --------
 [verse]
-*<oml2-enabled-app>* [APP-OPTIONS] [OML-OPTIONS]
+*<oml2-enabled-app>* [APP-OPTIONS]
+	    [--oml-id OML_NAME --oml-domain OML_DOMAIN
+	      [--oml-collect OML_COLLECT] | --oml-noop]
+	    [--oml-instr-interval MILLISECONDS]
+	    [--oml-interval SECONDS | --oml-samples COUNT]
+	    [--oml-log-level -2..4] [--oml-log-file]
+	    [--oml-config liboml2.conf]
+	    [--oml-bufsize BYTES]
+            [--oml-text|--oml-binary]
+	    [--oml-help] [--oml-list-filters]
+	    [--oml-...]
 
 DESCRIPTION
 -----------
 
 *liboml2* is the client library for OML2.  It provides an API for
-application writers to collect measurements from their applications
-via user-defined 'Measurement Points' (MPs).  It also provides a
-flexible filtering and collection mechanism that allows application
-users to customize how measurements are processed and stored by an
-OML-enabled application.
+application writers to collect measurements from their applications via
+user-defined 'Measurement Points' (MPs).  It also provides a flexible
+filtering and collection mechanism that allows application users to
+customize how measurements are processed and stored by an OML-enabled
+application. Data 'injected' into an MP by the application is serialised
+into a 'Measurement Stream' (MS), and sent to a 'Collection Point'
+(e.g., an linkoml:oml2-server[1] or a file).  Measurement samples can
+also be filtered, pre-processed or aggregated using a set of built-in
+filters.
 
 This man page documents the command-line user configuration of
 OML-enabled applications.  Application writers who want to learn how
 to write an application using the *liboml2* API should consult
-linkoml:liboml2[3].  OML also supports an external configuration file,
+linkoml:liboml2[3]. OML also supports an external configuration file,
 documented in linkoml:liboml2.conf[5].
 
-When an OML application starts up, it passes the command line
-arguments to *liboml2*, which scans them for options that it
-understands, and uses those to configure itself.  *liboml2* then
-removes its own options from the command line so that the application
-proper does not get confused by them.  All OML options start with the
-prefix '--oml-'.  The '--oml-help' option lists all the known OML command
-line options.
+When an OML application starts up, it passes the command line arguments
+to *liboml2*, which scans them for options that it understands, and uses
+those to configure itself.  *liboml2* then removes its own options from
+the command line so that the application proper does not get confused by
+them.  All OML options start with the prefix *--oml-*.  The *--oml-help*
+option lists all the known OML command line options.
 
 The command line options recognized by *liboml2* allow for a basic
 configuration of the measurement library.  They are adequate for
 testing and debugging, but do not offer as much flexibility as the
 external configuration file format supports.  You can pass a
-configuration file to *liboml2* using the '--oml-config' option.  For
+configuration file to *liboml2* using the *--oml-config* option.  For
 details, see linkoml:liboml2.conf[5].
 
+By default, any instrumentation starts with two OML-specific MPs. The
+first one, '_experiment_metadata', contains information about the
+experiment currently running, as well as application specific details
+that would not justify a full MP on their own such as version, command
+line invokation, or unit or precision of some fields. The second
+automatic MP is '_client_instrumentation'. When enabled (see option
+*--oml-instr-interval* in link:#_oml_options[OML OPTIONS] below), the
+application will periodically inject status report into that stream.
+Status reports contain the following information
+
+MEASUREMENT FILTERING
+---------------------
+
+The *liboml2* can process measurement tuples in-line before they are
+sent to a collection point. The filtering mechanism allows to select a
+subset of the fields of an MP which need to be sent along, apply
+aggregation or summary functions on them rather than sending them
+verbatim, and set the periodicity (time- or sample- based) at which
+aggregate reports are sent (see *--oml-interval* or *--oml-samples* in
+link:#_oml_options[OML OPTIONS] below).
+
 When no configuration file is given, *liboml2* provides a basic set of
-filters for each measurement point, and sends measurements to just one
-location (using the '--oml-collect' option).  For each measurement
+filters for each MP, and sends measurements to just one
+location (using the *--oml-collect* option).  For each measurement
 point, each element of the measurement point's injected tuple is given
 its own filter.  The filter created depends on the type of the element
 and the current sampling policy.
@@ -68,7 +102,7 @@ The 'first' filter keeps the first injected value in the current
 sampling period and throws away all others, passing the first value on
 to the measurement output stage.
 
-The exception to this rule is that if '--oml-samples' was given, and
+The exception to this rule is that if *--oml-samples* was given, and
 if the argument is 1, then numeric elements are filtered using the
 'first' filter, not the averaging filter.
 
@@ -77,10 +111,10 @@ the documentation for the configuration file format,
 linkoml:liboml2.conf[5]. For more information on measurement points and how
 they are defined, see linkoml:liboml2[3] and linkoml:omlc_add_mp[3].
 
-MEASUREMENT OUTPUT AND SCHEMAS
-------------------------------
+MEASUREMENT STREAMS AND SCHEMAS
+-------------------------------
 
-Where measurement output of an OML program goes depends on the
+Where MSs generated by an OML instrumentation are sent depends on the
 collection URI (see link:#_uri_format[URI FORMAT] below). If using the
 *tcp* scheme, it is sent to the named linkoml:oml2-server[1], for
 storage in an SQL database, while  using the *file* or *flush* schemes
@@ -108,12 +142,12 @@ The schema name is "generator_lin" -- a combination of the application
 name ("generator") and the measurement point name ("lin").  (The
 number '1' on this line is an index used in the output columns to
 identify a line of measurement with the schema to which it conforms.)
-This output was made using '--oml-samples 1' on the command line.
+This output was made using *--oml-samples 1* on the command line.
 This creates a 'first' filter for both of the fields of the
 measurement point.  The 'first' filter outputs a single value that has
 the same type as the filter's input.
 
-If we change the command line to use '--oml-samples 2', then an
+If we change the command line to use *--oml-samples 2*, then an
 averaging filter is used for the numeric "seq_no" field ("label" is
 unchanged).  The schema therefore changes as well:
 
@@ -172,89 +206,72 @@ element, see linkoml:liboml2.conf[5].
 
 OML OPTIONS
 -----------
---oml-id id::
-	Set the OML client's identity to 'id'.  This is used by the
-	linkoml:oml2-server[1] to distinguish measurements of the same type from
-	different sources (for example, the same application running on a
-	different machine).  If '--oml-id' is not given, an error is
-	printed and measurement collection will not occur (although the
-	application may still run).
+--oml-id OML_NAME::
+Set the OML client's identity to 'OML_NAME'.  This is used by the
+linkoml:oml2-server[1] to distinguish measurements of the same type from
+different sources (for example, the same application running on a
+different machine).  If *--oml-id* is not given, an error is
+printed and measurement collection will not occur (although the
+application may still run).
 
---oml-domain domain::
---oml-exp-id domain::
-Set the OML client's experimental domain to 'domain'.  This is used by
+--oml-domain OML_DOMAIN::
+--oml-exp-id OML_DOMAIN::
+Set the OML client's experimental domain to 'OML_DOMAIN'.  This is used by
 the linkoml:oml2-server[1] to group measurements from different clients
 that logically belong to the same group.  Multiple applications running
 on different machines can contribute measurements to the same
-experiment.  If '--oml-domain' is not given, an error is written to the
+experiment.  If *--oml-domain* is not given, an error is written to the
 log file and measurement collection will not occur (although the
-application may still run). The '--oml-exp-id' option is obsolescent,
-and '--oml-domain' should be preferred.
+application may still run). The *--oml-exp-id* option is obsolescent,
+and *--oml-domain* should be preferred.
 
+--oml-collect OML_COLLECT::
+--oml-server OML_COLLECT::
+Send measurements to the OML server specified by the 'OML_COLLECT' URI.
+Only one of *--oml-collect* or *--oml-server* can be active at a time.
+The format of 'OML_COLLECT' is described in link:#_URI_format[URI
+FORMAT] below.  The 'OML_COLLECT' can specify the address and port at
+which either an *oml2-server* or an *oml2-proxy-server* is listening.
+The *--oml-server* option is obsolescent, and *--oml-collect* should be
+preferred.
 
---oml-file filename::
-Write measurements to file 'filename', in a human readable text format.
-This is an exact equivalent to '--oml-collect file:filename', see below.
-Only one of '--oml-collect' (or '--oml-server') or'--oml-file' can be
+--oml-file FILENAME::
+Write measurements to file 'FILENAME', in a human readable text format.
+This is an exact equivalent to *--oml-collect file:FILENAME*, see below.
+Only one of *--oml-collect* (or *--oml-server*) or*--oml-file* can be
 specified at a time. This command line option is obsolescent, and
-'--oml-collect' with the *file* scheme should be preferred.
+*--oml-collect* with the *file* scheme should be preferred.
 
---oml-collect uri::
---oml-server uri::
-Send measurements to the OML server specified by the 'uri'.  Only one of
-'--oml-collect' or '--oml-server' can be active at a time.  The format
-of the 'uri' is described in link:#_uri_format[URI FORMAT] below.  The
-'uri' can specify the address and port at which either an *oml2-server*
-or an *oml2-proxy-server* is listening. The '--oml-server' option is
-obsolescent, and '--oml-collect' should be preferred.
+--oml-noop::
+If this option is given, no measurements are collected, and the
+application does not attempt to connect to an OML server or write
+measurements to file.
 
---oml-text::
-Encode measurements using text format when writing to either a local
-file or a remote server. Text format is easy for scripts to parse, with
-one measurement per line, and is the default when a *file* URI scheme is
-used. Only one of '--oml-text' and '--oml-binary' should be used on the
-same command line.
+--oml-instr-interval MILLISECONDS::
+This option allows to set the periodicity of self-instrumentation
+reports into the '_client_instrumentation' MS. The defaults is 1000ms,
+and the feature can be disabled altogether by setting it to 0.
 
---oml-binary::
-Encode measurements using binary format when writing to either a local
-file or a remote server. The binary format is the default when *tcp*
-URI scheme is given, and provides better performance.  Only one of
-'--oml-text' and '--oml-binary' should be used on the same command line.
-
---oml-bufsize size (bytes)::
-Set the size of internal buffers used by *liboml2*.  There is one
-buffer per output destination, and each one is allowed to grow to
-roughly this size in bytes.  For various reasons the buffers can grow
-a certain amount more than this size, but will still be bounded.
-'--oml-bufsize' specifies the lower bound on the maximum buffer size.
-The default is 2048 bytes.  If the maximum allowed buffer size is
-exceeded, *liboml2* will start dropping measurement data (with a
-message in the client log file).  Increasing the buffer size may
-prevent this from happening, depending on the application design.
-
---oml-config file::
-Read the contents of 'file' and use them to configure the *liboml2*
-client.  See linkoml:liboml2.conf[5] for details of the configuration file
-format.  Generally, the configuration taken from 'file' overrides any
-equivalents from the command line.  Command line options that cannot
-be set using the configuration file are '--oml-log-file',
-'--oml-log-level', '--oml-noop'.
-
---oml-samples count::
-Make all measurement point filters produce an output after every 'count'
-samples have been injected into them.  Only one of '--oml-samples' and
-'--oml-interval' can be given on the same command line.  If neither
-'--oml-samples' nor '--oml-interval' are given, then *liboml2* behaves
-as if '--oml-samples' was given with an argument of 'count'=1.
-
---oml-interval seconds::
+--oml-interval SECONDS::
 Make all measurement point filters produce an output periodically with
-a time period of 'seconds'.  Only one of '--oml-interval' and
-'--oml-samples' can be given on the same command line.
+a time period of 'SECONDS'.  Only one of *--oml-interval* and
+*--oml-samples* can be given on the same command line.
 
---oml-log-file file::
-Write OML logging information to 'file'.  The amount of logging
-information recorded is controlled by '--oml-log-level'.
+--oml-samples COUNT::
+Make all measurement point filters produce an output after every 'COUNT'
+samples have been injected into them.  Only one of *--oml-samples* and
+*--oml-interval* can be given on the same command line.  If neither
+*--oml-samples* nor *--oml-interval* are given, then *liboml2* behaves
+as if *--oml-samples* was given with an argument of 'COUNT'=1.
+
+--oml-config FILE::
+Read the contents of 'FILE' and use them to configure the *liboml2*
+client.  See linkoml:liboml2.conf[5] for details of the configuration
+file format.  Generally, the configuration taken from 'FILE' overrides
+any equivalents from the command line.  Command line options that cannot
+be set using the configuration file are *--oml-noop*,
+*--oml-instr-interval*, *--oml-bufsize*, *--oml-log-level*, and
+*--oml-log-file*.
 
 --oml-log-level n::
 Record logging information at a level of detail given by 'n', which
@@ -264,21 +281,50 @@ add gradually larger amounts of debug logging ('DEBUG', 'DEBUG2',
 'DEBUG3', 'DEBUG4').  It is possible to set 'n' to -1 for only 'ERROR'
 and 'WARNING' logging, or -2 for only 'ERROR' logging.
 
---oml-noop::
-If this option is given, no measurements are collected, and the
-application does not attempt to connect to an OML server or write
-measurements to file.
+--oml-log-file file::
+Write OML logging information to 'file'.  The amount of logging
+information recorded is controlled by *--oml-log-level*.
+
+By default, the OML library logs messages to the application's *stderr*,
+prefixed with the level of the messages. If logging to a file, messages
+are also prefixed with a timestamp. The application writer can override
+this behaviour by providing a custom logging function when calling
+linkoml:omlc_init[3].
+
+--oml-bufsize size (bytes)::
+Set the size of internal buffers used by *liboml2*.  There is one
+buffer per output destination, and each one is allowed to grow to
+roughly this size in bytes.  For various reasons the buffers can grow
+a certain amount more than this size, but will still be bounded.
+*--oml-bufsize* specifies the lower bound on the maximum buffer size.
+The default is 2048 bytes.  If the maximum allowed buffer size is
+exceeded, *liboml2* will start dropping measurement data (with a
+message in the client log file).  Increasing the buffer size may
+prevent this from happening, depending on the application design.
+
+--oml-text::
+Encode measurements using text format when writing to either a local
+file or a remote server. Text format is easy for scripts to parse, with
+one measurement per line, and is the default when a *file* URI scheme is
+used. Only one of *--oml-text* and *--oml-binary* should be used on the
+same command line.
+
+--oml-binary::
+Encode measurements using binary format when writing to either a local
+file or a remote server. The binary format is the default when *tcp*
+URI scheme is given, and provides better performance.  Only one of
+*--oml-text* and *--oml-binary* should be used on the same command line.
+
+--oml-help::
+Prints a summary of the available OML options.
 
 --oml-list-filters::
 This option prints the available filters to the console and then
 quits the application.
 
---oml-help::
-Prints a summary of the available OML options.
-
 URI FORMAT
 ----------
-*liboml2* accepts a 'uri' argument for the '--oml-collect' option that
+*liboml2* accepts a 'uri' argument for the *--oml-collect* option that
 is similar to an IETF URI (see e.g. RFC3986).  The OML URI consists of
 an optional network protocol, a host identifier, and an optional port
 number, or a mandatory *file* (or *flush* )scheme and a local filesystem
@@ -323,18 +369,18 @@ environment variable.
 
 OML_NAME::
 The name to identify this client to the OML server, equivalent to the
-'--oml-id' command line option.
+*--oml-id* command line option.
 
 OML_DOMAIN::
 OML_EXP_ID::
 The name of the experiment to which this client's measurements belong.
 Used for grouping measurements into the same database on the server.
-Equivalent to the '--oml-domain' command line option. 'OML_EXP_ID' is
+Equivalent to the *--oml-domain* command line option. 'OML_EXP_ID' is
 obsolescent and kept for backward compatibility.
 
 OML_CONFIG::
 The path to the configuration file to use to configure the client.
-Equivalent to the '--oml-config' command line option.
+Equivalent to the *--oml-config* command line option.
 
 OML_COLLECT::
 OML_SERVER::
@@ -343,22 +389,22 @@ value of this environment variable should be a URI in the same format
 specified above (link:#_uri_format[URI FORMAT]).  If the URI specifies
 the *file* scheme, the measurements are written to the local text
 file specified in the URI, rather than being sent to an OML server.
-Equivalent to the '--oml-collect' command line option. 'OML_SERVER' is
+Equivalent to the *--oml-collect* command line option. 'OML_SERVER' is
 obsolescent and kept for backward compatibility.
 
 OML_FEATURES::
 A comma-separated list of run-time features to enable.  Currently the
 following are recognized:
-* "default-log-simple" (default): All log output will be sent to stderr
-if no log file was selected using --oml-log-file, or if the argument of
---oml-log-file was "-", and the logging will use new-style logging to
-stderr.  This means all log messages are prefixed with a label
-indicating the severity, i.e., "ERROR", "WARN", "INFO", "DEBUG",
+* "default-log-simple" (default): All log output will be sent to
+*stderr* if no log file was selected using --oml-log-file, or if the
+argument of --oml-log-file was "-", and the logging will use new-style
+logging to *stderr*.  This means all log messages are prefixed with a
+label indicating the severity, i.e., "ERROR", "WARN", "INFO", "DEBUG",
 "DEBUG2", etc.
 
 BUGS
 ----
-The selection of the 'first' filter when '--oml-samples 1' is used can
+The selection of the 'first' filter when *--oml-samples 1* is used can
 be confusing for numeric MP fields because it results in a different
 schema in the measurement output compared to other possible
 configurations available from the command line, which use the 'avg'

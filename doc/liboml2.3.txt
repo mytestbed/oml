@@ -118,7 +118,7 @@ configuration file, and sets internal configuration options of the
 library.  It removes any command line options that it recognises, so
 that the application itself does not get confused when it tries to
 interpret the command line.  All OML options start with the prefix
-'--oml-'.  An application should call linkoml:omlc_init[3] _before_
+*--oml-*.  An application should call linkoml:omlc_init[3] _before_
 running its own command line option parser.
 
 After initialising the library, the programmer must define the
@@ -134,7 +134,7 @@ This is the recommended method as it is easiest.
 
 The linkoml:oml2-scaffold[1] tool can generate the definition of the
 desired measurement points, and a single registration function as part
-of the OML header ('APPNAME_oml.h' generated with the '--oml' flag).
+of the OML header ('APPNAME_oml.h' generated with the *--oml* flag).
 The registration function, *oml_register_mps*(), declares theses MPs to
 the library. It takes no argument, and initialises a structure
 *g_oml_mps_APPNAME* which contains named pointer to each measurement
@@ -230,7 +230,7 @@ changes.  These helpers also provide C-compiler type-checking and proper memory
 management.
 
 The linkoml:oml2-scaffold[1] tool can generate helper injection
-functions as part of the OML header ('--oml'). Their prototype is  of
+functions as part of the OML header (*--oml*). Their prototype is  of
 the form *oml_inject_MPNAME*('OmlMP*' mp, ...), where *MPNAME* is the
 name of the 'MP' that is passed as *mp*. The remaining arguments are
 C-typed variables constituting the sample to be injected in the 'MP'.
@@ -457,7 +457,7 @@ $ ./counter --oml-id myid --oml-domain count --oml-collect file:-
 --------
 
 The output from this command will appear on the terminal because we told
-OML to use the standard output ('--oml-collect file:-').  Here is what
+OML to use the standard output (*--oml-collect file:-*).  Here is what
 it looks like:
 
 --------

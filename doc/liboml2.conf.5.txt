@@ -32,11 +32,11 @@ arguments to *liboml2*, which scans them for options that it
 understands, and uses those to configure itself.  *liboml2* then
 removes its own options from the command line so that the application
 proper does not get confused by them.  All OML options start with the
-prefix '--oml-'.  For more information, see linkoml:liboml2[1].
+*--oml-* prefix.  For more information, see linkoml:liboml2[1].
 
-The '--oml-config' command line option accepts the name of a
+The *--oml-config* command line option accepts the name of a
 configuration file.  If specified, this file is used to configure the
-library internally. All other '--oml-*' command line options are ignored
+library internally. All other *--oml-** command line options are ignored
 when it is specified.  The file is an XML document.  The configuration
 file serves two main purposes: configuring the destinations for
 measurement outputs, and configuring the filtering of the MP inputs
@@ -122,14 +122,14 @@ The 'omlc' element recognizes two attributes: 'experiment' and 'id'.
 The 'domain' attribute names the experimental domain that the client
 wants to join.  It names the database that the measurements will be
 stored in by the linkoml:oml2-server[1] if one of the destinations is a
-server.  This is the same as the '--oml-domain' flag on the command
+server.  This is the same as the *--oml-domain* flag on the command
 line. The obsolescent 'experiment' attribute can still be used for this
 purpose.
 
 The 'id' attribute identifies the source of these measurements.
 Typically it is used to identify the machine, but it is up to the
 experimenter what to put in the 'id' field.  This is the same as the
-'--oml-id' flag on the command line.
+*--oml-id* flag on the command line.
 
 The 'encoding' attribute can be use to specify which protocol mode to
 use.  'binary' is the default binary marshalling mechanism, while 'text'
@@ -220,7 +220,7 @@ CONFIGURATION WITHOUT XML FILE
 
 When no configuration file is given, *liboml2* provides a basic set of
 filters for each measurement point, and sends measurements to just one
-collection URI (given by either the '--oml-collect' command line
+collection URI (given by either the *--oml-collect* command line
 option).  For each measurement point, each element of the measurement
 point's injected tuple is given its own filter.  The filter created
 depends on the type of the element and the current sampling policy.

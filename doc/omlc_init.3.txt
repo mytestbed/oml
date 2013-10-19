@@ -22,19 +22,19 @@ The 'appname' argument is a string name for this application that the
 library uses when declaring schemata for measurement output to local
 file storage or to an linkoml:oml2-server[1].
 
-The 'pargc' and 'argv' parameters should refer to the program's
-command line arguments.  'pargc' should be a pointer to the 'argc'
-parameter of the program's *main*() function, and 'argv' should be
-identical to the *main*() function's 'argv' parameter.  *omlc_init*
-scans the command line options for options starting with '--oml-', and
-uses them to configure the API.  The '--oml-' options and their
-arguments are then removed from the 'argv' array, and \*'pargc' is
+The 'pargc' and 'argv' parameters should refer to the program's command
+line arguments, described in linkoml:liboml2[1].  'pargc' should be a
+pointer to the 'argc' parameter of the program's *main*() function, and
+'argv' should be identical to the *main*() function's 'argv' parameter.
+*omlc_init* scans the command line options for options starting with
+*--oml-*, and uses them to configure the API.  The *--oml-* options and
+their arguments are then removed from the 'argv' array, and \*'pargc' is
 adjusted to account for their removal.  This allows the application
-using *liboml2* to do its own option parsing without getting confused
-by the '--oml-' options.  The available '--oml-' options are listed
-in linkoml:liboml2[1].
+using *liboml2* to do its own option parsing without getting confused by
+the *--oml-* options.  The available *--oml-* options are listed in
+linkoml:liboml2[1].
 
-If the '--oml-config' option is specified then *liboml2* reads its
+If the *--oml-config* option is specified then *liboml2* reads its
 configuration from an external configuration file (the format is
 documented in linkoml:liboml2.conf[5]).  *omlc_init* also recognizes several
 environment variables, see linkoml:liboml2[1].  Generally, if an option
@@ -42,12 +42,64 @@ can be configured on the command line or an environment variable, the
 command line option takes precedence.  If an option can also be set
 using the config file, then the config file takes precedence.
 
+USING A CUSTOM LOGGING FUNCTION
+-------------------------------
+
 The 'log_fn' parameter allows the user to supply a custom logging
-function;  however, if 'log_fn' is 'NULL' then *liboml2* uses its own
-logging function (the output file is specified by the user in the
-'--oml-log-file' command line argument).  Use of the 'log_fn'
-parameter is deprecated; it may be removed or replaced in a future
-version of OML.  New applications should always set it to 'NULL'.
+function. If 'log_fn' is 'NULL' then *liboml2* uses its own logging
+function (the output file is specified by the user in the
+*--oml-log-file* command line argument, and defaults to *stderr*).
+
+This allows to integrate OML log messages into the standard log system of
+the instrumented application.  The expected prototype of the function is
+as follows.
+
+----
+void (*o_log_fn)(int log_level, const char* format, ...)
+----
+
+In short, that function should take a 'log_level' as its first argument,
+a linkman:printf[3]-like 'format' string as the second, and expect a
+variable number of arguments to render, depending on the format string.
+
+Filtering messages based on 'log_level' according to the
+*--oml-log-level* option is already done by the library. However, the
+'log_level' of the message is provided to the custom logging function so
+the message can be directed to the appropriate logging facility if
+relevant.
+
+Assuming the existence of an application-wide *vlog()* function taking
+variadic arguments (see linkman:stdarg[3]), the *log_fn* can be as
+simple as the following example.
+
+----
+#ifdef HAVE_LIBOML2		/* Only declare when OML is enabled at compile time */
+static void log_fn(int log_level, const char *format, ...)
+{
+  va_list ap; 			/* For variadiac arguments parsing */	
+  int pri;			/* Logging facility to use for the application */
+  switch(log_level) {		/* Map OML log levels to the applications's */
+  case O_LOG_ERROR:
+  case O_LOG_WARN:
+    pri = LOG_CRIT;
+    break;
+  case O_LOG_DEBUG:
+  case O_LOG_DEBUG2:
+  case O_LOG_DEBUG3:
+  case O_LOG_DEBUG4:
+    pri = LOG_DEBUG;
+    break;
+  case O_LOG_INFO:
+  default:
+    pri = LOG_INFO;
+    break;
+  }
+  va_start(ap, format);		/* Get ready to extract arguments from the va_list */
+  vlog(pri, format, ap);	/* Application's own variadic logging function */
+  va_end(ap);			/* Done */
+}
+#endif
+----
 
 RETURN VALUE
 ------------

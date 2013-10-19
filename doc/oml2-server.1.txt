@@ -43,7 +43,7 @@ clients for experiment 'A' will also be appended to the new database.
 
 ifdef::have_pg[]
 *oml2-server* can store measurements in either an SQLite3 database on
-disk or in a PostgreSQL database.  See the '--backend' option for
+disk or in a PostgreSQL database.  See the *--backend* option for
 details.
 endif::have_pg[]
 
@@ -57,7 +57,7 @@ OPTIONS
 -D directory, --data-dir=directory::
 	Store SQLite3 measurement databases for all experiments in the
 	specified directory, when the SQLite3 backend is selected. The
-	default on this system is {pkglocalstatedir}.  '--data-dir'
+	default on this system is {pkglocalstatedir}.  *--data-dir*
 	overrides the *OML_SQLITE_DIR* environment variable.  If
 	*oml2-server* is run with an effective user id that does not have
 	the right to create files in the directory, the server will exit
@@ -96,11 +96,11 @@ IRODS.
 	serve clients.  OML only needs access to a single directory in
 	which it has the right to create the SQLite3 experiment database
 	files, plus the right to open and write to its log file (creating
-	it if necessary).  The '--user' and '--group' options allow the
+	it if necessary).  The *--user* and *--group* options allow the
 	system administrator to run *oml2-server* under a non-privileged
 	account, thereby lessening its potential as a security risk.  If
-	only '--user' is given, the gid will be set to the primary group id
-	for the given user. '--user' and '--group' accept user and group
+	only *--user* is given, the gid will be set to the primary group id
+	for the given user. *--user* and *--group* accept user and group
 	names as arguments; numeric user and group ids are not supported.
 
 -d, --debug-level=level::
@@ -150,7 +150,7 @@ You can create this user in PostgreSQL as follows.
 --------------------------
 +
 Doing so will ask you to enter and confirm the password for this
-role. It should match that passed to '--pg-pass' below.
+role. It should match that passed to *--pg-pass* below.
 
 --pg-pass=pass::
 	Specify the password of the pg-user to connect to the PostgreSQL
@@ -161,7 +161,7 @@ role. It should match that passed to '--pg-pass' below.
 	the database authentication scheme to use.  It is passed to the
 	PostgreSQL connection API with the user name and database name
 	appended.  For instance, for an experiment named "myexp" and
-	'--pg-user=oml2', a conninfo string of
+	*--pg-user=oml2*, a conninfo string of
 	"host=postgres.mycompany.com password=secret" will result in the
 	following being passed to the server:
 +
@@ -169,10 +169,10 @@ role. It should match that passed to '--pg-pass' below.
   host=postgres.mycompany.com password=secret user=oml2
 --------------------------
 +
-Though parameters which have specific '--pg-X' options can be passed
-this way, unpredictable behaviours might be encountered if both '--pg-X'
-and '--pg-connect' specify these. It is therefore recommended to prefer
-the '--pg-X' variant, and only use '--pg-connect' if one doesn't exist.
+Though parameters which have specific *--pg-* options can be passed
+this way, unpredictable behaviours might be encountered if both *--pg-X*
+and *--pg-connect* specify these. It is therefore recommended to prefer
+the *--pg-X* variant, and only use *--pg-connect* if one doesn't exist.
 +
 If more than one 'key=value' pair must be passed as conninfo, the shell might
 make things difficult. A workaround is to wrap the entire argument in quotes,
@@ -251,7 +251,7 @@ DATABASE URI SCHEMES
 Database URI schemes vary with the backend, and are as follows.
 ifdef::have_pg[]
 	* PostgreSQL: 'postgresql://USER@HOST:PORT/dbname' where 'USER',
-	'HOST' and 'PORT' are the values of the equivalent '--pg-*'
+	'HOST' and 'PORT' are the values of the equivalent *--pg-**
 	command-line options, and DBNAME is the name of the experimental
 	domain. This scheme is PostgreSQL's own, and is therefore directly
 	usable with other tools.
@@ -264,7 +264,7 @@ ENVIRONMENT VARIABLES
 ---------------------
 OML_SQLITE_DIR::
 Create SQLite3 experiment measurement databases in this directory.
-This environment variable is overridden by the '--data-dir' command
+This environment variable is overridden by the *--data-dir* command
 line option.
 
 SIGNALS
@@ -292,14 +292,15 @@ suitable for use in insecure environments.
 
 ifdef::have_pg[]
 Currently, the only way to pass credentials for the PostgreSQL backend
-is via the command line '--pg-pass' or '--pg-conninfo' options. To avoid
+is via the command line *--pg-pass* or *--pg-conninfo* options. To avoid
 making such sensitive information available to the casual linkman:ps[1]
 user, the *oml2-server* attempts to overwrite these parts of its command
 line as soon as feasible, replacing the entire argument by repeated Xs.
 This is a poor man's security measure, as this creates a race condition
 where, prior to doing this, the credentials are still visible to
 everybody. Moreover, after replacement, the length of the password is
-still obvious when using '--pg-pass'.
+still obvious when using *--pg-pass*. Finally, sometimes this just
+doesn't work.
 endif::have_pg[]
 
 SEE ALSO

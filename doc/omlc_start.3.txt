@@ -25,10 +25,10 @@ The main function of *omlc_start*() is to set up the internal data
 structures that determine the filtering configuration.  It also starts
 threads to periodically generate filter outputs for measurement
 streams that are declared using the 'interval' sampling method (see
-the '--oml-interval' option in linkoml:liboml2[1] or the 'interval'
+the *--oml-interval* option in linkoml:liboml2[1] or the 'interval'
 attribute in linkoml:liboml2.conf[5]).
 
-If a configuration file is given using the '--oml-config' command line
+If a configuration file is given using the *--oml-config* command line
 option or the OML_CONFIG environment variable, then *omlc_start*()
 reads the configuration file to determine what filters to create.
 Otherwise it creates a set of default filters as follows:
@@ -63,7 +63,7 @@ ERRORS
 * an error occurred parsing the external config file;
 * no config file was given and no output destination was specified on
 either the command line or using an environment variable (e.g., no
-'--oml-collect' command line option);
+*--oml-collect* command line option);
 * there was an error in the specification of the output destination;
 * there was an error writing to the output destination stream(s).
 
