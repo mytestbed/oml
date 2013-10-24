@@ -119,10 +119,11 @@ EXTRA_DIST += images/
 images/: plantuml-diagrams
 DX_EXTRA_DOC += plantuml-diagrams
 
-# XXX: Somehow, it seems automake doesn't have a variable holding the full path
-# to the current directory...
 plantuml-diagrams:
-	$(PLANTUML) -o "`pwd`/$(srcdir)/images"  "$(top_srcdir)/**.(c|h|md)"
+	$(PLANTUML) -o "$(PWD)/$(builddir)/images"  "$(top_srcdir)/**.(c|h|md)"
+plantuml-clean:
+	rm -rf $(builddir)/images
+distclean-local: plantuml-clean
 endif
 
 
