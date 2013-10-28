@@ -569,7 +569,7 @@ class MeasurementPoint
   # \param stream stream to write header snippet into
   # \see Metric::c_type
   def write_oml_helper_function(stream)
-    stream.print "static inline void
+    stream.print "static inline int
 oml_inject_#{@name}(OmlMP *mp"
     @ms.each do |m|
       stream.print ", #{m.c_type}" % m.name
@@ -581,7 +581,8 @@ oml_inject_#{@name}(OmlMP *mp"
       end
     end
     stream.puts ")\n{"
-    stream.puts "  OmlValueU v[#{@ms.length}];\n\n"
+    stream.puts "  int ret = -1;\n\n"
+    stream.puts "  OmlValueU v[#{@ms.length}];\n"
     stream.puts "  omlc_zero_array(v, #{@ms.length});\n\n"
     i = 0
     @ms.each do |m|
@@ -594,7 +595,7 @@ oml_inject_#{@name}(OmlMP *mp"
       stream.puts ");"
       i = i + 1
     end
-    stream.puts "\n  omlc_inject(mp, v);\n\n"
+    stream.puts "\n  ret = omlc_inject(mp, v);\n\n"
     i = 0
     @ms.each do |m|
       # Strings, blobs and vectors need to be reset
@@ -606,13 +607,14 @@ oml_inject_#{@name}(OmlMP *mp"
       end
       i = i + 1
     end
+    stream.puts "  return ret;\n"
     stream.puts "}\n\n"
   end
 
   ## Write an example injection code
   # \param stream stream to write code snippet into
   def write_inject_example(stream)
-    stream.print "    oml_inject_#{@name}(oml_mps->#{@name}"
+    stream.print "    if(oml_inject_#{@name}(oml_mps->#{@name}"
     i = 0
     @ms.each do |m|
       if m.is_vector?
@@ -622,7 +624,9 @@ oml_inject_#{@name}(OmlMP *mp"
       end
       i = i + 1
     end
-    stream.print ");\n"
+    stream.print ") != 0) {\n"
+    stream.print "      logwarn(\"Failed to inject data into MP '#{@name}'\\n\");\n"
+    stream.print "    }\n"
   end
 
   ## Write an example vector
