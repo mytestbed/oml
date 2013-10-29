@@ -338,6 +338,7 @@ AS_IF([test x$enable_doxygen_callgraph = xno],
       [DX_ENV_APPEND(ENABLE_CALLGRAPH, [NO])],
       [DX_ENV_APPEND(ENABLE_CALLGRAPH, [YES])])
 DX_ENV_APPEND(TOPSRCDIR, [\$(top_srcdir)]) dnl let make deal with it
+DX_ENV_APPEND(BUILDDIR, [\$(builddir)]) dnl ditto
 
 AC_CONFIG_FILES([Makefile
 		 gnulib/Makefile

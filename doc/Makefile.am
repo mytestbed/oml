@@ -120,9 +120,9 @@ images/: plantuml-diagrams
 DX_EXTRA_DOC += plantuml-diagrams
 
 plantuml-diagrams:
-	$(PLANTUML) -o "$(PWD)/$(builddir)/images"  "$(top_srcdir)/**.(c|h|md)"
+	$(PLANTUML) -o "`pwd`/images"  "$(top_srcdir)/**.(c|h|md)"
 plantuml-clean:
-	rm -rf $(builddir)/images
+	rm -rf `pwd`/images
 distclean-local: plantuml-clean
 endif
 
