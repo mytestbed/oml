@@ -2,12 +2,6 @@
 %define srcver		2.10.1
 %define pkgver		%{srcver}
 %define redmineid	940
-%define liboml2cur	9
-%define liboml2age	1
-%define liboml2rev	0
-%define libocommcur	1
-%define libocommage	0
-%define libocommrev	1
 
 # RPM 4.7 on our Jenkins instance does not seem to do this by default.
 %define __spec_install_post /usr/lib/rpm/brp-compress
@@ -169,12 +163,10 @@ exit 0
 %{_prefix}/bin/oml2-proxy-server
 %{_libdir}/libocomm.a
 %{_libdir}/libocomm.la
-%{_libdir}/libocomm.so.%{libocommcur}
-%{_libdir}/libocomm.so.%{libocommcur}.%{libocommage}.%{libocommrev}
+%{_libdir}/libocomm.so.*
 %{_libdir}/liboml2.a
 %{_libdir}/liboml2.la
-%{_libdir}/liboml2.so.%{liboml2cur}
-%{_libdir}/liboml2.so.%{liboml2cur}.%{liboml2age}.%{liboml2rev}
+%{_libdir}/liboml2.so.*
 %{_prefix}/share/info/oml-user-manual.info.gz
 %doc %{_mandir}/man1/liboml2.1.gz
 %doc %{_mandir}/man1/oml2-proxy-server.1.gz
