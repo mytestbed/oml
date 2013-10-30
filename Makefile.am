@@ -175,7 +175,8 @@ if GITISTAG
 # of the SPECFILE, and let the shell substitute these variables with their newly
 # assigned values.
 	URL=$$(eval "`$(SED) -n "s/%define\s\+\(\S\+\)\s\+\(\S\+\)$$/\1=\2/p;/Source[0-9]*:[ \t]*http/{s/Source[0-9]*:\s*/echo /;s/%/\$$/g;p}" $(PKG_RPM_SPEC)`"); \
-		wget -q $${URL} -O $(PKG_RPM_BUILD_DIR)/SOURCES/`basename $${URL}`
+		wget -q $${URL} -O $(PKG_RPM_BUILD_DIR)/SOURCES/`basename $${URL}` || \
+		$(MAKE) dist && cp $(distdir).tar.gz $(PKG_RPM_BUILD_DIR)/SOURCES/`basename $${URL}`
 else
 	$(MAKE) distdir=$(PKG_RPM_BUILD_DIR)/BUILD/$(PKG_RPM_BASE_NAME) distdir
 	cd $(PKG_RPM_BUILD_DIR)/BUILD/; \
