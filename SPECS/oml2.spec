@@ -1,6 +1,6 @@
 %define name		oml2
-%define version		2.10.1
-%define pkgver		%{version}
+%define srcver		2.10.1
+%define pkgver		%{srcver}
 %define redmineid	940
 %define liboml2cur	9
 %define liboml2age	1
@@ -16,14 +16,16 @@
 # error: Could not open %files file /home/abuild/rpmbuild/BUILD/oml2-2.9.0rpmtest/debugfiles.list: No such file or directory
 %define debug_package %{nil}
 
-BuildRoot:      %{_tmppath}/%{name}-%{version}-build
+BuildRoot:      %{_tmppath}/%{name}-%{srcver}-build
 Summary:        OML: The full O? Measurement Library and tools (transitional metapackage)
 License:        MIT
 URL:            http://oml.mytestbed.net
 Name:           %{name}
-Version:        %{version}
+# Use a specific version number if need be (e.g., ~rc instead of rc for proper
+# version ordering)
+Version:        %{pkgver}
 Release:        1
-Source:		http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{version}.tar.gz
+Source:		http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{srcver}.tar.gz
 Source1:	init.d-oml2-server
 Source2:	oml2-server.service
 Packager:       Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
@@ -107,7 +109,7 @@ protocols on the same TCP port.
 
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{srcver}
 
 %build
 %configure --enable-doc --disable-doxygen-doc --with-pgsql %{?pgsqlinc:--with-pgsql-inc=%{pgsqlinc}} --without-python --localstatedir=/var/lib
