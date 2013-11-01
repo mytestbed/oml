@@ -1,3 +1,23 @@
+2013-08-06  Olivier Mehani <olivier.mehani@nicta.com.au>
+	* OML: Version 2.10.1 (bugfix release)
+	* No changes since RC.
+
+2013-07-09  Olivier Mehani <olivier.mehani@nicta.com.au>
+	* OML: Version 2.10.1rc (bugfix release)
+	* Major fixes:
+		Client library:
+			- Allow to send similarly-named MP to various collection
+			  points (#1154)
+			- Fixed oml2-server's spurious 'Data item number
+			  mismatch', and the triggers that caused them (in
+			  filtering system) (#1156)
+			- _experiment_metadata is unconditionally reported on all
+			  MSs (#1266)
+		oml2-server
+			- the Debian init script now waits for sockets in
+			FIN_WAIT state to have been closed by the system (#1262)
+			- fix 'Out of memory' bug on low-memory machines (#1320)
+
 2013-04-20  Stephen Glass  <stephen.glass@nicta.com.au>
 	* OML: Version 2.10.0
 	* Major fixes:
