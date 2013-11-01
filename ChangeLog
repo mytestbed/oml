@@ -1,3 +1,30 @@
+2013-11-01  Olivier Mehani <shtrom@ssji.net>
+	* OML: Version 2.11.0rc
+	* New features:
+		Vector support (#1386; bump to OMSPv5);
+		Client-side self-instrumentation: dropped measurements, memory
+			used,... (#1396);
+		IPv6 support in client and server (#369);
+		Add DBCREATED and DBOPENED hook events (#1253).
+	* Major fixes:
+		liboml2: Fixes in configuration-file handling when selecting MPs
+			and fields (#1266), or reporting to multiple (#1154);
+		oml2-server: Don't die when a table with no schema is found
+			(#1366);
+		oml2-scaffold: Add metadata injection to scaffold apps (#1401)
+		Better network logic: applications should not block when the
+			reporting path is down (#1104);
+		Fix spurious 'Data item number mismatch' message (#1156, #1222)
+		Rename memory allocation functions (e.g., from xmalloc to
+			oml_malloc), to avoid clashes with similarly-named
+			functions in instrumented applications (#991);
+		Better documentation of the internals mechanisms, particularly
+			all the protocol details in a single place (#1446).
+	* Known limitation: Due to the current wire representation of the binary
+		mode OMSP, it is not possible to carry more than 255 MSs (not
+		counting schema0) in a single connection to the server (#1491).
+		The text mode OMSP does not have this limitation.
+
 2013-08-06  Olivier Mehani <olivier.mehani@nicta.com.au>
 	* OML: Version 2.10.1 (bugfix release)
 	* No changes since RC.
