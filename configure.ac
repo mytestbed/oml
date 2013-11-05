@@ -110,22 +110,35 @@ AC_SEARCH_LIBS([xmlParseFile], [xml2], [
 		AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([XML2_LIBS], $ac_res)])
 
 		AS_IF([test x$cross_compiling = xno], [
-		AC_PATH_PROG([HAVE_XML2CFG], [xml2-config])
-		AS_IF([test "x$HAVE_XML2CFG" != "x" ],
-		      [
-		       xxCFLAGS=`$HAVE_XML2CFG --cflags`
-		       AC_SUBST([XML2_CFLAGS], [$xxCFLAGS])
-		       AC_MSG_CHECKING([how to include libxml2 headers])
-		       AC_MSG_RESULT([$XML2_CFLAGS])
-		       ])
-		],
-		[AC_MSG_WARN([skipping xml2-config because of cross compilation])]
-		)
+			AC_PATH_PROG([HAVE_XML2CFG], [xml2-config])
+			AS_IF([test "x$HAVE_XML2CFG" != "x" ],
+				[
+				xxCFLAGS=`$HAVE_XML2CFG --cflags`
+				AC_MSG_CHECKING([how to include libxml2 headers])
+				AC_MSG_RESULT([$xxCFLAGS])
+				]
+			     )
+			], [
+				xxCFLAGS="-I=/usr/include/libxml2"
+				AC_MSG_WARN([skipping xml2-config; result '$xxCFLAGS' guessed because of cross compilation; override with 'CFLAGS=-I...'])
+			]
+		     )
+		# XXX xml2-config doesn't make a difference between CFLAGS and CPPFLAGS
+		oldCFLAGS=$CFLAGS
+		oldCPPFLAGS=$CPPFLAGS
+		CFLAGS="$CFLAGS $xxCFLAGS"
+		CPPFLAGS="$CPPFLAGS $xxCFLAGS"
+		AC_CHECK_HEADER([libxml/tree.h],
+				[AC_SUBST([XML2_CFLAGS], [$xxCFLAGS])],
+				[missing_libs+=" libxml2"])
+		CPPFLAGS=$oldCPPFLAGS
+		CFLAGS=$oldCFLAGS
 	       ], [missing_libs+=" libxml2"])
 
 AC_SEARCH_LIBS([sqlite3_open], [sqlite3 sqlite], [
 		AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define if libsqlite3 is installed.])
 		AS_IF([test "$LIBS" != "$oldLIBS"], [AC_SUBST([SQLITE3_LIBS], $ac_res)])
+		AC_CHECK_HEADER([sqlite3.h], [], [missing_libs+=" libsqlite3"])
 	       ], [missing_libs+=" libsqlite3"])
 LIBS=$oldLIBS
 
