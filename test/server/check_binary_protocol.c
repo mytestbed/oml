@@ -21,10 +21,12 @@
  *
  */
 /** \file Tests behaviours and issues related to the binary protocol. */
+
+#define _GNU_SOURCE  /* For NAN */
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <math.h>
 #include <check.h>
 #include <sqlite3.h>
 #include <libgen.h>

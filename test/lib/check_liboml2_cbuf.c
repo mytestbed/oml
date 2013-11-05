@@ -20,10 +20,12 @@
  * THE SOFTWARE.
  *
  */
+
+#define _GNU_SOURCE  /* For NAN, strncasecmp */
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <math.h>
 #include <check.h>
 
 #include "cbuf.h"

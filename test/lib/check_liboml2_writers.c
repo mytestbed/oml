@@ -20,11 +20,13 @@
  * THE SOFTWARE.
  *
  */
+
+#define _GNU_SOURCE  /* For NAN */
+#include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <stdint.h>
-#include <math.h>
 #include <check.h>
 
 #include "mbuf.h"

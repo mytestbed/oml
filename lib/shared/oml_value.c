@@ -12,15 +12,16 @@
  * \brief Support functions for manipulating OmlValue objects
  */
 
-#include <float.h>
+#define _GNU_SOURCE  /* For NAN, strncasecmp */
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <float.h>
 #include <pthread.h>
 #include <errno.h>
-#include <math.h>
 
 #include "oml2/omlc.h"
 #include "ocomm/o_log.h"

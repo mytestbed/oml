@@ -21,12 +21,13 @@
  *
  */
 
+#define _GNU_SOURCE  /* For NAN, M_PI */
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include <math.h>
 #include <arpa/inet.h>
 #include <check.h>
 

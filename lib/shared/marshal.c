@@ -160,13 +160,15 @@
  *
  * \see marshal_init, marshal_header_short, marshal_header_long, marshal_measurements, marshal_values, marshal_finalize
  */
+
+#define _GNU_SOURCE  /* For NAN */
 #include <math.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <arpa/inet.h>
 #include <assert.h>
 
 #include "oml2/omlc.h"

@@ -20,9 +20,11 @@
  * THE SOFTWARE.
  *
  */
+
+#define _GNU_SOURCE  /* For NAN */
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 #include <check.h>
 
 #include "oml2/omlc.h"
