@@ -10,10 +10,12 @@
 /** \file check_liboml2_omlvalue.c
  * \brief Test OmlValue[UT] low-level manipulation functions
  */
-#include <check.h>
+
+#define _GNU_SOURCE  /* For NAN */
 #include <math.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <check.h>
 
 #include "oml2/omlc.h"
 #include "mem.h"

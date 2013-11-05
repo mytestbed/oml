@@ -11,9 +11,10 @@
  * \brief Implements a filter which sums all the samples it received over the sample period.
  */
 
+#define _GNU_SOURCE  /* For NAN */
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"

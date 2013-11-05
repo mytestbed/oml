@@ -11,10 +11,11 @@
  * \brief Tests behaviour and issues related to the text protocol.
  */
 
+#define _GNU_SOURCE  /* For NAN */
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <math.h>
 #include <check.h>
 #include <sqlite3.h>
 #include <libgen.h>

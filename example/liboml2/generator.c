@@ -3,6 +3,7 @@
  * for generator version 1.0.0.
  * Please edit to suit your needs; the run() function should contain application code.
  */
+#define _GNU_SOURCE  /* For NAN, M_PI */
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>

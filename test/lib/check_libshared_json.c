@@ -8,9 +8,10 @@
  * in the License.
  */
 
-#include <check.h>
+#define _GNU_SOURCE  /* For NAN */
 #include <math.h>
 #include <string.h>
+#include <check.h>
 
 #include "json.h"
 #include "mem.h"

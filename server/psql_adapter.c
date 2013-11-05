@@ -11,6 +11,9 @@
 /** \file psql_adapter.c
  * \brief Adapter code for the PostgreSQL database backend.
  */
+
+#define _GNU_SOURCE  /* For NAN */
+#include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,7 +22,6 @@
 #include <time.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
-#include <math.h>
 
 #include "ocomm/o_log.h"
 #include "mem.h"

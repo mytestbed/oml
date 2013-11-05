@@ -822,7 +822,8 @@ class AppDefinition
 extern "C" {
 #endif
 
-/* Define HUGE etc.. */
+/* Define HUGE, etc.. */
+#define _GNU_SOURCE
 #include <math.h>
 /* Get size_t and NULL from <stddef.h> */
 #include <stddef.h>
