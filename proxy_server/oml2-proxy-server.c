@@ -345,7 +345,7 @@ main(int argc, const char *argv[])
   prepare_stdin(NULL);
 
   eventloop_init();
-  session = (Session*) malloc(sizeof(Session));
+  session = (Session*)oml_malloc(sizeof(Session));
   memset(session, 0, sizeof(Session));
 
   session->state = ProxyState_PAUSED;
@@ -365,6 +365,7 @@ main(int argc, const char *argv[])
 
   socket_free(serverSock);
   socket_free(controlSock);
+  oml_free(session);
 
   return ret;
 }
