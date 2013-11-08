@@ -198,6 +198,7 @@ they are built from this same source tree, it might be easier to install
 them directly from the language-specific module repositories.
 * Python: OML4Py [oml4py];
 * Ruby: OML4R [oml4r];
+* Java: OML4J [oml4j], maintained by NITLab [nitlab];
 
 Using the Proxy Server
 ----------------------
@@ -323,6 +324,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 [oml-git]: git://git.mytestbed.net/oml.git
 [oml4py]: http://pypi.python.org/pypi/oml4py/
 [oml4r]: https://rubygems.org/gems/oml4r/
+[oml4j]: https://github.com/NitLab/oml4j
+[nitlab]: http://nitlab.inf.uth.gr/
 [aur]: https://aur.archlinux.org/
 [aur-yaourt]: https://aur.archlinux.org/packages/yaourt/
 [aur-oml2]: https://aur.archlinux.org/packages/oml2/
