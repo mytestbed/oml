@@ -256,7 +256,12 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
     name = getenv("OML_NAME");
   }
   if (domain == NULL) {
-    domain = getenv("OML_EXP_ID");
+    if(!(domain = getenv("OML_DOMAIN"))) {
+      if ((domain= getenv("OML_EXP_ID"))) {
+        logwarn("Enviromnent variable OML_EXP_ID is getting deprecated; please use 'OML_DOMAIN=\"%s\"' instead\n",
+            domain);
+      }
+    }
   }
   if (config_file == NULL) {
     config_file = getenv("OML_CONFIG");
