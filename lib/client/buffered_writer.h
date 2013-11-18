@@ -19,14 +19,14 @@
 
 typedef void* BufferedWriterHdl;
 
-BufferedWriterHdl bw_create(OmlOutStream* outStream, long queueCapacity, long chunkSize);
+BufferedWriterHdl bw_create(OmlOutStream* outStream, long queueCapacity, long chainSize);
 
 void bw_close(BufferedWriterHdl instance);
 
-int bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size);
-int _bw_push(BufferedWriterHdl instance, uint8_t* chunk, size_t size);
-int bw_push_meta(BufferedWriterHdl instance, uint8_t* chunk, size_t size);
-int _bw_push_meta(BufferedWriterHdl instance, uint8_t* chunk, size_t size);
+int bw_push(BufferedWriterHdl instance, uint8_t* data, size_t size);
+int _bw_push(BufferedWriterHdl instance, uint8_t* data, size_t size);
+int bw_push_meta(BufferedWriterHdl instance, uint8_t* data, size_t size);
+int _bw_push_meta(BufferedWriterHdl instance, uint8_t* data, size_t size);
 
 MBuffer* bw_get_write_buf(BufferedWriterHdl instance, int exclusive);
 
