@@ -29,6 +29,9 @@ linkoml:omlc_add_mp[3]. If linkoml:omlc_inject[3] is called prior to the
 start of measurement sampling, it will be ignored.  Measurement sampling
 is initiated by a call to linkoml:omlc_start[3].
 
+METADATA
+--------
+
 The client library can also inject metadata which doesn't quite fit in
 the defined measurement points, or occurs too seldom to justify creating
 a new one. Example metadata includes ancillary information about the
@@ -72,6 +75,15 @@ linkomlalias:oml_register_mps[liboml2,3]).
 The injection helpers (see linkomlalias:oml_inject_MPNAME[liboml2,3])
 offer C-functions with typed argument, and map them internally to
 'OmlValueU' before calling *omlc_inject*().
+
+MANUALLY INJECTING SAMPLES
+--------------------------
+
+In some cases (mostly when defining MPs dynamically at run time), it is
+not possible to use injection helpers (see
+link:#_an_important_note_on_the_goodness_of_generated_code[previous
+section]). Only in these cases is it justified to use 'omlc_inject'
+directly. This is described here.
 
 The 'mp' parameter must be an MP handle returned by a call
 to linkoml:omlc_add_mp[3]. The 'values' array must contain values whose
