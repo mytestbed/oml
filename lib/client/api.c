@@ -108,6 +108,7 @@
 #include "client.h"
 
 static void omlc_ms_process(OmlMStream* ms);
+static int omlc_inject_client_instr(uint32_t measurements_injected, uint32_t measurements_dropped, uint64_t bytes_allocated, uint64_t bytes_freed, uint64_t bytes_in_use, uint64_t bytes_max);
 
 extern OmlMP* schema0;
 
@@ -138,7 +139,10 @@ omlc_process(OmlMP *mp, OmlValueU *values)
  * The content of values is deep-copied into the MSs' storage, so values can be
  * directly freed/reused when inject returns.
  *
- * \see omlc_add_mp, omlc_ms_process, oml_value_set
+ * This function might call omlc_inject_client_instr which in turns calls
+ * omlc_inject. We make sure not to loop.
+ *
+ * \see omlc_add_mp, omlc_ms_process, oml_value_set, omlc_inject_client_instr
  */
 int
 omlc_inject(OmlMP *mp, OmlValueU *values)
@@ -186,16 +190,8 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
     time_t now;
     time(&now);
     if(omlc_instance->instr_time + omlc_instance->instr_interval <= now) {
-      OmlValueU values[6];
-      omlc_zero_array(values, 6);
-      omlc_set_uint32(values[0], written);
-      omlc_set_uint32(values[1], dropped);
-      omlc_set_uint64(values[2], xmemnew());
-      omlc_set_uint64(values[3], xmemfreed());
-      omlc_set_uint64(values[4], xmembytes());
-      omlc_set_uint64(values[5], xmaxbytes());
-      omlc_inject(omlc_instance->client_instr, values);
-      omlc_instance->instr_time = now;
+      omlc_instance->instr_time = now; /* Make sure we don't loop */
+      omlc_inject_client_instr(written, dropped, xmemnew(), xmemfreed(), xmembytes(), xmaxbytes());
     }
   }
 
@@ -269,6 +265,33 @@ omlc_inject_metadata(OmlMP *mp, const char *key, const OmlValueU *value, OmlValu
   }
 
   return ret;
+}
+
+/** Inject a sample in the client instrumentation MP.
+ *
+ * \param measurements_injected number of bytes sucessfully written
+ * \param measurements_dropped number of bytes dropped
+ * \param bytes_allocated number of bytes ever allocated
+ * \param bytes_freed number of previously allocated bytes freed
+ * \param bytes_in_use number of bytes currently allocated
+ * \param bytes_max total number of bytes allocated
+ * \return 0 on success, -1 otherwise
+ *
+ * \see omlc_inject
+ */
+static int
+omlc_inject_client_instr(uint32_t measurements_injected, uint32_t measurements_dropped,
+    uint64_t bytes_allocated, uint64_t bytes_freed, uint64_t bytes_in_use, uint64_t bytes_max)
+{
+  OmlValueU values[6];
+  omlc_zero_array(values, 6);
+  omlc_set_uint32(values[0], measurements_injected);
+  omlc_set_uint32(values[1], measurements_dropped);
+  omlc_set_uint64(values[2], bytes_allocated);
+  omlc_set_uint64(values[3], bytes_freed);
+  omlc_set_uint64(values[4], bytes_in_use);
+  omlc_set_uint64(values[5], bytes_max);
+  return omlc_inject(omlc_instance->client_instr, values);
 }
 
 /** Called when the particular MS has been filled.
