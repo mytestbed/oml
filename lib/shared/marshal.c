@@ -577,7 +577,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     buf[0] = LONG_T;
     memcpy(&buf[1], &nv, sizeof (nv));
 
-    logdebug("Marshalling long %ld\n", nv);
+    o_log(O_LOG_DEBUG3, "Marshalling long %ld\n", nv);
     int result = mbuf_write (mbuf, buf, LENGTH (buf));
     if (result == -1) {
       logerror("Failed to marshal OML_LONG_VALUE (mbuf_write())\n");
@@ -602,12 +602,12 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
       uv32 = omlc_get_uint32(*val);
       nv32 = htonl(uv32);
       p_nv = (uint8_t*)&nv32;
-      logdebug("Marshalling %s %" PRIu32 "\n", oml_type_to_s(val_type), uv32);
+      o_log(O_LOG_DEBUG3, "Marshalling %s %" PRIu32 "\n", oml_type_to_s(val_type), uv32);
     } else {
       uv64 = omlc_get_uint64(*val);
       nv64 = htonll(uv64);
       p_nv = (uint8_t*)&nv64;
-      logdebug("Marshalling %s %" PRIu64 "\n", oml_type_to_s(val_type), uv64);
+      o_log(O_LOG_DEBUG3, "Marshalling %s %" PRIu64 "\n", oml_type_to_s(val_type), uv64);
     }
 
     buf[0] = oml_type_map[val_type];
@@ -629,7 +629,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     int exp;
     double mant = frexp(v, &exp);
     int8_t nexp = (int8_t)exp;
-    logdebug("Marshalling double %f\n", v);
+    o_log(O_LOG_DEBUG3, "Marshalling double %f\n", v);
     if (isnan(v)) {
       type = DOUBLE_NAN;
       nexp = 0;
@@ -671,7 +671,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
      len = STRING_T_MAX_SIZE;
    }
 
-   logdebug("Marshalling string '%s' of length %d\n", str, len);
+   o_log(O_LOG_DEBUG3, "Marshalling string '%s' of length %d\n", str, len);
    uint8_t buf[2] = { STRING_T, (uint8_t)(len & 0xff) };
    int result = mbuf_write (mbuf, buf, LENGTH (buf));
    if (result == -1) {
@@ -703,7 +703,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
    size_t n_length = htonl (length);
    memcpy (&buf[1], &n_length, 4);
 
-   logdebug("Marshalling blob of size %d\n", length);
+   o_log(O_LOG_DEBUG3, "Marshalling blob of size %d\n", length);
    result = mbuf_write (mbuf, buf, sizeof (buf));
 
    if (result == -1) {
