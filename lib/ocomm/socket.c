@@ -136,6 +136,7 @@ socket_initialize(const char* name)
   const char* sock_name = (name != NULL)?name:"UNKNOWN";
   SocketInt* self = (SocketInt *)oml_malloc(sizeof(SocketInt));
   memset(self, 0, sizeof(SocketInt));
+  self->sockfd = -1;
 
   self->name = oml_strndup(sock_name, strlen(sock_name));
 
