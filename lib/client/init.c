@@ -258,7 +258,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   if (domain == NULL) {
     if(!(domain = getenv("OML_DOMAIN"))) {
       if ((domain= getenv("OML_EXP_ID"))) {
-        logwarn("Enviromnent variable OML_EXP_ID is getting deprecated; please use 'OML_DOMAIN=\"%s\"' instead\n",
+        logwarn("Environment variable OML_EXP_ID is getting deprecated; please use 'OML_DOMAIN=\"%s\"' instead\n",
             domain);
       }
     }
@@ -269,7 +269,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   if (local_data_file == NULL && collection_uri == NULL) {
     if(!(collection_uri = getenv("OML_COLLECT"))) {
       if ((collection_uri = getenv("OML_SERVER"))) {
-        logwarn("Enviromnent variable OML_SERVER is getting deprecated; please use 'OML_COLLECT=\"%s\"' instead\n",
+        logwarn("Environment variable OML_SERVER is getting deprecated; please use 'OML_COLLECT=\"%s\"' instead\n",
             collection_uri);
       }
     }
