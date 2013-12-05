@@ -309,7 +309,6 @@ This field will record 64-bit unsigned integer data.
 This field will record floating point data in C 'double' format.
 ':float' and ':real' are deprecated synonyms.
 
-
 *:string*::
 This field will record string data.
 
@@ -323,6 +322,24 @@ linkomlalias:omlc_guid_generate[liboml2,3] for more details.
 
 *:boolean*::
 This field will record a boolean value.
+
+*:vector_int32*::
+This field will hold a vector of 32-bit signed integer values.
+
+*:vector_uint32*::
+This field will hold a vector of 32-bit unsigned integer values.
+
+*:vector_int64*::
+This field will hold a vector of 64-bit signed integer values.
+
+*:vector_uint64*::
+This field will hold a vector of 64-bit unsigned integer values.
+
+*:vector_double*::
+This field will hold a vector of C 'double' values.
+
+*:vector_bool*::
+This field will hold a vector of C 'bool' values.
 
 The integer types ':int32', ':uint32' ':int64', and ':uint64' are
 implemented in the application as the corresponding types from
