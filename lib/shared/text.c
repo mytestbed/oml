@@ -51,7 +51,10 @@
  * - booleans are encoded as any case-insensitive stem of FALSE or TRUE (e.g.,
  *   `fAL`, `trUe`, but generally `F` and `T` will suffice), being respectively
  *   False or True; any other value is considered True, *including '0'* (V>=4);
- * - vectors are encoded as XXX see #1506 (V>=5).
+ * - vectors are encoded as a *space-separated* list in which the
+ *   first element is the size of the vector followed by the vector
+ *   elements themselves. Each vector entry is encoded according to
+ *   its type as above. (V>=5).
  *
  * \subsection omsptextexample Example
  *

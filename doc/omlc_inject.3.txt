@@ -23,7 +23,7 @@ the library, with a fixed schema describing the tuples to be reported
 through each MP. At run-time, the injected data is serialised as a
 'Measurement Stream' (MS), and sent towards a collection point.
 
-*omlc_inject*() takes a vector of values and injects them as a
+*omlc_inject*() takes an array of values and injects them as a
 measurement sample into an MP previously defined via a call to
 linkoml:omlc_add_mp[3]. If linkoml:omlc_inject[3] is called prior to the
 start of measurement sampling, it will be ignored.  Measurement sampling
@@ -89,7 +89,7 @@ The 'mp' parameter must be an MP handle returned by a call
 to linkoml:omlc_add_mp[3]. The 'values' array must contain values whose
 number and types correspond to the types declared for the MP tuple in
 the call to linkoml:omlc_add_mp[3]. The convenience macros *omlc_set_**()
-should be used to set up the values vector.
+should be used to set up the values array.
 
 For instance, suppose the following MP definition:
 
@@ -101,6 +101,7 @@ OmlMPDef mp_def [] =
   { "length", OML_UINT32_VALUE },
   { "weight", OML_DOUBLE_VALUE },
   { "protocol", OML_STRING_VALUE },
+  { "txrates", OML_VECTOR_UINT32_VALUE },
   { NULL, (OmlValueT)0 } /* Sentinel value */
 };
 ----
@@ -109,9 +110,9 @@ OmlMPDef mp_def [] =
 
 To inject a measurement sample into this MP, the programmer must first
 declare an 'OmlValueU' array with the right number of elements, in
-this case five (the sentinel value is only needed when declaring the
+this case six (the sentinel value is only needed when declaring the
 MP to linkoml:omlc_add_mp[3], it doesn't play any further part).  Then, call
-the value setting macros to load new values into the vector, and
+the value setting macros to load new values into the array, and
 finally pass the array to *omlc_inject*():
 
 ----
@@ -128,23 +129,27 @@ uint32_t destination_id;
 uint32_t packet_length;
 double weight;
 char *protocol;
+double txrates[16];
+size_t txrates_sz = sizeof(txrates) / sizeof(txrates[0]);
 
 /* Some application-specific code to obtain new values for the variables above */
 
 ...
 
-OmlValueU values[5];
+OmlValueU values[6];
 
-omlc_zero_array(values, 5);
+omlc_zero_array(values, 6);
 
 omlc_set_uint32 (values[0], source_id);
 omlc_set_uint32 (values[1], destination_id);
 omlc_set_uint32 (values[2], packet_length);
 omlc_set_double (values[3], weight);
 omlc_set_string (values[4], protocol);
+omlc_set_vector_double (values[5], txrates, txrates_sz);
 
 omlc_inject (mp, values);
 
+omlc_reset_vector(values[5]);
 omlc_reset_string(values[4]);
 ----
 
@@ -158,7 +163,7 @@ past the end of the array. Similarly, the types of the values must be
 as declared, and in the same order in the array as specified for the
 MP tuple definition. This is particularly important for strings.
 
-The values vector should be considered "write-only" and should only be
+The values array should be considered "write-only" and should only be
 manipulated using the value-setting macros, see linkoml:OmlValueU[3] for
 information on supported data types and there accessors.
 

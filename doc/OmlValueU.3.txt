@@ -30,6 +30,15 @@ SYNOPSIS
 'void'   *omlc_set_blob*('OmlValueU' value, 'char*' stringval, 'size_t' len); +
 'void'   *omlc_copy_blob*('OmlValueU' dst, 'OmlValueU' src); +
 'void'   *omlc_reset_blob*('OmlValueU' var); +
+[verse]
+'void'   *omlc_set_vector_double*('OmlValueU' value, 'double[]' doubleptr, 'size_t' nof_elts) \
+'void'   *omlc_set_vector_int32*('OmlValueU' value, 'int32_t[]' int32ptr, 'size_t' nof_elts) \
+'void'   *omlc_set_vector_uint32*('OmlValueU' value, 'uint32_t[]' uint32ptr, 'size_t' nof_elts) \
+'void'   *omlc_set_vector_int64*('OmlValueU' value, 'int64_t[]' int64ptr, 'size_t' nof_elts) \
+'void'   *omlc_set_vector_uint64*('OmlValueU' value, 'uint64_t[]' uint64ptr, 'size_t' nof_elts) \
+'void'   *omlc_set_vector_bool*('OmlValueU' value, 'bool[]' boolptr, 'size_t' nof_elts) \
+'void'   *omlc_copy_vector*('OmlValueU' dst, 'OmlValueU' src) \
+
 
 DESCRIPTION
 -----------
@@ -81,6 +90,14 @@ The 'blob' variant is for storing arbitrary binary data. The data is
 copied in a dynamically allocated memory buffer. To avoid memory leaks,
 'omlc_reset_blob' must be used on an 'OmlValueU' which last contained
 blobs prior to reusing them for other types.
+
+The 'vector' variants are used to assign a variable-sized vector of
+primitive values (of types (u)int{32,64}_t, double and bool) to a
+single 'OmlValueU'. The vector is specified by passing a pointer to
+the base element and the number of elements that the vector
+contains. To avoid memory leaks, it is advised to use
+'omlc_reset_vector' on an 'OmlValueU' which last contained a vector
+prior to reusing them for other types.
 
 The 'copy_*' variants do a deep copy of the 'OmlValueU' of the relevant
 type, duplicating the stored data in a dynamically allocated memory
