@@ -162,11 +162,11 @@ role. It should match that passed to *--pg-pass* below.
 	PostgreSQL connection API with the user name and database name
 	appended.  For instance, for an experiment named "myexp" and
 	*--pg-user=oml2*, a conninfo string of
-	"host=postgres.mycompany.com password=secret" will result in the
+	"host=postgres.example.net password=secret" will result in the
 	following being passed to the server:
 +
 --------------------------
-  host=postgres.mycompany.com password=secret user=oml2
+  host=postgres.example.net password=secret user=oml2
 --------------------------
 +
 Though parameters which have specific *--pg-* options can be passed
@@ -179,7 +179,7 @@ make things difficult. A workaround is to wrap the entire argument in quotes,
 that is:
 +
 --------------------------
-  oml2-server --pg-user=oml2 "--pg-connect=host=postgres.mycompany.com password=secret"
+  oml2-server --pg-user=oml2 "--pg-connect=host=postgres.example.net password=secret"
 --------------------------
 endif::have_pg[]
 
