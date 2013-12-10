@@ -1,4 +1,5 @@
-/** Copyright 2007-2013 National ICT Australia Limited (NICTA)
+/*
+ * Copyright 2007-2013 National ICT Australia Limited (NICTA)
  *
  * This software may be used and distributed solely under the terms of the MIT
  * license (License).  You should find a copy of the License in COPYING or at
@@ -74,7 +75,7 @@
  * \subsection omspschemaexample Example
  *
  *    1 generator_sin label:string phase:double value:double
- *    2 generator_lin label:string counter:long
+ *    2 generator_lin label:string counter:uint64
  *
  * \subsection schema0 Schema 0 (OMSP V>=4)
  *
