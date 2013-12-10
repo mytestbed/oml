@@ -56,7 +56,7 @@ typedef struct OmlBinWriter {
    */
 
   /** Buffered writer into which the serialised data is written */
-  BufferedWriterHdl bufferedWriter;
+  BufferedWriter* bufferedWriter;
   /** Currently active MBuffer of the bufferedWriter chain */
   MBuffer* mbuf;
 

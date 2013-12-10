@@ -17,20 +17,20 @@
 #include "mbuf.h"
 #include "oml2/oml_out_stream.h"
 
-typedef void* BufferedWriterHdl;
+typedef struct BufferedWriter BufferedWriter;
 
-BufferedWriterHdl bw_create(OmlOutStream* outStream, long queueCapacity, long chainSize);
+BufferedWriter* bw_create(OmlOutStream* outStream, long queueCapacity, long chainSize);
 
-void bw_close(BufferedWriterHdl instance);
+void bw_close(BufferedWriter* instance);
 
-int bw_push(BufferedWriterHdl instance, uint8_t* data, size_t size);
-int _bw_push(BufferedWriterHdl instance, uint8_t* data, size_t size);
-int bw_push_meta(BufferedWriterHdl instance, uint8_t* data, size_t size);
-int _bw_push_meta(BufferedWriterHdl instance, uint8_t* data, size_t size);
+int bw_push(BufferedWriter* instance, uint8_t* data, size_t size);
+int _bw_push(BufferedWriter* instance, uint8_t* data, size_t size);
+int bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size);
+int _bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size);
 
-MBuffer* bw_get_write_buf(BufferedWriterHdl instance, int exclusive);
+MBuffer* bw_get_write_buf(BufferedWriter* instance, int exclusive);
 
-void bw_unlock_buf(BufferedWriterHdl instance);
+void bw_unlock_buf(BufferedWriter* instance);
 
 #endif // OML_BUFFERED_WRITER_H_
 

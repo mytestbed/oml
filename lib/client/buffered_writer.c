@@ -96,7 +96,7 @@ static int processChunk(BufferedWriter* self, BufferChunk* chunk);
  *
  * \see DEF_CHAIN_BUFFER_SIZE
  */
-BufferedWriterHdl
+BufferedWriter*
 bw_create(OmlOutStream* outStream, long  queueCapacity, long chunkSize)
 {
   long nchunks;
@@ -146,7 +146,7 @@ bw_create(OmlOutStream* outStream, long  queueCapacity, long chunkSize)
     }
   }
 
-  return (BufferedWriterHdl)self;
+  return (BufferedWriter*)self;
 }
 
 /** Close an output stream and destroy the objects.
@@ -154,7 +154,7 @@ bw_create(OmlOutStream* outStream, long  queueCapacity, long chunkSize)
  * \param instance handle (i.e., pointer) to a BufferedWriter
  */
 void
-bw_close(BufferedWriterHdl instance)
+bw_close(BufferedWriter* instance)
 {
   BufferedWriter *self = (BufferedWriter*)instance;
 
@@ -203,7 +203,7 @@ bw_close(BufferedWriterHdl instance)
  * \see _bw_push
  */
 int
-bw_push(BufferedWriterHdl instance, uint8_t *data, size_t size)
+bw_push(BufferedWriter* instance, uint8_t *data, size_t size)
 {
   int result = 0;
   BufferedWriter* self = (BufferedWriter*)instance;
@@ -224,7 +224,7 @@ bw_push(BufferedWriterHdl instance, uint8_t *data, size_t size)
  * \see bw_push
  */
 int
-_bw_push(BufferedWriterHdl instance, uint8_t* data, size_t size)
+_bw_push(BufferedWriter* instance, uint8_t* data, size_t size)
 {
   BufferedWriter* self = (BufferedWriter*)instance;
   if (!self->active) { return 0; }
@@ -258,7 +258,7 @@ _bw_push(BufferedWriterHdl instance, uint8_t* data, size_t size)
  * \see _bw_push_meta
  */
 int
-bw_push_meta(BufferedWriterHdl instance, uint8_t* data, size_t size)
+bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size)
 {
   int result = 0;
   BufferedWriter* self = (BufferedWriter*)instance;
@@ -280,7 +280,7 @@ bw_push_meta(BufferedWriterHdl instance, uint8_t* data, size_t size)
  *
  */
 int
-_bw_push_meta(BufferedWriterHdl instance, uint8_t* data, size_t size)
+_bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size)
 {
   BufferedWriter* self = (BufferedWriter*)instance;
   int result = 0;
@@ -310,7 +310,7 @@ _bw_push_meta(BufferedWriterHdl instance, uint8_t* data, size_t size)
  * \see bw_unlock_buf
  */
 MBuffer*
-bw_get_write_buf(BufferedWriterHdl instance, int exclusive)
+bw_get_write_buf(BufferedWriter* instance, int exclusive)
 {
   BufferedWriter* self = (BufferedWriter*)instance;
   if (oml_lock(&self->lock, __FUNCTION__)) { return 0; }
@@ -337,7 +337,7 @@ bw_get_write_buf(BufferedWriterHdl instance, int exclusive)
  * \see bw_get_write_buf
  */
 void
-bw_unlock_buf(BufferedWriterHdl instance)
+bw_unlock_buf(BufferedWriter* instance)
 {
   BufferedWriter* self = (BufferedWriter*)instance;
   pthread_cond_signal(&self->semaphore); /* assume we locked for a reason */
