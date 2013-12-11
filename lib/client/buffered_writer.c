@@ -554,11 +554,11 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
    * XXX: is this really needed? size>sent *should* be enough
    */
   mbuf_read_skip(chunk->mbuf, sent);
+  chunk->reading = 0;
   if (mbuf_write_offset(chunk->mbuf) == mbuf_read_offset(chunk->mbuf)) {
     mbuf_clear2(chunk->mbuf, 1);
     return 1;
   }
-  chunk->reading = 0;
   return 0;
 }
 
