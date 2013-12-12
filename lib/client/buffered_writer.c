@@ -344,7 +344,7 @@ bw_unlock_buf(BufferedWriterHdl instance)
   oml_unlock(&self->lock, __FUNCTION__);
 }
 
-/** Find the next empty write chunk, sets self->writeChunk to it and returns it.
+/** Find the next empty write chunk, sets self->writerChunk to it and returns it.
  *
  * We only use the next one if it is empty. If not, we essentially just filled
  * up the last chunk and wrapped around to the socket reader. In that case, we
@@ -352,7 +352,7 @@ bw_unlock_buf(BufferedWriterHdl instance)
  * the data from the current one.
  *
  * This assumes that the current thread holds the self->lock and the lock on
- * the self->writeChunk.
+ * the self->writerChunk.
  *
  * \param self BufferedWriter pointer
  * \param current BufferChunk to use or from which to find the next
