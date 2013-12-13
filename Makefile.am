@@ -3,7 +3,8 @@ ACLOCAL_AMFLAGS = -I m4
 # We need to build ruby early on to have oml2-scaffold
 SUBDIRS = gnulib lib ruby server proxy_server doc example test
 
-EXTRA_DIST = autogen.sh \
+EXTRA_DIST = README.md \
+	     autogen.sh \
 	     autoclean.sh \
 	     m4/gnulib-cache.m4 \
 	     $(top_srcdir)/.version \
