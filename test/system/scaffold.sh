@@ -59,7 +59,7 @@ tap_test "build generated application" yes make -e
 
 testrun()
 {
-	($TIMEOUT -s INT 5 \
+	($TIMEOUT -k 10s -s INT 5 \
 		./$APPNAME --oml-id genid --oml-domain gendomain --oml-collect file:- \
 		|| test $? = 124) \
 		&& return 0

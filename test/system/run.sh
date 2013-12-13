@@ -185,7 +185,7 @@ server_pid=`startdaemon ${dir}/server.log "EventLoop" ${top_builddir}/server/oml
 # Start client
 cd ${dir}
 if [ ! -z "${TIMEOUT}" ]; then
-	TIMEOUT="${TIMEOUT} 30s"
+	TIMEOUT="${TIMEOUT} -k 10s 30s"
 else
 	echo "# $0: timeout(1) utility not found; this test might hang indefinitely" >&2
 fi

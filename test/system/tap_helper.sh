@@ -43,12 +43,14 @@ tap_test()
 	tested=$((tested + 1))
 	echo "$ $CMD" >> $LOG
 	$CMD >> $LOG 2>&1
-	if [ x$? = x0 ]; then
+	ret=$?
+	if [ x$ret = x0 ]; then
 		echo "ok $tested - $DESC"
 
 	elif [ x$FATAL = xno ]; then
 		echo "not ok $tested - cannot $DESC"
 		failed=$((failed + 1))
+		return $ret
 
 	else
 		echo "Bail out! - cannot $DESC; check $LOG"

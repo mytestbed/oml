@@ -8,7 +8,46 @@
  * in the License.
  */
 /** \file mbuf.c
- * \brief Managed buffer (MBuffer) abstraction providing functions for reading, writing and memory resizing used to hold a message.
+ *
+ * \brief Managed buffer (MBuffer) abstraction providing functions for reading,
+ * writing and memory resizing used to hold a message.
+ *
+ * An MBuffer is an auto-expanding chunk of memory, with various pointers for
+ * writing, reading, and composing a message (e.g., packet) in multiple calls.
+ * Several functions rely on these pointers, as illustrated below.
+ *
+ *     ¦< - - - - - - - - - mbuf_length(); length - - - - - - - - - - >¦
+ *     ¦                                                               ¦
+ *     ¦                 mbuf_message_length()                         ¦
+ *     ¦                      ¦< - - - >¦                              ¦
+ *     ¦                      ¦         ¦                              ¦
+ *     ¦< - - - - mbuf_fill()-¦- - - - >¦                              ¦
+ *     mbuf_fill_excluding_msg()        ¦                              ¦
+ *     ¦< - - - - - - - - - ->¦         ¦                              ¦
+ *     ¦                      ¦         ¦                              ¦
+ *     ¦              mbuf_rd_remaining()                              ¦
+ *     ¦              ¦< - - -¦- - - - >¦< - - mbuf_wr_remaining() - ->¦
+ *     +--------------+-------+---------+------------------------------+
+ *     |rrrrrrrrrrrrrrRRRRRRRRMMMMMMMMMM...............................|
+ *     +--------------+-------+---------+------------------------------+
+ *      ^             ^       ^         ^
+ *      |- - - - - - -|- - - -|- - - -> | mbuf_write_offset()
+ *      |             |       |         `- mbuf_wrptr()
+ *      |             |       |
+ *      |- - - - - - -|- - - >| mbuf_message_offset()
+ *      |             |       |- mbuf_message()
+ *      |             |       |
+ *      |             |- - - >| mbuf_message_index()
+ *      |- - - - - - >| mbuf_read_offset()
+ *      |             `- mbuf_rdptr()
+ *      |
+ *      `- mbuf_buffer()
+ *
+ *    Legend:
+ *      r: data already read              R: data to be read
+ *      .: data which can be overwritten  M: already written data for the current message
+ *
+ * XXX: The message can be currently read or written, with no clear distinction.
  */
 #include <stdio.h>
 #include <stdlib.h>
