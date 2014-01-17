@@ -1,13 +1,14 @@
-Reporting Bugs
-~~~~~~~~~~~~~~
+If a problem you are experiencing is not addressed in the FAQ
+(http://oml.mytestbed.net/projects/oml/wiki/FAQ_and_Support) nor already
+present in the list of know bugs
+(http://oml.mytestbed.net/projects/oml/issues). You could discuss it on
+the mailing list (details and archives at
+http://oml.mytestbed.net/tab/show?id=oml).
 
-To report a bug, please email our support contacts listed here:
-http://oml.mytestbed.net/projects/oml/wiki/FAQ_and_Support
-
-Known Bugs
-~~~~~~~~~~
-
-For all known outstanding bugs, please consult
-http://oml.mytestbed.net/projects/oml/issues
+It is however advisable to open a ticket on our issue tracker at
+http://oml.mytestbed.net/projects/oml/issues/new. Don't forget to
+include details such as client and server logs (at '[--oml-log-level|-d]
+2'). It also helps if you can share the source code of a (minimal, if
+possible) example reliably triggering the problem.
 
 // vim: ft=asciidoc:tw=72

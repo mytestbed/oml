@@ -277,10 +277,6 @@ Log an information message reporting the status of its allocated memory
 SIGINT & SIGTERM::
 Gracefully terminate, emptying the buffers and closing client connections.
 
-BUGS
-----
-include::bugs.txt[]
-
 SECURITY CONSIDERATIONS
 -----------------------
 
@@ -302,6 +298,10 @@ everybody. Moreover, after replacement, the length of the password is
 still obvious when using *--pg-pass*. Finally, sometimes this just
 doesn't work.
 endif::have_pg[]
+
+BUGS
+----
+include::bugs.txt[]
 
 SEE ALSO
 --------
