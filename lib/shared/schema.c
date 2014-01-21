@@ -31,13 +31,16 @@
  * - `bool` (V>=4)
  * - `guid` (V>=4)
  *
+ * OMSP also supports vector types (V>=5), in the form `[t]` where t is any
+ * valid type except for string, blob, or guid.
+ *
  * Additionally, some deprecated values are kept for backwards compatibility,
  * and interpreted in the latest version as indicated. They should not be used
  * in new implementations.
  * - `int` (V<2, mapped to `int32` in V>=3)
  * - `integer` (V<2, mapped to `int32` in V>=3)
  * - `long` (V<2, clamped and mapped to `int32` in V>=3)
- * - `float` (V<2, mapped to `double` in V>=3)
+ * - `float` and `real` (V<2, mapped to `double` in V>=3)
  *
  * A full schema also has a name, prepended to its definition and separated by
  * a space. This must consist of only alpha-numeric characters and underscores
@@ -55,9 +58,11 @@
  *     field-definition = field-name ":" oml-type
  *
  *     field-name = 1*letter-or-decimal-or-underscore
- *     oml-type = current-oml-type / deprecated-oml-type
+ *     oml-type = current-oml-type / vector-type / deprecated-oml-type
  *
- *     current-oml-type = "int32" / "uint32" / "int64" / "uint64" / "double" / "string" / "blob" / "guid" / "bool" / "guid"
+ *     current-oml-type = vectorisable-oml-type / "string" / "blob" / "guid"
+ *     vectorisable-oml-type = "int32" / "uint32" / "int64" / "uint64" / "double" / "bool" / "guid"
+ *     vector-type = "[" vectorisable-oml-type "]"
  *     deprecated-oml-type = "int" / "integer" / "long" / "float"
  *
  *     integer = 1*decimal
@@ -76,6 +81,7 @@
  *
  *    1 generator_sin label:string phase:double value:double
  *    2 generator_lin label:string counter:uint64
+ *    3 generator_spectrum label:string distribution:[uint64]
  *
  * \subsection schema0 Schema 0 (OMSP V>=4)
  *
