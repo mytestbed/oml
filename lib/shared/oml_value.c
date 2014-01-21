@@ -42,22 +42,29 @@ static struct {
   OmlValueT type;
   const char * const name;
 } type_names[] = {
-  { OML_LONG_VALUE,          "long"    },
-  { OML_INT32_VALUE,         "int32"   },
-  { OML_UINT32_VALUE,        "uint32"  },
-  { OML_INT64_VALUE,         "int64"   },
-  { OML_UINT64_VALUE,        "uint64"  },
-  { OML_DOUBLE_VALUE,        "double"  },
-  { OML_STRING_VALUE,        "string"  },
-  { OML_BLOB_VALUE,          "blob"    },
-  { OML_GUID_VALUE,          "guid"    },
-  { OML_BOOL_VALUE,          "bool"    },
+  { OML_INT32_VALUE,         "int32"    },
+  { OML_UINT32_VALUE,        "uint32"   },
+  { OML_INT64_VALUE,         "int64"    },
+  { OML_UINT64_VALUE,        "uint64"   },
+  { OML_DOUBLE_VALUE,        "double"   },
+  { OML_STRING_VALUE,        "string"   },
+  { OML_BLOB_VALUE,          "blob"     },
+  { OML_GUID_VALUE,          "guid"     },
+  { OML_BOOL_VALUE,          "bool"     },
+
+  /* Vector types */
   { OML_VECTOR_DOUBLE_VALUE, "[double]" },
   { OML_VECTOR_INT32_VALUE,  "[int32]"  },
   { OML_VECTOR_UINT32_VALUE, "[uint32]" },
   { OML_VECTOR_INT64_VALUE,  "[int64]"  },
   { OML_VECTOR_UINT64_VALUE, "[uint64]" },
   { OML_VECTOR_BOOL_VALUE,   "[bool]"   },
+
+  /* Deprecated types */
+  { OML_INT32_VALUE,         "integer"  },
+  { OML_LONG_VALUE,          "long"     },
+  { OML_DOUBLE_VALUE,        "real"     },
+  { OML_DOUBLE_VALUE,        "float"    },
 };
 
 /** Initialise one OmlValues.

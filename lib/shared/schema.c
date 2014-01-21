@@ -132,6 +132,7 @@ int
 schema_field_from_meta (const char *meta, size_t len, struct schema_field *field)
 {
   char *type = NULL;
+  memset(field, 0, sizeof(struct schema_field));
   const char *p = meta, *q = (char*)find_charn (p, ':', len);
   if (!q) {
     return -1;
@@ -150,11 +151,11 @@ schema_field_from_meta (const char *meta, size_t len, struct schema_field *field
   oml_free (type);
   return 0;
  exit:
-  if (!field->name) {
+  if (field->name) {
     oml_free (field->name);
     field->name = NULL;
   }
-  if (!type) { oml_free (type); }
+  if (type) { oml_free (type); }
   return -1;
 }
 
