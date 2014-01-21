@@ -89,6 +89,39 @@ static struct {
   { "not-a-header : with a value", { H_NONE, NULL, NULL }, 1, 1 },
 };
 
+/*
+ * Used by: test_schema_field_from_meta
+ * Tests support for all current and deprecated types.
+ */
+static struct {
+  char *type ;
+  OmlValueT expected;
+} meta_types [] = {
+  /* Deprecated types */
+  { "integer", OML_INT32_VALUE },
+  { "long", OML_INT32_VALUE },
+  { "float", OML_DOUBLE_VALUE },
+  { "real", OML_DOUBLE_VALUE },
+
+  /* Current types */
+  { "int32", OML_INT32_VALUE },
+  { "uint32", OML_UINT32_VALUE },
+  { "int64", OML_INT64_VALUE },
+  { "uint64", OML_UINT64_VALUE },
+  { "double", OML_DOUBLE_VALUE },
+  { "string", OML_STRING_VALUE },
+  { "blob", OML_BLOB_VALUE },
+  { "guid", OML_GUID_VALUE },
+  { "bool", OML_BOOL_VALUE },
+
+  /* Vector types */
+  { "[int32]", OML_VECTOR_INT32_VALUE },
+  { "[uint32]", OML_VECTOR_UINT32_VALUE },
+  { "[int64]", OML_VECTOR_INT64_VALUE },
+  { "[uint64]", OML_VECTOR_UINT64_VALUE },
+  { "[double]", OML_VECTOR_DOUBLE_VALUE },
+  { "[bool]", OML_VECTOR_BOOL_VALUE },
+};
 
 START_TEST (test_tag_from_string)
 {
@@ -147,6 +180,26 @@ START_TEST (test_header_from_string_short)
     fail_unless (header->value && strlen (header->value) == check_len);
     fail_unless (strncmp (header->value, expected->value, check_len) == 0);
   }
+}
+END_TEST
+
+START_TEST (test_schema_field_from_meta)
+{
+  const char *type= meta_types[_i].type;
+  const  OmlValueT expected = meta_types[_i].expected;
+  int len = strlen(type) * 2 + 2;
+  char *meta = malloc(len);
+  struct schema_field f;
+  int ret;
+
+  snprintf(meta, len, "%s:%s", type, type);
+  ret = schema_field_from_meta (meta, len, &f);
+  fail_if(ret != 0,
+      "Could not convert type %s", type);
+  fail_if(f.type != expected,
+      "Mismatch for type %s: expected %d, got %d", type, expected, f.type);
+  fail_if(strcmp(f.name, type),
+      "Field name mismatch: expected %s, got %s", type, f.name);
 }
 END_TEST
 
@@ -249,6 +302,8 @@ headers_suite (void)
                        0, LENGTH (vector_headers));
   tcase_add_loop_test (tc_header_from_string, test_header_from_string_short,
                        0, LENGTH (vector_headers));
+  tcase_add_loop_test (tc_header_from_string, test_schema_field_from_meta,
+			0, LENGTH (meta_types));
 
   tcase_add_test (tc_header_from_string, test_text_read);
   tcase_add_test (tc_header_from_string, test_bin_read);
@@ -258,3 +313,12 @@ headers_suite (void)
 
   return s;
 }
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 2
+ indent-tabs-mode: nil
+ End:
+ vim: sw=2:sts=2:expandtab
+*/
