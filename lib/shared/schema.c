@@ -629,20 +629,32 @@ schema_copy (const struct schema *schema)
 int
 schema_diff (struct schema *s1, struct schema *s2)
 {
+  int i=0, nfields = 0, diffn=0;
   if (s1 == s2) return 0;
   if (!s1 || !s2) return -1;
   if (strcmp (s1->name, s2->name)) return -1;
+
   if (s1->fields && s2->fields) {
-    if (s1->nfields != s2->nfields) return -1;
-    int i;
-    for (i = 0; i < s1->nfields; i++) {
+
+    if (s1->nfields != s2->nfields) { diffn=1; }
+    nfields = (s1->nfields<s2->nfields)?s1->nfields:s2->nfields;
+
+    for (i = 0; i < nfields; i++) {
       if (strcmp (s1->fields[i].name, s2->fields[i].name) ||
-          s1->fields[i].type != s2->fields[i].type)
+          s1->fields[i].type != s2->fields[i].type) {
         return i+1;
+      }
     }
+    if (diffn) {
+      /* The first differing field is the first one
+       * beyond the shortest schema's */
+      return nfields + 1;
+    }
+
   } else {
     return -1;
   }
+
   return 0;
 }
 

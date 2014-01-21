@@ -406,16 +406,12 @@ database_find_or_create_table(Database *database, struct schema *schema)
         return table;
 
       } else if (diff == -1) {
-        logerror ("%s: Schema error table '%s'\n", database->name, s->name);
+        logerror ("%s: Recorded schema for table '%s' does not match the client schema\n", database->name, s->name);
         logdebug (" One of the server schema %p or the client schema %p is probably NULL\n", s, table->schema);
 
       } else if (diff > 0) {
-        struct schema_field *client = &s->fields[diff-1];
-        struct schema_field *stored = &table->schema->fields[diff-1];
-        logdebug ("%s: Schema differ for table index '%s', at column %d: expected %s:%s, got %s:%s\n",
-            database->name, s->name, diff,
-            stored->name, oml_type_to_s (stored->type),
-            client->name, oml_type_to_s (client->type));
+        logdebug ("%s: Schema differ for table '%s', at or after column %d\n",
+            database->name, s->name, diff);
       }
 
       if (i == 1) {
