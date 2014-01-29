@@ -208,7 +208,7 @@ static int
 sql_stmt(PsqlDB* self, const char* stmt)
 {
   PGresult   *res;
-  logdebug("psql: Will execute '%s'\n", stmt);
+  logdebug2("psql: Will execute '%s'\n", stmt);
   res = PQexec(self->conn, stmt);
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
@@ -419,7 +419,7 @@ psql_table_create (Database *db, DbTable *table, int shallow)
   dba_reopen_transaction(db);
   res = PQdescribePrepared(psqldb->conn, mstring_buf (insert_name));
   if(PQresultStatus(res) == PGRES_COMMAND_OK) {
-    logdebug ("psql:%s: Insertion statement %s already exists\n",
+    logdebug("psql:%s: Insertion statement %s already exists\n",
         db->name, mstring_buf (insert_name));
   } else {
     PQclear(res);
@@ -914,7 +914,7 @@ psql_get_table_list (Database *database, int *num_tables)
 
       } else {
         /* If it's *not* the _senders table, get its schema from the metadata table */
-        logdebug("psql:%s:%s: Trying to find schema for table %s: %s\n",
+        logdebug2("psql:%s:%s: Trying to find schema for table %s: %s\n",
             database->name, __FUNCTION__, tablename,
             schema_stmt);
 

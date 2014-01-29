@@ -201,7 +201,7 @@ sql_stmt(Sq3DB* self, const char* stmt)
 {
   char *errmsg;
   int   ret;
-  logdebug("sqlite: Will execute '%s'\n", stmt);
+  logdebug2("sqlite: Will execute '%s'\n", stmt);
   ret = sqlite3_exec(self->conn, stmt, 0, 0, &errmsg);
 
   if (ret != SQLITE_OK) {
@@ -440,7 +440,7 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
   OmlValue* v = values;
   struct schema *schema = table->schema;
   if (schema->nfields != value_count) {
-    logerror ("sqlite:%s: Trying to insert %d values into table '%s' with %d columns\n",
+    logerror ("sqlite:%s: Failed to insert %d values into table '%s' with %d columns\n",
         db->name, value_count, table->schema->name, schema->nfields);
     sqlite3_reset (stmt);
     return -1;
@@ -848,7 +848,7 @@ sq3_get_table_list (Database *database, int *num_tables)
       } else {
         mstring_sprintf(schema_stmt_ms, schema_stmt, tablename); /* XXX: Could a prepared statement do this concatenation? */
         /* If it's *not* the _senders table, get its schema from the metadata table */
-        logdebug("sqlite:%s:%s: Trying to find schema for table %s: %s\n",
+        logdebug2("sqlite:%s:%s: Trying to find schema for table %s: %s\n",
             database->name, __FUNCTION__, tablename,
             mstring_buf(schema_stmt_ms));
 

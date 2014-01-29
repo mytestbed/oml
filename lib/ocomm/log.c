@@ -337,6 +337,42 @@ void logdebug (const char *fmt, ...) {
   va_end (va);
 }
 
+/** Convenience function logging at level O_LOG_DEBUG2.
+ *
+ * \param fmt format string
+ * \param ... format string arguments
+ */
+void logdebug2 (const char *fmt, ...) {
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_DEBUG2, fmt, va);
+  va_end (va);
+}
+
+/** Convenience function logging at level O_LOG_DEBUG3.
+ *
+ * \param fmt format string
+ * \param ... format string arguments
+ */
+void logdebug3 (const char *fmt, ...) {
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_DEBUG3, fmt, va);
+  va_end (va);
+}
+
+/** Convenience function logging at level O_LOG_DEBUG4.
+ *
+ * \param fmt format string
+ * \param ... format string arguments
+ */
+void logdebug4 (const char *fmt, ...) {
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_DEBUG4, fmt, va);
+  va_end (va);
+}
+
 /*
  Local Variables:
  mode: C

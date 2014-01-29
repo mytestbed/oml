@@ -118,6 +118,12 @@ void logwarn (const char *fmt, ...);
 void loginfo (const char *fmt, ...);
 /** Convenience function logging at level O_LOG_DEBUG. */
 void logdebug (const char *fmt, ...);
+/** Convenience function logging at level O_LOG_DEBUG2. */
+void logdebug2 (const char *fmt, ...);
+/** Convenience function logging at level O_LOG_DEBUG3. */
+void logdebug3 (const char *fmt, ...);
+/** Convenience function logging at level O_LOG_DEBUG4. */
+void logdebug4 (const char *fmt, ...);
 
 #ifdef __cplusplus
 }

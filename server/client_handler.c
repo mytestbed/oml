@@ -314,7 +314,7 @@ process_schema(ClientHandler* self, char* value)
   }
 
   int idx = schema->index;
-  logdebug("%s: New MS schema %s\n", self->name, value); /* Value contains the index */
+  loginfo("%s: New MS schema %s\n", self->name, value); /* Value contains the index */
 
   DbTable* table = database_find_or_create_table(self->database, schema);
   if (table == NULL) {
@@ -506,6 +506,7 @@ process_meta(ClientHandler* self, char* key, char* value)
     if (self->state != C_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
+
       return -1;
 
     } else {
@@ -514,6 +515,10 @@ process_meta(ClientHandler* self, char* key, char* value)
     }
 
   } else if (strcmp(key, "schema") == 0) {
+    /* Update the client's name before the first schema is defined */
+    if(self->table_count < 1) {
+      client_handler_update_name(self);
+    }
     process_schema(self, value);
     return 0;
 
@@ -597,7 +602,6 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     mbuf_read_skip (mbuf, skip_count + 1);
     mbuf_consume_message (mbuf);
     self->state = self->content;
-    client_handler_update_name(self);
     client_event_report(self, "Ready", "");
     loginfo("%s: Client %s ready to send data\n", self->name, self->event->name);
     return 0;
@@ -707,7 +711,7 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
     /* For future-proofness: find fields with actual names "key" and "value",
      * regardless of how many there are .*/
     for (i = 0; i < schema->nfields; i++) {
-      logdebug("%s(bin): Found field %s at index %d in schema %s\n",
+      logdebug3("%s(bin): Found field %s at index %d in schema %s\n",
           self->name, schema->fields[i].name, i, schema->name);
       if (!strcmp(schema->fields[i].name, "key")) {
         ki = i;
@@ -784,7 +788,7 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
     return 0;
   } else if (res < 0 && mbuf_fill(mbuf)>0) {
     // not enough data
-    logdebug("%s(bin): Not enough data (%dB) for a new measurement yet (at least %dB missing)\n",
+    logdebug2("%s(bin): Not enough data (%dB) for a new measurement yet (at least %dB missing)\n",
         self->name, mbuf_rd_remaining(mbuf), -res);
     return 0;
   }
@@ -878,7 +882,7 @@ process_text_data_message(ClientHandler* self, char** msg, int count)
     /* For future-proofness: find fields with actual names "key" and "value",
      * regardless of how many there are .*/
     for (i = 0; i < schema->nfields; i++) {
-      logdebug("%s(txt): Found field %s at index %d in schema %s\n",
+      logdebug3("%s(txt): Found field %s at index %d in schema %s\n",
           self->name, schema->fields[i].name, i, schema->name);
       if (!strcmp(schema->fields[i].name, "key")) {
         ki = i + 3; /* Ignore first 3 elements */
@@ -897,7 +901,7 @@ process_text_data_message(ClientHandler* self, char** msg, int count)
           self->name, msg[si]);
 
     } else if(process_meta(self, msg[ki], msg[vi]) <=0 ) {
-      logdebug("%s(txt): No need to store metadata separately\n", self->name);
+      logdebug2("%s(txt): No need to store metadata separately\n", self->name);
       return;
     }
   }
@@ -996,14 +1000,14 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
   ClientHandler* self = (ClientHandler*)handle;
   MBuffer* mbuf = self->mbuf;
 
-  logdebug("%s(%s): Received %d bytes of data\n",
+  logdebug2("%s(%s): Received %d bytes of data\n",
       source->name,
       client_state_to_s (self->state),
       buf_size);
 
   if(o_log_level_active(O_LOG_DEBUG4)) {
     in = to_octets(buf, buf_size);
-    logdebug("%s(%s): Received new packet\n%s\n",
+    logdebug2("%s(%s): Received new packet\n%s\n",
         source->name, client_state_to_s (self->state), in);
     oml_free(in);
   }
@@ -1056,8 +1060,7 @@ process:
 
   // move remaining buffer content to beginning
   mbuf_repack_message (mbuf);
-  logdebug("%s: Buffer repacked to %d bytes\n",
-      source->name, mbuf_fill(mbuf));
+  logdebug2("%s: Buffer repacked to %d bytes\n", source->name, mbuf_fill(mbuf));
 }
 /** Callback function called when the status of the socket change
  * \param source the socket event
