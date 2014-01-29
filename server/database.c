@@ -538,7 +538,7 @@ database_make_sql_insert (Database *db, DbTable* table)
   /* We're done */
   n += mstring_cat (mstr, ");");
 
-  logdebug("%s:%s: Prepared insert statement for tables %s: %s\n",
+  logdebug2("%s:%s: Prepared insert statement for table %s: %s\n",
       db->backend_name, db->name, table->schema->name, mstring_buf(mstr));
 
   if (n != 0) {

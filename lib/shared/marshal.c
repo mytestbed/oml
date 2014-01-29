@@ -500,6 +500,8 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
     return -1;
   }
 
+  logdebug("Marshalling sample %d for stream %d\n", seqno, stream);
+
   omlc_set_int32(v, seqno);
   marshal_value(mbuf, OML_INT32_VALUE, &v);
 
@@ -577,7 +579,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     buf[0] = LONG_T;
     memcpy(&buf[1], &nv, sizeof (nv));
 
-    logdebug("Marshalling long %ld\n", nv);
+    logdebug3("Marshalling long %ld\n", nv);
     int result = mbuf_write (mbuf, buf, LENGTH (buf));
     if (result == -1) {
       logerror("Failed to marshal OML_LONG_VALUE (mbuf_write())\n");
@@ -602,12 +604,12 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
       uv32 = omlc_get_uint32(*val);
       nv32 = htonl(uv32);
       p_nv = (uint8_t*)&nv32;
-      logdebug("Marshalling %s %" PRIu32 "\n", oml_type_to_s(val_type), uv32);
+      logdebug3("Marshalling %s %" PRIu32 "\n", oml_type_to_s(val_type), uv32);
     } else {
       uv64 = omlc_get_uint64(*val);
       nv64 = htonll(uv64);
       p_nv = (uint8_t*)&nv64;
-      logdebug("Marshalling %s %" PRIu64 "\n", oml_type_to_s(val_type), uv64);
+      logdebug3("Marshalling %s %" PRIu64 "\n", oml_type_to_s(val_type), uv64);
     }
 
     buf[0] = oml_type_map[val_type];
@@ -629,7 +631,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     int exp;
     double mant = frexp(v, &exp);
     int8_t nexp = (int8_t)exp;
-    logdebug("Marshalling double %f\n", v);
+    logdebug3("Marshalling double %f\n", v);
     if (isnan(v)) {
       type = DOUBLE_NAN;
       nexp = 0;
@@ -671,7 +673,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
      len = STRING_T_MAX_SIZE;
    }
 
-   logdebug("Marshalling string '%s' of length %d\n", str, len);
+   logdebug3("Marshalling string '%s' of length %d\n", str, len);
    uint8_t buf[2] = { STRING_T, (uint8_t)(len & 0xff) };
    int result = mbuf_write (mbuf, buf, LENGTH (buf));
    if (result == -1) {
@@ -703,7 +705,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
    size_t n_length = htonl (length);
    memcpy (&buf[1], &n_length, 4);
 
-   logdebug("Marshalling blob of size %d\n", length);
+   logdebug3("Marshalling blob of size %d\n", length);
    result = mbuf_write (mbuf, buf, sizeof (buf));
 
    if (result == -1) {
@@ -729,6 +731,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     buf[0] = GUID_T;
     nv64 = htonll(omlc_get_guid(*val));
     memcpy(&buf[1], &nv64, sizeof(nv64));
+    logdebug3("Marshalling GUID %" PRIu64 "\n", nv64);
     if (-1 == mbuf_write(mbuf, buf, LENGTH(buf))) {
       logerror("Failed to marshal OML_GUID_VALUE (mbuf_write())\n");
       mbuf_reset_write(mbuf);
@@ -744,6 +747,7 @@ marshal_value(MBuffer* mbuf, OmlValueT val_type, OmlValueU* val)
     } else {
       buf = BOOL_TRUE_T;
     }
+    logdebug3("Marshalling boolean %d\n", BOOL_TRUE_T == buf);
     if (-1 == mbuf_write(mbuf, &buf, 1)) {
       logerror("Failed to marshal OML_BOOL_VALUE (mbuf_write())\n");
       mbuf_reset_write(mbuf);
@@ -992,12 +996,8 @@ unmarshal_init(MBuffer* mbuf, OmlBinaryHeader* header)
 /** \see unmarshal_values
  */
 inline int
-unmarshal_measurements(
-  MBuffer* mbuf,
-  OmlBinaryHeader* header,
-  OmlValue*   values,
-  int         max_value_count
-) {
+unmarshal_measurements( MBuffer* mbuf, OmlBinaryHeader* header, OmlValue* values, int max_value_count)
+{
   return unmarshal_values(mbuf, header, values, max_value_count);
 }
 
@@ -1018,12 +1018,8 @@ unmarshal_measurements(
  * \see unmarshal_init
  */
 int
-unmarshal_values(
-  MBuffer*  mbuf,
-  OmlBinaryHeader* header,
-  OmlValue*    values,
-  int          max_value_count
-) {
+unmarshal_values(MBuffer* mbuf, OmlBinaryHeader* header, OmlValue* values, int max_value_count)
+{
   int value_count = header->values;
 
   if (0 == value_count) {
@@ -1045,8 +1041,8 @@ unmarshal_values(
 
   int i;
   OmlValue* val = values;
-  for (i = 0; i < value_count; i++, val++) {
-    if (unmarshal_value(mbuf, val) == 0) {
+  for (i = 0; i < value_count; i++) {
+    if (unmarshal_value(mbuf, &val[i]) == 0) {
       logwarn("Could not unmarshal values %d of %d\n", i, value_count);
       return -101;
     }
@@ -1091,7 +1087,7 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
      * LONG_T value into an OML_INT32_VALUE object.
      */
     oml_value_set_type(value, OML_INT32_VALUE);
-    value->value.int32Value = v;
+    omlc_set_int32(*oml_value_get_value(value), v);
     break;
   }
   case INT32_T:
@@ -1100,17 +1096,36 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
   case UINT64_T: {
     uint8_t buf [UINT64_T_SIZE]; // Maximum integer size
     OmlValueT oml_type = protocol_type_map[type];
-    if (mbuf_read (mbuf, buf, protocol_size_map[type]) == -1)
-    {
-      logerror("Failed to unmarshall %d value; not enough data?\n",
-               type);
+    if (mbuf_read (mbuf, buf, protocol_size_map[type]) == -1) {
+      logerror("Failed to unmarshall %d value; not enough data?\n", type);
       return 0;
     }
     oml_value_set_type(value, oml_type);
-    if (protocol_size_map[type] == 4)
-      value->value.uint32Value = ntohl(*((uint32_t*)buf));
-    else
-      value->value.uint64Value = ntohll(*((uint64_t*)buf));
+    switch (type) {
+    case INT32_T:
+      omlc_set_int32(*oml_value_get_value(value), ntohl(*((int32_t*)buf)));
+      logdebug3("Unmarshalled %s %" PRId32 "\n", oml_type_to_s(oml_type), omlc_get_int32(*oml_value_get_value(value)));
+      break;
+
+    case UINT32_T:
+      omlc_set_uint32(*oml_value_get_value(value), ntohl(*((uint32_t*)buf)));
+      logdebug3("Unmarshalled %s %" PRIu32 "\n", oml_type_to_s(oml_type), omlc_get_uint32(*oml_value_get_value(value)));
+      break;
+
+    case INT64_T:
+      omlc_set_int64(*oml_value_get_value(value), ntohll(*((int64_t*)buf)));
+      logdebug3("Unmarshalled %s %" PRId64 "\n", oml_type_to_s(oml_type), omlc_get_int64(*oml_value_get_value(value)));
+      break;
+
+    case UINT64_T:
+      omlc_set_uint64(*oml_value_get_value(value), ntohll(*((uint64_t*)buf)));
+      logdebug3("Unmarshalled %s %" PRIu64 "\n", oml_type_to_s(oml_type), omlc_get_uint64(*oml_value_get_value(value)));
+      break;
+
+    default:
+      logerror("Integer morphed, something magic has just happened\n");
+      return 0;
+    }
     break;
   }
   case DOUBLE_T: {
@@ -1127,23 +1142,24 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
     int exp = (int8_t) buf[4];
     double v = ldexp(mant, exp);
     oml_value_set_type(value, oml_type);
-    value->value.doubleValue = v;
+    omlc_set_double(*oml_value_get_value(value), v);
+    logdebug3("Unmarshalled double %f\n", omlc_get_double(*oml_value_get_value(value)));
     break;
   }
   case DOUBLE_NAN: {
     OmlValueT oml_type = protocol_type_map[type];
     mbuf_read_skip(mbuf, DOUBLE_T_SIZE); /* The data is irrelevant */
     oml_value_set_type(value, oml_type);
-    value->value.doubleValue = NAN;
+    omlc_set_double(*oml_value_get_value(value), NAN);
     logdebug("Received NaN\n");
     break;
   }
   case STRING_T: {
     int len = 0;
     uint8_t buf [STRING_T_MAX_SIZE];
-    
+
     len = mbuf_read_byte (mbuf);
-      
+
     if (len == -1 || mbuf_read (mbuf, buf, len) == -1)
     {
       logerror("Failed to unmarshal OML_STRING_VALUE; not enough data?\n");
@@ -1152,6 +1168,7 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
 
     oml_value_set_type(value, OML_STRING_VALUE);
     omlc_set_string_copy(*oml_value_get_value(value), buf, len);
+    logdebug3("Unmarshalled string '%s' of length %d\n", omlc_get_string_ptr(*oml_value_get_value(value)), len);
     break;
   }
   case BLOB_T: {
@@ -1175,6 +1192,7 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
     void *ptr = mbuf_rdptr (mbuf);
     oml_value_set_type(value, OML_BLOB_VALUE);
     omlc_set_blob (*oml_value_get_value(value), ptr, len); /*XXX*/
+    logdebug3("Unmarshalled blob of size %d\n", len);
     mbuf_read_skip (mbuf, len);
     break;
   }
@@ -1189,6 +1207,7 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
     memcpy(&nv64, buf, sizeof(nv64));
     oml_value_set_type(value, OML_GUID_VALUE);
     omlc_set_guid(*oml_value_get_value(value), ntohll(nv64));
+    logdebug3("Unmarshalled GUID %" PRIu64 "\n", omlc_get_guid(*oml_value_get_value(value)));
     break;
   }
 
@@ -1197,6 +1216,7 @@ unmarshal_value(MBuffer *mbuf, OmlValue *value)
     oml_value_set_type(value, OML_BOOL_VALUE);
     omlc_set_bool(*oml_value_get_value(value),
                   (type == BOOL_TRUE_T)?OMLC_BOOL_TRUE:OMLC_BOOL_FALSE);
+    logdebug3("Unmarshalled boolean %d\n", OMLC_BOOL_TRUE == omlc_get_bool(*oml_value_get_value(value)));
     break;
 
   case VECTOR_T: {
