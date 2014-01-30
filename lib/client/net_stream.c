@@ -199,12 +199,19 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
 {
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;
 
+  /* Initialise the socket the first time */
   while (self->socket == NULL) {
     logdebug ("%s: Connecting to server\n", self->dest);
     if (!open_socket(self)) {
       logdebug("%s: Connection attempt failed\n", self->dest);
       return 0;
     }
+  }
+
+  /* If the underlying socket as registered a disconnection, it will reconnect on its own
+   * however, we need to check it to make sure we send the headers before anything else */
+  if(socket_is_disconnected(self->socket)) {
+    self->header_written = 0;
   }
 
   size_t count;
