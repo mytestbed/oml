@@ -3,7 +3,7 @@ TESTS_ENVIRONMENT = top_srcdir=$(top_srcdir) srcdir=$(srcdir) \
 		    top_builddir=$(top_builddir) builddir=$(builddir) \
 		    VERSION=$(VERSION) CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" LIBADD="$(LIBADD)" \
 		    POSTGRES=$(POSTGRES) TIMEOUT="$(TIMEOUT)"
-TESTS = scaffold.sh run.sh run-long.sh
+TESTS = scaffold.sh reconnect.sh reconnect-text.sh run.sh run-long.sh
 if HAVE_LIBPQ
 if HAVE_POSTGRES
 TESTS += runpg.sh runpg-long.sh
@@ -17,7 +17,7 @@ endif
 EXTRA_DIST = \
 	     tap_helper.sh \
 	     run.sh run-long.sh runpg.sh runpg-long.sh \
-	     scaffold.sh \
+	     scaffold.sh reconnect.sh reconnect-text.sh \
 	     self-inst.sh self-inst.py
 
 check_PROGRAMS = blobgen
@@ -32,6 +32,7 @@ CLEANFILES = memstats.csv \
 	     serverblobgenpg.csv \
 	     serverblobgensq3.csv \
 	     scaffold.log \
+	     reconnect.log reconnect-text.log \
 	     self-inst.sq3 \
 	     self-inst.log \
 	     self-inst_server.log

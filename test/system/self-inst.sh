@@ -21,14 +21,14 @@ BN=`basename $0`
 DOMAIN=${BN%%.sh}
 SQLDB="${DOMAIN}.sq3"
 
-LOG=$PWD/${BN%%sh}log
+LOG=$PWD/${DOMAIN}.log
 source ${srcdir}/tap_helper.sh
 
 tap_message "testing self-instrumentation"
 
 test_plan
 
-tap_test "make temporary directory" yes mktemp -d self-inst-test.XXXXXX
+tap_test "make temporary directory" yes mktemp -d ${DOMAIN}-test.XXXXXX
 DIR=`tail -n 1 $LOG` # XXX: $LOG cannot be /dev/stdout here
 cd $DIR
 tap_message "working in $DIR; it won't be cleaned up in case of bail out"
