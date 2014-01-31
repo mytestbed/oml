@@ -530,14 +530,27 @@ socket_sendto(Socket* socket, char* buf, int buf_size)
   SocketInt *self = (SocketInt*)socket;
   int sent;
 
+
   if (self->is_disconnected) {
     if(!s_connect(self)) {
       return 0;
     }
+
+  } else if((sent = recv(self->sockfd, NULL, 0, MSG_DONTWAIT)) == 0) {
+    /* Test that the server kept the other side of the connection alive */
+    if (!(sent < 0 && EAGAIN == errno)) {
+      /* EAGAIN is the expected case: connection alive but no data,
+       * everything else is a problem */
+      logwarn("socket(%s): Server appears to have closed the connection\n", self->name);
+
+      self->is_disconnected = 1;
+      /* We want higher levels to be aware of this disconnection */
+      return 0;
+    }
+
   }
 
-  // TODO: Catch SIGPIPE signal if other side is half broken
-  if ((sent = sendto(self->sockfd, buf, buf_size, 0,
+  if ((sent = sendto(self->sockfd, buf, buf_size, MSG_NOSIGNAL,
                     &(self->servAddr.sa),
                     sizeof(self->servAddr.sa_stor))) < 0) {
     if (errno == EPIPE || errno == ECONNRESET) {

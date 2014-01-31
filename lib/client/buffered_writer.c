@@ -464,6 +464,7 @@ destroyBufferChain(BufferedWriter* self) {
 static void*
 threadStart(void* handle)
 {
+  int allsent = 0;
   BufferedWriter* self = (BufferedWriter*)handle;
   BufferChunk* chunk = self->firstChunk;
 
@@ -473,13 +474,15 @@ threadStart(void* handle)
     // Process all chunks which have data in them
     while(1) {
       if (mbuf_message(chunk->mbuf) > mbuf_rdptr(chunk->mbuf)) {
-        processChunk(self, chunk);
+        allsent = processChunk(self, chunk);
       }
       // stop if we caught up to the writer
 
       if (chunk == self->writerChunk) break;
 
-      chunk = chunk->next;
+      if (allsent) {
+        chunk = chunk->next;
+      }
     }
     oml_unlock(&self->lock, "bufferedWriter");
   }
@@ -531,12 +534,6 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
       }
 
     } else {
-      /* To be on the safe side, we rewind to the beginning of the
-       * chunk and try to resend everything - this is especially important
-       * if the underlying stream needs to reopen and resync. */
-      mbuf_reset_read(chunk->mbuf);
-      size = mbuf_message_offset(chunk->mbuf) - mbuf_read_offset(chunk->mbuf);
-      sent = 0;
       self->last_failure_time = now;
       if (!self->backoff) {
         self->backoff = 1;
