@@ -78,6 +78,9 @@ typedef struct BufferedWriter {
   /** Backoff time, in seconds */
   uint8_t backoff;
 
+  /** Return status from the thread */
+  int retval;
+
 } BufferedWriter;
 #define REATTEMP_INTERVAL 5    //! Seconds to open the stream again
 
@@ -156,6 +159,7 @@ bw_create(OmlOutStream* outStream, long  queueCapacity, long chunkSize)
 void
 bw_close(BufferedWriterHdl instance)
 {
+  int *retval;
   BufferedWriter *self = (BufferedWriter*)instance;
 
   if(!self) { return; }
@@ -167,22 +171,18 @@ bw_close(BufferedWriterHdl instance)
 
   pthread_cond_signal (&self->semaphore);
   oml_unlock (&self->lock, __FUNCTION__);
-  switch (pthread_join (self->readerThread, NULL)) {
-  case 0:
-    logdebug ("%s: Buffered queue reader thread finished OK...\n", self->outStream->dest);
-    break;
-  case EINVAL:
-    logerror ("%s: Buffered queue reader thread is not joinable\n", self->outStream->dest);
-    break;
-  case EDEADLK:
-    logerror ("%s: Buffered queue reader thread shutdown deadlock, or self-join\n", self->outStream->dest);
-    break;
-  case ESRCH:
-    logerror ("%s: Buffered queue reader thread shutdown failed: could not find the thread\n", self->outStream->dest);
-    break;
-  default:
-    logerror ("%s: Buffered queue reader thread shutdown failed with an unknown error\n", self->outStream->dest);
-    break;
+
+  if(pthread_join (self->readerThread, (void**)&retval)) {
+    logwarn ("%s: Cannot join buffered queue reader thread: %s\n",
+        self->outStream->dest, strerror(errno));
+
+  } else {
+    if (1 == *retval) {
+      logdebug ("%s: Buffered queue fully drained\n", self->outStream->dest);
+    } else {
+      logerror ("%s: Buffered queue did not fully drain\n",
+          self->outStream->dest, *retval);
+    }
   }
 
   self->outStream->close(self->outStream);
@@ -459,12 +459,12 @@ destroyBufferChain(BufferedWriter* self) {
 /** Writing thread
  *
  * \param handle the stream to use the filters on
- * \return NULL on error; this function should not return
+ * \return 1 if all the buffer chain has been processed, <1 otherwise
  */
 static void*
 threadStart(void* handle)
 {
-  int allsent = 0;
+  int allsent = 1;
   BufferedWriter* self = (BufferedWriter*)handle;
   BufferChunk* chunk = self->firstChunk;
 
@@ -472,7 +472,7 @@ threadStart(void* handle)
     oml_lock(&self->lock, "bufferedWriter");
     pthread_cond_wait(&self->semaphore, &self->lock);
     // Process all chunks which have data in them
-    while(1) {
+    do {
       if (mbuf_message(chunk->mbuf) > mbuf_rdptr(chunk->mbuf)) {
         allsent = processChunk(self, chunk);
       }
@@ -480,15 +480,25 @@ threadStart(void* handle)
 
       if (chunk == self->writerChunk) break;
 
-      if (allsent) {
+      if (allsent>0) {
         chunk = chunk->next;
       }
-    }
+    } while(allsent > 0);
     oml_unlock(&self->lock, "bufferedWriter");
   }
   /* Drain this writer before terminating */
-  while (!processChunk(self, chunk));
-  return NULL;
+  /* XXX: “Backing-off for ...” messages might confuse the user as
+   * we don't actually wait after a failure when draining at the end */
+  while ((allsent=processChunk(self, chunk))>=-1) {
+    if(allsent>0) {
+      if (chunk == self->writerChunk) break;
+      chunk = chunk->next;
+    } else if (-1 == allsent) {
+      sleep(self->backoff);
+    }
+  };
+  self->retval = allsent;
+  pthread_exit(&(self->retval));
 }
 
 /** Send data contained in one chunk.
@@ -496,7 +506,7 @@ threadStart(void* handle)
  * \param self BufferedWriter to process
  * \param chunk link of the chunk to process
  *
- * \return 1 if chunk has been fully sent, 0 otherwise
+ * \return 1 if chunk has been fully sent, 0 if not, -1 on continuing back-off, -2 otherwise
  * \see oml_outs_write_f
  */
 static int
@@ -518,7 +528,7 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
   time(&now);
   if (difftime(now, self->last_failure_time) < self->backoff) {
     logdebug("%s: Still in back-off period (%ds)\n", self->outStream->dest, self->backoff);
-    return 0;
+    return -1;
   }
 
   chunk->reading = 1;
@@ -543,7 +553,7 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
       logwarn("%s: Error sending, backing off for %ds\n", self->outStream->dest, self->backoff);
 
       chunk->reading = 0;
-      return 0;
+      return -2;
     }
   }
 
@@ -552,6 +562,7 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
    */
   mbuf_read_skip(chunk->mbuf, sent);
   chunk->reading = 0;
+  /* XXX: Redundant with allsent */
   if (mbuf_write_offset(chunk->mbuf) == mbuf_read_offset(chunk->mbuf)) {
     mbuf_clear2(chunk->mbuf, 1);
     return 1;
