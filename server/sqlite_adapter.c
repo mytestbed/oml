@@ -238,7 +238,6 @@ sq3_create_database(Database* db)
   mstring_delete (path);
   if (rc) {
     logerror("sqlite:%s: Can't open database: %s\n", db->name, sqlite3_errmsg(conn));
-    sqlite3_close(conn);
     return -1;
   }
 
@@ -275,7 +274,10 @@ sq3_release(Database* db)
 {
   Sq3DB* self = (Sq3DB*)db->handle;
   dba_end_transaction (db);
-  sqlite3_close(self->conn);
+
+  if (sqlite3_close(self->conn) != SQLITE_OK) {
+    logwarn("sqlite: Failed to close database connection\n");
+  }
   oml_free(self);
   db->handle = NULL;
 }
@@ -896,6 +898,7 @@ sq3_get_table_list (Database *database, int *num_tables)
 
   mstring_delete(schema_stmt_ms);
   sqlite3_finalize(pschema_stmt);
+  sqlite3_finalize(ptable_stmt);
 
   return tables;
 
