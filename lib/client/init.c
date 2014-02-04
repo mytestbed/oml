@@ -697,7 +697,7 @@ create_writer(const char* uri, enum StreamEncoding encoding)
   OmlURIType uri_type = oml_uri_type(uri);
 
   if (omlc_instance == NULL){
-    logerror("No omlc_instance:  OML client was not initialized properly.\n");
+    logerror("No omlc_instance: OML client was not initialized properly.\n");
     return NULL;
   }
 
@@ -714,9 +714,9 @@ create_writer(const char* uri, enum StreamEncoding encoding)
     return NULL;
   }
 
-  const char *transport;
-  const char *path;
-  const char *port;
+  const char *transport = NULL;
+  const char *path = NULL;
+  const char *port = NULL;
 
   if (parse_uri (uri, &transport, &path, &port) == -1) {
     logerror ("Error parsing server destination URI '%s'; failed to create stream for this destination\n",
