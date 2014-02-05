@@ -28,6 +28,10 @@ int _bw_push(BufferedWriterHdl instance, uint8_t* data, size_t size);
 int bw_push_meta(BufferedWriterHdl instance, uint8_t* data, size_t size);
 int _bw_push_meta(BufferedWriterHdl instance, uint8_t* data, size_t size);
 
+int bw_msgcount_add(BufferedWriterHdl instance, int nmessages);
+int bw_msgcount_reset(BufferedWriterHdl instance);
+int bw_nlost_reset(BufferedWriterHdl instance);
+
 MBuffer* bw_get_write_buf(BufferedWriterHdl instance, int exclusive);
 
 void bw_unlock_buf(BufferedWriterHdl instance);
