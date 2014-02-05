@@ -701,8 +701,8 @@ create_writer(const char* uri, enum StreamEncoding encoding)
     return NULL;
   }
 
-  if (uri == NULL) {
-    logerror ("Missing collection URI definition (e.g., --oml-collect)\n");
+  if (uri == NULL || strlen(uri) < 1) {
+    logerror ("Missing or invalid collection URI definition (e.g., --oml-collect)\n");
     return NULL;
   }
   if (omlc_instance->node_name == NULL) {
