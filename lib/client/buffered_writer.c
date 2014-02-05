@@ -42,6 +42,9 @@ typedef struct BufferChunk {
 
   /** Set to 1 when the reader is processing this chunk */
   int   reading;
+
+  int nmessages; /**< Number of messages contained in this chunk */
+
 } BufferChunk;
 
 /** A writer reading from a chain of BufferChunks */
@@ -80,6 +83,8 @@ typedef struct BufferedWriter {
 
   /** Return status from the thread */
   int retval;
+
+  int nlost; /**< Number of lost messages since last query */
 
 } BufferedWriter;
 #define REATTEMP_INTERVAL 5    //! Seconds to open the stream again
@@ -233,7 +238,7 @@ _bw_push(BufferedWriter* instance, uint8_t* data, size_t size)
   if (chunk == NULL) { return 0; }
 
   if (mbuf_wr_remaining(chunk->mbuf) < size) {
-    chunk = self->writerChunk = getNextWriteChunk(self, chunk);
+    chunk = getNextWriteChunk(self, chunk);
   }
 
   if (mbuf_write(chunk->mbuf, data, size) < 0) {
@@ -298,6 +303,50 @@ _bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size)
   return result;
 }
 
+/** Count the addition (or deletion) of a full message in the current BufferChunk.
+ *
+ * \param instance BufferedWriter handle
+ * \param nmessages number of messages to count (can be negative)
+ *
+ * \return the (new) current number of messages in the current writer BufferChunk
+ *
+ * \see bw_msgcount_reset, bw_nlost_reset
+ */
+int
+bw_msgcount_add(BufferedWriter* instance, int nmessages) {
+  instance->writerChunk->nmessages += 1;
+  return instance->writerChunk->nmessages;
+}
+
+/** Reset the message count in the current BufferChunk and return its previous value.
+ *
+ * \param instance BufferedWriter handle
+ *
+ * \return the number of messages in the current writer BufferChunk before resetting
+ *
+ * \see bw_msgcount_add, bw_nlost_reset
+ */
+int
+bw_msgcount_reset(BufferedWriter* instance) {
+  int n = instance->writerChunk->nmessages;
+  instance->writerChunk->nmessages = 0;
+  return n;
+}
+
+/** Reset the number of messages lost by the BufferedWriter and return its previous value.
+ *
+ * \param instance BufferedWriter handle
+ *
+ * \return the number of lost messages in the BufferedWriter before resetting
+ *
+ * \see bw_msgcount_add, bw_msgcount_reset
+ */
+int
+bw_nlost_reset(BufferedWriter* instance) {
+  int n = instance->nlost;
+  instance->nlost = 0;
+  return n;
+}
 /** Return an MBuffer with (optional) exclusive write access
  *
  * If exclusive access is required, the caller is in charge of releasing the
@@ -321,7 +370,7 @@ bw_get_write_buf(BufferedWriter* instance, int exclusive)
 
   MBuffer* mbuf = chunk->mbuf;
   if (mbuf_write_offset(mbuf) >= chunk->targetBufSize) {
-    chunk = self->writerChunk = getNextWriteChunk(self, chunk);
+    chunk = getNextWriteChunk(self, chunk);
     mbuf = chunk->mbuf;
   }
   if (! exclusive) {
@@ -360,15 +409,16 @@ bw_unlock_buf(BufferedWriter* instance)
  */
 BufferChunk*
 getNextWriteChunk(BufferedWriter* self, BufferChunk* current) {
+  int nlost;
   assert(current != NULL);
   BufferChunk* nextBuffer = current->next;
   assert(nextBuffer != NULL);
 
-  BufferChunk* resChunk = NULL;
   if (mbuf_rd_remaining(nextBuffer->mbuf) == 0) {
     // It's empty (the reader has finished with it), we can use it
     mbuf_clear2(nextBuffer->mbuf, 0);
-    resChunk = nextBuffer;
+    self->writerChunk = nextBuffer;
+    bw_msgcount_reset(self);
 
   } else if (self->unallocatedBuffers > 0) {
     // Insert a new chunk between current and next one.
@@ -376,23 +426,29 @@ getNextWriteChunk(BufferedWriter* self, BufferChunk* current) {
     assert(newBuffer);
     newBuffer->next = nextBuffer;
     current->next = newBuffer;
-    resChunk = newBuffer;
+    self->writerChunk = newBuffer;
 
   } else {
     // The chain is full, time to drop data and reuse the next buffer
     current = nextBuffer;
     assert(nextBuffer->reading == 0); /* Ensure this is not the chunk currently being read */
-    logwarn("Dropping %d bytes of measurement data\n", mbuf_fill(nextBuffer->mbuf));
-    mbuf_repack_message2(nextBuffer->mbuf);
-    resChunk = nextBuffer;
+    self->writerChunk = nextBuffer;
+
+    nlost = bw_msgcount_reset(self);
+    self->nlost += nlost;
+    logwarn("Dropped %d samples (%dB)\n", nlost, mbuf_fill(nextBuffer->mbuf));
+    mbuf_repack_message2(self->writerChunk->mbuf);
   }
-  // Now we just need to copy the message from current to resChunk
+
+  // Now we just need to copy the message from current to self->writerChunk
   int msgSize = mbuf_message_length(current->mbuf);
   if (msgSize > 0) {
-    mbuf_write(resChunk->mbuf, mbuf_message(current->mbuf), msgSize);
+    mbuf_write(self->writerChunk->mbuf, mbuf_message(current->mbuf), msgSize);
     mbuf_reset_write(current->mbuf);
+    bw_msgcount_add(self, 1);
   }
-  return resChunk;
+
+  return self->writerChunk;
 }
 
 /** Initialise a BufferChunk for a BufferedWriter.
