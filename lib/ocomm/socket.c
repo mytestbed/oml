@@ -238,14 +238,14 @@ socket_in_new(const char* name, const char* node, const char* service, int is_tc
       socket_free((Socket*)self);
 
     } else if(0 != setsockopt(self->sockfd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(int))){
-      o_log(O_LOG_ERROR, "socket(%s): Could not set option SO_REUSEADDR on socket to listen on %s: %s\n",
+      o_log(O_LOG_WARN, "socket(%s): Could not set option SO_REUSEADDR on socket to listen on %s: %s\n",
           self->name, nameserv, strerror(errno));
       close(self->sockfd);
       /* XXX: Not optimal: we could reuse the Socket */
       socket_free((Socket*)self);
 
     } else if (0 != bind(self->sockfd, rp->ai_addr, rp->ai_addrlen)) {
-      o_log(O_LOG_ERROR, "socket(%s): Error binding socket to listen on %s: %s\n",
+      o_log(O_LOG_WARN, "socket(%s): Error binding socket to listen on %s: %s\n",
           self->name, nameserv, strerror(errno));
       close(self->sockfd);
       /* XXX: Not optimal: we could reuse the Socket */
@@ -266,8 +266,8 @@ socket_in_new(const char* name, const char* node, const char* service, int is_tc
   freeaddrinfo(results);
 
   if (NULL == list) {
-    o_log(O_LOG_ERROR, "socket(%s): Could not create any socket to listen on [%s]:%s: %s\n",
-        self->name, node, service, strerror(errno));
+    o_log(O_LOG_ERROR, "socket(%s): Could not create any socket to listen on port %s\n",
+        name, node, service);
   }
 
   return (Socket*)list;
