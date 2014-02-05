@@ -107,7 +107,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   int sample_count = 0;
   double sample_interval = 0.0;
   int max_queue = 0;
-  uint32_t instr_interval = 1000;
+  uint32_t instr_interval = 1;
   const char** arg = argv;
 
   if (!app_name) {
