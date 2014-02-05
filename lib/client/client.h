@@ -82,7 +82,7 @@ typedef struct OmlClient {
   /** Time we last injected instrumentation to server */
   time_t instr_time;
 
-  /** Minimum period between client instrumentation reports (0 == disabled) */
+  /** Minimum period between client instrumentation reports [s] (0 == disabled) */
   uint32_t instr_interval;
 
 } OmlClient;

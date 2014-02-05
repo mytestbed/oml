@@ -11,7 +11,7 @@ SYNOPSIS
 *<oml2-enabled-app>* [APP-OPTIONS]
 	    [--oml-id OML_NAME --oml-domain OML_DOMAIN
 	      [--oml-collect OML_COLLECT] | --oml-noop]
-	    [--oml-instr-interval MILLISECONDS]
+	    [--oml-instr-interval SECONDS]
 	    [--oml-interval SECONDS | --oml-samples COUNT]
 	    [--oml-log-level -2..4] [--oml-log-file]
 	    [--oml-config liboml2.conf]
@@ -247,7 +247,7 @@ If this option is given, no measurements are collected, and the
 application does not attempt to connect to an OML server or write
 measurements to file.
 
---oml-instr-interval MILLISECONDS::
+--oml-instr-interval SECONDS::
 This option allows to set the periodicity of self-instrumentation
 reports into the '_client_instrumentation' MS. The defaults is 1000ms,
 and the feature can be disabled altogether by setting it to 0.
