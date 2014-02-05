@@ -231,6 +231,7 @@ owb_row_end(OmlWriter* writer, OmlMStream* ms) {
   mbuf_begin_write(mbuf);
 
   self->mbuf = NULL;
+  bw_msgcount_add(self->bufferedWriter, 1);
   bw_unlock_buf(self->bufferedWriter);
   return 1;
 }

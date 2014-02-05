@@ -356,6 +356,7 @@ owt_row_end(OmlWriter* writer, OmlMStream* ms)
   }
 
   self->mbuf = NULL;
+  bw_msgcount_add(self->bufferedWriter, 1);
   bw_unlock_buf(self->bufferedWriter);
   return res == 0;
 }

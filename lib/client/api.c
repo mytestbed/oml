@@ -106,6 +106,7 @@
 #include "validate.h"
 #include "mem.h"
 #include "client.h"
+#include "buffered_writer.h"
 
 static void omlc_ms_process(OmlMStream* ms);
 static int omlc_inject_client_instr(uint32_t measurements_injected, uint32_t measurements_dropped, uint64_t bytes_allocated, uint64_t bytes_freed, uint64_t bytes_in_use, uint64_t bytes_max);
@@ -149,6 +150,7 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
 {
   OmlMStream* ms;
   OmlValue v;
+  int i;
 
   if (NULL == omlc_instance || omlc_instance->start_time <= 0) {
     logerror("Cannot inject samples prior to calling omlc_init and omlc_start\n");
@@ -181,6 +183,9 @@ omlc_inject(OmlMP *mp, OmlValueU *values)
     omlc_ms_process(ms);
     written += ms->written;
     dropped += ms->dropped;
+    for (i=0; i<ms->nwriters; i++) {
+      dropped += bw_nlost_reset(ms->writers[i]->bufferedWriter);
+    }
   }
   mp_unlock(mp);
   oml_value_reset(&v);
