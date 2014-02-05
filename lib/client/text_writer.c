@@ -48,13 +48,13 @@ typedef struct OmlTextWriter {
   oml_writer_close close;
   /** \see OmlWriter::next */
   OmlWriter* next;
+  /** \see OmlWriter::bufferedWriter */
+  BufferedWriterHdl bufferedWriter;
 
   /*
    * Fields specific to the OmlTextWriter
    */
 
-  /** Buffered writer into which the serialised data is written */
-  BufferedWriterHdl bufferedWriter;
   /** Currently active MBuffer of the bufferedWriter chain */
   MBuffer* mbuf;
 

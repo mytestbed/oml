@@ -30,6 +30,7 @@
 #define OML_PROTOCOL_VERSION 5
 
 struct OmlWriter;
+typedef struct BufferedWriter BufferedWriter; /* XXX: From buffered_writer.h */
 
 /** Function called whenever some header metadata needs to be added.
  * \param writer pointer to OmlWriter instance
@@ -114,6 +115,10 @@ typedef struct OmlWriter {
 
   /** Pointer to the next OmlWriter in the linked list */
   struct OmlWriter* next;
+
+  /** Buffered writer into which the serialised data is written */
+  BufferedWriter* bufferedWriter;
+
 } OmlWriter;
 
 /** Stream encoding type, for use with create_writer */
