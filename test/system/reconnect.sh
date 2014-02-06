@@ -45,7 +45,11 @@ tap_message "working in $DIR; it won't be cleaned up in case of bail out"
 port=$((RANDOM + 32766))
 
 # Start a fake OML server
-nc -l $port > ${OMSPDUMP} &
+# NOTE: -d prevents nc from reading from STDIN,
+# which confuses it into (sometimes) closing the reverse connection to the
+# client when put in the background, which in turns leads the client
+# to disconnect
+nc -ld $port > ${OMSPDUMP} &
 tap_test "start netcat" yes test x$? == x0
 NCPID=$!
 tap_message "started nc with PID $NCPID (might need manual killing if the suit bails out)"
@@ -61,7 +65,7 @@ tap_test "kill netcat ($NCPID)" no kill $NCPID
 tap_message "waiting some more..."
 sleep 2
 
-nc -l $port >> ${OMSPDUMP} &
+nc -ld $port >> ${OMSPDUMP} &
 tap_test "start new netcat" yes test x$? == x0
 NCPID=$!
 tap_message "started new nc with PID $NCPID (might need manual killing if the suit bails out)"
