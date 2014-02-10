@@ -267,7 +267,7 @@ socket_in_new(const char* name, const char* node, const char* service, int is_tc
 
   if (NULL == list) {
     o_log(O_LOG_ERROR, "socket(%s): Could not create any socket to listen on port %s\n",
-        name, node, service);
+        name, service);
   }
 
   return (Socket*)list;
