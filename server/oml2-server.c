@@ -330,7 +330,7 @@ int main(int argc, const char **argv)
   server_sock = socket_server_new("server", NULL, listen_service, on_connect, NULL);
 
   if (!server_sock) {
-    die ("Failed to create listening socket for service %d\n", listen_service);
+    die ("Failed to create listening socket for service %s\n", listen_service);
   }
 
   drop_privileges (uidstr, gidstr);
