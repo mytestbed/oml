@@ -33,6 +33,11 @@ n=15
 LOG=$PWD/${DOMAIN}.log
 source ${srcdir}/tap_helper.sh
 
+# On Debian-ishes, we need netcat-openbsd;
+# it can also be set to be the default with
+# sudo update-alternatives --set nc /bin/nc.openbsd
+NC=`which nc.openbsd 2>/dev/null|| echo nc`
+
 tap_message "testing reconnection for ${MODE} mode"
 
 test_plan
@@ -45,14 +50,14 @@ tap_message "working in $DIR; it won't be cleaned up in case of bail out"
 port=$((RANDOM + 32766))
 
 # Start a fake OML server
-# NOTE: -d prevents nc from reading from STDIN,
+# NOTE: -d prevents OpenBSD nc from reading from STDIN,
 # which confuses it into (sometimes) closing the reverse connection to the
 # client when put in the background, which in turns leads the client
 # to disconnect
-nc -ld $port > ${OMSPDUMP} &
+${NC} -ld $port > ${OMSPDUMP} &
 tap_test "start netcat" yes test x$? == x0
 NCPID=$!
-tap_message "started nc with PID $NCPID (might need manual killing if the suit bails out)"
+tap_message "started $NC with PID $NCPID (might need manual killing if the suit bails out)"
 
 ${builddir}/blobgen -f 10 -n $n -i 1000 ${OPTARGS} --oml-id generator --oml-domain ${DOMAIN} --oml-collect localhost:$port > ${DOMAIN}-client.log 2>&1 &
 tap_test "start blobgen" yes test x$? == x0
@@ -65,10 +70,10 @@ tap_test "kill netcat ($NCPID)" no kill $NCPID
 tap_message "waiting some more..."
 sleep 2
 
-nc -ld $port >> ${OMSPDUMP} &
+${NC} -ld $port >> ${OMSPDUMP} &
 tap_test "start new netcat" yes test x$? == x0
 NCPID=$!
-tap_message "started new nc with PID $NCPID (might need manual killing if the suit bails out)"
+tap_message "started new $NC with PID $NCPID (might need manual killing if the suit bails out)"
 
 tap_message "waiting some more..."
 sleep 10
