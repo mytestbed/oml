@@ -512,8 +512,10 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   size_t eblob_len=-1;
 
   char *paramValues[4+value_count];
+  /** XXX: We should be more careful with this allocation... */
+#define PARAM_SIZE 512
   for (i=0;i<4+value_count;i++) {
-    paramValues[i] = oml_malloc(512*sizeof(char));
+    paramValues[i] = oml_malloc(PARAM_SIZE*sizeof(char));
   }
 
   int paramLength[4+value_count];
@@ -569,8 +571,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
                              logerror("psql:%s: Error escaping blob in field %d of table '%s': %s", /* PQerrorMessage strings already have '\n' */
                                  db->name, i, table->schema->name, PQerrorMessage(psqldb->conn));
                            }
-                           /* XXX: 512 char is the size allocated above. Nasty. */
-                           if (eblob_len > 512) {
+                           if (eblob_len > PARAM_SIZE) {
                              logdebug("psql:%s: Reallocating %d bytes for big blob\n", db->name, eblob_len);
                              paramValues[4+i] = oml_realloc(paramValues[4+i], eblob_len);
                              if (!paramValues[4+i]) {
