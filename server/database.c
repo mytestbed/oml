@@ -229,6 +229,7 @@ database_find (const char* name)
   }
 
   if (database_init (self) == -1) {
+    database_release(self);
     oml_free (self);
     return NULL;
   }
