@@ -143,14 +143,27 @@ ifdef::have_pg[]
 	PostgreSQL CREATEDB role so that it can create a new database
 	for each new experiment. Defaults to 'oml'.
 +
-You can create this user in PostgreSQL as follows.
+You can create this user in PostgreSQL as follows (where 'postgresql' is
+the admin user for the database, and 'oml' is the user being created).
 +
 --------------------------
   createuser -U postgres --pwprompt --no-superuser --createdb --no-createrole --no-replication oml
 --------------------------
 +
-Doing so will ask you to enter and confirm the password for this
-role. It should match that passed to *--pg-pass* below.
+Doing so will ask you to enter and confirm the password for this role.
+It should match that passed to *--pg-pass* below. Alternatively, the
+role can be created through and interactive console.
++
+--------------------------
+    $ psql -U DBADMIN
+    psql (9.3.2)
+    Type "help" for help.
+    
+    DBADMIN=# CREATE USER oml WITH PASSWORD 'oml';
+    CREATE ROLE
+    DBADMIN=# ALTER ROLE oml WITH CREATEDB;
+    ALTER ROLE
+--------------------------
 
 --pg-pass=pass::
 	Specify the password of the pg-user to connect to the PostgreSQL

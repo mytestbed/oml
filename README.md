@@ -58,10 +58,24 @@ with the system user discussed in the previous section.
 	    --createdb --no-createrole --no-replication oml
 
 `DBADMIN` is any pre-existing user allowed to create roles in the
-database.  PostgreSQL's default `postgres` will usually work.  After
-being prompted for a password for this user, and setting it, it is now
-possible to start the server.  Several Postgre-specific options are
-available.
+database.  PostgreSQL's default `postgres` will usually work.  The
+`--no-replication` argument is only valid with PostgreSQL-9.2. In case
+of error, simply remove it. A password for the newly created database
+user will be requested. Alternatively, the role can be created through
+and interactive console.
+
+    $ psql -U DBADMIN
+    psql (9.3.2)
+    Type "help" for help.
+    
+    DBADMIN=# CREATE USER oml WITH PASSWORD 'oml';
+    CREATE ROLE
+    DBADMIN=# ALTER ROLE oml WITH CREATEDB;
+    ALTER ROLE
+
+It is now possible to start the server. Several Postgre-specific
+options are available (see INSTALL for details on compiling the PostgreSQL
+backend in).
 
 * `--pg-user=USER` specifies the name of the user just created (default:
   `oml`);
