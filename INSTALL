@@ -40,6 +40,11 @@ programs against it with a simple `-loml2` on the command line to the
 linker. The server, proxy server, and oml2-scaffold will be installed in
 `/usr/local/bin`, and should be in your standard `PATH`.
 
+Another set of useful options are the `--with-pgsql*` ones. They allow
+to specify the location of the PostgreSQL headers and sources. Most
+notably, on Debian-based systems,
+`--with-pgsql-inc=/usr/include/postgresql` is needed.
+
 To install OML in your home directory, use:
 
     $ ./configure --prefix=${HOME}/usr	# For example
