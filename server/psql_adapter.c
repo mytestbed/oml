@@ -529,7 +529,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   paramLength[1] = 0;
   paramFormat[1] = 0;
 
-  sprintf(paramValues[2],"%e",time_stamp);
+  sprintf(paramValues[2],"%.14e",time_stamp);
   paramLength[2] = 0;
   paramFormat[2] = 0;
 
@@ -544,7 +544,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
     psqldb->last_commit = tv.tv_sec;
   }
 
-  sprintf(paramValues[3],"%e",time_stamp_server);
+  sprintf(paramValues[3],"%.14e",time_stamp_server);
   paramLength[3] = 0;
   paramFormat[3] = 0;
 
@@ -561,7 +561,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
     case OML_UINT32_VALUE: sprintf(paramValues[4+i],"%" PRIu32,omlc_get_uint32(*oml_value_get_value(v))); break;
     case OML_INT64_VALUE:  sprintf(paramValues[4+i],"%" PRId64,omlc_get_int64(*oml_value_get_value(v))); break;
     case OML_UINT64_VALUE: sprintf(paramValues[4+i],"%" PRIu64,omlc_get_uint64(*oml_value_get_value(v))); break;
-    case OML_DOUBLE_VALUE: sprintf(paramValues[4+i],"%e",omlc_get_double(*oml_value_get_value(v))); break;
+    case OML_DOUBLE_VALUE: sprintf(paramValues[4+i],"%.14e",omlc_get_double(*oml_value_get_value(v))); break;
     case OML_BOOL_VALUE:   sprintf(paramValues[4+i],"%d", omlc_get_bool(*oml_value_get_value(v)) ? 1 : 0); break;
     case OML_STRING_VALUE: sprintf(paramValues[4+i],"%s", omlc_get_string_ptr(*oml_value_get_value(v))); break;
     case OML_BLOB_VALUE:
