@@ -500,6 +500,8 @@ oml_value_ut_from_s (OmlValueU *value, OmlValueT type, const char *value_s)
   char *p;
   char *q;
 
+  errno = 0; /* Not all paths manipulate errno, so make sure its value is reset */
+
   switch (type) {
   case OML_LONG_VALUE:
     logwarn("%s(): OML_LONG_VALUE is deprecated, please use OML_INT32_VALUE instead\n", __FUNCTION__);
