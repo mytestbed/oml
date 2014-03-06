@@ -76,7 +76,7 @@ static void psql_release(Database* db);
 static int psql_table_create (Database* db, DbTable* table, int shallow);
 static int psql_table_free (Database *database, DbTable* table);
 static char *psql_prepared_var(Database *db, unsigned int order);
-static int psql_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_stamp, OmlValue *values, int value_count);
+static int psql_insert(Database *db, DbTable *table, int sender_id, int seq_no, double ts_client, double ts_server, OmlValue *values, int value_count);
 static char* psql_get_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key);
 static int psql_set_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key, const char* value);
 static char* psql_get_metadata (Database* database, const char* key);
@@ -500,13 +500,12 @@ psql_prepared_var(Database *db, unsigned int order)
  * \see db_adapter_insert
  */
 static int
-psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time_stamp, OmlValue* values, int value_count)
+psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double ts_client, double ts_server, OmlValue* values, int value_count)
 {
   PsqlDB* psqldb = (PsqlDB*)db->handle;
   PsqlTable* psqltable = (PsqlTable*)table->handle;
   PGresult* res;
   int i;
-  double time_stamp_server;
   const char* insert_stmt = mstring_buf (psqltable->insert_stmt);
   unsigned char *escaped_blob;
   size_t eblob_len=-1;
@@ -529,22 +528,18 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   paramLength[1] = 0;
   paramFormat[1] = 0;
 
-  sprintf(paramValues[2],"%.14e",time_stamp);
+  sprintf(paramValues[2],"%.14e", ts_client);
   paramLength[2] = 0;
   paramFormat[2] = 0;
 
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
-
-  if (tv.tv_sec > psqldb->last_commit) {
+  if (ts_server > psqldb->last_commit) {
     if (dba_reopen_transaction (db) == -1) {
       return -1;
     }
-    psqldb->last_commit = tv.tv_sec;
+    psqldb->last_commit = ts_server;
   }
 
-  sprintf(paramValues[3],"%.14e",time_stamp_server);
+  sprintf(paramValues[3],"%.14e", ts_server);
   paramLength[3] = 0;
   paramFormat[3] = 0;
 

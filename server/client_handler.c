@@ -17,6 +17,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <sys/time.h>
 
 #include "oml2/oml_writer.h"
 #include "ocomm/o_log.h"
@@ -410,68 +411,6 @@ process_meta(ClientHandler* self, char* key, char* value)
 
     } else {
 
-      /** \ page oml2-server XXX: Broken section ordering
-       * \page timestamps OML Server-side Timestamping
-       *
-       * OML provides a timestamping mechanism based on each reporting node's
-       * time (`oml_ts_client`). Each server remaps the MSs they receive to an
-       * experiment-wide timebase (`oml_ts_server`) which allows some time
-       * comparisons to be made between measurements from different machines.
-       * This mechanism however does not remove the need for a good time
-       * synchronisation between the involved experimental nodes.
-       *
-       * Note: The `oml_ts_client` is always accurate with respect to the
-       * sender, while the `oml_ts_server` might be off in case the sender was
-       * disconnected and automatically reconnected.
-       *
-       * Upon connection, the clients send headers to the server as key--value
-       * pairs. One of the keys is the `start-time` (or `start_time`) which
-       * indicates the client timestamp at which their messages has been
-       * generated (`oml_ts_client` of the sample, \f$start_\mathrm{client}\f$
-       * in the following). This gives the server an indication about the time
-       * difference between its local clock (reading
-       * \f$cur_\mathrm{server}\f$), and each of the clients'.
-       *
-       * To allow for some sort of time comparison between samples from
-       * different clients, the server maintains a separate timestamp
-       * (`oml_ts_server`) to which it remaps all client timestamps, based on
-       * this difference.
-       *
-       * When the client connects, the server calculates:
-       *
-       *   \f[\delta = (start_\mathrm{client} - cur_\mathrm{server})\f]
-       *
-       * and stores it in the per-client data structure. For each packet from
-       * the client, it takes the client's timestamp ts_client and calculates
-       * ts_server as:
-       *
-       *   \f[ts_\mathrm{server} = ts_\mathrm{client} + \delta\f]
-       *
-       * When the first client for a yet unknown experimental domain connects,
-       * the server also uses its timestamps to create a reference start time
-       * for the samples belonging to that domain, with an arbitrary offset of
-       * -100s to account for badly synchronised clients and avoid negative
-       *  timestamps.
-       *
-       *   \f[start_\mathrm{server} = start_\mathrm{client} - 100\f]
-       *
-       * This server start date is stored in the database (in the
-       * `_experiment_metadata` table) to enable experiment restarting.
-       *
-       * The key observation is that the exact reference datum on the client
-       * and server doesn't matter; all that matters is that the server knows
-       * what the client's date is (the client tells the server in its headers
-       * when it connects).  Then the client specifies measurement packet
-       * timestamps relative to the datum.  In our case the datum is tv_sec +
-       * 1e-6 * tv_usec, where tv_sec and tv_usec are the corresponding members
-       * of the struct timeval that gettimeofday(2) fills out.
-       *
-       * For this scheme to provide accurate time measurements, the clocks of
-       * the client and server must be synchronized to the same reference (and
-       * timezone). The precision of the time measurements is then governed by
-       * the precision of gettimeofday(2).
-       */
-
       start_time = atoi(value);
       if (self->database->start_time == 0) {
         // seed it with a time in the past
@@ -649,7 +588,7 @@ process_header(ClientHandler* self, MBuffer* mbuf)
 static void
 process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
 {
-  double ts;
+  double ts_client, ts_server;
   int table_index;
   int seqno;
   struct schema *schema;
@@ -658,8 +597,12 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
   MBuffer* mbuf = self->mbuf;
   OmlValue *v;
   int count;
+  struct timeval tv;
 
-  ts = header->timestamp;
+  gettimeofday(&tv, NULL);
+  ts_server = tv.tv_sec - self->database->start_time + tv.tv_usec * 0.000001;
+  ts_client = header->timestamp;
+
   table_index = header->stream;
   seqno = header->seqno;
 
@@ -669,7 +612,6 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
     return;
   }
 
-  ts += self->time_offset;
   table = self->tables[table_index];
   if (NULL == table) {
     if (0 == table_index) {
@@ -706,7 +648,7 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
   mbuf_consume_message (mbuf);
 
   if (0 == table_index) { /* Stream 0: Metadata */
-    logdebug("%s(bin): Client sending metadata at %f\n", self->name, ts);
+    logdebug("%s(bin): Client sending metadata at %f\n", self->name, ts_client);
 
     /* For future-proofness: find fields with actual names "key" and "value",
      * regardless of how many there are .*/
@@ -750,10 +692,10 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
     }
   }
 
-  logdebug("%s(bin): Inserting data into table index %d '%s' (seqno=%d, ts=%f)\n",
-      self->name, table_index, table->schema->name, seqno, ts);
+  logdebug("%s(bin): Inserting data into table index %d '%s' (seqno=%d, ts_client=%f, ts_server=%f)\n",
+      self->name, table_index, table->schema->name, seqno, ts_client, ts_server);
   self->database->insert(self->database, table, self->sender_id, header->seqno,
-      ts, self->values_vectors[table_index], count);
+      ts_client, ts_server, self->values_vectors[table_index], count);
 }
 
 /** Read binary data from an MBuffer
@@ -826,19 +768,23 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
 static void
 process_text_data_message(ClientHandler* self, char** msg, int count)
 {
-  double ts;
+  double ts_client, ts_server;
   int table_index;
   int seqno;
   struct schema *schema;
   int i, ki = -1, vi = -1, si = -1;
   DbTable *table;
   OmlValue *v;
+  struct timeval tv;
+
+  gettimeofday(&tv, NULL);
 
   if (count < 3) {
     return;
   }
 
-  ts = atof(msg[0]);
+  ts_server = tv.tv_sec - self->database->start_time + tv.tv_usec * 0.000001;
+  ts_client = atof(msg[0]);
   table_index = atol(msg[1]);
   seqno = atol(msg[2]);
 
@@ -848,7 +794,6 @@ process_text_data_message(ClientHandler* self, char** msg, int count)
     return;
   }
 
-  ts += self->time_offset;
   table = self->tables[table_index];
   if (NULL == table) {
     if (0 == table_index) {
@@ -877,7 +822,7 @@ process_text_data_message(ClientHandler* self, char** msg, int count)
   }
 
   if (0 == table_index) { /* Stream 0: Metadata */
-    logdebug("%s(txt): Client sending metadata at %f\n", self->name, ts);
+    logdebug("%s(txt): Client sending metadata at %f\n", self->name, ts_client);
 
     /* For future-proofness: find fields with actual names "key" and "value",
      * regardless of how many there are .*/
@@ -925,10 +870,10 @@ process_text_data_message(ClientHandler* self, char** msg, int count)
     }
   }
 
-  logdebug("%s(txt): Inserting data into table index %d '%s' (seqno=%d, ts=%f)\n",
-      self->name, table_index, table->schema->name, seqno, ts);
+  logdebug("%s(txt): Inserting data into table index %d '%s' (seqno=%d, ts_client=%f, ts_server=%f)\n",
+      self->name, table_index, table->schema->name, seqno, ts_client, ts_server);
   self->database->insert(self->database, table, self->sender_id, seqno,
-      ts, self->values_vectors[table_index], count - 3); /* Ignore first 3 elements */
+      ts_client, ts_server, self->values_vectors[table_index], count - 3); /* Ignore first 3 elements */
 }
 
 /** Process as many lines of data as possible from an MBuffer.

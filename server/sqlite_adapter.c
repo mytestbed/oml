@@ -77,7 +77,7 @@ static void sq3_release(Database* db);
 static int sq3_table_create (Database* db, DbTable* table, int shallow);
 static int sq3_table_free (Database *database, DbTable* table);
 static char *sq3_prepared_var(Database *db, unsigned int order);
-static int sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_stamp, OmlValue *values, int value_count);
+static int sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double ts_client, double ts_server, OmlValue *values, int value_count);
 static char* sq3_get_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key);
 static int sq3_set_key_value (Database* database, const char* table, const char* key_column, const char* value_column, const char* key, const char* value);
 static char* sq3_get_metadata (Database* database, const char* key);
@@ -243,7 +243,7 @@ sq3_create_database(Database* db)
 
   Sq3DB* self = oml_malloc(sizeof(Sq3DB));
   self->conn = conn;
-  self->last_commit = time (NULL);
+  self->last_commit = -1.;
   db->backend_name = backend_name;
   db->o2t = sq3_oml_to_type;
   db->t2o = sq3_type_to_oml;
@@ -395,24 +395,22 @@ sq3_prepared_var(Database *db, unsigned int order)
  * XXX: This function actively does text protocol interpretation, see #1088
  */
 static int
-sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_stamp, OmlValue *values, int value_count)
+sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double ts_client, double ts_server, OmlValue *values, int value_count)
 {
   Sq3DB* sq3db = (Sq3DB*)db->handle;
   Sq3Table* sq3table = (Sq3Table*)table->handle;
   int i;
-  double time_stamp_server;
   sqlite3_stmt* stmt = sq3table->insert_stmt;
+  OmlValue* v;
+  struct schema *schema;
   char *json = NULL;
   ssize_t json_sz;
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
 
-  if (tv.tv_sec > sq3db->last_commit) {
+  if (ts_server > sq3db->last_commit) {
     if (dba_reopen_transaction (db) == -1) {
       return -1;
     }
-    sq3db->last_commit = tv.tv_sec;
+    sq3db->last_commit = ts_server;
   }
 
   //  o_log(O_LOG_DEBUG2, "sq3_insert(%s): insert row %d \n",
@@ -428,19 +426,19 @@ sq3_insert(Database *db, DbTable *table, int sender_id, int seq_no, double time_
         db->name, table->schema->name,
         sqlite3_errmsg(sq3db->conn));
   }
-  if (sqlite3_bind_double(stmt, 3, time_stamp) != SQLITE_OK) {
+  if (sqlite3_bind_double(stmt, 3, ts_client) != SQLITE_OK) {
     logerror("sqlite:%s: Could not bind 'oml_ts_client' in table '%s': %s\n",
         db->name, table->schema->name,
         sqlite3_errmsg(sq3db->conn));
   }
-  if (sqlite3_bind_double(stmt, 4, time_stamp_server) != SQLITE_OK) {
+  if (sqlite3_bind_double(stmt, 4, ts_server) != SQLITE_OK) {
     logerror("sqlite:%s: Could not bind 'oml_ts_server' in table '%s': %s\n",
         db->name, table->schema->name,
         sqlite3_errmsg(sq3db->conn));
   }
 
-  OmlValue* v = values;
-  struct schema *schema = table->schema;
+  v = values;
+  schema = table->schema;
   if (schema->nfields != value_count) {
     logerror ("sqlite:%s: Failed to insert %d values into table '%s' with %d columns\n",
         db->name, value_count, table->schema->name, schema->nfields);

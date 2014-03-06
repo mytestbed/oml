@@ -39,9 +39,9 @@
  *     table;
  *  - `oml_seq` a record of the `seq_no` sent with each tuple;
  *  - `oml_ts_client` the offset from `start-time` of when that tuple was
- *    serialised;
- *  - `oml_ts_server` the \ref timestamps "same offset rebased in the server's timeframe"
- *    (by adding the difference of the server's time and the `start-time`
+ *    injected at the client;
+ *  - `oml_ts_server` the offset from `start-time` of when that tuple was
+ *    processed at the server;
  *    \ref omspheader "header" upon connection from the particular sender);
  *  - Each element of the \ref omspschema "schema", in order, with a database type able to
  *    store the information of the OML type;

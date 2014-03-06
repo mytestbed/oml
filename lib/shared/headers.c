@@ -85,8 +85,7 @@
  * - `domain` (`experiment-id` in V<4): string identifying the experimental
  *     domain (should match `/[-_A-Za-z0-9]+/`);
  * - `start-time`: local UNIX time in seconds taken at the time the header is
- *     being sent (see <a href="http://linux.die.net/man/3/gettimeofday">gettimeofday(3)</a>),
- *     \ref timestamps "the server uses this information to rebase timestamps within its own timeline";
+ *     being sent (see <a href="http://linux.die.net/man/3/gettimeofday">gettimeofday(3)</a>);
  * - `sender-id`: (`start_time` in V<4): string identifying the source of this
  *     stream (should match `/[_A-Za-z0-9]+/`);
  * - `app-name`: string identifying the application producing the
@@ -112,8 +111,7 @@
  * Prior to serialising tuples according to their schema, three elements are
  * inserted.
  * - `timestamp`: a *double* timestamp in seconds relative to the
- *     `start-time` sent in the headers,
- *     \ref timestamps "the server uses this information to rebase timestamps within its own timeline";
+ *     `start-time` sent in the headers;
  * - `stream_id:` an *integer* (marshalled specifically as a `uint8_t` in
  *      \ref omspbin "binary mode") indicating which previously defined schema
  *      this tuple follows;

@@ -119,12 +119,13 @@ typedef char* (*db_adapter_prepared_var)(Database *db, unsigned int order);
  * \param table DbTable to insert data in
  * \param sender_id sender ID
  * \param seq_no sequence number
- * \param time_stamp timestamp of the receiving data
+ * \param ts_client client njection timestamp
+ * \param ts_server server reception timestamp
  * \param values OmlValue array to insert
  * \param value_count number of values
  * \return 0 if successful, -1 otherwise
  */
-typedef int (*db_adapter_insert)(Database *db, DbTable* table, int sender_id, int seq_no, double time_stamp, OmlValue* values, int value_count);
+typedef int (*db_adapter_insert)(Database *db, DbTable* table, int sender_id, int seq_no, double ts_client, double ts_server, OmlValue* values, int value_count);
 
 /** Get data from the metadata table
  *

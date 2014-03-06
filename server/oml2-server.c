@@ -19,7 +19,6 @@
  * database. Currently, SQLite3 and PostgreSQL are supported as backends.
  *
  * - \subpage datastorage
- * - \subpage timestamps
  */
 
 #ifdef HAVE_CONFIG_H
