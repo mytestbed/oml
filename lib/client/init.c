@@ -310,7 +310,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
   omlc_instance->client_instr = omlc_add_mp("_client_instrumentation", _client_instrumentation);
 
-  loginfo ("OML Client V%s [Protocol V%d] %s\n",
+  loginfo ("OML Client %s [OMSPv%d] %s\n",
            VERSION,
            OML_PROTOCOL_VERSION,
            OMLC_COPYRIGHT);
@@ -623,8 +623,9 @@ static void
 usage(void)
 
 {
-  printf("OML Client V%s\n", VERSION);
-  printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
+  printf("OML Client %s [OMSPv%d]\n",
+           VERSION,
+           OML_PROTOCOL_VERSION);
   printf("%s\n", OMLC_COPYRIGHT);
   printf("\n");
   printf("OML specific parameters:\n\n");
