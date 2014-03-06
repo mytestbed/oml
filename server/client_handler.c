@@ -352,7 +352,7 @@ process_schema(ClientHandler* self, char* value)
  * \param self ClientHandler
  * \param key key
  * \param value value
- * \return 0 if meta was process successfully, <0 on error, or >0 if key was not recognised
+ * \return 0 if meta was processed successfully, <0 on error, or >0 if key was not recognised
  */
 static int
 process_meta(ClientHandler* self, char* key, char* value)
@@ -411,65 +411,56 @@ process_meta(ClientHandler* self, char* key, char* value)
     } else {
 
       /** \ page oml2-server XXX: Broken section ordering
-       * \page timestamps OML Server-side Timestamping
+       * \page timestamps OML Timestamping
        *
        * OML provides a timestamping mechanism based on each reporting node's
-       * time (`oml_ts_client`). Each server remaps the MSs they receive to an
-       * experiment-wide timebase (`oml_ts_server`) which allows some time
-       * comparisons to be made between measurements from different machines.
-       * This mechanism however does not remove the need for a good time
-       * synchronisation between the involved experimental nodes.
+       * clock (`oml_ts_client`) at injection time. Upon processing a sample,
+       * the server timestamps it a second time (`oml_ts_server`), according to
+       * its own clock.  Before storage in the database, all timestamps are
+       * rebased to the experiment-wide timebase (see below).
        *
-       * Note: The `oml_ts_client` is always accurate with respect to the
-       * sender, while the `oml_ts_server` might be off in case the sender was
-       * disconnected and automatically reconnected.
+       * The rebasing works as follows.
        *
        * Upon connection, the clients send headers to the server as key--value
-       * pairs. One of the keys is the `start-time` (or `start_time`) which
-       * indicates the client timestamp at which their messages has been
-       * generated (`oml_ts_client` of the sample, \f$start_\mathrm{client}\f$
-       * in the following). This gives the server an indication about the time
-       * difference between its local clock (reading
-       * \f$cur_\mathrm{server}\f$), and each of the clients'.
+       * pairs. One of the keys is the `start-time` which indicates the client
+       * timestamp at which their first message has been generated
+       * (`oml_ts_client` of the sample, \f$s_\mathrm{client}^0\f$ in the
+       * following). For new experiments, this `start-time` is used as the base:
+       * \f$s_\mathrm{experiment}=s_\mathrm{client}^0\f$.
        *
-       * To allow for some sort of time comparison between samples from
-       * different clients, the server maintains a separate timestamp
-       * (`oml_ts_server`) to which it remaps all client timestamps, based on
-       * this difference.
+       * All timestamps will be rebased to this reference before being stored
+       * in the database. The server's timestamp, \f$ts_\mathrm{server}\f$
+       * simply get this base subtracted,
+       *   \f[\mathtt{oml\_ts\_server} = ts_\mathrm{server} - s_\mathrm{experiment}.\f]
        *
-       * When the client connects, the server calculates:
-       *
-       *   \f[\delta = (start_\mathrm{client} - cur_\mathrm{server})\f]
-       *
-       * and stores it in the per-client data structure. For each packet from
-       * the client, it takes the client's timestamp ts_client and calculates
-       * ts_server as:
-       *
-       *   \f[ts_\mathrm{server} = ts_\mathrm{client} + \delta\f]
-       *
-       * When the first client for a yet unknown experimental domain connects,
-       * the server also uses its timestamps to create a reference start time
-       * for the samples belonging to that domain, with an arbitrary offset of
-       * -100s to account for badly synchronised clients and avoid negative
-       *  timestamps.
-       *
-       *   \f[start_\mathrm{server} = start_\mathrm{client} - 100\f]
-       *
-       * This server start date is stored in the database (in the
-       * `_experiment_metadata` table) to enable experiment restarting.
+       * For subsequently-connecting clients, an offset of their `start-time`
+       * (\f$s_\mathrm{client}^i\f$) to that of the experiment,
+       *   \f[\delta_i = s_\mathrm{client}^i - s_\mathrm{experiment},\f]
+       * is recorded; it is simply 0 for the first client. The timestamp of
+       * each sample, \f$ts_\mathrm{client}^i\f$, is then rebased as
+       *   \f[\mathtt{oml\_ts\_client} = ts_\mathrm{client}^i + \delta_i\f]
+       * (recall that the client already rebases its
+       * \f$ts_\mathrm{client}^i\f$ to its own \f$s_\mathrm{client}^i\f$
+       * before sending it over the network.
        *
        * The key observation is that the exact reference datum on the client
        * and server doesn't matter; all that matters is that the server knows
        * what the client's date is (the client tells the server in its headers
-       * when it connects).  Then the client specifies measurement packet
-       * timestamps relative to the datum.  In our case the datum is tv_sec +
-       * 1e-6 * tv_usec, where tv_sec and tv_usec are the corresponding members
-       * of the struct timeval that gettimeofday(2) fills out.
+       * when it connects). Then the client specifies measurement packet
+       * timestamps relative to the datum.  In our case the datum is \f$\mathtt{tv\_sec} +
+       * 1e^{-6}\times\mathtt{tv\_usec}\f$, where `tv_sec` and `tv_usec` are the corresponding members
+       * of the `struct timeval` that `gettimeofday`(2) fills in.
        *
        * For this scheme to provide accurate time measurements, the clocks of
        * the client and server must be synchronized to the same reference (and
        * timezone). The precision of the time measurements is then governed by
-       * the precision of gettimeofday(2).
+       * the precision of `gettimeofday`(2).
+       *
+       * This means that the comparison of `oml_ts_client` from different nodes
+       * can be assumed to have the half the precision of the time
+       * synchronisation system running on the nodes. Comparing `oml_ts_server`
+       * values should also take into account the network delays from each node
+       * to the server.
        */
 
       start_time = atoi(value);
