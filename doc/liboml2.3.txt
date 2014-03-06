@@ -461,8 +461,8 @@ OML to use the standard output (*--oml-collect file:-*).  Here is what
 it looks like:
 
 --------
-INFO   OML Client V2.x.y [Protocol V4] Copyright 2007-2012, NICTA
-protocol: 4
+INFO   OML Client 2.x.y [OMSPv5] Copyright 2007-2014, NICTA
+protocol: 5
 domain: count
 start-time: 1283160287
 sender-id: myid
