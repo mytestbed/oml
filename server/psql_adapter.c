@@ -496,6 +496,11 @@ psql_prepared_var(Database *db, unsigned int order)
   return s;
 }
 
+/** Used as allocation size of strings to hold integers.
+ * XXX: We play it safe as INT64_MAX is 9223372036854775807, that is 19 characters
+ */
+#define MAX_DIGITS 32
+
 /** Insert value in the PostgreSQL database.
  * \see db_adapter_insert
  */
@@ -509,27 +514,27 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   double time_stamp_server;
   const char* insert_stmt = mstring_buf (psqltable->insert_stmt);
   unsigned char *escaped_blob;
-  size_t eblob_len=-1;
+  size_t len; /* Will raise warning if we use it in some codepaths where it risk not being initialised;
+		 It's a Good Thing(TM) */
 
   char *paramValues[4+value_count];
-  /** XXX: We should be more careful with this allocation... */
-#define PARAM_SIZE 512
   for (i=0;i<4+value_count;i++) {
-    paramValues[i] = oml_malloc(PARAM_SIZE*sizeof(char));
+    /* XXX: If some values are strings or blobs, we'll have to reallocate them */
+    paramValues[i] = oml_malloc(MAX_DIGITS);
   }
 
   int paramLength[4+value_count];
   int paramFormat[4+value_count];
 
-  sprintf(paramValues[0],"%i",sender_id);
+  snprintf(paramValues[0], MAX_DIGITS, "%i",sender_id);
   paramLength[0] = 0;
   paramFormat[0] = 0;
 
-  sprintf(paramValues[1],"%i",seq_no);
+  snprintf(paramValues[1], MAX_DIGITS, "%i",seq_no);
   paramLength[1] = 0;
   paramFormat[1] = 0;
 
-  sprintf(paramValues[2],"%.14e",time_stamp);
+  snprintf(paramValues[2], MAX_DIGITS, "%.14e",time_stamp);
   paramLength[2] = 0;
   paramFormat[2] = 0;
 
@@ -544,7 +549,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
     psqldb->last_commit = tv.tv_sec;
   }
 
-  sprintf(paramValues[3],"%.14e",time_stamp_server);
+  snprintf(paramValues[3], MAX_DIGITS, "%.14e",time_stamp_server);
   paramLength[3] = 0;
   paramFormat[3] = 0;
 
@@ -556,36 +561,50 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
       return -1;
     }
     switch (field->type) {
-    case OML_LONG_VALUE: sprintf(paramValues[4+i],"%i",(int)omlc_get_long(*oml_value_get_value(v))); break;
-    case OML_INT32_VALUE:  sprintf(paramValues[4+i],"%" PRId32,omlc_get_int32(*oml_value_get_value(v))); break;
-    case OML_UINT32_VALUE: sprintf(paramValues[4+i],"%" PRIu32,omlc_get_uint32(*oml_value_get_value(v))); break;
-    case OML_INT64_VALUE:  sprintf(paramValues[4+i],"%" PRId64,omlc_get_int64(*oml_value_get_value(v))); break;
-    case OML_UINT64_VALUE: sprintf(paramValues[4+i],"%" PRIu64,omlc_get_uint64(*oml_value_get_value(v))); break;
-    case OML_DOUBLE_VALUE: sprintf(paramValues[4+i],"%.14e",omlc_get_double(*oml_value_get_value(v))); break;
-    case OML_BOOL_VALUE:   sprintf(paramValues[4+i],"%d", omlc_get_bool(*oml_value_get_value(v)) ? 1 : 0); break;
-    case OML_STRING_VALUE: sprintf(paramValues[4+i],"%s", omlc_get_string_ptr(*oml_value_get_value(v))); break;
+    case OML_LONG_VALUE:   snprintf(paramValues[4+i], MAX_DIGITS, "%i",(int)omlc_get_long(*oml_value_get_value(v))); break;
+    case OML_INT32_VALUE:  snprintf(paramValues[4+i], MAX_DIGITS, "%" PRId32,omlc_get_int32(*oml_value_get_value(v))); break;
+    case OML_UINT32_VALUE: snprintf(paramValues[4+i], MAX_DIGITS, "%" PRIu32,omlc_get_uint32(*oml_value_get_value(v))); break;
+    case OML_INT64_VALUE:  snprintf(paramValues[4+i], MAX_DIGITS, "%" PRId64,omlc_get_int64(*oml_value_get_value(v))); break;
+    case OML_UINT64_VALUE: snprintf(paramValues[4+i], MAX_DIGITS, "%" PRIu64,omlc_get_uint64(*oml_value_get_value(v))); break;
+    case OML_DOUBLE_VALUE: snprintf(paramValues[4+i], MAX_DIGITS, "%.14e",omlc_get_double(*oml_value_get_value(v))); break;
+    case OML_BOOL_VALUE:   snprintf(paramValues[4+i], MAX_DIGITS, "%d", omlc_get_bool(*oml_value_get_value(v)) ? 1 : 0); break;
+    case OML_STRING_VALUE:
+			   len = omlc_get_string_length(*oml_value_get_value(v)) + 1;
+			   if (len > MAX_DIGITS) {
+                             logdebug2("psql:%s: Reallocating %d bytes for long string\n", db->name, len);
+			     paramValues[4+i] = oml_realloc(paramValues[4+i], len);
+			     if (!paramValues[4+i]) {
+			       logerror("psql:%s: Could not realloc()at memory for string '%s' in field %d of table '%s'\n",
+				   db->name, omlc_get_string_ptr(*oml_value_get_value(v)), i, table->schema->name);
+			       return -1;
+			     }
+			   }
+			   snprintf(paramValues[4+i], len, "%s", omlc_get_string_ptr(*oml_value_get_value(v)));
+			   break;
     case OML_BLOB_VALUE:
                            escaped_blob = PQescapeByteaConn(psqldb->conn,
-                               omlc_get_blob_ptr(*oml_value_get_value(v)), omlc_get_blob_length(*oml_value_get_value(v)), &eblob_len);
+					   omlc_get_blob_ptr(*oml_value_get_value(v)),
+					   omlc_get_blob_length(*oml_value_get_value(v)),
+					   &len);
                            if (!escaped_blob) {
                              logerror("psql:%s: Error escaping blob in field %d of table '%s': %s", /* PQerrorMessage strings already have '\n' */
                                  db->name, i, table->schema->name, PQerrorMessage(psqldb->conn));
                            }
-                           if (eblob_len > PARAM_SIZE) {
-                             logdebug("psql:%s: Reallocating %d bytes for big blob\n", db->name, eblob_len);
-                             paramValues[4+i] = oml_realloc(paramValues[4+i], eblob_len);
+			   if (len > MAX_DIGITS) {
+                             logdebug2("psql:%s: Reallocating %d bytes for big blob\n", db->name, len);
+                             paramValues[4+i] = oml_realloc(paramValues[4+i], len);
                              if (!paramValues[4+i]) {
                                logerror("psql:%s: Could not realloc()at memory for escaped blob in field %d of table '%s'\n",
                                    db->name, i, table->schema->name);
                                return -1;
                              }
                            }
-                           snprintf(paramValues[4+i], eblob_len, "%s", escaped_blob);
+                           snprintf(paramValues[4+i], len, "%s", escaped_blob);
                            PQfreemem(escaped_blob);
                            break;
     case OML_GUID_VALUE:
                            if(omlc_get_guid(*oml_value_get_value(v)) != OMLC_GUID_NULL) {
-                             sprintf(paramValues[4+i],"%" PRId64, (int64_t)(omlc_get_guid(*oml_value_get_value(v))));
+                             snprintf(paramValues[4+i], MAX_DIGITS, "%" PRId64, (int64_t)(omlc_get_guid(*oml_value_get_value(v))));
                            } else {
                              paramValues[4+i] = NULL;
                            }
