@@ -496,6 +496,11 @@ psql_prepared_var(Database *db, unsigned int order)
   return s;
 }
 
+/** Used as allocation size of strings to hold integers.
+ * XXX: We play it safe as INT64_MAX is 9223372036854775807, that is 19 characters
+ */
+#define MAX_DIGITS 32
+
 /** Insert value in the PostgreSQL database.
  * \see db_adapter_insert
  */
@@ -509,25 +514,26 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   double time_stamp_server;
   const char* insert_stmt = mstring_buf (psqltable->insert_stmt);
   unsigned char *escaped_blob;
-  size_t eblob_len=-1;
+  size_t len=MAX_DIGITS;
 
   char *paramValues[4+value_count];
   for (i=0;i<4+value_count;i++) {
-    paramValues[i] = oml_malloc(512*sizeof(char));
+    /* XXX: If some values are strings or blobs, we'll have to reallocate them */
+    paramValues[i] = oml_malloc(MAX_DIGITS);
   }
 
   int paramLength[4+value_count];
   int paramFormat[4+value_count];
 
-  sprintf(paramValues[0],"%i",sender_id);
+  snprintf(paramValues[0], MAX_DIGITS, "%i",sender_id);
   paramLength[0] = 0;
   paramFormat[0] = 0;
 
-  sprintf(paramValues[1],"%i",seq_no);
+  snprintf(paramValues[1], MAX_DIGITS, "%i",seq_no);
   paramLength[1] = 0;
   paramFormat[1] = 0;
 
-  sprintf(paramValues[2],"%.14e",time_stamp);
+  snprintf(paramValues[2], MAX_DIGITS, "%.14e",time_stamp);
   paramLength[2] = 0;
   paramFormat[2] = 0;
 
@@ -542,7 +548,7 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
     psqldb->last_commit = tv.tv_sec;
   }
 
-  sprintf(paramValues[3],"%.14e",time_stamp_server);
+  snprintf(paramValues[3], MAX_DIGITS, "%.14e",time_stamp_server);
   paramLength[3] = 0;
   paramFormat[3] = 0;
 
@@ -554,37 +560,48 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
       return -1;
     }
     switch (field->type) {
-    case OML_LONG_VALUE: sprintf(paramValues[4+i],"%i",(int)v->value.longValue); break;
-    case OML_INT32_VALUE:  sprintf(paramValues[4+i],"%" PRId32,v->value.int32Value); break;
-    case OML_UINT32_VALUE: sprintf(paramValues[4+i],"%" PRIu32,v->value.uint32Value); break;
-    case OML_INT64_VALUE:  sprintf(paramValues[4+i],"%" PRId64,v->value.int64Value); break;
-    case OML_UINT64_VALUE: sprintf(paramValues[4+i],"%" PRIu64,v->value.uint64Value); break;
-    case OML_DOUBLE_VALUE: sprintf(paramValues[4+i],"%.14e",v->value.doubleValue); break;
-    case OML_BOOL_VALUE:   sprintf(paramValues[4+i],"%d", v->value.boolValue ? 1 : 0); break;
-    case OML_STRING_VALUE: sprintf(paramValues[4+i],"%s", omlc_get_string_ptr(*oml_value_get_value(v))); break;
+    case OML_LONG_VALUE:   snprintf(paramValues[4+i], MAX_DIGITS, "%i",(int)v->value.longValue); break;
+    case OML_INT32_VALUE:  snprintf(paramValues[4+i], MAX_DIGITS, "%" PRId32,v->value.int32Value); break;
+    case OML_UINT32_VALUE: snprintf(paramValues[4+i], MAX_DIGITS, "%" PRIu32,v->value.uint32Value); break;
+    case OML_INT64_VALUE:  snprintf(paramValues[4+i], MAX_DIGITS, "%" PRId64,v->value.int64Value); break;
+    case OML_UINT64_VALUE: snprintf(paramValues[4+i], MAX_DIGITS, "%" PRIu64,v->value.uint64Value); break;
+    case OML_DOUBLE_VALUE: snprintf(paramValues[4+i], MAX_DIGITS, "%.14e",v->value.doubleValue); break;
+    case OML_BOOL_VALUE:   snprintf(paramValues[4+i], MAX_DIGITS, "%d", v->value.boolValue ? 1 : 0); break;
+    case OML_STRING_VALUE:
+			   len=omlc_get_string_length(*oml_value_get_value(v)) + 1;
+			   if (len > MAX_DIGITS) {
+                             logdebug2("psql:%s: Reallocating %d bytes for long string\n", db->name, len);
+			     paramValues[4+i] = oml_realloc(paramValues[4+i], len);
+			     if (!paramValues[4+i]) {
+			       logerror("psql:%s: Could not realloc()at memory for string '%s' in field %d of table '%s'\n",
+				   db->name, omlc_get_string_ptr(*oml_value_get_value(v)), i, table->schema->name);
+			       return -1;
+			     }
+			   }
+			   snprintf(paramValues[4+i], len, "%s", omlc_get_string_ptr(*oml_value_get_value(v)));
+			   break;
     case OML_BLOB_VALUE:
                            escaped_blob = PQescapeByteaConn(psqldb->conn,
-                               v->value.blobValue.ptr, v->value.blobValue.length, &eblob_len);
+                               v->value.blobValue.ptr, v->value.blobValue.length, &len);
                            if (!escaped_blob) {
                              logerror("psql:%s: Error escaping blob in field %d of table '%s': %s", /* PQerrorMessage strings already have '\n' */
                                  db->name, i, table->schema->name, PQerrorMessage(psqldb->conn));
                            }
-                           /* XXX: 512 char is the size allocated above. Nasty. */
-                           if (eblob_len > 512) {
-                             logdebug("psql:%s: Reallocating %d bytes for big blob\n", db->name, eblob_len);
-                             paramValues[4+i] = oml_realloc(paramValues[4+i], eblob_len);
+                           if (len > MAX_DIGITS) {
+                             logdebug2("psql:%s: Reallocating %d bytes for big blob\n", db->name, len);
+                             paramValues[4+i] = oml_realloc(paramValues[4+i], len);
                              if (!paramValues[4+i]) {
                                logerror("psql:%s: Could not realloc()at memory for escaped blob in field %d of table '%s'\n",
                                    db->name, i, table->schema->name);
                                return -1;
                              }
                            }
-                           snprintf(paramValues[4+i], eblob_len, "%s", escaped_blob);
+                           snprintf(paramValues[4+i], len, "%s", escaped_blob);
                            PQfreemem(escaped_blob);
                            break;
     case OML_GUID_VALUE:
                            if(v->value.guidValue != OMLC_GUID_NULL) {
-                             sprintf(paramValues[4+i],"%" PRId64, (int64_t)(v->value.guidValue));
+                             snprintf(paramValues[4+i], MAX_DIGITS, "%" PRId64, (int64_t)(v->value.guidValue));
                            } else {
                              paramValues[4+i] = NULL;
                            }
