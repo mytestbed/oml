@@ -2,7 +2,8 @@
 TESTS_ENVIRONMENT = top_srcdir=$(top_srcdir) srcdir=$(srcdir) \
 		    top_builddir=$(top_builddir) builddir=$(builddir) \
 		    VERSION=$(VERSION) CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" LIBADD="$(LIBADD)" \
-		    POSTGRES=$(POSTGRES) TIMEOUT="$(TIMEOUT)"
+		    POSTGRES=$(POSTGRES) TIMEOUT="$(TIMEOUT)" \
+		    MALLOC_CHECK_=3
 TESTS = scaffold.sh reconnect.sh reconnect-text.sh run.sh run-long.sh
 if HAVE_LIBPQ
 if HAVE_POSTGRES
