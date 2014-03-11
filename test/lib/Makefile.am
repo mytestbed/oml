@@ -1,5 +1,5 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
-AM_TESTS_ENVIRONMENT = CK_VERBOSITY=verbose
+AM_TESTS_ENVIRONMENT = CK_VERBOSITY=verbose MALLOC_CHECK_=3
 
 if HAVE_CHECK
 TESTS = check_liboml2 check_libshared
