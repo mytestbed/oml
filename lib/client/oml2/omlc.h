@@ -125,7 +125,7 @@ typedef struct OmlString {
   /** Pointer to a nil-terminated C string */
   char *ptr;
 
-  /** Length of string pointed to by ptr */
+  /** Length of string pointed to by ptr, not including nil-terminator */
   size_t length;
 
   /** Size of the allocated underlying storage in ptr (>= length + 1) */
@@ -324,7 +324,8 @@ size_t oml_malloc_usable_size(void *ptr);
 /** \see _oml_get_storage_field */
 #define omlc_get_string_ptr(var) \
   (_oml_get_storage_field(var, string, ptr))
-/** \see _oml_get_storage_field */
+/** Get string length (not including nil-terminator)
+ * \see _oml_get_storage_field, strlen(3) */
 #define omlc_get_string_length(var) \
   (_oml_get_storage_field(var, string, length))
 /** \see _oml_get_storage_field */
@@ -337,7 +338,8 @@ size_t oml_malloc_usable_size(void *ptr);
 /** \see _oml_set_storage_field */
 #define omlc_set_string_ptr(var, val) \
   _oml_set_storage_field(var, string, ptr, (char*)(val))
-/** \see _oml_set_storage_field */
+/** Set string length (not including nil-terminator)
+ * \see _oml_set_storage_field, strlen(3) */
 #define omlc_set_string_length(var, val) \
   _oml_set_storage_field(var, string, length, (size_t)(val))
 /** \see _oml_set_storage_field */
@@ -369,6 +371,8 @@ size_t oml_malloc_usable_size(void *ptr);
 
 /** Free the storage contained in an OmlValueU if needed.
  *
+ * Other metadata such as length is not changed, unlike _omlc_reset_storage.
+ *
  * DO NOT USE THIS MACRO DIRECTLY!
  *
  * It is a helper for specific manipulation macros, which share its behaviour,
@@ -376,7 +380,7 @@ size_t oml_malloc_usable_size(void *ptr);
  *
  * \param var OmlValueU to operate on
  * \param type type of data contained in the OmlValueU
- * \see omlc_free_string, omlc_free_blob, oml_free
+ * \see omlc_free_string, omlc_free_blob, oml_free, _omlc_reset_storage
  */
 #define _omlc_free_storage(var, type)                     \
   do {                                                    \
@@ -386,8 +390,7 @@ size_t oml_malloc_usable_size(void *ptr);
     }                                                     \
   } while(0)
 
-/** Reset the storage contained in an OmlValueU, freeing allocated memory if
- * needed.
+/** Reset the contents of an OmlValueU, freeing allocated memory if needed.
  *
  * DO NOT USE THIS MACRO DIRECTLY!
  *
@@ -396,7 +399,7 @@ size_t oml_malloc_usable_size(void *ptr);
  *
  * \param var OmlValueU to operate on
  * \param type type of data contained in the OmlValueU
- * \see omlc_reset_string, omlc_reset_blob, omlc_reset_vector
+ * \see omlc_reset_string, omlc_reset_blob, omlc_reset_vector, _omlc_free_storage
  */
 #define _omlc_reset_storage(var, type)                    \
   do {                                                    \
@@ -433,7 +436,7 @@ size_t oml_malloc_usable_size(void *ptr);
   } while(0)
 
 /** \see _omlc_free_storage */
-#define _omlc_free_string(var) \
+#define omlc_free_string(var) \
   _omlc_free_storage((var), string)
 /** \see _omlc_reset_storage */
 #define omlc_reset_string(var)          \
@@ -477,8 +480,12 @@ size_t oml_malloc_usable_size(void *ptr);
   omlc_set_string_copy((dst), omlc_get_string_ptr(src), omlc_get_string_length(src))
 
 /** Store a pointer to a C string in an OmlValueU's string storage.
+ * The string is marked as statically allocated, so subsequent calls so
+ * omlc_reset_string will *NOT* free the memory is needed.
+
  * \param var OmlValueU to operate on
  * \param str C-string pointer to use
+ * \see omlc_set_string_size,omlc_reset_string
  */
 #define omlc_set_string(var, str)                               \
   do {                                                          \
@@ -493,7 +500,7 @@ size_t oml_malloc_usable_size(void *ptr);
  */
 #define omlc_set_const_string(var, str)                         \
   do {                                                          \
-    _omlc_free_string(var);                                     \
+    omlc_free_string(var);                                      \
     omlc_set_string_ptr((var), (char *)(str));                  \
     omlc_set_string_is_const((var), 1);                         \
     omlc_set_string_length((var), ((str)==NULL)?0:strlen(str)); \

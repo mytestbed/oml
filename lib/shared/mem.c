@@ -151,7 +151,7 @@ oml_memreport (int loglevel)
  *
  * \param size desired size to allocate
  * \return an xchunk of memory at least as big as size, or NULL
- * \see malloc(3)
+ * \see oml_free, malloc(3)
  */
 void*
 oml_malloc (size_t size)
