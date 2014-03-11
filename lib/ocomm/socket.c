@@ -419,7 +419,7 @@ on_client_connect(SockEvtSource* source, void* handle)
   if (newSock->sockfd < 0) {
     o_log(O_LOG_ERROR, "socket(%s): Error on accept: %s\n",
           self->name, strerror(errno));
-    free(newSock);
+    oml_free(newSock);
     return;
   }
 

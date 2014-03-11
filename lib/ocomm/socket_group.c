@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "mem.h"
 #include "ocomm/o_socket.h"
 #include "ocomm/o_socket_group.h"
 #include "ocomm/o_log.h"
@@ -58,7 +59,7 @@ socket_group_add(
 ) {
   SocketGroupInt* self = (SocketGroupInt*)this;
 
-  SocketHolder* holder = (SocketHolder *)malloc(sizeof(SocketHolder));
+  SocketHolder* holder = (SocketHolder *)oml_malloc(sizeof(SocketHolder));
   memset(holder, 0, sizeof(SocketHolder));
 
   holder->socket = socket;
@@ -83,7 +84,7 @@ socket_group_remove(
       } else {
 	prev->next = holder->next;
       }
-      free(holder);
+      oml_free(holder);
       return;
     }
     prev = holder;
@@ -129,7 +130,7 @@ Socket*
 socket_group_new(
   char* name
 ) {
-  SocketGroupInt* self = (SocketGroupInt *)malloc(sizeof(SocketGroupInt));
+  SocketGroupInt* self = (SocketGroupInt *)oml_malloc(sizeof(SocketGroupInt));
   memset(self, 0, sizeof(SocketGroupInt));
 
   self->name = self->nameBuf;
