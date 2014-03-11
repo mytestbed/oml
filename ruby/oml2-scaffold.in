@@ -1047,7 +1047,7 @@ main(int argc, const char *argv[])
   for(i = 0; i < argc; i++) {
     cmdline_len += strlen(argv[i]) + 1;
   }
-  char *cmdline = oml_malloc(cmdline_len);
+  char *cmdline = oml_malloc(cmdline_len + 1);
   cmdline[0] = '\\0';
   for(i = 0; i < argc; i++) {
     strncat(cmdline, argv[i], cmdline_len);
