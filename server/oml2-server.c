@@ -48,7 +48,7 @@
 #include "sqlite_adapter.h"
 #include "monitoring_server.h"
 
-#define V_STRING  "OML2 Server V%s\n"
+#define V_STRING  "OML Server %s\n"
 
 #define COPYRIGHT "Copyright 2007-2014 NICTA\n"
 
