@@ -811,7 +811,7 @@ psql_add_sender_id(Database *db, const char *sender_id)
     PGresult *res = PQexec (self->conn, "SELECT MAX(id) FROM _senders;");
 
     if (PQresultStatus (res) != PGRES_TUPLES_OK) {
-      logwarn("psql:%s: Failed to get maximum sender id from database (restarting at 0)<++>: %s", /* PQerrorMessage strings already have '\n'  */
+      logwarn("psql:%s: Failed to get maximum sender id from database (restarting at 0): %s", /* PQerrorMessage strings already have '\n'  */
           db->name, PQerrorMessage (self->conn));
       PQclear (res);
       index = 0;
