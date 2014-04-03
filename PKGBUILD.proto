@@ -21,7 +21,7 @@ conflicts=(liboml liboml-git oml2)
 replaces=(liboml-git)
 source=(
 #<!GIT
-	http://oml.mytestbed.net/attachments/download/${_redmineid}/oml2-${pkgver}.tar.gz
+	http://oml.mytestbed.net/attachments/download/${_redmineid}/oml2-${pkgver/\~/}.tar.gz
 #!GIT>
 	oml2-server.conf
 	oml2-server.logrotate
@@ -33,7 +33,7 @@ backup=(etc/conf.d/oml2-server.conf)
 install="oml2.install"
 
 #<!GIT
-_builddir=${pkgname}-${pkgver}
+_builddir=${pkgname}-${pkgver/\~/}
 #!GIT>
 #<GIT
 _gitroot="git://mytestbed.net/oml-staging.git"
