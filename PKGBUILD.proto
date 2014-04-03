@@ -1,13 +1,13 @@
 # Contributor: Olivier Mehani <olivier.mehani@nicta.com.au>
 #<!GIT
 pkgname=oml2
-_redmineid=985
+_redmineid=1101
 #!GIT>
 #<GIT
 pkgname=oml2-git
 #GIT>
-pkgver=2.11.0rc
-pkgrel=1
+pkgver=2.11.0rc2
+pkgrel=2
 pkgdesc="OML is a measurement library that allows to define measurement points inside applications"
 arch=(i686 x86_64)
 url="http://oml.mytestbed.net/"
