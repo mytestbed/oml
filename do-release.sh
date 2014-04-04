@@ -33,7 +33,7 @@ parse_ver()
 	OML=$1
 	VER=$2
 	echo $VER | \
-		sed -n "s/^\([0-9]\+\)\.\([0-9]\+\)\(\.\([0-9]\+\)\~\?\([^-0-9.]*\)\.\?\([0-9]*\)\(-\([^-0-9]*\)\([0-9]*\)\)\?\)\?.*/ \
+		sed -n "s/^\([0-9]\+\)\.\([0-9]\+\)\(\.\([0-9]\+\)\~\?\([^-0-9+.]*\)\.\?\([0-9]*\)\(-\([^-0-9]*\)\([0-9]*\)\)\?\)\?.*/ \
 		export ${OML}_MAJOR=\1 ${OML}_MINOR=\2 ${OML}_REV=\4 ${OML}_TYPE=\5 ${OML}_TYPEREV=\6 ${OML}_EXTRA=\8 ${OML}_EXTRAREV=\9/p"
 	# XXX test that the mandatory fields are not empty
 }
@@ -45,34 +45,47 @@ parse_ver()
 # 2.11.0rc1-mytestbed1 == 2.11.0rc1-mytestbed2	(0)
 compare_ver()
 {
-	eval `parse_ver FIRST $1`
-	eval `parse_ver SECOND $2`
+	eval `parse_ver FIRST "$1"`
+	eval `parse_ver SECOND "$2"`
 
-	compare_ver_one $FIRST_MAJOR $SECOND_MAJOR
+	# 2
+	compare_ver_one "$FIRST_MAJOR" "$SECOND_MAJOR"
 	case $? in
 	1) return 1;;
 	255) return 255;;
 	esac
 
-	compare_ver_one $FIRST_MINOR $SECOND_MINOR
+	# 11
+	compare_ver_one "$FIRST_MINOR" "$SECOND_MINOR"
 	case $? in
 	1) return 1;;
 	255) return 255;;
 	esac
 
-	compare_ver_one $FIRST_REV $SECOND_REV
+	# 0
+	compare_ver_one "$FIRST_REV" "$SECOND_REV"
 	case $? in
 	1) return 1;;
 	255) return 255;;
 	esac
 
-	compare_ver_one $FIRST_TYPE $SECOND_TYPE
+	# rc
+	compare_ver_one "$FIRST_TYPE" "$SECOND_TYPE"
 	case $? in
 	1) return 1;;
 	255) return 255;;
 	esac
 
-	compare_ver_one $FIRST_TYPEREV $SECOND_TYPEREV
+	# 2
+	compare_ver_one "$FIRST_TYPEREV" "$SECOND_TYPEREV"
+	case $? in
+	1) return 1;;
+	255) return 255;;
+	esac
+
+	# [mytestbed]
+	# 2
+	compare_ver_one "$FIRST_EXTRAREV" "$SECOND_EXTRAREV"
 	case $? in
 	1) return 1;;
 	255) return 255;;
@@ -86,6 +99,7 @@ compare_ver()
 # pre < rc				(255)
 # 2 > 1					(1)
 # 1 == 1				(0)
+# "" < 1				(255)
 compare_ver_one()
 {
 	case $1 in
@@ -100,13 +114,14 @@ compare_ver_one()
 			;;
 		"")
 			test "$2" = "" && return 0
-			return 255 # Everything else is smaller than a release
+			test "$2" = "rc" -o "$2" = "pre" && return 255
+			# XXX not version tags, try them as integers
 			;;
 	esac
 
 	# XXX $1 and $2 should be checked to be integer at this stage
-	test $1 -lt $2 && return 255
-	test $1 -gt $2 && return 1
+	test 0$1 -lt 0$2 && return 255
+	test 0$1 -gt 0$2 && return 1
 	return 0
 }
 
@@ -188,7 +203,7 @@ test_build()
 
 update_changelog()
 {
-	prompt Y 'echo -n "Did you properly merge ChangeLogs from previous stable branch release/2.$((OML_MINOR - 1)) [y/N] "' Y YES y yes N NO n no
+	prompt Y 'echo -n "Did you properly merge ChangeLogs from previous stable branch release/2.$((OML_MINOR - 1)) (this is your time to do so!) [y/N] "' Y YES y yes N NO n no
 	is_in $prompt_var "Y YES y yes" || exit 1
 	CL=`${MKTEMP} oml-cl.XXX`
 	echolog "Creating ChangeLog entry stub (in $CL)..."
@@ -284,19 +299,19 @@ build_obs()
 	prompt Y 'echo -n "Build special tarball for OBS? [Y/n] "' Y YES y yes N NO n no
 	is_in $prompt_var "Y YES y yes" || return 0
 	SRC=$PWD
-	OBS=`${MKTEMP} -d oml-obs.XXX`
+	OBS=`${MKTEMP} -d oml-${OML_VER}-obs.XXX`
+	SPECIAL_TARBALL=${OBS}/obs.tar.gz
 	echolog "Working in $OBS (will not be deleted in case of failure)..."
 	cd $OBS
 	cp $SRC/p-debian/oml2_${VERSION}*{.diff.gz,.dsc,.orig.tar.gz} . || exit 1
 	find $SRC/p-rpm -type f -exec cp {} $PWD \; || exit 1
-	tar czvhf $OBS * >> $LOG 2>&1 || exit 1
+	tar czvhf ${SPECIAL_TARBALL} * >> $LOG 2>&1 || exit 1
 	cd $SRC
 
-	SPECIAL_TARBALL=`ls $OBS`
-	if [ -z $OML_TYPE]; then 
-		echolog "[RELEASE] Upload ${PWD}/${SPECIAL_TARBALL} to https://build.opensuse.org/package/add_file/home:cdwertmann:oml/oml2"
+	if [ -z $OML_TYPE ]; then
+		echolog "[RELEASE] Upload ${SPECIAL_TARBALL} to https://build.opensuse.org/package/add_file/home:cdwertmann:oml/oml2"
 	else
-		echolog "[TEST] Upload ${PWD}/${SPECIAL_TARBALL} to https://build.opensuse.org/package/add_file/home:cdwertmann:oml-staging/oml2"
+		echolog "[TEST] Upload ${SPECIAL_TARBALL} to https://build.opensuse.org/package/add_file/home:cdwertmann:oml-staging/oml2"
 	fi
 
 	# XXX: This is not the best place to do it, but it should do the job...
@@ -323,6 +338,11 @@ package_wrap()
 		echolog "Branch ${DISTRO}/release/${VERSION} already exists, advancing..."
 		${GIT} checkout ${DISTRO}/release/${VERSION} >> $LOG 2>&1
 		${GIT} pull >> $LOG 2>&1
+	elif check_branch origin/${DISTRO}/release/${VERSION} >/dev/null; then
+		echolog "Branch origin/${DISTRO}/release/${VERSION} exists, creating remote-tracking branch..."
+		# FIXME: Check that we are on it; or fail
+		${GIT} checkout -b ${DISTRO}/release/${VERSION} --track origin/${DISTRO}/release/${VERSION} >> $LOG 2>&1
+		revert="${GIT} branch -D ${DISTRO}/release/${VERSION}\n$revert"
 	else
 		echolog "Creating branch ${DISTRO}/release/${VERSION} from ${DISTRO}/master..."
 		${GIT} checkout -b ${DISTRO}/release/${VERSION} ${DISTRO}/master >> $LOG 2>&1
@@ -333,21 +353,22 @@ package_wrap()
 	OML_PKGVER=`echo $OML_VER | sed "s/\(rc\|pre\)/\~\1/"`
 	OLDPKGVER=`${GIT} describe | sed s#${DISTRO}/v##`
 	echolog "Latest package buildable from `check_branch`: ${OLDPKGVER}"
-	compare_ver ${OLDPKGVER} ${OML_VER}
-	case $? in
+	COMP=0
+	compare_ver ${OLDPKGVER} ${OML_VER} || COMP=$? # Capture failures without killing the shell
+	case $COMP in
 		255)
 			OML_PKGEXTRA="${SUFFIX}1"
 			echolog "Creating new $DISTRO package version ${OML_PKGVER}-${OML_PKGEXTRA}..."
 			;;
 		0)
-			parse_rev OLD ${OLDPKGVER}
+			parse_ver OLD ${OLDPKGVER}
 			OLD_EXTRA=${OLD_EXTRA:-${SUFFIX}}
 			OLD_EXTRAREV=${OLD_EXTRAREV:-1}
 			OML_PKGEXTRA=$OLD_EXTRA$((++OLD_EXTRAREV))
 			echolog "Creating new $DISTRO package revision ${OML_PKGVER}-${OML_PKGEXTRA}..."
 			;;
 		1)
-			echolog "*** Releasing an old package?"
+			echolog "'***' Releasing an old package?"
 			return 1
 			;;
 	esac
@@ -404,7 +425,7 @@ package_archlinux()
 ### MAIN LOGIC ###
 
 revert=""
-trap '(test $? != 0 && echo -e "\n*** Something went wrong; check $LOG" && test -n "$revert" && echo -e "*** Revert changes to this repo with:\n${GIT} checkout master\n$revert") || echo -e "*** Changes can be reverted with:\n${GIT} checkout master\n$revert" > $LOG' EXIT
+trap '(test $? != 0 && echo -e "\n*** Something went wrong; check $LOG" && test -n "$revert" && echo -e "*** Revert changes to this repo with:\n${GIT} checkout -f master\n$revert") || echo -e "*** Changes can be reverted with:\n${GIT} checkout master\n$revert" > $LOG' EXIT SIGINT
 
 LOG=`${MKTEMP} oml-release.XXX`
 date > $LOG
@@ -464,9 +485,9 @@ PUSH="${GIT} push ${REPO} master release/${VERSION} tag v${OML_VER} ${PKGBRANCHE
 prompt N 'echo -n "Push changes upstream to $REPO? [y/N] "' Y YES y yes N NO n no
 if is_in $prompt_var "Y YES y yes"; then
 	eval $PUSH 2>&1 | tee -a $LOG
-	echolog -e "*** If ${REPO} is not he official MyTestbed repository, don't forget to push there too:\n${PUSH}"
+	echolog -e "'***' If ${REPO} is not he official MyTestbed repository, don't forget to push there too:\n${PUSH}"
 else
-	echolog -e "*** Run the following when ready (changing ${REPO} for the official MyTestbed repository if need be):\n${PUSH}"
+	echolog -e "'***' Run the following when ready (changing ${REPO} for the official MyTestbed repository if need be):\n${PUSH}"
 fi
 
 echolog -e "All done! Now tell the world:\n - Finalise the Release Notes (using the ChangeLog at $CL);\n - Add a news item in the OML news (http://oml.mytestbed.net/projects/oml/news);\n - Send an email to the <oml-user@mytestbed.net> mailing list (containing the ChangeLog and a link to the source)."
