@@ -48,7 +48,7 @@ typedef struct BufferChunk {
 } BufferChunk;
 
 /** A writer reading from a chain of BufferChunks */
-typedef struct BufferedWriter {
+struct BufferedWriter {
   /** Set to !0 if buffer is active; 0 kills the thread */
   int  active;
 
@@ -86,7 +86,7 @@ typedef struct BufferedWriter {
 
   int nlost; /**< Number of lost messages since last query */
 
-} BufferedWriter;
+};
 #define REATTEMP_INTERVAL 5    //! Seconds to open the stream again
 
 static BufferChunk* getNextWriteChunk(BufferedWriter* self, BufferChunk* current);

@@ -16,6 +16,7 @@
 
 #include "mbuf.h"
 #include "oml2/oml_out_stream.h"
+#include "oml2/oml_writer.h"
 
 typedef void* BufferedWriterHdl;
 
