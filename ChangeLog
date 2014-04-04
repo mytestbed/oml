@@ -1,3 +1,30 @@
+2014-04-04  Olivier Mehani <olivier.mehani@nicta.com.au>
+	* OML: Version 2.11.0rc2
+	* Major fixes:
+		Get rid of unbounded sprintf()s in PSQL adapter causing crashes
+			when receiving long strings (#1685);
+		Properly close database connections (#1586, #1653);
+		Fix memory issue in scaffold-generated template (#1704);
+	* Improvements:
+		Better documentation of the internals mechanisms, particularly
+			all the protocol details in a single place (#1446);
+		Increase double significance to 15 figures with PSQL
+			(#1651);
+	* Known limitations:
+	    A hairy connection management problem currently leads an OML
+		application to stall on injects when a host running the
+		collection server is down (#1581) or otherwise dropping packets
+		without proper TCP RST (e.g., bad firewalling). This does not
+		happen in case only the oml2-server is not running, but the
+		host is up, or a router along the way can positively report the
+		connection host as unreachable.
+	    Due to laxness in typing (#1657), the PostgreSQL backend currently
+		does not support the full scale of the C double representation.
+		Numbers with more than 15 significant figures (e.g.,
+		-1.7976931348623157E+308 or 2.2250738585072014E-308) might get
+		rounded to unstorable values (#1651#note-22).
+
+
 2013-11-01  Olivier Mehani <shtrom@ssji.net>
 	* OML: Version 2.11.0rc
 	* New features:
