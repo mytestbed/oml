@@ -14,8 +14,8 @@
 #ifndef OML_BUFFERED_WRITER_H_
 #define OML_BUFFERED_WRITER_H_
 
-#include "mbuf.h"
 #include "oml2/oml_out_stream.h"
+#include "mbuf.h"
 
 typedef void* BufferedWriterHdl;
 
