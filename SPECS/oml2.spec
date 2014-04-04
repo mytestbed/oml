@@ -35,6 +35,9 @@ BuildRequires:	sqlite-devel
 BuildRequires:	postgresql-devel
 BuildRequires:	ruby
 BuildRequires:	texinfo
+%if 0%{?fedora} == 19
+BuildRequires:  rubypick
+%endif
 
 %description
 This is a transitional metapackage installing the liboml2 and oml2-server
