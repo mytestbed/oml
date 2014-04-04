@@ -17,8 +17,13 @@ URL:            http://oml.mytestbed.net
 Name:           %{name}
 # Use a specific version number if need be (e.g., ~rc instead of rc for proper
 # version ordering)
+%if 0%{?fedora} < 18
+# RPM on Fedora <= 17 doesn't support ~ in version numbers
+Version:        %{srcver}
+%else
 Version:        %{pkgver}
-Release:	1
+%endif
+Release:	2
 Source:		http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{srcver}.tar.gz
 Source1:	init.d-oml2-server
 Source2:	oml2-server.service
