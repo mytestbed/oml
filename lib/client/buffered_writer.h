@@ -14,10 +14,9 @@
 #ifndef OML_BUFFERED_WRITER_H_
 #define OML_BUFFERED_WRITER_H_
 
-#include "mbuf.h"
 #include "oml2/oml_out_stream.h"
-
-typedef struct BufferedWriter BufferedWriter;
+#include "oml2/oml_writer.h"
+#include "mbuf.h"
 
 BufferedWriter* bw_create(OmlOutStream* outStream, long queueCapacity, long chainSize);
 
