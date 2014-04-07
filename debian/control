@@ -1,13 +1,14 @@
 Source: oml2
 Section: net
 Priority: extra
-Maintainer: Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
+Maintainer: OML development team <oml-user-request@lists.nicta.com.au>
+Uploaders: Olivier Mehani <olivier.mehani@nicta.com.au>, Thierry Rakotoarivelo <thierry.rakotoarivelo@nicta.com.au>, Guillaume Jourjon <guillaume.jourjon@nicta.com.au>
 Build-Depends: debhelper (>= 5), libxml2-dev, libpopt-dev, libsqlite3-dev, libpq-dev, check, pkg-config, asciidoc, texinfo, ruby, libxml2-utils, docbook-xml, docbook-xsl, xsltproc
-Standards-Version: 3.7.2
+Standards-Version: 3.9.4
 
 Package: oml2
 Architecture: any
-Depends: oml2-server, oml2-proxy-server, oml2-proxycon, liboml2, liboml2-dev
+Depends: oml2-server, oml2-proxy-server, oml2-proxycon, liboml2, liboml2-dev, ${misc:Depends}
 Suggests: oml2-example
 Description: OML: The O? Measurement Library Suite (Metapackage)
  This metapackage installs the OML client library, development headers, and
@@ -17,7 +18,7 @@ Package: oml2-server
 Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
-Depends: ${misc:Depends}, libc6, libsqlite3-0, libpq5, libpopt0, liboml2 (= ${binary:Version}), adduser
+Depends: ${misc:Depends}, ${shlibs:Depends}, libsqlite3-0, libpq5, libpopt0, liboml2 (= ${binary:Version}), adduser
 Suggests: oml2-example, oml2-server-omfdef
 Description: OML measurement server
  The OML server accepts connections from client applications and
@@ -29,7 +30,7 @@ Package: oml2-server-omfdef
 Section: net
 Priority: optional
 Architecture: all
-Depends: omf-expctl-5.4
+Depends: omf-expctl-5.4, ${misc:Depends}
 Suggests: oml2-server
 Description: A meta-package that installs OMF-5.4 definition of OML2 server
  This package installs all the application definition needed by the OMF 5.4
@@ -39,7 +40,7 @@ Package: oml2-proxy-server
 Architecture: any
 Replaces: oml-server
 Breaks: oml-server (<< 2.4)
-Depends: ${misc:Depends}, libc6, libpopt0, libocomm (= ${binary:Version})
+Depends: ${misc:Depends}, ${shlibs:Depends}, libpopt0, libocomm (= ${binary:Version})
 Description: OML proxy server
  The OML proxy server acts as a buffer for measurements.  It accepts
  connections from OML client applications and then stores them in
@@ -60,14 +61,14 @@ Description: OML proxy server control script
 
 Package: oml2-example
 Architecture: any
-Depends: oml2-generator (= ${binary:Version})
+Depends: oml2-generator (= ${binary:Version}), ${misc:Depends}
 Description: Example OML application (metapackage)
  This metapackage pulls in an example OML application, useful to test server
  and reporting chains setups.
 
 Package: oml2-generator
 Architecture: any
-Depends: ${misc:Depends}, libc6, libpopt0, liboml2 (= ${binary:Version}), libocomm (= ${binary:Version})
+Depends: ${misc:Depends}, ${shlibs:Depends}, , libpopt0, liboml2 (= ${binary:Version}), libocomm (= ${binary:Version})
 Description: Example OML sine wave generator
  A simple OML-instrumented sine wave generator, useful to test server and
  reporting chains setups.
@@ -77,7 +78,7 @@ Section: libdevel
 Architecture: any
 Replaces: liboml-dev
 Breaks: liboml-dev (<< 2.4), oml-server (<< 2.4)
-Depends: liboml2 (= ${binary:Version}), libocomm-dev (= ${binary:Version}), ruby (>=1.8.7)
+Depends: ${misc:Depends}, liboml2 (= ${binary:Version}), libocomm-dev (= ${binary:Version}), ruby (>=1.8.7)
 Description: OML measurement library headers
  Development headers for developing applications that make
  measurements using liboml2, the client library for the OML
@@ -87,7 +88,7 @@ Description: OML measurement library headers
 Package: liboml2
 Section: libs
 Architecture: any
-Depends: liboml2-9 (= ${binary:Version})
+Depends: liboml2-9 (= ${binary:Version}), ${misc:Depends}
 Description: OML: The O? Measurement Library (metapackage)
  This metapackage pulls in the latest stable version of liboml2.
  .
@@ -101,7 +102,7 @@ Section: libs
 Architecture: any
 Replaces: liboml
 Breaks: liboml (<< 2.4)
-Depends: libc6, libocomm (= ${binary:Version}), libxml2, ${misc:Depends}
+Depends: ${shlibs:Depends}, libocomm (= ${binary:Version}), libxml2, ${misc:Depends}
 Suggests: oml2-example
 Description: OML: The O? Measurement Library
  This library allows application writers to define customizable
@@ -114,14 +115,14 @@ Section: libdevel
 Architecture: any
 Replaces: liboml-dev
 Breaks: liboml-dev (<< 2.4)
-Depends: libocomm (= ${binary:Version})
+Depends: libocomm (= ${binary:Version}), ${misc:Depends}
 Description: OML measurement library headers
  Development headers for developing applications that use libocomm.
 
 Package: libocomm
 Section: libs
 Architecture: any
-Depends: libocomm1 (= ${binary:Version})
+Depends: libocomm1 (= ${binary:Version}), ${misc:Depends}
 Description: OComm:  O? Communications Library (metapackage)
  This metapackage pulls in the latest stable version of libocomm.
  .

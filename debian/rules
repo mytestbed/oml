@@ -23,6 +23,8 @@ configure-stamp:
 
 
 build: build-stamp
+build-arch: build
+build-indep: build
 
 build-stamp: configure-stamp
 	dh_testdir
@@ -39,7 +41,7 @@ clean:
 	rm -f build-stamp configure-stamp
 
 	# Add here commands to clean up after the build process.
-	-$(MAKE) clean
+	[ ! -f Makefile ] || $(MAKE) distclean
 
 	dh_clean
 
