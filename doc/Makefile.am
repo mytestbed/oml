@@ -8,6 +8,7 @@ ALL_MAN_FILES= \
 	liboml2.1.txt \
 	oml2-server.1.txt \
 	oml2-proxy-server.1.txt \
+	oml2-proxycon.1.txt \
 	oml2-scaffold.1.txt \
 	liboml2.3.txt \
 	omlc_init.3.txt \
