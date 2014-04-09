@@ -178,6 +178,7 @@ exit 0
 %{_prefix}/share/info/oml-user-manual.info.gz
 %doc %{_mandir}/man1/liboml2.1.gz
 %doc %{_mandir}/man1/oml2-proxy-server.1.gz
+%doc %{_mandir}/man1/oml2-proxycon.1.gz
 %doc %{_mandir}/man5
 
 %files -n liboml2-devel
