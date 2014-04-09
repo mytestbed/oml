@@ -100,11 +100,13 @@ $(PKG_ARCH_BUILD):
 if !GITISTAG
 	cd $(PKG_ARCH_BUILD_DIR)/tmp/; \
 		tardir=$(PKG_ARCH_BASE_NAME) && $(am__tar) | \
-		GZIP=$(GZIP_ENV) gzip -c >../$(PKG_ARCH_BASE_NAME).tar.gz
+		GZIP=$(GZIP_ENV) gzip -c >../$(distdir).tar.gz
 endif
 	cat $(PKG_ARCH_BUILD).proto | \
-		$(SED) -e "/<GIT/,/GIT>/d" | \
-		$(SED) -e "/!GIT.*/d" -e "s/^pkgver.*=.*/pkgver=$(OML_PKG_VER)/" \
+		$(SED) -e "/<GIT/,/GIT>/d" \
+		-e "/!GIT.*/d" \
+		-e "s/^pkgver.*=.*/pkgver=$(OML_PKG_VER)/" \
+		-e "s/^_tarver.*=.*/_tarver=$(VERSION)/" \
 		> $(PKG_ARCH_BUILD)
 	cd $(PKG_ARCH_BUILD_DIR); $(MAKEPKG) -p PKGBUILD -g >> PKGBUILD
 	cat $(PKG_ARCH_BUILD).proto | \
