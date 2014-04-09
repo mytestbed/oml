@@ -5,15 +5,4 @@ adduser --system --group --no-create-home --quiet oml2
 chown oml2:oml2 /var/lib/oml2
 chmod 0755 /var/lib/oml2
 
-# Automatically added by dh_installinit
-if [ -x "/etc/init.d/oml2-server" ]; then
-   update-rc.d oml2-server defaults >/dev/null
-   if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
-      invoke-rc.d oml2-server start || exit $?
-      else
-	/etc/init.d/oml2-server start || exit $?
-	fi
-fi
-# End automatically added section
-
 #DEBHELPER#
