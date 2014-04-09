@@ -32,22 +32,16 @@ fi
 . /lib/lsb/init-functions
 
 start(){
-    log_daemon_msg "Starting OML server: $NAME" || true
-    if start-stop-daemon --start --quiet --background --pidfile $PIDFILE --make-pidfile --exec $DAEMON -- $OPTS; then
-	log_end_msg 0 || true
-    else
-	log_end_msg 1 || true
-    fi
+    log_daemon_msg "Starting $DESC" "$NAME" || true
+    start-stop-daemon --start --quiet --background --pidfile $PIDFILE --make-pidfile --exec $DAEMON -- $OPTS
+    log_end_msg $? || true
 
 }
 
 stop(){
-    log_daemon_msg "Stopping OML server: $NAME" || true
-    if start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
-	log_end_msg 0 || true
-    else
-	log_end_msg 1 || true
-    fi
+    log_daemon_msg "Stopping $DESC" "$NAME" || true
+    start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
+    log_end_msg $? || true
 }
 
 
@@ -69,33 +63,29 @@ wait_stop(){
     stop
 
     if [ -n "${PID:-}" ]; then
+	FAILED=0
 	i=0
 	# Wait for the process to terminate
 	while kill -0 "${PID:-}" 2> /dev/null;  do
 	    if [ $i = '60' ]; then
-		FAILED=yes
+		FAILED=1
 		break;
 	    else
 		if [ $i = '0' ]; then
-		    log_progress_msg "Waiting for $NAME to terminate" || true
+		    log_action_begin_msg "Waiting for $NAME to terminate" || true
 		else
-		    log_progress_msg "." || true
+		    log_action_cont_msg "." || true
 		fi
 		i=$(($i+1))
 		sleep 1
 	    fi
 	done
-	if [ x$FAILED != xyes ]; then
-	    log_end_msg 0 || true
-	else
-	    log_progress_msg "(failed to stop)" || true
-	    log_end_msg 1 || true
-	fi
+	log_action_end_msg $FAILED || true
     fi
     # Wait for the kernel to have cleaned up FIN_WAIT sockets (#1262)
-    log_progress_msg "Waiting for ${FIN_WAIT_TO}s (FIN_WAIT)" || true
+    FIN_WAIT_TO=$((FIN_WAIT_TO-i))
+    log_action_msg "Waiting for FIN_WAIT sockets (${FIN_WAIT_TO}s).." || true
     sleep ${FIN_WAIT_TO}
-    log_end_msg 0 || true
 }
 
 case "$1" in
