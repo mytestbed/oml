@@ -1,0 +1,3 @@
+# oml2-generator is a convenience example built from sample code in the OML
+# distribution; it doesn't have a manpage as it is automatically generated.
+oml2-generator binary: binary-without-manpage
