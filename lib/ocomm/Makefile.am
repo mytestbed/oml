@@ -20,6 +20,8 @@ libocomm_la_SOURCES = \
 	socket.c \
 	socket_group.c
 
-libocomm_la_LIBADD = $(PTHREAD_LIBS)
+libocomm_la_LIBADD = \
+		     $(top_builddir)/lib/shared/libshared.la \
+		     $(PTHREAD_LIBS)
 
 libocomm_la_LDFLAGS = -version-info $(LIBOCOMM_LT_VER)
