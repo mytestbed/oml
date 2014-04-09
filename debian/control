@@ -32,7 +32,7 @@ Priority: optional
 Architecture: all
 Depends: omf-expctl-5.4, ${misc:Depends}
 Suggests: oml2-server
-Description: A meta-package that installs OMF-5.4 definition of OML2 server
+Description: Meta-package that installs OMF-5.4 definition of OML2 server
  This package installs all the application definition needed by the OMF 5.4
  experiment controller to use the oml2-server.
 
