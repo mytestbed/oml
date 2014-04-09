@@ -1,0 +1,43 @@
+oml2-proxycon(1)
+================
+
+NAME
+----
+oml2-proxycon - Control script for the oml2-proxy-server.
+
+SYNOPSIS
+--------
+[verse]
+*oml2-proxycon* PROXY_HOST PROXY_PORT
+
+DESCRIPTION
+-----------
+
+*oml2-proxycon* provides a local interface to control the
+linkoml:oml2-proxy-server[1] status. The The *oml2-proxy-server* running
+on 'PROXY_HOST' (e.g., 'localhost') listens for OML client connections
+on network port 'PROXY_PORT' (3004 by default). The *oml2-proxycon*
+expects commands on its 'stdin', and forwards them to the proxy server.
+
+This is particularly useful within an OMF-based experiment, where
+resources can be controlled through messages written on applications'
+standard input.
+
+BUGS
+----
+
+include::bugs.txt[]
+
+SEE ALSO
+--------
+Manual Pages
+~~~~~~~~~~~~
+linkoml:oml2-proxy-server[1]
+
+include::manual.txt[]
+
+OMF
+~~~
+http://omf.mytestbed.net
+
+// vim: ft=asciidoc:tw=72
