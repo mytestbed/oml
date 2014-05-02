@@ -1,3 +1,8 @@
+2014-05-02  Olivier Mehani <olivier.mehani@nicta.com.au>
+	* OML: Version 2.11.0
+	* Build libshared into libocomm rather than liboml2
+	* Doc: Add oml2-proxycon(1)
+
 2014-04-04  Olivier Mehani <olivier.mehani@nicta.com.au>
 	* OML: Version 2.11.0rc2
 	* Major fixes:
