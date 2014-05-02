@@ -1,7 +1,7 @@
 %define name		oml2
-%define srcver	2.11.0rc2
-%define pkgver	2.11.0~rc2
-%define redmineid	1102
+%define srcver	2.11.0
+%define pkgver	%{srcver}
+%define redmineid	1104
 
 # RPM 4.7 on our Jenkins instance does not seem to do this by default.
 %define __spec_install_post /usr/lib/rpm/brp-compress
@@ -23,7 +23,7 @@ Version:        %{srcver}
 %else
 Version:        %{pkgver}
 %endif
-Release:	2
+Release:	1
 Source:		http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{srcver}.tar.gz
 Source1:	init.d-oml2-server
 Source2:	oml2-server.service
