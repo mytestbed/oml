@@ -369,8 +369,8 @@ package_wrap()
 			echolog "Creating new $DISTRO package revision ${OML_PKGVER}-${OML_PKGEXTRA}..."
 			;;
 		1)
-			echolog "'***' Releasing an old package?"
-			return 1
+			prompt N 'echo -n "Releasing an old package? [y/N] "' Y YES y yes N NO n no
+			is_in $prompt_var "Y YES y yes" || exit 1
 			;;
 	esac
 	# FIXME: Ask user for confirmation
