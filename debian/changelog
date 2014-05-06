@@ -1,8 +1,9 @@
 oml2 (2.11.0-mytestbed1) testing; urgency=low
 
   * New upstream release 2.11.0.
+  * Switch to dpkg-source 3.0 (quilt) format
 
- -- Olivier Mehani <olivier.mehani@nicta.com.au>  Fri, 02 May 2014 10:51:47 +1000
+ -- Olivier Mehani <olivier.mehani@nicta.com.au>  Tue, 06 May 2014 10:26:17 +1000
 
 oml2 (2.11.0~rc2-mytestbed1) testing; urgency=low
 
