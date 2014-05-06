@@ -27,7 +27,7 @@ Release:	1
 Source:		http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{srcver}.tar.gz
 Source1:	init.d-oml2-server
 Source2:	oml2-server.service
-Packager:       Christoph Dwertmann <christoph.dwertmann@nicta.com.au>
+Packager:       OML developers <oml-user@mytestbed.net>
 Prefix:         /usr
 Group:          System/Libraries
 Requires:	liboml2
