@@ -303,7 +303,8 @@ build_obs()
 	SPECIAL_TARBALL=${OBS}/obs.tar.gz
 	echolog "Working in $OBS (will not be deleted in case of failure)..."
 	cd $OBS
-	cp $SRC/p-debian/oml2_${VERSION}*{.diff.gz,.dsc,.orig.tar.gz} . || exit 1
+	# XXX: Using ls allow to avoid failures if one of the patterns (usually the diff.gz) fails
+	cp `ls $SRC/p-debian/oml2_${VERSION}*{.diff.gz,.dsc,.orig.tar.gz,*.debian.tar.gz}` . || exit 1
 	find $SRC/p-rpm -type f -exec cp {} $PWD \; || exit 1
 	tar czvhf ${SPECIAL_TARBALL} * >> $LOG 2>&1 || exit 1
 	cd $SRC
