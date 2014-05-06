@@ -137,7 +137,7 @@ check_branch()
 # (i.e., there are instructions to delete it on failure)
 is_new_branch()
 {
-	echo "$revert" | grep -q "branch -D `check_branch $1`"
+	grep -q "branch -D `check_branch $1`" ${REVERT}
 }
 
 ## UI HELPERS ##
@@ -227,7 +227,7 @@ update_changelog()
 	echolog "Committing to git..."
 	${GIT} add ChangeLog >> $LOG 2>&1
 	${GIT} commit -sm "Update ChangeLog for ${OML_VER}" >> $LOG 2>&1
-	revert="${GIT} checkout -B `check_branch` `check_branch`^\n$revert"
+	${GIT} checkout -B `check_branch` `check_branch`^ >> ${REVERT}
 }
 
 update_git()
@@ -235,7 +235,7 @@ update_git()
 	echolog "Tagging `${GIT} rev-parse` as v${OML_VER}..."
 	# XXX: Ask for PGP ID?
 	${GIT} tag -as v${OML_VER} -m "OML v${OML_VER}"
-	revert="${GIT} tag -d v${OML_VER}\n$revert"
+	${GIT} tag -d v${OML_VER} >> ${REVERT}
 
 	if check_branch release/${VERSION} >/dev/null; then
 		echolog "Branch release/${VERSION} already exists"
@@ -243,7 +243,7 @@ update_git()
 	else
 		echolog "Creating branch release/${VERSION}..."
 		${GIT} checkout -b release/${VERSION} >> $LOG 2>&1
-		revert="${GIT} branch -D release/${VERSION}\n$revert"
+		${GIT} branch -D release/${VERSION} >> ${REVERT}
 	fi
 }
 
@@ -343,11 +343,11 @@ package_wrap()
 		echolog "Branch origin/${DISTRO}/release/${VERSION} exists, creating remote-tracking branch..."
 		# FIXME: Check that we are on it; or fail
 		${GIT} checkout -b ${DISTRO}/release/${VERSION} --track origin/${DISTRO}/release/${VERSION} >> $LOG 2>&1
-		revert="${GIT} branch -D ${DISTRO}/release/${VERSION}\n$revert"
+		${GIT} branch -D ${DISTRO}/release/${VERSION} >> ${REVERT}
 	else
 		echolog "Creating branch ${DISTRO}/release/${VERSION} from ${DISTRO}/master..."
 		${GIT} checkout -b ${DISTRO}/release/${VERSION} ${DISTRO}/master >> $LOG 2>&1
-		revert="${GIT} branch -D ${DISTRO}/release/${VERSION}\n$revert"
+		${GIT} branch -D ${DISTRO}/release/${VERSION} >> ${REVERT}
 	fi
 	PKGBRANCHES+="${DISTRO}/master ${DISTRO}/release/${VERSION} "
 
@@ -382,7 +382,7 @@ package_wrap()
 	${GIT} commit -as -m "OML ${DISTRO} package ${OML_PKGVER}" >> $LOG 2>&1
 	echolog "Tagging `${GIT} rev-parse` as ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA}..." # Git tags cannot contain tildes
 	${GIT} tag -as ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA} -m "OML ${DISTRO} package ${OML_PKGVER}-${OML_PKGEXTRA}" >> $LOG 2>&1
-	revert="${GIT} tag -d ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA}\n$revert"
+	${GIT} tag -d ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA} >> ${REVERT}
 	PKGTAGS+="tag ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA} "
 }
 
@@ -425,13 +425,14 @@ package_archlinux()
 
 ### MAIN LOGIC ###
 
-revert=""
-trap '(test $? != 0 && echo -e "\n*** Something went wrong; check $LOG" && test -n "$revert" && echo -e "*** Revert changes to this repo with:\n${GIT} checkout -f master\n$revert") || echo -e "*** Changes can be reverted with:\n${GIT} checkout master\n$revert" > $LOG' EXIT SIGINT
-
 LOG=`${MKTEMP} oml-release.XXX`
 date > $LOG
+REVERT=`${MKTEMP} oml-revert.$(date +%Y-%m-%d_%H:%M).XXX`
+echo > ${REVERT}
 
-echolog "Verbose logfile: $LOG"
+echolog "Verbose logfile: ${LOG}; Revert file: ${REVERT}"
+
+trap '(test $? != 0 && echo -e "\n*** Something went wrong; check $LOG" && echo -e "*** Revert changes to this repo with:\n${GIT} checkout -f master\n`tac ${REVERT}`") || echo -e "*** Changes can be reverted with:\n${GIT} checkout master\n`tac ${REVERT}`" >> $LOG' EXIT SIGINT
 
 if [ ! -e build-aux/git-version-gen ]; then
 	echolog "Regenerating build-aux/git-version-gen..."
