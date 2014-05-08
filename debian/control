@@ -8,8 +8,8 @@ Standards-Version: 3.9.4
 
 Package: oml2
 Architecture: any
-Depends: oml2-server, oml2-proxy-server, oml2-proxycon, liboml2, liboml2-dev, ${misc:Depends}
-Suggests: oml2-example
+Depends: oml2-server (= ${binary:Version}), oml2-proxy-server (= ${binary:Version}), oml2-proxycon (= ${binary:Version}), liboml2 (= ${binary:Version}), liboml2-dev (= ${binary:Version}), ${misc:Depends}
+Suggests: oml2-example, oml2-server-omfdef
 Description: OML: The O? Measurement Library Suite (Metapackage)
  This metapackage installs the OML client library, development headers, and
  various server applications packages.
