@@ -220,6 +220,7 @@ client_handler_new(Socket* new_sock)
   const char *event = "Connect";
   const char *message = "";
   client_event_report(self, event, message);
+  loginfo("%s: New incoming connection\n", self->name);
 
   return self;
 }
