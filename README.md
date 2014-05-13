@@ -269,18 +269,12 @@ for a few distributions are already available.
 ### Debian and Ubuntu
 
 An archive is maintained on the OpenSuSE Build System, with packages for the
-latest Debian and Ubuntu distributions. You can add it to your
-`/etc/apt/sources.list` as
+latest Debian and Ubuntu distributions. Follow the instructions at [obs] to
+install the required components. You'll need `liboml2-dev` if you want to build
+instrumented applications.
 
-    deb http://download.opensuse.org/repositories/home:/cdwertmann:/oml/xUbuntu_12.10/ ./
-
-then run
-
-    sudo apt-get update
-    sudo apt-get install oml2-server liboml2
-
-to install the required components. You'll need `liboml2-dev` if you
-want to build instrumented applications.
+Additionally, bleeding edge test packages can be installed in a similar fashion
+from [obs-staging].
 
 ### ArchLinux
 
@@ -295,9 +289,9 @@ version can be obtained from [aur-oml2-git].
 
 ### RPM-based (CentOS, Fedora)
 
-RPM packages are also built on the OpenSuSE platform. They are available
-there [opensuse-oml], as well as the instructions to install them on
-your system.
+RPM packages are also built on the OpenSuSE platform. They are available there
+[obs], as well as the instructions to install them on your system. Staging
+builds are also available from [obs-staging].
 
 
 License
@@ -340,8 +334,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 [oml4r]: https://rubygems.org/gems/oml4r/
 [oml4j]: https://github.com/NitLab/oml4j
 [nitlab]: http://nitlab.inf.uth.gr/
+[obs]: http://software.opensuse.org/download.html?project=home:cdwertmann:oml&package=oml2
+[obs-staging]: http://software.opensuse.org/download.html?project=home:cdwertmann:oml-staging&package=oml2
 [aur]: https://aur.archlinux.org/
 [aur-yaourt]: https://aur.archlinux.org/packages/yaourt/
 [aur-oml2]: https://aur.archlinux.org/packages/oml2/
 [aur-oml2-git]: https://aur.archlinux.org/packages/oml2-git/
-[opensuse-oml2]: http://software.opensuse.org/download.html?project=home:cdwertmann:oml&package=oml2
