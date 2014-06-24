@@ -5,6 +5,7 @@ Maintainer: OML development team <oml-user-request@lists.nicta.com.au>
 Uploaders: Olivier Mehani <olivier.mehani@nicta.com.au>, Thierry Rakotoarivelo <thierry.rakotoarivelo@nicta.com.au>, Guillaume Jourjon <guillaume.jourjon@nicta.com.au>
 Build-Depends: debhelper (>= 5), libxml2-dev, libpopt-dev, libsqlite3-dev, libpq-dev, check, pkg-config, asciidoc, texinfo, ruby, libxml2-utils, docbook-xml, docbook-xsl, xsltproc
 Standards-Version: 3.9.4
+Homepage: http://oml.mytestbed.net/
 
 Package: oml2
 Architecture: any
