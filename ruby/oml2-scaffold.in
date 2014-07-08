@@ -823,7 +823,9 @@ extern "C" {
 #endif
 
 /* Define HUGE, etc.. */
-#define _GNU_SOURCE
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
 #include <math.h>
 /* Get size_t and NULL from <stddef.h> */
 #include <stddef.h>
