@@ -500,7 +500,7 @@ marshal_measurements(MBuffer* mbuf, int stream, int seqno, double now)
     return -1;
   }
 
-  logdebug("Marshalling sample %d for stream %d\n", seqno, stream);
+  logdebug2("Marshalling sample %d for stream %d\n", seqno, stream);
 
   omlc_set_int32(v, seqno);
   marshal_value(mbuf, OML_INT32_VALUE, &v);
