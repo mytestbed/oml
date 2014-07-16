@@ -1,6 +1,7 @@
 %define name		oml2
 %define srcver	2.11.0
 %define pkgver	%{srcver}
+%define pkgvernotilde	%{srcver}
 %define redmineid	1104
 
 # RPM 4.7 on our Jenkins instance does not seem to do this by default.
@@ -17,9 +18,9 @@ URL:            http://oml.mytestbed.net
 Name:           %{name}
 # Use a specific version number if need be (e.g., ~rc instead of rc for proper
 # version ordering)
-%if 0%{?fedora} < 18
+%if 0%{?fedora} < 18 || 0%{?redhat} > 0 || 0%{?centos} > 0
 # RPM on Fedora <= 17 doesn't support ~ in version numbers
-Version:        %{srcver}
+Version:        %{pkgvernotilde}
 %else
 Version:        %{pkgver}
 %endif
