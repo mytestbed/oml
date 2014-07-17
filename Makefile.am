@@ -187,14 +187,16 @@ else
 		GZIP=$(GZIP_ENV) gzip -c >../SOURCES/$(PKG_RPM_BASE_NAME).tar.gz
 	mv $(PKG_RPM_SPEC) $(PKG_RPM_SPEC).orig
 	cat $(PKG_RPM_SPEC).orig | \
-		$(SED) -e "s/^%define srcver.*/%define srcver	$(OML_PKG_VER)/" \
-		-e "s/^%define pkgver.*/%define pkgver	$(OML_PKG_VER)/" \
-		-e "s/^%define liboml2cur.*/%define liboml2cur	$(LIBOML2_LT_VER_MIN)/" \
-		-e "s/^%define liboml2rev.*/%define liboml2rev	$(LIBOML2_LT_VER_REV)/" \
-		-e "s/^%define liboml2age.*/%define liboml2age	$(LIBOML2_LT_VER_AGE)/" \
-		-e "s/^%define libocommcur.*/%define libocommcur	$(LIBOCOMM_LT_VER_MIN)/" \
-		-e "s/^%define libocommrev.*/%define libocommrev	$(LIBOCOMM_LT_VER_REV)/" \
-		-e "s/^%define libocommage.*/%define libocommage	$(LIBOCOMM_LT_VER_AGE)/" \
+		$(SED) -e "s/^%define srcver[[:blank:]].*/%define srcver	$(OML_PKG_VER)/" \
+		-e "s/^%define pkgver[[:blank:]].*/%define pkgver	$(OML_PKG_VER)/" \
+		-e "t" \
+		-e "s/^%define pkgvernotilde[[:blank:]].*/%define pkgvernotilde $(OML_PKG_VER)/;s/\~//" \
+		-e "s/^%define liboml2cur[[:blank:]].*/%define liboml2cur	$(LIBOML2_LT_VER_MIN)/" \
+		-e "s/^%define liboml2rev[[:blank:]].*/%define liboml2rev	$(LIBOML2_LT_VER_REV)/" \
+		-e "s/^%define liboml2age[[:blank:]].*/%define liboml2age	$(LIBOML2_LT_VER_AGE)/" \
+		-e "s/^%define libocommcur[[:blank:]].*/%define libocommcur	$(LIBOCOMM_LT_VER_MIN)/" \
+		-e "s/^%define libocommrev[[:blank:]].*/%define libocommrev	$(LIBOCOMM_LT_VER_REV)/" \
+		-e "s/^%define libocommage[[:blank:]].*/%define libocommage	$(LIBOCOMM_LT_VER_AGE)/" \
 		> $(PKG_RPM_SPEC)
 	rm $(PKG_RPM_SPEC).orig
 endif
