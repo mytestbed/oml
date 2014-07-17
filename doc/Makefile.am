@@ -143,7 +143,7 @@ ASCIIDOC_ARGS += --attribute='pkglocalstatedir=$(pkglocalstatedir)' --attribute=
 if HAVE_LIBPQ
 ASCIIDOC_ARGS += --attribute='have_pg'
 endif
-A2X_ARGS = --destination-dir=. -f manpage $(ASCIIDOC_ARGS) --attribute='date=$(DATE)'
+A2X_ARGS = -f manpage $(ASCIIDOC_ARGS) --attribute='date=$(DATE)'
 
 if HAVE_A2X
 man_MANS = $(ALL_MAN_FILES:.txt=) \
@@ -201,7 +201,7 @@ publish-man: $(html_docs)
 	scp $(html_docs) oml_logo.png $(USER)$(WWWHOST):$(HTDOCS)/
 
 else #!HAVE_ASCIIDOC
-	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
+	@echo "*** asciidoc is required to generate $(@) ***"
 endif #HAVE_ASCIIDOC
 
 endif #ENABLE_DOC
