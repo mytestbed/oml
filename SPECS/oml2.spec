@@ -41,7 +41,7 @@ BuildRequires:	sqlite-devel
 BuildRequires:	postgresql-devel
 BuildRequires:	ruby
 BuildRequires:	texinfo
-%if 0%{?fedora} == 19
+%if 0%{?fedora} >= 19
 BuildRequires:  rubypick
 %endif
 
