@@ -6,7 +6,6 @@ info_TEXINFOS = oml-user-manual.texi
 DATE=`date "+%Y-%m-%d"`
 ALL_MAN_FILES= \
 	liboml2.1.txt \
-	oml2-server.1.txt \
 	oml2-proxy-server.1.txt \
 	oml2-proxycon.1.txt \
 	oml2-scaffold.1.txt \
@@ -18,6 +17,10 @@ ALL_MAN_FILES= \
 	omlc_close.3.txt \
 	OmlValueU.3.txt \
 	liboml2.conf.5.txt
+if BUILD_SERVER
+ALL_MAN_FILES += \
+	oml2-server.1.txt
+endif
 
 LIBOML3_LINKS = \
 	omlc_guid_generate.3 \
