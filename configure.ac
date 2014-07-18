@@ -11,7 +11,7 @@ AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 # automake 1.12 seems to require this, but automake 1.11 doesn't recognize it
-m4_pattern_allow([AM_PROG_AR]) 
+m4_pattern_allow([AM_PROG_AR])
 AM_PROG_AR
 
 LT_INIT
@@ -26,6 +26,9 @@ AC_PROG_MAKE_SET
 gl_INIT
 
 OML_CHECK_MACOSX
+AS_IF([test "x$is_macosx" = "xyes" ],
+      AC_DEFINE([MSG_NOSIGNAL], [SO_NOSIGPIPE], [Define to system's equivalent to disable SIGPIPE when writing to unconnected sockets.])
+      )
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
