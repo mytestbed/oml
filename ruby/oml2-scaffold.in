@@ -26,7 +26,7 @@
 #
 
 PROG = 'oml2-scaffold'
-VERSION_STRING = "#{PROG} V@VERSION@"
+VERSION_STRING = "#{PROG} @VERSION@"
 COPYRIGHT = "Copyright 2009-2014, NICTA"
 
 require 'stringio'
@@ -1120,6 +1120,7 @@ main(int argc, const char *argv[])
 #define PACKAGE_NAME		PACKAGE
 #define PACKAGE_TAR_NAME	PACKAGE
 #define PACKAGE_VERSION		VERSION
+#define PACKAGE_STRING PACKAGE_NAME " " PACKAGE_VERSION
 
 |
   end
