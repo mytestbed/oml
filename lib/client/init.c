@@ -669,8 +669,9 @@ print_filters(void)
 {
   register_builtin_filters();
 
-  printf("OML Client V%s\n", VERSION);
-  printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
+  printf("OML Client %s [OMSPv%d]\n",
+           VERSION,
+           OML_PROTOCOL_VERSION);
   printf("%s\n", OMLC_COPYRIGHT);
   printf("\n");
   printf("OML filters available:\n\n");
