@@ -217,7 +217,7 @@ update_changelog()
 {
 	prompt Y 'echo -n "Did you properly merge ChangeLogs from previous stable branch release/2.$((OML_MINOR - 1)) (this is your time to do so!) [y/N] "' Y YES y yes N NO n no
 	is_in $prompt_var "Y YES y yes" || exit 1
-	CL=`${MKTEMP} ${PACKAGE_NAME}.$(date +%Y-%m-%d_%H:%M).ChangeLog.XXX`
+	export CL=`${MKTEMP} ${PACKAGE_NAME}.$(date +%Y-%m-%d_%H:%M).ChangeLog.XXX`
 	echolog "Creating ChangeLog entry stub (in $CL)..."
 	# XXX: Find the real predecessor here; at the moment, the needed 
 	# comparisons only happen when creating packages
@@ -319,6 +319,7 @@ build_obs()
 	# XXX: Using ls allow to avoid failures if one of the patterns (usually the diff.gz) fails
 	cp `ls $SRC/p-debian/${PACKAGE_NAME}_${VERSION}*{.diff.gz,.dsc,.orig.tar.gz,*.debian.tar.gz}` . || exit 1
 	find $SRC/p-rpm -type f -exec cp {} $PWD \; || exit 1
+	find $SRC/p-arch -name PKGBUILD -o
 	tar czvhf ${SPECIAL_TARBALL} * >> $LOG 2>&1 || exit 1
 	cd $SRC
 
