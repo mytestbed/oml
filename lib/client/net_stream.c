@@ -25,43 +25,7 @@
 #include "mem.h"
 #include "oml_util.h"
 #include "client.h"
-
-/** OmlOutStream writing out to an OComm Socket */
-typedef struct OmlNetOutStream {
-
-  /*
-   * Fields from OmlOutStream interface
-   */
-
-  /** \see OmlOutStream::write, oml_outs_write_f */
-  oml_outs_write_f write;
-  /** \see OmlOutStream::close, oml_outs_close_f */
-  oml_outs_close_f close;
-
-  /** \see OmlOutStream::dest */
-  char *dest;
-
-  /*
-   * Fields specific to the OmlNetOutStream
-   */
-
-  /** OComm Socket in which the data is writte */
-  Socket*    socket;
-
-  /** Protocol used to establish the connection */
-  char*       protocol;
-  /** Host to connect to */
-  char*       host;
-  /** Service to connect to */
-  char*       service;
-
-  /** Old storage, no longer used, kept for compatibility */
-  char  storage;
-
-  /** True if header has been written to the stream \see open_socket*/
-  int   header_written;
-
-} OmlNetOutStream;
+#include "net_stream.h"
 
 static int open_socket(OmlNetOutStream* self);
 static size_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);

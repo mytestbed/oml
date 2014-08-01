@@ -21,31 +21,8 @@
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "client.h"
+#include "file_stream.h"
 
-typedef struct OmlFileOutStream {
-
-  /*
-   * Fields from OmlOutStream interface
-   */
-
-  /** \see OmlOutStream::write, oml_outs_write_f */
-  oml_outs_write_f write;
-  /** \see OmlOutStream::close, oml_outs_close_f */
-  oml_outs_close_f close;
-
-  /** \see OmlOutStream::dest */
-  char *dest;
-
-  /*
-   * Fields specific to the OmlFileOutStream
-   */
-
-  FILE* f;                      /**< File pointer into which to write result to */
-  int   header_written;         /**< True if header has been written to file */
-
-} OmlFileOutStream;
-
-static size_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
 static inline int file_stream_close(OmlOutStream* hdl);
 
 /** Create a new out stream for writing into a local file.
