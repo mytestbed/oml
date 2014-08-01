@@ -90,13 +90,13 @@ START_TEST (test_fw_create_buffered)
   fail_unless(len==0, "Read %d bytes from " FN ", expected %d", len, 0);
   fclose(f);
 
-  /* Unuffered operation */
+  /* Unbuffered operation */
   file_stream_set_buffered(os, 0);
   fail_if(file_stream_get_buffered(os));
   fail_unless(os->write(os, (uint8_t*)buf, sizeof(buf), NULL, 0)==sizeof(buf));
 
   f = fopen(FN, "r");
-  /* Nothing should be read at this time */
+  /* Now there should be data */
   len=fread(buf2, sizeof(char), sizeof(buf2), f);
   fail_unless(len==2*sizeof(buf), "Read %d bytes from " FN ", expected %d", len, 2*sizeof(buf)-2);
   fclose(f);
@@ -107,22 +107,64 @@ START_TEST (test_fw_create_buffered)
 }
 END_TEST
 
+#define ZFN	"test_zw_create_buffered"
+
+START_TEST (test_zw_create_buffered)
+{
+  int len;
+  char buf[512];
+  FILE *blob, *f;
+  OmlOutStream *os, *fs;
+  OmlFileOutStream *zs;
+  //OmlZlibOutStream *zs;
+
+  /* Remove stray file */
+  unlink(ZFN);
+
+  os = file_stream_new(ZFN);
+  //os = zip_stream_new((OmlZipOutStream*)fs);
+  zs = (OmlFileOutStream*) os;
+
+  fail_if(zs->f==NULL);
+  fail_if(zs->write==NULL);
+  //fail_if(zs->close==NULL);
+  //fail_unless(zs->outStream!=os);
+
+  blob = fopen("blob", "r");
+  fail_if(blob == NULL, "Failure opening %s", "blob");
+
+  while(!feof(blob)) {
+    fread(buf, sizeof(buf), 1, blob);
+    fail_unless(os->write(os, (uint8_t*)buf, sizeof(buf), NULL, 0));
+  }
+
+  fclose(blob);
+  //os->close(os);
+
+  /* Check data in the file */
+  /*f = fopen(ZFN, "r");
+  len = fread(buf2, sizeof(char), sizeof(buf2), f);
+  fail_unless(len == sizeof(buf), "Read %d bytes from " ZFN ", expected %d", len, sizeof(buf)-2); */
+  /* TODO: check that it's inflatable */
+  //fclose(f);
+}
+END_TEST
+
 Suite*
 writers_suite (void)
 {
   Suite* s = suite_create ("Writers");
 
   /* Test cases */
-  /*TCase* tc_bw = tcase_create ("BfWr");*/
-  TCase* tc_fw = tcase_create ("FileWr");
+  TCase* tc_fw = tcase_create ("FileWriter");
+  TCase* tc_zw = tcase_create ("ZlibWriter");
 
   /* Add tests */
-  /*tcase_add_test (tc_bw, test_bw_create);*/
-
   tcase_add_test (tc_fw, test_fw_create_buffered);
+  tcase_add_test (tc_zw, test_zw_create_buffered);
 
-  /*suite_add_tcase (s, tc_bw);*/
   suite_add_tcase (s, tc_fw);
+  suite_add_tcase (s, tc_zw);
   return s;
 }
 

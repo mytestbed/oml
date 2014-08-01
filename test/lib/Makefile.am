@@ -1,5 +1,6 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 AM_TESTS_ENVIRONMENT = CK_VERBOSITY=verbose MALLOC_CHECK_=3
+RANDDEV=/dev/urandom
 
 if HAVE_CHECK
 TESTS = check_libshared check_liboml2
@@ -52,15 +53,20 @@ check_libshared_LDADD = $(CHECK_LIBS) $(M_LIBS) \
 	$(top_builddir)/lib/shared/libshared.la \
 	$(top_builddir)/lib/ocomm/libocomm.la
 
+blob:
+	dd if=$(RANDDEV) of=$@ count=2048
+
 endif
 
 BUILT_SOURCES = \
 	stddev_0.c \
-	stddev_1.c
+	stddev_1.c \
+	blob
 
 CLEANFILES = \
 	stddev_0.c \
 	stddev_1.c \
+	blob \
 	check_liboml2_log.log \
 	check_liboml2.oml.log \
 	check_libshared.oml.log \
@@ -73,7 +79,8 @@ CLEANFILES = \
 	test_config_multi_collect.xml \
 	test_config_multi_collect1 \
 	test_config_multi_collect2 \
-	test_fw_create_buffered
+	test_fw_create_buffered \
+	test_zw_create_buffered
 
 STDDEV = $(srcdir)/stddev.py
 
