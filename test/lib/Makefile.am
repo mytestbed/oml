@@ -54,7 +54,7 @@ check_libshared_LDADD = $(CHECK_LIBS) $(M_LIBS) \
 	$(top_builddir)/lib/ocomm/libocomm.la
 
 blob:
-	dd if=$(RANDDEV) of=$@ count=2048
+	dd if=$(RANDDEV) of=$@ bs=512 count=1
 
 endif
 

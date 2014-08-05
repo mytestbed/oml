@@ -33,6 +33,7 @@
 #include "client.h"
 #include "oml_utils.h"
 #include "file_stream.h"
+#include "zlib_stream.h"
 
 /*
 START_TEST (test_bw_create)
@@ -111,42 +112,56 @@ END_TEST
 
 START_TEST (test_zw_create_buffered)
 {
-  int len;
-  char buf[512];
+  int len, len2, acc=0;
+  char buf[512], buf2[512];
   FILE *blob, *f;
   OmlOutStream *os, *fs;
-  OmlFileOutStream *zs;
-  //OmlZlibOutStream *zs;
+  OmlZlibOutStream *zs;
 
   /* Remove stray file */
   unlink(ZFN);
 
-  os = file_stream_new(ZFN);
-  //os = zip_stream_new((OmlZipOutStream*)fs);
-  zs = (OmlFileOutStream*) os;
+  fs = file_stream_new(ZFN);
+  os = zlib_stream_new(fs);
+  zs = (OmlZlibOutStream*) os;
 
-  fail_if(zs->f==NULL);
+  fail_unless(zs->os==fs);
   fail_if(zs->write==NULL);
-  //fail_if(zs->close==NULL);
-  //fail_unless(zs->outStream!=os);
+  fail_if(zs->close==NULL);
+  fail_unless(zs->os!=os);
 
   blob = fopen("blob", "r");
   fail_if(blob == NULL, "Failure opening %s", "blob");
 
   while(!feof(blob)) {
-    fread(buf, sizeof(buf), 1, blob);
-    fail_unless(os->write(os, (uint8_t*)buf, sizeof(buf), NULL, 0));
+    if((len=fread(buf, 1, sizeof(buf), blob))>0) {
+      fail_unless(os->write(os, (uint8_t*)buf, len, NULL, 0));
+    }
   }
 
   fclose(blob);
-  //os->close(os);
+  os->close(os);
 
   /* Check data in the file */
-  /*f = fopen(ZFN, "r");
-  len = fread(buf2, sizeof(char), sizeof(buf2), f);
-  fail_unless(len == sizeof(buf), "Read %d bytes from " ZFN ", expected %d", len, sizeof(buf)-2); */
-  /* TODO: check that it's inflatable */
-  //fclose(f);
+  blob = fopen("blob", "r");
+  f = fopen(ZFN, "r");
+  while(!feof(blob) && !feof(f)) {
+    if((len=(int)fread(buf, 1, sizeof(buf), blob))>0) {
+      fail_unless((len2=fread(buf2, 1, len, f))==len,
+          "Read %d bytes from " ZFN ", expected %d", len2, len);
+      fail_if(memcmp(buf, buf2, len) != 0,
+          "Contents of blob and " ZFN " differ around offset %d", acc);
+      acc += len;
+    }
+  }
+  /* Force an EOF detection if pending */
+  fread(buf,1,1,blob);
+  fread(buf2,1,1,f);
+  fail_unless (feof(blob) && feof(f),
+      "One of the files is not finished (blob: %d, " ZFN ": %d) after offset %d",
+      feof(blob), feof(f), acc);
+  fclose(f);
+  fclose(blob);
 }
 END_TEST
 
