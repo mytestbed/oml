@@ -273,7 +273,7 @@ static void on_connect(Socket* new_sock, void* handle)
 
 int main(int argc, const char **argv)
 {
-  int c;
+  int c, len;
 #ifdef HAVE_LIBPQ
   char *pass_replace = "--pg-pass=WITHHELD", *conninfo_replace = "--pg-connect=WITHHELD";
 #endif
@@ -302,12 +302,15 @@ int main(int argc, const char **argv)
    */
   if (pg_pass || pg_conninfo) {
     for(c=1; c<argc; c++) {
+      len = strlen(argv[c]);
       if(pg_pass && !strncmp(argv[c],"--pg-pass", 9)) {
-        argv[c] = pass_replace;
+        strncpy((char*)argv[c], pass_replace, len);
+        ((char*)argv[c])[len] = 0;
       }
 
       if(pg_conninfo && !strncmp(argv[c],"--pg-connect", 12)) {
-        argv[c] = conninfo_replace;
+        strncpy((char*)argv[c], conninfo_replace, len);
+        ((char*)argv[c])[len] = 0;
       }
     }
   }
