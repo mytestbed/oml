@@ -12,11 +12,11 @@
 # in the License.
 #
 # Release the apps with:
-# SOFTWARE_NAME="OML Applications" PACKAGE_NAME=oml2-apps REDMINE_PROJECT=omlapps ../oml/do-release.sh
+# SOFTWARE_NAME="OML Applications" PACKAGE_NAME=oml2-apps REDMINE_PROJECT=omlapp ../oml/do-release.sh
 # Don't forget to tag submodules before building the distribution tarball
 SOFTWARE_NAME=${SOFTWARE_NAME:-OML}
 PACKAGE_NAME=${PACKAGE_NAME:-oml2}
-REDMINE_PROJECT=${PACKAGE_NAME:-oml}
+REDMINE_PROJECT=${REDMINE_PROJECT:-oml}
 
 REDMINE_URL=http://oml.mytestbed.net
 
@@ -31,6 +31,11 @@ MAKE="make -j $NPROC"
 GIT=git
 DCH=dch
 MKTEMP="mktemp --tmpdir"
+
+TS=$(date +%Y-%m-%d_%H:%M)
+if [ -e .gitmodules ]; then
+	MODULES=`sed -n 's/^.*path = //p' .gitmodules`
+fi
 
 DEBPSQL=/usr/include/postgresql
 test -d $DEBPSQL && export CFLAGS="$CFLAGS -I$DEBPSQL"
@@ -152,6 +157,14 @@ is_new_branch()
 	grep -q "branch -D `check_branch $1`" ${REVERT}
 }
 
+# Cleanup workdir (incl. submodules)
+workdir_cleanup()
+{
+	for dir in . ${MODULES}; do
+		cd ${dir}; ${GIT} clean -fdx; cd -
+	done >> $LOG 2>&1 || exit 1
+}
+
 ## UI HELPERS ##
 
 echolog()
@@ -197,8 +210,7 @@ prompt()
 test_build()
 {
 	echolog "Testing build of candidate $CURVER for $OML_VER..."
-	(${GIT} clean -fdx && \
-		./autogen.sh && \
+	(./autogen.sh && \
 		./configure && \
 		${MAKE} CFLAGS="-Wall" distcheck
 	) >> $LOG 2>&1 || exit 1
@@ -217,11 +229,11 @@ update_changelog()
 {
 	prompt Y 'echo -n "Did you properly merge ChangeLogs from previous stable branch release/2.$((OML_MINOR - 1)) (this is your time to do so!) [y/N] "' Y YES y yes N NO n no
 	is_in $prompt_var "Y YES y yes" || exit 1
-	export CL=`${MKTEMP} ${PACKAGE_NAME}.$(date +%Y-%m-%d_%H:%M).ChangeLog.XXX`
+	export CL=`${MKTEMP} ${PACKAGE_NAME}.${TS}.ChangeLog.XXX`
 	echolog "Creating ChangeLog entry stub (in $CL)..."
 	# XXX: Find the real predecessor here; at the moment, the needed 
 	# comparisons only happen when creating packages
-	(echo "`date +%Y-%m-%d`  `${GIT} config --get user.name` <`${GIT} config --get user.email`>"; \
+	(echo "$(date +%Y-%m-%d)  `${GIT} config --get user.name` <`${GIT} config --get user.email`>"; \
 		echo "	* OML: Version ${OML_VER}"; \
 		${GIT} log v2.$((OML_MINOR - 1)).0..HEAD  --pretty="		%s";
 	) > $CL
@@ -251,20 +263,28 @@ update_git()
 
 	if check_branch release/${VERSION} >/dev/null; then
 		echolog "Branch release/${VERSION} already exists"
-		# FIXME: Check that we are on it; or fail
+		if [ `check_branch` != "release/${VERSION}" ]; then
+			echolog "'***' ... but is not currently checked out!"
+			exit 1
+		fi
 	else
 		echolog "Creating branch release/${VERSION}..."
 		${GIT} checkout -b release/${VERSION} >> $LOG 2>&1
 		echo ${GIT} branch -D release/${VERSION} >> ${REVERT}
 	fi
-	echolog "Remember to tag submodules as appropriate before continuing..."
+	workdir_cleanup
+	if [ -n "$MODULES" ]; then
+		echolog "'***' Remember to tag submodules (${MODULES}) as appropriate before continuing, e.g.,"
+		echolog "	git tag -sm \"XXX for OML ${VERSION}\" vXXX+oml${VERSION}"
+	fi
 }
 
 create_tarball()
 {
-	echolog "Creating release tarball... "
-	(${GIT} clean -fdx && \
-		./autogen.sh && \
+	prompt Y 'echo -n "Ready to create release tarball? [Y/n] "' Y YES y yes N NO n no
+	is_in $prompt_var "Y YES y yes" || exit 1
+	workdir_cleanup
+	(./autogen.sh && \
 		${GIT} checkout m4/gnulib-cache.m4; rm -rf autom4te.cache/; autoreconf -I /usr/share/aclocal && \
 		./configure && \
 		eval "${MAKE} distcheck `test -d $DEBPSQL && echo DISTCHECK_CONFIGURE_FLAGS=--with-pgsql-inc=$DEBPSQL`"
@@ -291,8 +311,8 @@ build_packages()
 	${GIT} checkout release/${VERSION} >> $LOG 2>&1
 	echolog -e "\nBuilding packages from `check_branch`..."
 
-	(${GIT} clean -fdx && \
-		./autogen.sh && \
+	workdir_cleanup
+	(./autogen.sh && \
 		${GIT} checkout m4/gnulib-cache.m4; rm -rf autom4te.cache/; autoreconf -I /usr/share/aclocal && \
 		./configure --enable-packaging `test -d $DEBPSQL && echo --with-pgsql-inc=$DEBPSQL` && \
 		make pkg-all # XXX We do not want concurency here, as it seems to break package-building
@@ -312,14 +332,23 @@ build_obs()
 	prompt Y 'echo -n "Build special tarball for OBS? [Y/n] "' Y YES y yes N NO n no
 	is_in $prompt_var "Y YES y yes" || return 0
 	SRC=$PWD
-	OBS=`${MKTEMP} -d ${PACKAGE_NAME}-${OML_VER}.$(date +%Y-%m-%d_%H:%M).obs.XXX`
+	OBS=`${MKTEMP} -d ${PACKAGE_NAME}.${TS}.obs.XXX`
 	SPECIAL_TARBALL=${OBS}/obs.tar.gz
 	echolog "Working in $OBS (will not be deleted in case of failure)..."
 	cd $OBS
-	# XXX: Using ls allow to avoid failures if one of the patterns (usually the diff.gz) fails
-	cp `ls $SRC/p-debian/${PACKAGE_NAME}_${VERSION}*{.diff.gz,.dsc,.orig.tar.gz,*.debian.tar.gz}` . || exit 1
-	find $SRC/p-rpm -type f -exec cp {} $PWD \; || exit 1
-	find $SRC/p-arch -name PKGBUILD -o
+	find $SRC/p-debian \(						\
+		-name ${PACKAGE_NAME}_${VERSION}\*.dsc			\
+		-o -name ${PACKAGE_NAME}_${VERSION}*.diff.gz		\
+		-o -name ${PACKAGE_NAME}_${VERSION}\*.orig.tar.gz	\
+		-o -name ${PACKAGE_NAME}_${VERSION}\*.debian.tar.gz	\
+		\) -exec cp -H {} ${PWD} \; || exit 1
+	find $SRC/p-rpm \(						\
+		-name \*.spec						\
+		-o -name \*.tar.gz					\
+		\) -exec cp -H {} ${PWD} \; || exit 1
+	find $SRC/p-arch \(						\
+		-name PKGBUILD						\
+		\) -exec cp -H {} ${PWD} \; || exit 1
 	tar czvhf ${SPECIAL_TARBALL} * >> $LOG 2>&1 || exit 1
 	cd $SRC
 
@@ -394,6 +423,7 @@ package_wrap()
 	# Git stuff
 	echolog "Committing to git..."
 	${GIT} commit -as -m "${SOFTWARE_NAME} ${DISTRO} package ${OML_PKGVER}" >> $LOG 2>&1
+	echo ${GIT} checkout -B `check_branch` `check_branch`^ >> ${REVERT}
 	echolog "Tagging `${GIT} rev-parse HEAD` as ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA}..." # Git tags cannot contain tildes
 	${GIT} tag -as ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA} -m "${SOFTWARE_NAME} ${DISTRO} package ${OML_PKGVER}-${OML_PKGEXTRA}" >> $LOG 2>&1
 	echo ${GIT} tag -d ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA} >> ${REVERT}
@@ -441,15 +471,16 @@ package_archlinux()
 
 ### MAIN LOGIC ###
 
-LOG=`${MKTEMP} ${PACKAGE_NAME}.$(date +%Y-%m-%d_%H:%M).log.XXX`
-date > $LOG
-REVERT=`${MKTEMP} ${PACKAGE_NAME}.$(date +%Y-%m-%d_%H:%M).revert.XXX`
-echo > ${REVERT}
+LOG=`${MKTEMP} ${PACKAGE_NAME}.${TS}.log.XXX`
+echo ${TS} > $LOG
+REVERT=`${MKTEMP} ${PACKAGE_NAME}.${TS}.revert.XXX`
+echo "${GIT} checkout `check_branch`" > ${REVERT}
 
 echolog "Verbose logfile: ${LOG}; Revert file: ${REVERT}"
 
 trap '(test $? != 0 && echo -e "\n*** Something went wrong; check $LOG" && echo -e "*** Revert changes to this repo with:\n${GIT} checkout -f master\n`tac ${REVERT}`") || echo -e "*** Changes can be reverted with:\n${GIT} checkout master\n`tac ${REVERT}`" >> $LOG' EXIT SIGINT
 
+workdir_cleanup
 if [ ! -e build-aux/git-version-gen ]; then
 	echolog "Regenerating build-aux/git-version-gen..."
 	(./autogen.sh && \
@@ -502,7 +533,7 @@ fi
 PUSH="${GIT} push ${REPO} master release/${VERSION} tag v${OML_VER} ${PKGBRANCHES} ${PKGTAGS}"
 prompt N 'echo -n "Push changes upstream to $REPO? [y/N] "' Y YES y yes N NO n no
 if is_in $prompt_var "Y YES y yes"; then
-	eval $PUSH 2>&1 | tee -a $LOG
+	eval $PUSH --set-upstream 2>&1 | tee -a $LOG
 	echolog -e "'***' If ${REPO} is not he official MyTestbed repository, don't forget to push there too:\n${PUSH}"
 else
 	echolog -e "'***' Run the following when ready (changing ${REPO} for the official MyTestbed repository if need be):\n${PUSH}"
