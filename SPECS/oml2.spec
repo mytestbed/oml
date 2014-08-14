@@ -24,7 +24,7 @@ Version:        %{pkgvernotilde}
 %else
 Version:        %{pkgver}
 %endif
-Release:	1
+Release:	2
 Source:		http://mytestbed.net/attachments/download/%{redmineid}/oml2-%{srcver}.tar.gz
 Source1:	init.d-oml2-server
 Source2:	oml2-server.service
