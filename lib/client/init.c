@@ -118,8 +118,14 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   omlc_instance = NULL;
 
   o_set_log_level(O_LOG_INFO);
-  if (custom_oml_log)
+  if (custom_oml_log) {
     o_set_log (custom_oml_log);
+  }
+
+  loginfo ("OML Client %s [OMSPv%d] %s\n",
+           VERSION,
+           OML_PROTOCOL_VERSION,
+           OMLC_COPYRIGHT);
 
   if (pargc && arg) {
     int i;
@@ -236,6 +242,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
       } else if (strcmp(*arg, "--oml-noop") == 0) {
         *pargc -= 1;
+        loginfo("OML reporting disabled from command line\n");
         omlc_close();
         return 1;
       } else if (strcmp(*arg, "--oml-help") == 0) {
@@ -309,11 +316,6 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   schema0 = omlc_add_mp("_experiment_metadata", _experiment_metadata);
 
   omlc_instance->client_instr = omlc_add_mp("_client_instrumentation", _client_instrumentation);
-
-  loginfo ("OML Client %s [OMSPv%d] %s\n",
-           VERSION,
-           OML_PROTOCOL_VERSION,
-           OMLC_COPYRIGHT);
 
   return 0;
 }
