@@ -21,8 +21,8 @@ REDMINE_PROJECT=${REDMINE_PROJECT:-oml}
 REDMINE_URL=http://oml.mytestbed.net
 
 OBS_URL=https://build.opensuse.org
-OBS_NS=home:cdwertmann:oml
-OBS_NS_STAGING=home:cdwertmann:oml-staging
+OBS_NS=devel:tools:mytestbed:stable
+OBS_NS_STAGING= devel:tools:mytestbed:sid
 
 # XXX: Linux-only
 NPROC=$((`grep processor /proc/cpuinfo | wc -l`+1))

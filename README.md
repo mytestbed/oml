@@ -334,8 +334,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 [oml4r]: https://rubygems.org/gems/oml4r/
 [oml4j]: https://github.com/NitLab/oml4j
 [nitlab]: http://nitlab.inf.uth.gr/
-[obs]: http://software.opensuse.org/download.html?project=home:cdwertmann:oml&package=oml2
-[obs-staging]: http://software.opensuse.org/download.html?project=home:cdwertmann:oml-staging&package=oml2
+[obs]: http://software.opensuse.org/download.html?project=devel:tools:mytestbed:stable&package=oml2
+[obs-staging]: http://software.opensuse.org/download.html?project=devel:tools:mytestbed:sid&package=oml2
 [aur]: https://aur.archlinux.org/
 [aur-yaourt]: https://aur.archlinux.org/packages/yaourt/
 [aur-oml2]: https://aur.archlinux.org/packages/oml2/
