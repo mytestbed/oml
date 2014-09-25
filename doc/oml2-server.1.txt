@@ -232,7 +232,7 @@ clients::
 		observed 'event' (e.g., connection or disconnection),
 		and a potential 'message'.
 
-An linkoml:oml2-scaffold[3] application description listing these 'MPs'
+An linkoml:oml2-scaffold[1] application description listing these 'MPs'
 can also be found in {pkgdatadir}.
 
 HOOK COMMANDS
