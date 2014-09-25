@@ -84,11 +84,13 @@
  *     \ref oml2-server "oml2-server" currently supports 1--4;
  * - `domain` (`experiment-id` in V<4): string identifying the experimental
  *     domain (should match `/[-_A-Za-z0-9]+/`);
- * - `start-time`: local UNIX time in seconds taken at the time the header is
- *     being sent (see <a href="http://linux.die.net/man/3/gettimeofday">gettimeofday(3)</a>),
- *     \ref timestamps "the server uses this information to rebase timestamps within its own timeline";
- * - `sender-id`: (`start_time` in V<4): string identifying the source of this
- *     stream (should match `/[_A-Za-z0-9]+/`);
+ * - `start-time` (`start_time` in V<4): local UNIX time in seconds taken at
+ *     the time the header is being sent (see
+ *     <a href="http://linux.die.net/man/3/gettimeofday">gettimeofday(3)</a>),
+ *     \ref timestamps "the server uses this information to rebase timestamps
+ *     within its own timeline";
+ * - `sender-id`: string identifying the source of this stream (should match
+ *   `/[_A-Za-z0-9]+/`);
  * - `app-name`: string identifying the application producing the
  *     a measurements (should match `/[_A-Za-z0-9]+/`), in the storage backend, this
  *     may be used to identify specific measurements collections (e.g., tables in SQL);
@@ -124,6 +126,7 @@
  * or \ref omspbin "binary").
  */
 /**
+ * \page omsp
  * \section omspheaders OMSP Headers
  *
  * The headers are text-based, and used to transfer the
