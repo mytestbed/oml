@@ -11,6 +11,7 @@
  * \brief Interface for the file OmlOutStream.
  * \see OmlOutStream
  */
+#include <stdio.h>
 #include "oml2/oml_out_stream.h"
 
 typedef struct OmlFileOutStream {
@@ -36,4 +37,12 @@ typedef struct OmlFileOutStream {
 
 } OmlFileOutStream;
 
-static size_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
+static ssize_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
+
+/*
+ Local Variables:
+ mode: C
+ tab-width: 2
+ indent-tabs-mode: nil
+ vim: sw=2:sts=2:expandtab
+*/

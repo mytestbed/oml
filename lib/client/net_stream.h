@@ -11,6 +11,7 @@
  * \brief Interface for the network OmlOutStream.
  * \see OmlOutStream, OSocket
  */
+#include "ocomm/o_socket.h"
 #include "oml2/oml_out_stream.h"
 
 /** OmlOutStream writing out to an OComm Socket */
@@ -50,3 +51,10 @@ typedef struct OmlNetOutStream {
 
 } OmlNetOutStream;
 
+/*
+ Local Variables:
+ mode: C
+ tab-width: 2
+ indent-tabs-mode: nil
+ vim: sw=2:sts=2:expandtab
+*/

@@ -28,7 +28,7 @@
 #include "net_stream.h"
 
 static int open_socket(OmlNetOutStream* self);
-static size_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
+static ssize_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
 static int net_stream_close(OmlOutStream* hdl);
 static ssize_t socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length);
 
@@ -159,7 +159,7 @@ open_socket(OmlNetOutStream* self)
  *
  * \see \see open_socket, socket_write
  */
-static size_t
+static ssize_t
 net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length)
 {
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;

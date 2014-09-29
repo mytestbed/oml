@@ -62,7 +62,7 @@ file_stream_new(const char *file)
  * \param buffer length of the header information
  * \return amount of data written, or -1 on error
  */
-static inline size_t
+static inline ssize_t
 _file_stream_write(FILE* file_hdl, uint8_t* buffer, size_t length)
 {
   return fwrite(buffer, 1, length, file_hdl); //(FILE*)((OmlFileOutStream*)hdl)->f);
@@ -77,7 +77,7 @@ _file_stream_write(FILE* file_hdl, uint8_t* buffer, size_t length)
  * \return amount of data written, or -1 on error
  * \see _file_stream_write
  */
-size_t
+ssize_t
 file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
@@ -118,7 +118,7 @@ file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* he
  * \param header_length length of the header to write; must be 0 if header is NULL
  * \return amount of data written, or -1 on error
  */
-size_t
+ssize_t
 file_stream_write_flush(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
@@ -148,10 +148,11 @@ file_stream_set_buffered(OmlOutStream* hdl, int buffered)
 
   if (self == NULL) return -1;
 
-  if(buffered)
+  if(buffered) {
     hdl->write=file_stream_write;
-  else
+  } else {
     hdl->write=file_stream_write_flush;
+  }
 
   return 0;
 }

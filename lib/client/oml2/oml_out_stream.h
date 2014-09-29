@@ -17,6 +17,7 @@
 #ifndef OML_OUT_STREAM_H_
 #define OML_OUT_STREAM_H_
 
+#include <unistd.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -37,7 +38,7 @@ struct OmlOutStream;
  *
  * \return the number of sent bytes on success, -1 otherwise
  */
-typedef size_t (*oml_outs_write_f)(struct OmlOutStream* outs, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length
+typedef ssize_t (*oml_outs_write_f)(struct OmlOutStream* outs, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length
 );
 
 /** Close an OmlOutStream
