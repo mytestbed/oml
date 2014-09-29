@@ -31,6 +31,8 @@ liboml2_la_SOURCES = \
 	file_stream.h \
 	net_stream.c \
 	net_stream.h \
+	zlib_stream.c \
+	zlib_stream.h \
 	buffered_writer.c \
 	buffered_writer.h \
 	parse_config.c \
