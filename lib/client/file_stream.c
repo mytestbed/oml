@@ -20,6 +20,7 @@
 #include "oml2/oml_out_stream.h"
 #include "ocomm/o_log.h"
 #include "mem.h"
+#include "mstring.h"
 #include "client.h"
 #include "file_stream.h"
 
@@ -35,6 +36,7 @@ static inline int file_stream_close(OmlOutStream* hdl);
 OmlOutStream*
 file_stream_new(const char *file)
 {
+  MString *dest;
   OmlFileOutStream* self = (OmlFileOutStream *)oml_malloc(sizeof(OmlFileOutStream));
   memset(self, 0, sizeof(OmlFileOutStream));
 
@@ -49,9 +51,13 @@ file_stream_new(const char *file)
     }
   }
 
+  dest = mstring_create();
+  mstring_sprintf(dest, "file:%s", file);
+  self->dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
+  mstring_delete(dest);
+
   self->write = file_stream_write;
   self->close = file_stream_close;
-  self->dest = (char*)oml_strndup (file, strlen (file));
   self->header_written = 0;
   return (OmlOutStream*)self;
 }
