@@ -32,7 +32,7 @@ main (void)
 {
   int number_failed = 0;
 
-  o_set_log_file ("check_libshared_oml.log");
+  o_set_log_file ("check_libshared.oml.log");
   SRunner *sr = srunner_create (mstring_suite ());
   srunner_add_suite (sr, base64_suite ());
   srunner_add_suite (sr, json_suite ());

@@ -77,7 +77,7 @@ main (void)
 {
   int number_failed = 0;
 
-  o_set_log_file ("check_server_oml.log");
+  o_set_log_file ("check_server.oml.log");
   SRunner *sr = srunner_create (text_protocol_suite ());
   srunner_add_suite (sr, binary_protocol_suite ());
   //  srunner_add_suite (sr, database_suite ()); /* For example ... */

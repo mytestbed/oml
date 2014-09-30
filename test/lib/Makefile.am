@@ -60,9 +60,9 @@ BUILT_SOURCES = \
 CLEANFILES = \
 	stddev_0.c \
 	stddev_1.c \
-	check_liboml2_oml.log \
 	check_liboml2_log.log \
-	check_libshared_oml.log \
+	check_liboml2.oml.log \
+	check_libshared.oml.log \
 	test_api_basic \
 	test_api_metadata \
 	test_config_empty_collect.xml \
