@@ -24,7 +24,8 @@
 #include "client.h"
 #include "file_stream.h"
 
-static inline int file_stream_close(OmlOutStream* hdl);
+static ssize_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
+static int file_stream_close(OmlOutStream* hdl);
 
 /** Create a new out stream for writing into a local file.
  *

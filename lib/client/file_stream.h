@@ -37,8 +37,6 @@ typedef struct OmlFileOutStream {
 
 } OmlFileOutStream;
 
-static ssize_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
-
 /*
  Local Variables:
  mode: C
