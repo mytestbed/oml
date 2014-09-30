@@ -38,8 +38,7 @@ struct OmlOutStream;
  *
  * \return the number of sent bytes on success, -1 otherwise
  */
-typedef ssize_t (*oml_outs_write_f)(struct OmlOutStream* outs, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length
-);
+typedef ssize_t (*oml_outs_write_f)(struct OmlOutStream* outs, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length);
 
 /** Close an OmlOutStream
  *
@@ -47,6 +46,30 @@ typedef ssize_t (*oml_outs_write_f)(struct OmlOutStream* outs, uint8_t* buffer, 
  * \return 0 on success, -1 otherwise
  */
 typedef int (*oml_outs_close_f)(struct OmlOutStream* writer);
+
+/** Immediately write a chunk into the lower level out stream
+ *
+ * \param outs OmlOutStream to write into
+ * \param buffer pointer to the beginning of the data to write
+ * \param length length of data to read from buffer
+ *
+ * \return the number of sent bytes on success, -1 otherwise
+ */
+typedef ssize_t (*oml_outs_write_f_immediate)(struct OmlOutStream* outs, uint8_t* buffer, size_t length);
+
+/** Write header information if not already done, and record this fact
+ *
+ * This function call writefp to write the header data if self->header_written is 0.
+ *
+ * \param outs OmlOutStream to write into
+ * \param writefp pointer to an oml_outs_write_f_immediate function to write the data in the stream
+ * \param header pointer to the beginning of the header data to write
+ * \param header_length length of header data
+ *
+ * \return the number of sent bytes on success (0 if no header was written), -1 otherwise
+ * \see oml_outs_write_f_immediate, OmlOutStream::header_written
+ */
+ssize_t out_stream_write_header(struct OmlOutStream* outs, oml_outs_write_f_immediate writefp, uint8_t* header, size_t header_length);
 
 /** A low-level output stream */
 typedef struct OmlOutStream {
@@ -56,6 +79,8 @@ typedef struct OmlOutStream {
   oml_outs_close_f close;
   /** Description of this output stream, usually overriden by a URI or filename */
   char* dest;
+  /** True if header has been written to the stream */
+  int   header_written;
 } OmlOutStream;
 
 #ifdef __cplusplus

@@ -27,10 +27,8 @@
 #include "client.h"
 #include "net_stream.h"
 
-static int open_socket(OmlNetOutStream* self);
 static ssize_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
 static int net_stream_close(OmlOutStream* hdl);
-static ssize_t socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length);
 
 /** Create a new out stream for sending over the network
  * \param transport string representing the protocol used to establish the connection (oml_strndup()'d locally)
@@ -152,6 +150,28 @@ open_socket(OmlNetOutStream* self)
   return 1;
 }
 
+/** Do the actual writing into the OComm Socket, with error handling
+ * \param self OmlNetOutStream through which the data should be written
+ * \param buffer data to write
+ * \param length length of the data to write
+ *
+ * \return the size of data written, or -1 on error
+ *
+ * \see write(3)
+ */
+static ssize_t
+socket_write(OmlOutStream* outs, uint8_t* buffer, size_t  length)
+{
+  OmlNetOutStream *self = (OmlNetOutStream*) outs;
+  int result = socket_sendto(self->socket, (char*)buffer, length);
+
+  if (result == -1 && socket_is_disconnected (self->socket)) {
+    logwarn ("%s: Connection lost\n", self->dest);
+    self->socket = NULL;      // Server closed the connection
+  }
+  return result;
+}
+
 /** Called to write into the socket
  * \see oml_outs_write_f
  *
@@ -163,6 +183,10 @@ static ssize_t
 net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length)
 {
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;
+  size_t count;
+
+  /* The header can be NULL, but header_length MUST be 0 in that case */
+  assert(header || !header_length);
 
   /* Initialise the socket the first time */
   while (self->socket == NULL) {
@@ -173,61 +197,22 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
     }
   }
 
-  /* If the underlying socket as registered a disconnection, it will reconnect on its own
+  /* If the underlying socket has registered a disconnection, it will reconnect on its own
    * however, we need to check it to make sure we send the headers before anything else */
   if(socket_is_disconnected(self->socket)) {
     self->header_written = 0;
   }
 
-  size_t count;
-  if (! self->header_written) {
-    if(o_log_level_active(O_LOG_DEBUG4)) {
-      char *out = to_octets(header, header_length);
-      logdebug("%s: Sending header %s\n", self->dest, out);
-      oml_free(out);
-    }
-    if ((count = socket_write(self, header, header_length)) < header_length) {
-      // TODO: This is not completely right as we end up rewriting the same header
-      // if we can only partially write it. At this stage we think this is too hard
-      // to deal with and we assume it doesn't happen.
-      if (count > 0) {
-        // PANIC
-        logwarn("%s: Only wrote parts of the header; this might cause problem later on\n", self->dest);
-      }
-      return 0;
-    }
-    self->header_written = 1;
-  }
+  out_stream_write_header(hdl, socket_write, header, header_length);
+
   if(o_log_level_active(O_LOG_DEBUG4)) {
     char *out = to_octets(buffer, length);
     logdebug("%s: Sending data %s\n", self->dest, out);
     oml_free(out);
   }
-  count = socket_write(self, buffer, length);
+  count = socket_write(hdl, buffer, length);
   return count;
 }
-
-/** Do the actual writing into the OComm Socket, with error handling
- * \param self OmlNetOutStream through which the data should be written
- * \param buffer data to write
- * \param length length of the data to write
- *
- * \return the size of data written, or -1 on error
- *
- * \see write(3)
- */
-static ssize_t
-socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length)
-{
-  int result = socket_sendto(self->socket, (char*)buffer, length);
-
-  if (result == -1 && socket_is_disconnected (self->socket)) {
-    logwarn ("%s: Connection lost\n", self->dest);
-    self->socket = NULL;      // Server closed the connection
-  }
-  return result;
-}
-
 
 /*
  Local Variables:

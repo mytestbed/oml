@@ -25,6 +25,7 @@ liboml2_la_SOURCES = \
 	misc.c \
 	text_writer.c \
 	bin_writer.c \
+	oml_out_stream.c \
 	file_stream.c \
 	file_stream.h \
 	net_stream.c \

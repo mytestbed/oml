@@ -28,12 +28,14 @@ typedef struct OmlFileOutStream {
   /** \see OmlOutStream::dest */
   char *dest;
 
+  /** \see OmlOutStream::header_written */
+  int   header_written;
+
   /*
    * Fields specific to the OmlFileOutStream
    */
 
   FILE* f;                      /**< File pointer into which to write result to */
-  int   header_written;         /**< True if header has been written to file */
 
 } OmlFileOutStream;
 

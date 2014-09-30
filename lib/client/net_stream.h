@@ -29,11 +29,14 @@ typedef struct OmlNetOutStream {
   /** \see OmlOutStream::dest */
   char *dest;
 
+  /** \see OmlOutStream::header_written */
+  int   header_written;
+
   /*
    * Fields specific to the OmlNetOutStream
    */
 
-  /** OComm Socket in which the data is writte */
+  /** OComm Socket in which the data is written */
   Socket*    socket;
 
   /** Protocol used to establish the connection */
@@ -42,12 +45,6 @@ typedef struct OmlNetOutStream {
   char*       host;
   /** Service to connect to */
   char*       service;
-
-  /** Old storage, no longer used, kept for compatibility */
-  char  storage;
-
-  /** True if header has been written to the stream \see open_socket*/
-  int   header_written;
 
 } OmlNetOutStream;
 
