@@ -5,7 +5,7 @@ AM_CPPFLAGS = \
 	-I $(top_srcdir)/lib/client \
 	-I $(top_srcdir)/lib/ocomm \
 	-I $(top_srcdir)/lib/shared \
-	$(XML2_CFLAGS)
+	@XML2_CFLAGS@
 
 oml2incdir = $(includedir)/oml2
 
@@ -31,8 +31,6 @@ liboml2_la_SOURCES = \
 	file_stream.h \
 	net_stream.c \
 	net_stream.h \
-	zlib_stream.c \
-	zlib_stream.h \
 	buffered_writer.c \
 	buffered_writer.h \
 	parse_config.c \
@@ -54,8 +52,19 @@ liboml2_la_SOURCES = \
 	filter/delta_filter.h \
 	$(oml2inc_HEADERS)
 
+if HAVE_LIBZ
+liboml2_la_SOURCES += zlib_stream.c \
+		      zlib_stream.h
+liboml2_la_CPPFLAGS = $(AM_CPPFLAGS) \
+		      @LIBZ_CPPFLAGS@
+endif
+
 liboml2_la_LIBADD = \
 		    $(top_builddir)/lib/ocomm/libocomm.la \
-		    $(XML2_LIBS) $(PTHREAD_LIBS) $(M_LIBS)
+		    @XML2_LIBS@ \
+		    @PTHREAD_LIBS@ \
+		    @M_LIBS@ \
+		    @LIBZ_LIBS@
 
-liboml2_la_LDFLAGS = -version-info $(LIBOML2_LT_VER)
+liboml2_la_LDFLAGS = -version-info @LIBOML2_LT_VER@ \
+		     @LIBZ_LDFLAGS@

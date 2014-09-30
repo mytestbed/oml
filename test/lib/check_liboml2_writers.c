@@ -29,11 +29,16 @@
 #include <string.h>
 #include <check.h>
 
+#include "config.h"
 #include "mbuf.h"
 #include "client.h"
 #include "oml_utils.h"
 #include "file_stream.h"
-#include "zlib_stream.h"
+
+#ifdef HAVE_LIBZ
+# include <zlib.h>
+# include "zlib_stream.h"
+#endif /* HAVE_LIBZ */
 
 /*
 START_TEST (test_bw_create)
@@ -108,6 +113,8 @@ START_TEST (test_fw_create_buffered)
 }
 END_TEST
 
+#ifdef HAVE_LIBZ
+
 #define ZFN	"test_zw_create_buffered"
 
 START_TEST (test_zw_create_buffered)
@@ -164,22 +171,25 @@ START_TEST (test_zw_create_buffered)
   fclose(blob);
 }
 END_TEST
+#endif /* HAVE_LIBZ */
 
 Suite*
 writers_suite (void)
 {
   Suite* s = suite_create ("Writers");
 
-  /* Test cases */
   TCase* tc_fw = tcase_create ("FileWriter");
-  TCase* tc_zw = tcase_create ("ZlibWriter");
-
-  /* Add tests */
   tcase_add_test (tc_fw, test_fw_create_buffered);
-  tcase_add_test (tc_zw, test_zw_create_buffered);
-
   suite_add_tcase (s, tc_fw);
+
+#ifndef HAVE_LIBZ
+# warning "Zlib not found, OmlZlibOutStream not tested"
+#else
+  TCase* tc_zw = tcase_create ("ZlibWriter");
+  tcase_add_test (tc_zw, test_zw_create_buffered);
   suite_add_tcase (s, tc_zw);
+#endif /* HAVE_LIBZ */
+
   return s;
 }
 

@@ -13,6 +13,7 @@
  */
 #include <assert.h>
 #include <string.h>
+#include <zlib.h>
 
 #include "oml2/omlc.h"
 #include "mem.h"

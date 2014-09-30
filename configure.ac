@@ -145,6 +145,19 @@ AC_SEARCH_LIBS([sqlite3_open], [sqlite3 sqlite], [
 	       ], [missing_libs+=" libsqlite3"])
 LIBS=$oldLIBS
 
+AX_CHECK_ZLIB([
+	       AC_DEFINE([HAVE_LIBZ], [1], [Define to 1 if zlib (-lz) is installed])
+	       HAVE_LIBZ=yes
+	       LIBZ_CPPFLAGS=-I${ZLIB_HOME}/include
+	       LIBZ_LDFLAGS=-L${ZLIB_HOME}/lib
+	       LIBZ_LIBS="-lz"
+	       ],[
+		  AC_MSG_WARN([zlib not found, compressed streams support disabled])
+		  ])
+AC_SUBST([LIBZ_CPPFLAGS],$LIBZ_CPPFLAGS)
+AC_SUBST([LIBZ_LDFLAGS],$LIBZ_LDFLAGS)
+AC_SUBST([LIBZ_LIBS],$LIBZ_LIBS)
+AM_CONDITIONAL([HAVE_LIBZ], [test x$HAVE_LIBZ = xyes])
 
 # Detect if PostgreSQL is around, but don't add it to the default
 oldLIBS=$LIBS

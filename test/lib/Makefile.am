@@ -42,19 +42,24 @@ check_libshared_SOURCES = \
 	check_libshared_headers.c \
 	check_libshared_marshal.c
 
-check_liboml2_CFLAGS = $(CHECK_CFLAGS)
-check_libshared_CFLAGS = $(CHECK_CFLAGS)
+check_liboml2_CFLAGS = @CHECK_CFLAGS@ \
+		       @LIBZ_CPPFLAGS@
+check_libshared_CFLAGS = @CHECK_CFLAGS@
 
-check_liboml2_LDADD = $(CHECK_LIBS) $(XML2_LIBS) $(M_LIBS) \
-	$(top_builddir)/lib/client/liboml2.la \
-	$(top_builddir)/lib/ocomm/libocomm.la
+check_liboml2_LDADD = @CHECK_LIBS@ \
+		      @XML2_LIBS@ \
+		      @M_LIBS@ \
+		      @LIBZ_LIBS@ \
+		      $(top_builddir)/lib/client/liboml2.la \
+		      $(top_builddir)/lib/ocomm/libocomm.la
 
-check_libshared_LDADD = $(CHECK_LIBS) $(M_LIBS) \
-	$(top_builddir)/lib/shared/libshared.la \
-	$(top_builddir)/lib/ocomm/libocomm.la
+check_libshared_LDADD = @CHECK_LIBS@ \
+			@M_LIBS@ \
+			$(top_builddir)/lib/shared/libshared.la \
+			$(top_builddir)/lib/ocomm/libocomm.la
 
 blob:
-	dd if=$(RANDDEV) of=$@ bs=512 count=1
+	dd if=$(RANDDEV) of=$@ bs=10M count=1
 
 endif
 

@@ -11,6 +11,8 @@
  * \brief Interface for the Zlib OmlOutStream.
  * \see OmlOutStream
  */
+#include <zlib.h>
+
 #include "oml2/oml_out_stream.h"
 
 typedef struct OmlZlibOutStream {
