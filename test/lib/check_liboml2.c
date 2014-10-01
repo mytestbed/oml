@@ -18,7 +18,7 @@ main (void)
 {
   int number_failed = 0;
 
-  o_set_log_file ("check_liboml2_oml.log");
+  o_set_log_file ("check_liboml2.oml.log");
   SRunner* sr = srunner_create (omlvalue_suite());
   srunner_add_suite (sr, bswap_suite ());
   srunner_add_suite (sr, mbuf_suite ());

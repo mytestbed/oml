@@ -314,7 +314,7 @@ _bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size)
  */
 int
 bw_msgcount_add(BufferedWriter* instance, int nmessages) {
-  instance->writerChunk->nmessages += 1;
+  instance->writerChunk->nmessages += nmessages;
   return instance->writerChunk->nmessages;
 }
 

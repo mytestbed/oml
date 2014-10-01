@@ -25,7 +25,8 @@ check_liboml2_SOURCES = \
 	check_liboml2_suites.h \
 	check_liboml2_writers.c \
 	$(top_srcdir)/lib/client/oml2/omlc.h \
-	$(top_srcdir)/lib/client/oml2/oml_filter.h
+	$(top_srcdir)/lib/client/oml2/oml_filter.h \
+	$(top_srcdir)/lib/client/file_stream.h
 
 check_libshared_SOURCES = \
 	check_libshared_base64.c \
@@ -60,9 +61,9 @@ BUILT_SOURCES = \
 CLEANFILES = \
 	stddev_0.c \
 	stddev_1.c \
-	check_liboml2_oml.log \
 	check_liboml2_log.log \
-	check_libshared_oml.log \
+	check_liboml2.oml.log \
+	check_libshared.oml.log \
 	test_api_basic \
 	test_api_metadata \
 	test_config_empty_collect.xml \
