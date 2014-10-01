@@ -33,12 +33,22 @@ typedef struct OmlZlibOutStream {
    * Fields specific to the OmlZlibOutStream
    */
 
-  OmlOutStream* os;              /**< OmlOutStream into which to write result */
-  int   header_written;         /**< True if header has been written to file */
+  OmlOutStream* os;             /**< OmlOutStream into which to write result */
+
+
+  int   chunk_size;             /**< Zlib buffer size */
+  int	zlevel;                 /**< Compression level for Zlib */
+  z_stream  strm;               /**< Zlib compressed stream */
+  uint8_t*  in;                 /**< input buffer */
+  uint8_t*  in_length;          /**< input buffer length*/
+  uint8_t*  in_wr_offset;       /**< input buffer write offset */
+
+  uint8_t*  out;                /**< output buffer */
+  uint8_t*  out_length;         /**< output buffer length*/
+  uint8_t*  out_wr_offset;      /**< output buffer write offset */
+
 
 } OmlZlibOutStream;
-
-static ssize_t zlib_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
 
 /*
  Local Variables:
