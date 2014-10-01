@@ -115,11 +115,12 @@ net_stream_close(OmlOutStream* stream)
 {
   OmlNetOutStream* self = (OmlNetOutStream*)stream;
 
+  logdebug("%s: Destroying OmlNetOutStream at %p\n", self->dest, self);
+
   if (self->socket != 0) {
     socket_close(self->socket);
     self->socket = NULL;
   }
-  logdebug("%s: Destroying OmlNetOutStream at %p\n", self->dest, self);
   oml_free(self->dest);
   oml_free(self->host);
   oml_free(self->protocol);

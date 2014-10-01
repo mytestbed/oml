@@ -206,11 +206,12 @@ file_stream_close(OmlOutStream* hdl)
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
   int ret = -1;
 
+  logdebug("Destroying OmlFileOutStream to file %s at %p\n", self->dest, self);
+
   if (self->f != NULL) {
     ret = fclose(self->f);
     self->f = NULL;
   }
-  logdebug("Destroying OmlFileOutStream to file %s at %p\n", self->dest, self);
   oml_free(self->dest);
   oml_free(self);
   return ret;
