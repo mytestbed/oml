@@ -283,20 +283,22 @@ START_TEST (test_zw_create_buffered)
   blob = fopen("blob", "r");
   fail_if(blob == NULL, "Failure opening %s", "blob");
 
-  /*
+#ifndef DUMMY_COMPRESS
   while(!feof(blob)) {
     if((len=fread(buf, 1, sizeof(buf), blob))>0) {
-      fail_unless(os->write(os, (uint8_t*)buf, len, NULL, 0));
+      fail_unless(os->write(os, (uint8_t*)buf, len, NULL, 0) == len);
     }
   }
-  os->close(os);
-  */
 
+#else
   /* Dummy compression to make sure the decompression step works */
   f=fopen(ZFN,"w");
   fail_unless(def(blob, f, Z_DEFAULT_COMPRESSION) == Z_OK, "Error deflating");
   fclose(f);
 
+#endif /* DUMMY_COMPRESS */
+
+  os->close(os);
   fclose(blob);
 
   /* Decompress data */
