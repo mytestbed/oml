@@ -85,10 +85,10 @@ START_TEST (test_fw_create_buffered)
   /* The OmlFileOutStream is buffered by default */
   fail_unless(file_stream_get_buffered(os));
 
-  fail_unless(os->write(NULL, (uint8_t*)buf, 0, NULL, 0)==-1);
+  fail_unless(os->write(NULL, (uint8_t*)buf, 0)==-1);
 
   /* Buffered operation */
-  fail_unless(os->write(os, (uint8_t*)buf, sizeof(buf), NULL, 0)==sizeof(buf));
+  fail_unless(os->write(os, (uint8_t*)buf, sizeof(buf))==sizeof(buf));
 
   f = fopen(FN, "r");
   /* Nothing should be read at this time */
@@ -99,7 +99,7 @@ START_TEST (test_fw_create_buffered)
   /* Unbuffered operation */
   file_stream_set_buffered(os, 0);
   fail_if(file_stream_get_buffered(os));
-  fail_unless(os->write(os, (uint8_t*)buf, sizeof(buf), NULL, 0)==sizeof(buf));
+  fail_unless(os->write(os, (uint8_t*)buf, sizeof(buf))==sizeof(buf));
 
   f = fopen(FN, "r");
   /* Now there should be data */

@@ -24,16 +24,18 @@
 #include "client.h"
 #include "file_stream.h"
 
-static ssize_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
-static ssize_t file_stream_write_flush(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length);
+static ssize_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
+static ssize_t file_stream_write_flush(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
 static int file_stream_close(OmlOutStream* hdl);
 
 /** Create a new out stream for writing into a local file.
  *
+ * *Don't forget to associate header data if you need it*
+ *
  * \param file destination file (oml_strndup()'d locally)
  * \return a new OmlOutStream instance
  *
- * \see oml_strndup
+ * \see oml_strndup, out_stream_set_header_data
  */
 OmlOutStream*
 file_stream_new(const char *file)
@@ -87,18 +89,15 @@ _file_stream_write(OmlOutStream *outs, uint8_t* buffer, size_t length)
  * \see _file_stream_write
  */
 static ssize_t
-file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length)
+file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
   size_t count;
 
-  /* The header can be NULL, but header_length MUST be 0 in that case */
-  assert(header || !header_length);
-
   if (!self) return -1;
   if (!self->f) return -1;
 
-  out_stream_write_header(hdl, _file_stream_write, header, header_length);
+  out_stream_write_header(hdl, _file_stream_write);
 
   count = _file_stream_write(hdl, buffer, length);
   return count;
@@ -115,12 +114,12 @@ file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* he
  * \param header_length length of the header to write; must be 0 if header is NULL
  * \return amount of data written, or -1 on error
  */
-static ssize_t
-file_stream_write_flush(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length)
+ssize_t
+file_stream_write_flush(OmlOutStream* hdl, uint8_t* buffer, size_t length)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
 
-  size_t count = file_stream_write(hdl, buffer, length, header, header_length);
+  size_t count = file_stream_write(hdl, buffer, length);
   fflush(self->f);
 
   return count;

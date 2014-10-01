@@ -20,6 +20,7 @@
 #include <time.h>
 
 #include "oml2/omlc.h"
+#include "oml2/oml_out_stream.h"
 #include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
 
@@ -147,6 +148,8 @@ bw_create(OmlOutStream* outStream, long  queueCapacity, long chunkSize)
       self->active = 1;
       pthread_create(&self->readerThread, &tattr, bufferedWriterThread, (void*)self);
     }
+
+    out_stream_set_header_data(outStream, self->meta_buf);
   }
 
   return (BufferedWriter*)self;
@@ -629,8 +632,7 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
   while (mbuf_write_offset(read_buf) > mbuf_read_offset(read_buf)) {
     oml_lock(&self->meta_lock, __FUNCTION__);
     cnt = self->outStream->write(self->outStream,
-        mbuf_rdptr(read_buf), mbuf_message_offset(read_buf) - mbuf_read_offset(read_buf),
-        mbuf_rdptr(self->meta_buf), mbuf_fill(self->meta_buf));
+        mbuf_rdptr(read_buf), mbuf_message_offset(read_buf) - mbuf_read_offset(read_buf));
     oml_unlock(&self->meta_lock, __FUNCTION__);
 
     if (cnt > 0) {

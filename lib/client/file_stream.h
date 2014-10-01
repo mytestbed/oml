@@ -11,6 +11,7 @@
  * \brief Interface for the file OmlOutStream.
  * \see OmlOutStream
  */
+#include "mbuf.h"
 #include <stdio.h>
 #include "oml2/oml_out_stream.h"
 
@@ -25,8 +26,11 @@ typedef struct OmlFileOutStream {
   /** \see OmlOutStream::close, oml_outs_close_f */
   oml_outs_close_f close;
 
-  /** \see OmlOutStream::dest */
+  /** \see OmlOutStream::header_data, oml_outs_set_header_data */
   char *dest;
+
+  /** \see OmlOutStream::header_data */
+  MBuffer* header_data;
 
   /** \see OmlOutStream::header_written */
   int   header_written;

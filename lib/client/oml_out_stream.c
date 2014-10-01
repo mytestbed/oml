@@ -106,23 +106,32 @@ create_out_stream(const char *uri)
   return os;
 }
 
+#include "mbuf.h"
+
 /** Write header information if not already done, and record this fact */
 ssize_t
-out_stream_write_header(OmlOutStream* self, oml_outs_write_f_immediate writefp, uint8_t* header, size_t header_length)
+out_stream_write_header(OmlOutStream* self, oml_outs_write_f_immediate writefp)
 {
   ssize_t count=0;
+  MBuffer* hdrmbuf;
+  uint8_t* header;
+  size_t header_length;
 
   assert(self);
   assert(writefp);
-  assert(header || !header_length);
 
-  if (! self->header_written) {
-    if ((count = writefp(self, header, header_length)) < 0) {
-      logerror("%s: Error writing header: %s\n", self->dest, strerror(errno));
-      return -1;
+  if ((hdrmbuf=(MBuffer*)self->header_data)) {
+
+    header = mbuf_rdptr(hdrmbuf);
+    header_length  = mbuf_fill(hdrmbuf);
+
+    if (! self->header_written) {
+      if ((count = writefp(self, header, header_length)) < 0) {
+        logerror("%s: Error writing header: %s\n", self->dest, strerror(errno));
+        return -1;
 
     } else {
-      if (((size_t)count > 0) && ((size_t)count < header_length)) {
+      if (((size_t)count < header_length))
         logwarn("%s: Only wrote parts of the header; this might cause problem later on\n", self->dest);
       }
       self->header_written = 1;
@@ -132,6 +141,28 @@ out_stream_write_header(OmlOutStream* self, oml_outs_write_f_immediate writefp, 
   return count;
 }
 
+/** Set the pointer to the opaque data structure containing the headers
+ *
+ * *ONLY USE MBUFFERS HERE*
+ *
+ * XXX: All this "opaque data structure" nonsense is to avoid exposing MBuffers
+ * to the user; see #1318. This is not very good for us, as we lose
+ * type-checking.
+ *
+ * \see OmlFileOutStream, OmlNetOutStream
+ */
+void*
+out_stream_set_header_data(struct OmlOutStream* outs, void* header_data)
+{
+  void *old;
+
+  if(!outs) { return NULL; }
+
+  old = outs->header_data;
+  outs->header_data = header_data;
+
+  return old;
+}
 /*
  Local Variables:
  mode: C

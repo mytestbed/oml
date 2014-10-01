@@ -27,16 +27,19 @@
 #include "client.h"
 #include "net_stream.h"
 
-static ssize_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
+static ssize_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
 static int net_stream_close(OmlOutStream* hdl);
 
 /** Create a new out stream for sending over the network
+ *
+ * *Don't forget to associate header data if you need it*
+ *
  * \param transport string representing the protocol used to establish the connection (oml_strndup()'d locally)
  * \param hostname string representing the host to connect to (oml_strndup()'d locally)
  * \param service symbolic name or port number of the service to connect to (oml_strndup()'d locally)
  * \return a new OmlOutStream instance
  *
- * \see oml_strndup
+ * \see oml_strndup, out_stream_set_header_data
  */
 OmlOutStream*
 net_stream_new(const char *transport, const char *hostname, const char *service)
@@ -181,13 +184,10 @@ socket_write(OmlOutStream* outs, uint8_t* buffer, size_t  length)
  * \see \see open_socket, socket_write
  */
 static ssize_t
-net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length)
+net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length)
 {
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;
   size_t count;
-
-  /* The header can be NULL, but header_length MUST be 0 in that case */
-  assert(header || !header_length);
 
   /* Initialise the socket the first time */
   while (self->socket == NULL) {
@@ -204,7 +204,7 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
     self->header_written = 0;
   }
 
-  out_stream_write_header(hdl, socket_write, header, header_length);
+  out_stream_write_header(hdl, socket_write);
 
   if(o_log_level_active(O_LOG_DEBUG4)) {
     char *out = to_octets(buffer, length);

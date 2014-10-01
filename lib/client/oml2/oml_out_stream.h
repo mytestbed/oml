@@ -31,14 +31,10 @@ struct OmlOutStream;
  * \param outs OmlOutStream to write into
  * \param buffer pointer to the beginning of the data to write
  * \param length length of data to read from buffer
- * \param header pointer to the beginning of header data to write in case of disconnection
- * \param header_length length of header data to write in case of disconnection
- *
- * XXX: Why are header and normal data separate?
  *
  * \return the number of sent bytes on success, -1 otherwise
  */
-typedef ssize_t (*oml_outs_write_f)(struct OmlOutStream* outs, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length);
+typedef ssize_t (*oml_outs_write_f)(struct OmlOutStream* outs, uint8_t* buffer, size_t length);
 
 /** Close an OmlOutStream
  *
@@ -66,19 +62,25 @@ typedef ssize_t (*oml_outs_write_f_immediate)(struct OmlOutStream* outs, uint8_t
  */
 struct OmlOutStream* create_out_stream(const char *uri);
 
+/** Set the pointer to the opaque data structure containing the headers
+ * \param outs OmlOutStream to manipulate
+ * \param header_data pointer to the opaque data structure containing the headers (can be NULL)
+ * \return a pointer to the old structure, cast as a (void*)
+ * \see OmlOutStream::header_data
+ */
+void* out_stream_set_header_data(struct OmlOutStream* outs, void* header_data);
+
 /** Write header information if not already done, and record this fact
  *
  * This function call writefp to write the header data if self->header_written is 0.
  *
  * \param outs OmlOutStream to write into
  * \param writefp pointer to an oml_outs_write_f_immediate function to write the data in the stream
- * \param header pointer to the beginning of the header data to write
- * \param header_length length of header data
  *
  * \return the number of sent bytes on success (0 if no header was written), -1 otherwise
  * \see oml_outs_write_f_immediate, OmlOutStream::header_written
  */
-ssize_t out_stream_write_header(struct OmlOutStream* outs, oml_outs_write_f_immediate writefp, uint8_t* header, size_t header_length);
+ssize_t out_stream_write_header(struct OmlOutStream* outs, oml_outs_write_f_immediate writefp);
 
 /** A low-level output stream */
 typedef struct OmlOutStream {
@@ -88,6 +90,8 @@ typedef struct OmlOutStream {
   oml_outs_close_f close;
   /** Description of this output stream, usually overriden by a URI or filename */
   char* dest;
+  /** Pointer to data structure containing the header data to be transmitted at the beginning; not owned by the OmlOutStream \see out_stream_set_header_data*/
+  void* header_data;
   /** True if header has been written to the stream */
   int   header_written;
 } OmlOutStream;
