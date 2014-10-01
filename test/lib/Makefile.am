@@ -85,7 +85,8 @@ CLEANFILES = \
 	test_config_multi_collect1 \
 	test_config_multi_collect2 \
 	test_fw_create_buffered \
-	test_zw_create_buffered
+	test_zw_create_buffered \
+	test_zw_create_buffered.blob
 
 STDDEV = $(srcdir)/stddev.py
 
