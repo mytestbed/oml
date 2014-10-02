@@ -591,7 +591,6 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
   ssize_t cnt = 0;
   MBuffer *read_buf = NULL;
   assert(self);
-  assert(self->meta_buf);
   assert(self->read_buf);
   assert(chunk);
   assert(chunk->mbuf);
