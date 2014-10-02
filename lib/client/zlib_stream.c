@@ -21,7 +21,7 @@
 #include "oml2/oml_out_stream.h"
 #include "zlib_stream.h"
 
-static ssize_t zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
+static ssize_t zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length);
 static int zlib_stream_close(OmlOutStream* stream);
 
 /** Create a new OmlOutStream writing compressed data into another OmlOutStream
@@ -86,7 +86,7 @@ zlib_stream_new(OmlOutStream *out)
  * \see oml_outs_write_f, zlib_stream_write
  */
 static ssize_t
-zlib_stream_deflate_write(OmlZlibOutStream* self, int flush, uint8_t* header, size_t  header_length)
+zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
 {
   int ret = -1;
   int have, had = self->strm.avail_in, had_this_round;
@@ -107,7 +107,7 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush, uint8_t* header, si
     have = self->chunk_size - self->strm.avail_out;
     logdebug3("%s: Deflated %dB to %dB and wrote out to %s\n",
         self->dest, had_this_round - self->strm.avail_in, have, self->os->dest);
-    ret = self->os->write(self->os, self->out, have, header, header_length);
+    ret = self->os->write(self->os, self->out, have);
 
   } while(self->strm.avail_out == 0 /* While all the output buffer is used */
       || (Z_FINISH == flush && Z_OK == ret /* More compressed output coming */
@@ -120,7 +120,7 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush, uint8_t* header, si
  * \see oml_outs_write_f
  */
 static ssize_t
-zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length)
+zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length)
 {
   int ret = -1;
   OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
@@ -133,7 +133,7 @@ zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length, uint8_t
   self->strm.avail_in = length;
   self->strm.next_in = buffer;
 
-  ret = zlib_stream_deflate_write(self, Z_NO_FLUSH, header, header_length);
+  ret = zlib_stream_deflate_write(self, Z_NO_FLUSH);
 
   return ret;
 }
@@ -153,9 +153,8 @@ zlib_stream_close(OmlOutStream* stream)
 
   logdebug("Destroying OmlZlibOutStream to file %s at %p\n", self->dest, self);
 
-  /* XXX: we don't know the headers here... */
   len =  self->strm.avail_out;
-  zlib_stream_deflate_write(self, Z_FINISH, NULL, 0);
+  zlib_stream_deflate_write(self, Z_FINISH);
   logdebug3("%s: Flushed the last %dB of the compressed stream\n", self->dest, len);
   deflateEnd(&self->strm);
   if(self->os) {

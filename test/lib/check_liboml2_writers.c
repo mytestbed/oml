@@ -286,7 +286,7 @@ START_TEST (test_zw_create_buffered)
 #ifndef DUMMY_COMPRESS
   while(!feof(blob)) {
     if((len=fread(buf, 1, sizeof(buf), blob))>0) {
-      fail_unless(os->write(os, (uint8_t*)buf, len, NULL, 0) == len);
+      fail_unless(os->write(os, (uint8_t*)buf, len) == len);
     }
   }
 
