@@ -20,7 +20,7 @@
 #include <time.h>
 
 #include "ocomm/o_log.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 
 /** Maximal logging period for repeated messages, in seconds */
 #define MAX_MESSAGE_RATE 1

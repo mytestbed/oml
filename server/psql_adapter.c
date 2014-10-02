@@ -29,7 +29,7 @@
 #include "guid.h"
 #include "json.h"
 #include "oml_value.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "database.h"
 #include "database_adapter.h"
 #include "psql_adapter.h"

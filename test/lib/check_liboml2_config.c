@@ -20,7 +20,7 @@
 
 #include "ocomm/o_log.h"
 #include "oml2/omlc.h"
-#include "check_util.h"
+#include "check_utils.h"
 
 OmlMPDef mp_def [] =
 {

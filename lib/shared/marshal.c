@@ -176,7 +176,7 @@
 #include "htonll.h"
 #include "mem.h"
 #include "mbuf.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "oml_value.h"
 #include "marshal.h"
 
@@ -369,7 +369,7 @@ uint8_t* find_sync (const uint8_t *buf, int len)
 {
   int i;
 
-  /* We cannot use find_matching from oml_util here as buf is not a
+  /* We cannot use find_matching from oml_utils here as buf is not a
    * nil-terminated string, and some bytes within might be nil */
   for (i = 1; i < len; i++)
       if (buf[i] == SYNC_BYTE && buf[i-1] == SYNC_BYTE)

@@ -32,11 +32,11 @@
 #include <check.h>
 
 #include "oml2/omlc.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "htonll.h"
 #include "oml_value.h"
 #include "marshal.h"
-#include "check_util.h"
+#include "check_utils.h"
 
 #define FIRST_VALPTR(mbuf) (mbuf->base + 5)
 

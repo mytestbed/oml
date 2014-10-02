@@ -36,7 +36,7 @@
 #include "filter/sum_filter.h"
 #include "filter/delta_filter.h"
 #include "oml2/oml_writer.h"
-#include "check_util.h"
+#include "check_utils.h"
 
 typedef struct OmlAvgFilterInstanceData AvgInstanceData;
 typedef struct OmlFirstFilterInstanceData FirstInstanceData;

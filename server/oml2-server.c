@@ -41,7 +41,7 @@
 #include "ocomm/o_socket.h"
 #include "ocomm/o_eventloop.h"
 #include "mem.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "hook.h"
 #include "client_handler.h"
 #include "database.h"

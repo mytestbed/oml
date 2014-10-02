@@ -27,7 +27,7 @@
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "guid.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "oml_value.h"
 #include "base64.h"
 #include "string_utils.h"

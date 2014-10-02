@@ -19,7 +19,7 @@
 
 #include "oml2/omlc.h"
 #include "mem.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "oml_value.h"
 
 #define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))

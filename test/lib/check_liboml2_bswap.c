@@ -24,7 +24,7 @@
 #include <check.h>
 
 #include "htonll.h"
-#include "check_util.h"
+#include "check_utils.h"
 
 START_TEST (test_bswap_16)
 {

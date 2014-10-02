@@ -30,7 +30,7 @@
 #include "oml2/omlc.h"
 #include "oml_value.h"
 #include "oml2/oml_writer.h"
-#include "check_util.h"
+#include "check_utils.h"
 
 
 OmlValueU*

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 National ICT Australia Limited (NICTA)
+ * Copyright 2007-2014 National ICT Australia Limited (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -12,6 +12,12 @@
 #define STRING_UTILS_H
 
 #include <stddef.h>
+
+void chomp (char* str);
+
+const char *skip_white (const char *p);
+const char *find_white (const char *p);
+const char *find_charn (const char *p, char c, int len);
 
 extern size_t
 backslash_encode_size(size_t in_sz);

@@ -32,7 +32,7 @@
 #include "oml_value.h"
 #include "validate.h"
 #include "filter/factory.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "client.h"
 
 #define OMLC_COPYRIGHT "Copyright 2007-2014, NICTA"

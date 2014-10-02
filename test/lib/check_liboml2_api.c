@@ -15,8 +15,8 @@
 
 #include "ocomm/o_log.h"
 #include "oml2/omlc.h"
-#include "check_util.h"
-#include "oml_util.h"
+#include "check_utils.h"
+#include "oml_utils.h"
 #include "oml_value.h"
 #include "validate.h"
 #include "client.h"

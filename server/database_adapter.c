@@ -12,7 +12,7 @@
  */
 #include <string.h>
 
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "schema.h"
 #include "database.h"
 #include "database_adapter.h"

@@ -7,7 +7,7 @@
  * using this software you accept the terms and the liability disclaimer
  * in the License.
  */
-/** \file oml_util.c
+/** \file oml_utils.c
  * \brief Various utility functions, mainly strings and memory-buffer related.
  */
 #include <stdio.h> // For snprintf
@@ -18,82 +18,8 @@
 
 #include "ocomm/o_log.h"
 #include "mem.h"
-#include "oml_util.h"
-
-/** Remove trailing space from a string
- * \param[in,out] str nil-terminated string to chomp, with the first trailing space replaced by '\0'
- */
-void chomp(char *str)
-{
-  char *p = str + strlen (str);
-
-  while (p != str && isspace (*--p));
-
-  *++p = '\0';
-}
-
-/** Template code to search for a matching condition in a string or array up
- * to a given length or nil-terminator.
- *
- * p should be of a dereferenceable type that can be compared to 0.
- *
- * If len is negative, this allows for a very long string to be parsed. Very
- * long here being entirely machine dependent, one should not really rely on
- * this...
- *
- * \param[in,out] p pointer to the beginning of the string or array; updated to the matching element, or the end of the search area if not found
- * \param cond success condition involving p
- * \param[in,out] len maximum length to search for; updated to the remaining number of characters when finishing (-1 if not found)
- */
-#define find_matching(p, cond, len)  \
-do {                                 \
-  while (len-- && *p && !(cond)) {  \
-    p++;                             \
-  }                                  \
-} while(0)
-
-/** Skip whitespaces in a string
- *
- * \param p string to skip whitespace out of
- * \return a pointer to the first non-white character of the string, which might be the end of the string
- * \see isspace(3)
- */
-const char* skip_white(const char *p)
-{
-  int l = -1;
-  find_matching(p, !(isspace (*p)), l);
-  return p;
-}
-
-/** Find first whitespace in a string
- *
- * \param p string to search for whitespace in
- * \return a pointer to the first whitespace character of the string, which might be the end of the string
- * \see isspace(3)
- */
-const char* find_white(const char *p)
-{
-  int l = -1;
-  find_matching(p, (isspace (*p)), l);
-  return p;
-}
-
-/** Find the first occurence of a character in a string up to a nul character
- * or a given number of characters, whichever comes first,
- *
- * \param str a possibly nul-terminated string
- * \param c the character to look for
- * \param len the maximum length to search the string for
- * \return a pointer to character c in str, or NULL
- */
-const char* find_charn(const char *str, char c, int len)
-{
-  find_matching(str, (*str == c), len);
-  if (len<0 || !*str) {
-    return NULL;
-  }
-  return str;
-}
+#include "oml_utils.h"
+#include "string_utils.h"
 
 /** Dump the contents of a buffer as a string of hex characters
  *

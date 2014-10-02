@@ -21,7 +21,7 @@
 #include <libgen.h>
 
 #include "ocomm/o_log.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "mem.h"
 #include "mbuf.h"
 #include "database.h"

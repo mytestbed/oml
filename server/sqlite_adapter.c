@@ -28,7 +28,7 @@
 #include "json.h"
 #include "guid.h"
 #include "oml_value.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "schema.h"
 #include "database.h"
 #include "table_descr.h"

@@ -23,7 +23,7 @@
 #include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
 #include "mem.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "client.h"
 #include "net_stream.h"
 

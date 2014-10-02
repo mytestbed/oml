@@ -119,7 +119,8 @@
 #include "mstring.h"
 #include "oml_value.h"
 #include "schema.h"
-#include "oml_util.h"
+#include "string_utils.h"
+#include "oml_utils.h"
 
 /** Parse a schema field like '<name>:<type>' into a struct schema_field.
  *

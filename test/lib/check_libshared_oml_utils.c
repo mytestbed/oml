@@ -22,7 +22,7 @@
  */
 #include <check.h>
 
-#include "oml_util.h"
+#include "oml_utils.h"
 
 #define N_URI_TEST 5
 START_TEST (test_util_uri)
@@ -51,51 +51,6 @@ START_TEST (test_util_uri)
         res == test_data[i].expect,
         "Invalid type for `%s': %d instead of %d", test_data[i].uri, res, test_data[i].expect); 
   }
-}
-END_TEST
-
-START_TEST (test_util_find)
-{
-  char ws[] = "   ";
-  char ts[] = " abc def";
-  char *tsnwf = ts + 1;
-  char *tsnw = tsnwf + 4;
-  const char *got;
-
-  /* XXX: This should really be using a loop test */
-
-  got=skip_white(ws);
-  fail_unless(got == ws+sizeof(ws)-1,
-      "exp: %p :'%s'; got: %p: '%s'", ws+sizeof(ws)-1, ws+sizeof(ws)-1, got, got);
-  got=skip_white(ts);
-  fail_unless(got == tsnwf,
-      "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
-  got=skip_white(tsnwf);
-  fail_unless(got == tsnwf,
-      "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
-  got=skip_white(tsnw);
-  fail_unless(got == tsnw,
-      "exp: %p :'%s'; got: %p: '%s'", tsnw, tsnw, got, got);
-
-  got=find_white(ts);
-  fail_unless(got == ts,
-      "exp: %p :'%s'; got: %p: '%s'", ts, ts, got, got);
-  got=find_white(tsnwf);
-  fail_unless(got == tsnw - 1,
-      "exp: %p :'%s'; got: %p: '%s'", tsnw-1, tsnw-1, got, got);
-  got=find_white(tsnw);
-  fail_unless(got == tsnw+strlen(tsnw),
-      "exp: %p :'%s'; got: %p: '%s'", tsnw+strlen(tsnw), tsnw+strlen(tsnw), got, got);
-
-  got=find_charn(ts, 'a', sizeof(ts));
-  fail_unless(got == tsnwf,
-      "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
-  got=find_charn(ts, 'z', sizeof(ts) + 10);
-  fail_unless(got == NULL,
-      "exp: %p :'%s'; got: %p: '%s'", NULL, NULL, got, got);
-  got=find_charn(ts, 'a', 1);
-  fail_unless(got == NULL,
-      "exp: %p :'%s'; got: %p: '%s'", NULL, NULL, got, got);
 }
 END_TEST
 
@@ -165,12 +120,11 @@ END_TEST
 
 Suite* util_suite (void)
 {
-  Suite* s = suite_create ("Util");
+  Suite* s = suite_create ("oml_utilssss");
 
-  TCase* tc_util = tcase_create ("Util");
+  TCase* tc_util = tcase_create ("oml_utilssss");
 
   tcase_add_test (tc_util, test_util_uri);
-  tcase_add_test (tc_util, test_util_find);
   tcase_add_loop_test (tc_util, test_util_parse_uri, 0, LENGTH(test_uris));
 
   suite_add_tcase (s, tc_util);
