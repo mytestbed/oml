@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "oml2/omlc.h"
 #include "oml2/oml_writer.h"
@@ -24,10 +25,6 @@
 #include "marshal.h"
 #include "mbuf.h"
 #include "buffered_writer.h"
-#include "assert.h"
-
-#define DEF_PROTOCOL "tcp"
-#define DEF_PORT 3003
 
 /** An OmlWriter using the binary marshalling functions \ref omspbin */
 typedef struct OmlBinWriter {
