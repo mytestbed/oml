@@ -39,8 +39,8 @@ typedef enum {
 } OmlURIType;
 
 OmlURIType oml_uri_type(const char* uri);
-#define oml_uri_is_file(t) (t>=OML_URI_FILE && t<=OML_URI_FILE_FLUSH)
-#define oml_uri_is_network(t) (t>=OML_URI_TCP && t<=OML_URI_UDP)
+int oml_uri_is_file(OmlURIType t);
+int oml_uri_is_network(OmlURIType t);
 int parse_uri (const char *uri, const char **protocol, const char **path, const char **port);
 
 #endif // UTIL_H__

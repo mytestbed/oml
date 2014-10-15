@@ -120,23 +120,48 @@ int resolve_service(const char *service, int defport)
   return portnum;
 }
 
-/**
- * Parse the scheme of na URI and return its type as an +OmlURIType+
+/** Parse the scheme of an URI and return its type as an +OmlURIType+
+ *
  * \param [in] uri the URI to parse
  * \return an +OmlURIType+ indicating the type of the URI
+ * \see oml_uri_is_file, oml_uri_is_network
  */
 OmlURIType oml_uri_type(const char* uri) {
-  int len = strlen(uri);
+  int len, ret=OML_URI_UNKNOWN;
 
-  if(len>5 && !strncmp(uri, "flush", 5))
-    return OML_URI_FILE_FLUSH;
-  else if(len>4 && !strncmp(uri, "file", 4))
-    return OML_URI_FILE;
-  else if(len>3 && !strncmp(uri, "tcp", 3))
-      return OML_URI_TCP;
-  else if(len>3 && !strncmp(uri, "udp", 3))
-      return OML_URI_UDP;
-  return OML_URI_UNKNOWN;
+  if (!uri) {
+    return OML_URI_UNKNOWN;
+  }
+
+  len = strlen(uri);
+
+  if(len>=5 && !strncmp(uri, "flush", 5)) {
+    ret = OML_URI_FILE_FLUSH;
+  } else if(len>=4 && !strncmp(uri, "file", 4)) {
+    ret = OML_URI_FILE;
+  } else if(len>=3 && !strncmp(uri, "tcp", 3)) {
+    ret = OML_URI_TCP;
+  } else if(len>=3 && !strncmp(uri, "udp", 3)) {
+    ret = OML_URI_UDP;
+  }
+  return ret;
+}
+
+/** Test OmlURIType as a network URI
+ * \param t OmlURIType
+ * \return 1 if t is a network type (tcp or udp schemes, 0 otherwise
+ * \see oml_uri_type
+ */
+inline int oml_uri_is_file(OmlURIType t) {
+  return t>=OML_URI_FILE && t<=OML_URI_FILE_FLUSH;
+}
+
+/** Test OmlURIType as a network URI
+ * \param t OmlURIType
+ * \return 1 if t is a network type (tcp or udp schemes, 0 otherwise
+ */
+inline int oml_uri_is_network(OmlURIType t) {
+  return t>=OML_URI_TCP && t<=OML_URI_UDP;
 }
 
 /** Parse a collection URI of the form [proto:]path[:service].
