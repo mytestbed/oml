@@ -25,11 +25,6 @@
 
 #define COLLECTION_URI_MAX_LENGTH 64
 
-#define xstr(s) str(s)
-#define str(s) #s
-#define DEF_PORT 3003
-#define DEF_PORT_STRING  xstr(DEF_PORT)
-
 /** Internal data structure holding OML parameters */
 typedef struct OmlClient {
   /** Application name */

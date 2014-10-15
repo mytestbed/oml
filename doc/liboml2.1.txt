@@ -330,7 +330,7 @@ an optional network protocol, a host identifier, and an optional port
 number, or a mandatory *file* (or *flush* )scheme and a local filesystem
 path.  The format of the network server version is:
 ---------------------------
-[tcp:][//]<host>[:<port>]
+[tcp://]<host>[:<port>]
 ---------------------------
 The formats for the local file version is:
 ---------------------------
@@ -340,7 +340,7 @@ The formats for the local file version is:
 For instance, 'tcp:collect.example.net:3003' or
 'tcp://collect.example.net:3003' will send measurements to an
 *oml2-server* listening on port '3003' on host 'collect.example.net',
-using TCP. The '//' is recognized but optional and not recommended.
+using TCP. The '//' is recommended for URIs with a 'host' part.
 Either a hostname or an IP address can be used as the '<host>'
 specifier. Both IPv4 and IPv6 addresses are supported, but it is
 mandatory to put the latter between square brackets; this is optional

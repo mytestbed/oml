@@ -15,11 +15,34 @@
 #include <string.h>
 #include <ctype.h>
 #include <netdb.h>
+#include <sys/time.h>
+#include <time.h>
+#include <assert.h>
+#include <regex.h>
 
 #include "ocomm/o_log.h"
 #include "mem.h"
-#include "oml_utils.h"
 #include "string_utils.h"
+#include "oml_utils.h"
+
+/** Regular expression for URI parsing.
+ *  Adapted from RFC 3986, Appendix B to allow missing '//' before the authority, separate port and host,
+ *  allow bracketted IPs, and be more specific on schemes */
+#define URI_RE "^(((tcp|(flush)?file)):)?((//)?(([a-zA-Z0-9][-0-9A-Za-z+.]+|\\[[0-9a-fA-F:.]+])(:([0-9]+))?))?([^?#]*)(\\?([^#]*))?(#(.*))?"
+/*               123     4               56    78                                              9 a            b       c   d        e f
+ *                `scheme                      |`host                                            `port        `path       `query     `fragment
+ *                                             `authority
+ */
+/** Number of parenthesised groups in URI_RI */
+#define URI_RE_NGROUP (0xD)
+/* Offsets in the list of matched substring */
+#define URI_RE_SCHEME 2
+#define URI_RE_AUTHORITY 7
+#define URI_RE_HOST 8
+#define URI_RE_PORT 0xA
+#define URI_RE_PATH 0xB
+#define URI_RE_QUERY 0xD
+#define URI_RE_FRAGMENT 0xF
 
 /** Dump the contents of a buffer as a string of hex characters
  *
@@ -164,120 +187,184 @@ inline int oml_uri_is_network(OmlURIType t) {
   return t>=OML_URI_TCP && t<=OML_URI_UDP;
 }
 
-/** Parse a collection URI of the form [proto:]path[:service].
+/** Parse a collection URI of the form [scheme:][host[:port]][/path].
  *
- * path can be a hostname, an IPv4 address or an IPv6 address within brackets
- * if proto is a network protocol. service is invalid if proto indicates a
- * local file.
+ * Either host or path are mandatory.
+ * 
+ * If under-qualified, the URI scheme is assumed to be 'tcp', the port '3003',
+ * and the rest is used as the host; path is invalid for a tcp URI (only valid
+ * for file).
  *
  * \param uri string containing the URI to parse
- * \param protocol pointer to be updated to a string containing the selected protocol, to be oml_free()'d by the caller
- * \param path pointer to be updated to a string containing the node name or address, to be oml_free()'d by the caller
- * \param service pointer to be updated to a string  containing the service name or port number, to be oml_free()'d by the caller
+ * \param scheme pointer to be updated to a string containing the selected scheme, to be oml_free()'d by the caller
+ * \param host pointer to be updated to a string containing the host, to be oml_free()'d by the caller
+ * \param port pointer to be updated to a string containing the port, to be oml_free()'d by the caller
+ * \param path pointer to be updated to a string containing the path, to be oml_free()'d by the caller
  * \return 0 on success, -1 otherwise
  *
- * \see oml_strndup, oml_free, oml_uri_type
+ * \see oml_strndup, oml_free, oml_uri_type, URI_RE, URI_RE_NGROUP
  */
 int
-parse_uri (const char *uri, const char **protocol, const char **path, const char **port)
+parse_uri (const char *uri, const char **scheme, const char **host, const char **port, const char **path)
 {
-  const int MAX_PARTS = 3;
-  char *parts[3] = { NULL, NULL, NULL }, *tmp, *orig;
-  size_t lengths[3] = { 0, 0, 0 };
-  int is_valid = 1;
-  int i;
-  OmlURIType uri_type;
+  static regex_t preg;
+  static int preg_valid = 0;
+  char error[80];
+  size_t nmatch = URI_RE_NGROUP+1;
+  regmatch_t pmatch[nmatch];
+  int bracket_offset = 0;
+  int ret;
+  char *str;
+  int len;
 
-  if (uri) {
-    uri_type = oml_uri_type(uri);
+  assert(scheme);
+  assert(host);
+  assert(port);
+  assert(path);
 
-    orig = parts[2] = oml_strndup (uri, strlen (uri));
-    parts[0] = strsep(&parts[2], "[");
-    if (parts[2]) {
-      i = 0;
-      if (*parts[i] != '\0') {
-        /* there was something before the brackets, clean it some more */
-        tmp = parts[i];
-        parts[i] = strsep(&tmp, ":");
-        lengths[i] = parts[i] ? strlen (parts[i]) : 0;
-        i++;
-      } 
+  *scheme = *host = *port = *path = NULL;
 
-      parts[i] = strsep(&parts[2], "]");
-      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
-      i++;
-
-      parts[i] = parts[2];
-      tmp = strsep(&parts[i], ":");
-      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
-
-    } else {
-      /* restart the parsing */
-      parts[2] = parts[0];
-
-      i = 0;
-
-      parts[i] = strsep(&parts[2], ":");
-      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
-      i++;
-
-      parts[i] = strsep(&parts[2], ":");
-      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
-      i++;
-
-      lengths[i] = parts[i] ? strlen (parts[i]) : 0;
+  /* XXX: static so we only compile it once, but we cannot free it */
+  if (!preg_valid) {
+    if((ret = regcomp(&preg, URI_RE, REG_EXTENDED))) {
+      regerror(ret , &preg, error, sizeof(error));
+      logerror("Unable to compile RE /%s/ for URI parsing: %s\n", URI_RE, error);
+      return -1;
     }
-
-    /* make sure unused items are clearly so */
-    for(++i; i<MAX_PARTS; i++) {
-      parts[i] = NULL;
-      lengths[i] = 0;
-    }
-
-#define trydup(i) (parts[(i)] && lengths[(i)]>0 ? oml_strndup (parts[(i)], lengths[(i)]) : NULL)
-    *protocol = *path = *port = NULL;
-    if (lengths[0] > 0 && lengths[1] > 0) {
-      /* Case 1:  "abc:xyz" or "abc:xyz:123" -- if abc is a transport, use it; otherwise, it's a hostname/path */
-      if (oml_uri_is_network(uri_type)) {
-        *protocol = trydup (0);
-        *path = trydup (1);
-        *port = trydup (2);
-      } else if (oml_uri_is_file(uri_type)) {
-        *protocol = trydup (0);
-        *path = trydup (1);
-        *port = NULL;
-      } else {
-        *protocol = NULL;
-        *path = trydup (0);
-        *port = trydup (1);
-      }
-    } else if (lengths[0] > 0 && lengths[2] > 0) {
-      /* Case 2:  "abc::123" -- not valid, as we can't infer a hostname/path */
-      logwarn ("Server URI '%s' is invalid as it does not contain a hostname/path\n", uri);
-      is_valid = 0;
-    } else if (lengths[0] > 0) {
-      *protocol = NULL;
-      *path = trydup (0);
-      *port = NULL;
-
-      /* Look for potential user errors and issue a warning but proceed as normal */
-      if (uri_type != OML_URI_UNKNOWN) {
-        logwarn ("Server URI with unknown scheme, assuming 'tcp:%s'\n",
-                 *path);
-      }
-    } else {
-      logerror ("Server URI '%s' seems to be empty\n", uri);
-      is_valid = 0;
-    }
-#undef trydup
-
-    oml_free (orig);
+    preg_valid = 1;
   }
-  if (is_valid)
-    return 0;
-  else
+
+  if ((ret = regexec(&preg, uri, nmatch, pmatch, 0))) {
+      regerror(ret , &preg, error, sizeof(error));
+      logerror("Unable to match uri '%s' against RE /%s/: %s\n", uri, URI_RE, error);
+      return -1;
+  }
+
+  logdebug("URI '%s' parsed as scheme: '%s', host: '%s', port: '%s', path: '%s'\n",
+      uri,
+      (pmatch[URI_RE_SCHEME].rm_so>=0)?(uri+pmatch[URI_RE_SCHEME].rm_so):"(n/a)",
+      (pmatch[URI_RE_HOST].rm_so>=0)?(uri+pmatch[URI_RE_HOST].rm_so):"(n/a)",
+      (pmatch[URI_RE_PORT].rm_so>=0)?(uri+pmatch[URI_RE_PORT].rm_so):"(n/a)",
+      (pmatch[URI_RE_PATH].rm_so>=0)?(uri+pmatch[URI_RE_PATH].rm_so):"(n/a)"
+      );
+
+  if (pmatch[URI_RE_SCHEME].rm_so >= 0) {
+    *scheme = oml_strndup(uri+pmatch[URI_RE_SCHEME].rm_so,
+        pmatch[URI_RE_SCHEME].rm_eo - pmatch[URI_RE_SCHEME].rm_so);
+  }
+  if (pmatch[URI_RE_HOST].rm_so >= 0) {
+    /* Host may contain bracketted IP addresses, clean that up. */
+    if ('[' == *(uri + pmatch[URI_RE_HOST].rm_so)) {
+      if (']' != *(uri + pmatch[URI_RE_HOST].rm_eo - 1)) {
+        logerror("Unbalanced brackets in host part of '%s' (%d %d): %c\n",
+            uri,
+            pmatch[URI_RE_HOST].rm_so,
+            pmatch[URI_RE_HOST].rm_eo,
+            uri + pmatch[URI_RE_HOST].rm_eo - 1);
+        return -1;
+      }
+      bracket_offset += 1;
+    }
+    *host = oml_strndup(uri+pmatch[URI_RE_HOST].rm_so + bracket_offset,
+        pmatch[URI_RE_HOST].rm_eo - pmatch[URI_RE_HOST].rm_so - 2 * bracket_offset);
+  }
+  if (pmatch[URI_RE_PORT].rm_so >= 0) {
+    *port = oml_strndup(uri+pmatch[URI_RE_PORT].rm_so,
+        pmatch[URI_RE_PORT].rm_eo - pmatch[URI_RE_PORT].rm_so);
+  }
+  if (pmatch[URI_RE_PATH].rm_so >= 0) {
+    *path= oml_strndup(uri+pmatch[URI_RE_PATH].rm_so,
+        pmatch[URI_RE_PATH].rm_eo - pmatch[URI_RE_PATH].rm_so);
+    /*if(!strncmp(*path, "::", 2) ||
+        oml_uri_is_network(oml_uri_type(*path))) {
+      logwarn("Parsing URI '%s' as 'file:%s'\n", uri, *path);
+    }*/
+  }
+
+  /* Fixup parsing inconsistencies (mainly due to optionality of //) so we don't break old behaviours */
+  if (!(*scheme)) {
+    *scheme = oml_strndup("tcp", 3);
+  }
+  if(!(*host) && oml_uri_is_network(oml_uri_type(*scheme))) {
+    logerror("Network URI '%s' does not contain host"
+        " (did you forget to put literal IPv6 addresses in brackets?)'\n", uri);
     return -1;
+  } else if ((*host) && oml_uri_is_file(oml_uri_type(*scheme))) {
+    /* We split the filename into host and path in a URI without host; concatenate them back together */
+    len = strlen(*host);
+    if (*path) { len += strlen(*path); }
+    str = oml_malloc(len + 1);
+    if (!str) {
+      logerror("Memory error parsing URI '%s'\n", uri);
+      return -1;
+    }
+    *str=0;
+    strncat(str, *host, len);
+    if (*path) {
+      len -= strlen(str);
+      strncat(str, *path, len);
+    }
+    oml_free((void*)*host);
+    *host = NULL;
+    oml_free((void*)*path);
+    *path = str;
+
+  }
+
+  return 0;
 }
+
+/** Generate default file name to use when no output parameters are given.
+ *
+ * This function is not reentrant!
+ *
+ * \param app_ame	the name of the application
+ * \param name		the OML ID of the instance
+ * \param domain	the experimental domain
+ *
+ * \return a statically allocated buffer containing the URI of the output
+ */
+char*
+default_uri(const char *app_name, const char *name, const char *domain)
+{
+  /* Use a statically allocated buffer to avoid having to free it,
+   * just like other URI sources in omlc_init() */
+  static char uri[256];
+  int remaining = sizeof(uri) - 1; /* reserve 1 for the terminating null byte */
+  char *scheme = "file:";
+  char time[25];
+  struct timeval tv;
+
+  gettimeofday(&tv, NULL);
+  strftime(time, sizeof(time), "%Y-%m-%dt%H.%M.%S%z", localtime(&tv.tv_sec));
+
+  *uri = 0;
+  strncat(uri, scheme, remaining);
+  remaining -= sizeof(scheme);
+
+  strncat(uri, app_name, remaining);
+  remaining -= strlen(app_name);
+
+  if (name) {
+    strncat(uri, "_", remaining);
+    remaining--;
+    strncat(uri, name, remaining);
+    remaining -= strlen(name);
+  }
+
+  if (domain) {
+    strncat(uri, "_", remaining);
+    remaining--;
+    strncat(uri, domain, remaining);
+  }
+
+  strncat(uri, "_", remaining);
+  remaining--;
+  strncat(uri, time, remaining);
+
+  return uri;
+}
+
 
 /*
  Local Variables:

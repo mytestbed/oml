@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
-#include <time.h>
 
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
@@ -72,8 +71,6 @@ static int  write_schema(OmlMStream* ms, int index);
 static void termination_handler(int signum);
 static void install_close_handler(sighandler sig_hdl);
 static void setup_features(const char * const features);
-
-static char *default_uri(const char *app_name, const char *name, const char *domain);
 
 extern int parse_config(char* config_file);
 
@@ -718,16 +715,18 @@ create_writer(const char* uri, enum StreamEncoding encoding)
     return NULL;
   }
 
-  const char *transport = NULL;
-  const char *path = NULL;
+  const char *scheme= NULL;
+  const char *host = NULL;
   const char *port = NULL;
+  const char *path = NULL;
 
-  if (parse_uri (uri, &transport, &path, &port) == -1) {
-    logerror ("Error parsing server destination URI '%s'; failed to create stream for this destination\n",
+  if (parse_uri (uri, &scheme, &host, &port, &path) == -1) {
+    logerror ("Error parsing collection URI '%s'; failed to create stream for this destination\n",
               uri);
-    if (transport) oml_free ((void*)transport);
-    if (path) oml_free ((void*)path);
+    if (scheme) oml_free ((void*)scheme);
+    if (host) oml_free ((void*)host);
     if (port) oml_free ((void*)port);
+    if (path) oml_free ((void*)path);
     return NULL;
   }
 
@@ -739,23 +738,15 @@ create_writer(const char* uri, enum StreamEncoding encoding)
       filepath = &path[1];
     else
       filepath = path;
-  } else if (transport) {
+
+  } else if (scheme) {
     if (strncmp (path, "//", 2) == 0)
       hostname = &path[2];
     else
       hostname = path;
+
   } else {
-    hostname = path; /* If no transport specified, it must be tcp */
-  }
-
-  /* Default transport is tcp if not specified */
-  if (!transport) {
-    transport = oml_strndup ("tcp", strlen ("tcp"));
-  }
-
-  /* If not file transport, use the OML default port if unspecified */
-  if (!port && !oml_uri_is_file(uri_type)) {
-    port = oml_strndup (DEF_PORT_STRING, strlen (DEF_PORT_STRING));
+    hostname = path; /* If no scheme specified, it must be tcp */
   }
 
   OmlOutStream* out_stream;
@@ -766,7 +757,7 @@ create_writer(const char* uri, enum StreamEncoding encoding)
       file_stream_set_buffered(out_stream, 0);
     }
   } else {
-    out_stream = net_stream_new(transport, hostname, port);
+    out_stream = net_stream_new(scheme, hostname, port);
     if (encoding == SE_None) encoding = SE_Binary; /* default encoding */
   }
   if (out_stream == NULL) {
@@ -774,7 +765,7 @@ create_writer(const char* uri, enum StreamEncoding encoding)
     return NULL;
   }
 
-  oml_free ((void*)transport);
+  oml_free ((void*)scheme);
   oml_free ((void*)path);
   oml_free ((void*)port);
 
@@ -1428,56 +1419,6 @@ setup_features (const char * const features)
         feature_table[i].enable();
     oml_free (name);
   }
-}
-
-/*
- * Generate default file name to use when no output parameters are given.
- *
- * @param app_ame	the name of the application
- * @param name		the OML ID of the instance
- * @param domain	the experimental domain
- *
- * @return	A statically allocated buffer containing the URI of the output
- */
-static char*
-default_uri(const char *app_name, const char *name, const char *domain)
-{
-  /* Use a statically allocated buffer to avoid having to free it,
-   * just like other URI sources in omlc_init() */
-  static char uri[256];
-  int remaining = sizeof(uri) - 1; /* reserve 1 for the terminating null byte */
-  char *protocol = "file:";
-  char time[25];
-  struct timeval tv;
-
-  gettimeofday(&tv, NULL);
-  strftime(time, sizeof(time), "%Y-%m-%dt%H.%M.%S%z", localtime(&tv.tv_sec));
-
-  *uri = 0;
-  strncat(uri, protocol, remaining);
-  remaining -= sizeof(protocol);
-
-  strncat(uri, app_name, remaining);
-  remaining -= strlen(app_name);
-
-  if (name) {
-    strncat(uri, "_", remaining);
-    remaining--;
-    strncat(uri, name, remaining);
-    remaining -= strlen(name);
-  }
-
-  if (domain) {
-    strncat(uri, "_", remaining);
-    remaining--;
-    strncat(uri, domain, remaining);
-  }
-
-  strncat(uri, "_", remaining);
-  remaining--;
-  strncat(uri, time, remaining);
-
-  return uri;
 }
 
 /*

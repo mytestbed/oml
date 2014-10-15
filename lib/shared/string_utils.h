@@ -13,6 +13,9 @@
 
 #include <stddef.h>
 
+#define xstr(s) str(s)
+#define str(s) #s
+
 void chomp (char* str);
 
 const char *skip_white (const char *p);

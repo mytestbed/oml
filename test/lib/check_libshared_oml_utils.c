@@ -22,6 +22,7 @@
  */
 #include <check.h>
 
+#include "ocomm/o_log.h"
 #include "oml_utils.h"
 
 #define N_URI_TEST 5
@@ -58,71 +59,73 @@ static struct uri {
   char *uri;
   int ret;
   char *scheme;
-  char *node;
-  char *service;
+  char *host;
+  char *port;
+  char *path;
 } test_uris[] = {
-  { "localhost", 0, NULL, "localhost", NULL},
-  { "tcp:localhost", 0, "tcp", "localhost", NULL},
-  { "tcp:localhost:3003", 0, "tcp", "localhost", "3003"},
-  { "localhost:3003", 0, NULL, "localhost", "3003"},
-  { "127.0.0.1", 0, NULL, "127.0.0.1", NULL},
-  { "tcp:127.0.0.1", 0, "tcp", "127.0.0.1", NULL},
-  { "tcp:127.0.0.1:3003", 0, "tcp", "127.0.0.1", "3003"},
-  { "127.0.0.1:3003", 0, NULL, "127.0.0.1", "3003"},
-  { "[127.0.0.1]", 0, NULL, "127.0.0.1", NULL},
-  { "tcp:[127.0.0.1]", 0, "tcp", "127.0.0.1", NULL},
-  { "tcp:[127.0.0.1]:3003", 0, "tcp", "127.0.0.1", "3003"},
-  { "[127.0.0.1]:3003", 0, NULL, "127.0.0.1", "3003"},
-  { "[::1]", 0, NULL, "::1", NULL},
-  { "tcp:[::1]", 0, "tcp", "::1", NULL},
-  { "tcp:[::1]:3003", 0, "tcp", "::1", "3003"},
-  { "[::1]:3003", 0, NULL, "::1", "3003"},
-  { "::1", -1, NULL, NULL, NULL},
-  { "tcp:::1", -1, NULL, NULL, NULL},
-  { "tcp:::1:3003", -1, "tcp", NULL, "3003"},
-  { "::1:3003", -1, NULL, "[::1]", "3003"},
+  { "localhost", 0, "tcp", "localhost", NULL, NULL},
+  { "tcp:localhost", 0, "tcp", "localhost", NULL, NULL},
+  { "tcp:localhost:3003", 0, "tcp", "localhost", "3003", NULL},
+  { "localhost:3003", 0, "tcp", "localhost", "3003", NULL},
+
+  { "127.0.0.1", 0, "tcp", "127.0.0.1", NULL, NULL},
+  { "127.0.0.1:3003", 0, "tcp", "127.0.0.1", "3003", NULL},
+  { "tcp:127.0.0.1", 0, "tcp", "127.0.0.1", NULL, NULL},
+  { "tcp:127.0.0.1:3003", 0, "tcp", "127.0.0.1", "3003", NULL},
+  { "[127.0.0.1]", 0, "tcp", "127.0.0.1", NULL, NULL},
+
+  { "tcp:[127.0.0.1]", 0, "tcp", "127.0.0.1", NULL, NULL},
+  { "tcp:[127.0.0.1]:3003", 0, "tcp", "127.0.0.1", "3003", NULL},
+  { "[127.0.0.1]:3003", 0, "tcp", "127.0.0.1", "3003", NULL},
+
+  { "[::1]", 0, "tcp", "::1", NULL, NULL},
+  { "[::1]:3003", 0, "tcp", "::1", "3003", NULL},
+  { "tcp:[::1]", 0, "tcp", "::1", NULL, NULL},
+  { "tcp:[::1]:3003", 0, "tcp", "::1", "3003", NULL},
+
+  { "file:-", 0, "file", NULL, NULL, "-"},
+
+  { "::1", -1, NULL, NULL, NULL, NULL},
+  { "::1:3003", -1, NULL, NULL, NULL, NULL},
+  { "tcp:::1", -1, NULL, NULL, NULL, NULL},
+  { "tcp:::1:3003", -1, NULL, NULL, NULL, NULL},
+
+  { "file:test_api_metadata", 0, "file", NULL, NULL, "test_api_metadata"},
 };
+
+#define check_match(field) do { \
+  if (NULL == test_uris[_i].field) { \
+    fail_unless(test_uris[_i].field == NULL, "Unexpected " #field " from parse_uri(%s, %s, %s, %s, %s): %s instead of %s", \
+        test_uris[_i].uri, scheme, host, port, path, field, test_uris[_i].field); \
+  } else { \
+    fail_if(strcmp(field, test_uris[_i].field), "Unexpected " #field " from parse_uri(%s, %s, %s, %s, %s): %s instead of %s", \
+        test_uris[_i].uri, scheme, host, port, path, field, test_uris[_i].field); \
+  } \
+} while(0)
 
 START_TEST(test_util_parse_uri)
 {
   int ret;
-  const char *scheme=NULL, *node=NULL, *service=NULL;
+  const char *scheme, *host, *port, *path;
 
-  ret = parse_uri(test_uris[_i].uri, &scheme, &node, &service);
+  ret = parse_uri(test_uris[_i].uri, &scheme, &host, &port, &path);
 
-  fail_unless(test_uris[_i].ret == ret, "Unexpected status from parse_uri(%s, ...): %d instead of %d",
-      test_uris[_i].uri, ret, test_uris[_i].ret);
-  if (test_uris[_i].ret == 0) {
-    if (NULL == test_uris[_i].scheme) {
-      fail_unless(test_uris[_i].scheme == NULL, "Unexpected scheme from parse_uri(%s, ...): %s instead of %s",
-          test_uris[_i].uri, scheme, test_uris[_i].ret);
-    } else {
-      fail_if(strcmp(scheme, test_uris[_i].scheme), "Unexpected scheme from parse_uri(%s, ...): %s instead of %s",
-          test_uris[_i].uri, scheme, test_uris[_i].ret);
-    }
-    if (NULL == test_uris[_i].node) {
-      fail_unless(test_uris[_i].node == NULL, "Unexpected node from parse_uri(%s, ...): %s instead of %s",
-          test_uris[_i].uri, node, test_uris[_i].ret);
-    } else {
-      fail_if(strcmp(node, test_uris[_i].node), "Unexpected node from parse_uri(%s, ...): %s instead of %s",
-          test_uris[_i].uri, node, test_uris[_i].ret);
-    }
-    if (NULL == test_uris[_i].service) {
-      fail_unless(test_uris[_i].service == NULL, "Unexpected service from parse_uri(%s, ...): %s instead of %s",
-          test_uris[_i].uri, service, test_uris[_i].ret);
-    } else {
-      fail_if(strcmp(service, test_uris[_i].service), "Unexpected service from parse_uri(%s, ...): %s instead of %s",
-          test_uris[_i].uri, service, test_uris[_i].ret);
-    }
-  }
+  fail_unless(test_uris[_i].ret == ret, "Unexpected status from parse_uri(%s, %s, %s, %s, %s): %d instead of %d",
+      test_uris[_i].uri, scheme, host, port, path, ret, test_uris[_i].ret);
+  check_match(scheme);
+  check_match(host);
+  check_match(port);
+  check_match(path);
 }
 END_TEST
 
 Suite* util_suite (void)
 {
-  Suite* s = suite_create ("oml_utilssss");
+  Suite* s = suite_create ("oml_utils");
 
-  TCase* tc_util = tcase_create ("oml_utilssss");
+  o_set_log_level(O_LOG_DEBUG3);
+
+  TCase* tc_util = tcase_create ("oml_utils");
 
   tcase_add_test (tc_util, test_util_uri);
   tcase_add_loop_test (tc_util, test_util_parse_uri, 0, LENGTH(test_uris));

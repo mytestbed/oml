@@ -24,6 +24,8 @@
 #ifndef UTIL_H__
 #define UTIL_H__
 
+#include "string_utils.h"
+
 #define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
 
 char* to_octets (unsigned char* buf, int len);
@@ -38,10 +40,14 @@ typedef enum {
   OML_URI_UDP,
 } OmlURIType;
 
+#define DEF_PORT 3003
+#define DEF_PORT_STRING  xstr(DEF_PORT)
+
 OmlURIType oml_uri_type(const char* uri);
 int oml_uri_is_file(OmlURIType t);
 int oml_uri_is_network(OmlURIType t);
-int parse_uri (const char *uri, const char **protocol, const char **path, const char **port);
+int parse_uri (const char *uri, const char **scheme, const char **host, const char **port, const char **path);
+char *default_uri(const char *app_name, const char *name, const char *domain);
 
 #endif // UTIL_H__
 
