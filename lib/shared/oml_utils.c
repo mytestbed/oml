@@ -28,22 +28,22 @@
 /** Regular expression for URI parsing.
  *  Adapted from RFC 3986, Appendix B to allow missing '//' before the authority, separate port and host,
  *  allow bracketted IPs, and be more specific on schemes */
-#define URI_RE "^(((tcp|(flush)?file)):)?((//)?(([a-zA-Z0-9][-0-9A-Za-z+.]+|\\[[0-9a-fA-F:.]+])(:([0-9]+))?))?([^?#]*)(\\?([^#]*))?(#(.*))?"
-/*               123     4               56    78                                              9 a            b       c   d        e f
- *                `scheme                      |`host                                            `port        `path       `query     `fragment
- *                                             `authority
+#define URI_RE "^(((zlib+)?(tcp|(flush)?file)):)?((//)?(([a-zA-Z0-9][-0-9A-Za-z+.]+|\\[[0-9a-fA-F:.]+])(:([0-9]+))?))?([^?#]*)(\\?([^#]*))?(#(.*))?"
+/*               123       4     5               67    89                                                a b            c       d   e        f 10
+ *                `scheme                              |`host                                              `port        `path       `query     `fragment
+ *                                                     `authority
  */
 /** Number of parenthesised groups in URI_RI */
 #define URI_RE_NGROUP (0xD)
 /* Offsets in the list of matched substring */
 #define URI_RE_SCHEME 2
-#define URI_RE_AUTHORITY_WITH_SLASHES 5
-#define URI_RE_AUTHORITY 7
-#define URI_RE_HOST 8
-#define URI_RE_PORT 0xA
-#define URI_RE_PATH 0xB
-#define URI_RE_QUERY 0xD
-#define URI_RE_FRAGMENT 0xF
+#define URI_RE_AUTHORITY_WITH_SLASHES 6
+#define URI_RE_AUTHORITY 8
+#define URI_RE_HOST 9
+#define URI_RE_PORT 0xB
+#define URI_RE_PATH 0xC
+#define URI_RE_QUERY 0xE
+#define URI_RE_FRAGMENT 0x10
 
 /** Dump the contents of a buffer as a string of hex characters
  *
