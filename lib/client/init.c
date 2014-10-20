@@ -716,37 +716,18 @@ create_writer(const char* uri, enum StreamEncoding encoding)
   }
 
   const char *scheme= NULL;
-  const char *host = NULL;
+  const char *hostname = NULL;
   const char *port = NULL;
-  const char *path = NULL;
+  const char *filepath = NULL;
 
-  if (parse_uri (uri, &scheme, &host, &port, &path) == -1) {
+  if (parse_uri (uri, &scheme, &hostname, &port, &filepath) == -1) {
     logerror ("Error parsing collection URI '%s'; failed to create stream for this destination\n",
               uri);
     if (scheme) oml_free ((void*)scheme);
-    if (host) oml_free ((void*)host);
+    if (hostname) oml_free ((void*)hostname);
     if (port) oml_free ((void*)port);
-    if (path) oml_free ((void*)path);
+    if (filepath) oml_free ((void*)filepath);
     return NULL;
-  }
-
-  const char *filepath = NULL;
-  const char *hostname = NULL;
-  if (oml_uri_is_file(uri_type)) {
-    /* 'file://path/to/file' is equivalent to unix path '/path/to/file' */
-    if (strncmp (path, "//", 2) == 0)
-      filepath = &path[1];
-    else
-      filepath = path;
-
-  } else if (scheme) {
-    if (strncmp (path, "//", 2) == 0)
-      hostname = &path[2];
-    else
-      hostname = path;
-
-  } else {
-    hostname = path; /* If no scheme specified, it must be tcp */
   }
 
   OmlOutStream* out_stream;
@@ -766,8 +747,9 @@ create_writer(const char* uri, enum StreamEncoding encoding)
   }
 
   oml_free ((void*)scheme);
-  oml_free ((void*)path);
+  oml_free ((void*)hostname);
   oml_free ((void*)port);
+  oml_free ((void*)filepath);
 
   // Now create a write on top of the stream
   OmlWriter* writer = NULL;
