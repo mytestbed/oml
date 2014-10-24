@@ -643,7 +643,7 @@ usage(void)
   printf("  --oml-list-filters     .. List the available types of filters\n");
   printf("  --oml-help             .. Print this message\n");
   printf("\n");
-  printf("Valid URI: [tcp:]host[:service], (file|flush):localPath\n");
+  printf("Valid URI: [tcp://]host[:service], (file|flush):localPath\n");
   printf("\n");
   printf("The following environment variables are recognized:\n");
   printf("  OML_NAME=id            .. Name to identify this app instance (--oml-id)\n");
