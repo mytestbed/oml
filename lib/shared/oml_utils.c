@@ -190,7 +190,7 @@ inline int oml_uri_is_network(OmlURIType t) {
 /** Parse a collection URI of the form [scheme:][host[:port]][/path].
  *
  * Either host or path are mandatory.
- * 
+ *
  * If under-qualified, the URI scheme is assumed to be 'tcp', the port '3003',
  * and the rest is used as the host; path is invalid for a tcp URI (only valid
  * for file).
@@ -285,10 +285,15 @@ parse_uri (const char *uri, const char **scheme, const char **host, const char *
   if (!(*scheme)) {
     *scheme = oml_strndup("tcp", 3);
   }
-  if(!(*host) && oml_uri_is_network(oml_uri_type(*scheme))) {
-    logerror("Network URI '%s' does not contain host"
-        " (did you forget to put literal IPv6 addresses in brackets?)'\n", uri);
-    return -1;
+  if(oml_uri_is_network(oml_uri_type(*scheme))) {
+    if(!(*host)) {
+      logerror("Network URI '%s' does not contain host"
+          " (did you forget to put literal IPv6 addresses in brackets?)'\n", uri);
+      return -1;
+    }
+    if(!(*port)) {
+      *port = oml_strndup(DEF_PORT_STRING, sizeof(DEF_PORT_STRING));
+    }
   } else if ((*host) && oml_uri_is_file(oml_uri_type(*scheme))) {
     /* We split the filename into host and path in a URI without host; concatenate them back together */
     len = strlen(*host);

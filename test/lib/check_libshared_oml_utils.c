@@ -63,25 +63,25 @@ static struct uri {
   char *port;
   char *path;
 } test_uris[] = {
-  { "localhost", 0, "tcp", "localhost", NULL, NULL},
-  { "tcp:localhost", 0, "tcp", "localhost", NULL, NULL},
-  { "tcp:localhost:3003", 0, "tcp", "localhost", "3003", NULL},
-  { "localhost:3003", 0, "tcp", "localhost", "3003", NULL},
+  { "localhost", 0, "tcp", "localhost", DEF_PORT_STRING, NULL},
+  { "tcp:localhost", 0, "tcp", "localhost", DEF_PORT_STRING, NULL},
+  { "tcp:localhost:3004", 0, "tcp", "localhost", "3004", NULL},
+  { "localhost:3004", 0, "tcp", "localhost", "3004", NULL},
 
-  { "127.0.0.1", 0, "tcp", "127.0.0.1", NULL, NULL},
-  { "127.0.0.1:3003", 0, "tcp", "127.0.0.1", "3003", NULL},
-  { "tcp:127.0.0.1", 0, "tcp", "127.0.0.1", NULL, NULL},
-  { "tcp:127.0.0.1:3003", 0, "tcp", "127.0.0.1", "3003", NULL},
-  { "[127.0.0.1]", 0, "tcp", "127.0.0.1", NULL, NULL},
+  { "127.0.0.1", 0, "tcp", "127.0.0.1", DEF_PORT_STRING, NULL},
+  { "127.0.0.1:3004", 0, "tcp", "127.0.0.1", "3004", NULL},
+  { "tcp:127.0.0.1", 0, "tcp", "127.0.0.1", DEF_PORT_STRING, NULL},
+  { "tcp:127.0.0.1:3004", 0, "tcp", "127.0.0.1", "3004", NULL},
+  { "[127.0.0.1]", 0, "tcp", "127.0.0.1", DEF_PORT_STRING, NULL},
 
-  { "tcp:[127.0.0.1]", 0, "tcp", "127.0.0.1", NULL, NULL},
-  { "tcp:[127.0.0.1]:3003", 0, "tcp", "127.0.0.1", "3003", NULL},
-  { "[127.0.0.1]:3003", 0, "tcp", "127.0.0.1", "3003", NULL},
+  { "tcp:[127.0.0.1]", 0, "tcp", "127.0.0.1", DEF_PORT_STRING, NULL},
+  { "tcp:[127.0.0.1]:3004", 0, "tcp", "127.0.0.1", "3004", NULL},
+  { "[127.0.0.1]:3004", 0, "tcp", "127.0.0.1", "3004", NULL},
 
-  { "[::1]", 0, "tcp", "::1", NULL, NULL},
-  { "[::1]:3003", 0, "tcp", "::1", "3003", NULL},
-  { "tcp:[::1]", 0, "tcp", "::1", NULL, NULL},
-  { "tcp:[::1]:3003", 0, "tcp", "::1", "3003", NULL},
+  { "[::1]", 0, "tcp", "::1", DEF_PORT_STRING, NULL},
+  { "[::1]:3004", 0, "tcp", "::1", "3004", NULL},
+  { "tcp:[::1]", 0, "tcp", "::1", DEF_PORT_STRING, NULL},
+  { "tcp:[::1]:3004", 0, "tcp", "::1", "3004", NULL},
 
   { "file:-", 0, "file", NULL, NULL, "-"},
 
@@ -122,8 +122,6 @@ END_TEST
 Suite* util_suite (void)
 {
   Suite* s = suite_create ("oml_utils");
-
-  o_set_log_level(O_LOG_DEBUG3);
 
   TCase* tc_util = tcase_create ("oml_utils");
 
