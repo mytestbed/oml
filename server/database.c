@@ -42,7 +42,7 @@
  *    injected (according to the client's clock), \ref timestamps "rebased to the start-time";
  *  - `oml_ts_client` the offset from `start-time` of when that tuple was
  *    processed (according to the server's clock), \ref timestamps "rebased to the start-time";
- *    \ref omspheader "header" upon connection from the particular sender);
+ *    \ref omspheaders "header" upon connection from the particular sender);
  *  - Each element of the \ref omspschema "schema", in order, with a database type able to
  *    store the information of the OML type;
  *

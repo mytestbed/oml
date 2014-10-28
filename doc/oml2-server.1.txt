@@ -304,12 +304,11 @@ Currently, the only way to pass credentials for the PostgreSQL backend
 is via the command line *--pg-pass* or *--pg-conninfo* options. To avoid
 making such sensitive information available to the casual linkman:ps[1]
 user, the *oml2-server* attempts to overwrite these parts of its command
-line as soon as feasible, replacing the entire argument by repeated Xs.
+line as soon as feasible, overwriting the entire argument.
 This is a poor man's security measure, as this creates a race condition
 where, prior to doing this, the credentials are still visible to
 everybody. Moreover, after replacement, the length of the password is
-still obvious when using *--pg-pass*. Finally, sometimes this just
-doesn't work.
+still obvious when using *--pg-pass*.
 endif::have_pg[]
 
 BUGS
