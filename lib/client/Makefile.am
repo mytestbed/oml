@@ -22,6 +22,7 @@ liboml2_la_SOURCES = \
 	client.h \
 	filter.c \
 	init.c \
+	oml_writer.c \
 	misc.c \
 	text_writer.c \
 	bin_writer.c \

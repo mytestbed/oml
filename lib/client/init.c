@@ -686,91 +686,6 @@ print_filters(void)
   printf ("\n");
 }
 
-/** Create either a file writer or a network writer
- * \param uri collection URI
- * \param encoding StreamEncoding to use for the output, either SE_Text or SE_Binary
- *
- * \return a pointer to the new OmlWriter, or NULL on error
- */
-OmlWriter*
-create_writer(const char* uri, enum StreamEncoding encoding)
-{
-  OmlURIType uri_type = oml_uri_type(uri);
-
-  if (omlc_instance == NULL){
-    logerror("No omlc_instance: OML client was not initialized properly.\n");
-    return NULL;
-  }
-
-  if (uri == NULL || strlen(uri) < 1) {
-    logerror ("Missing or invalid collection URI definition (e.g., --oml-collect)\n");
-    return NULL;
-  }
-  if (omlc_instance->node_name == NULL) {
-    logerror ("Missing '--oml-id' flag \n");
-    return NULL;
-  }
-  if (omlc_instance->domain == NULL) {
-    logerror ("Missing '--oml-domain' flag \n");
-    return NULL;
-  }
-
-  const char *scheme= NULL;
-  const char *hostname = NULL;
-  const char *port = NULL;
-  const char *filepath = NULL;
-
-  if (parse_uri (uri, &scheme, &hostname, &port, &filepath) == -1) {
-    logerror ("Error parsing collection URI '%s'; failed to create stream for this destination\n",
-              uri);
-    if (scheme) oml_free ((void*)scheme);
-    if (hostname) oml_free ((void*)hostname);
-    if (port) oml_free ((void*)port);
-    if (filepath) oml_free ((void*)filepath);
-    return NULL;
-  }
-
-  OmlOutStream* out_stream;
-  if (oml_uri_is_file(uri_type)) {
-    out_stream = file_stream_new(filepath);
-    if (encoding == SE_None) encoding = SE_Text; /* default encoding */
-    if(OML_URI_FILE_FLUSH == uri_type) {
-      file_stream_set_buffered(out_stream, 0);
-    }
-  } else {
-    out_stream = net_stream_new(scheme, hostname, port);
-    if (encoding == SE_None) encoding = SE_Binary; /* default encoding */
-  }
-  if (out_stream == NULL) {
-    logerror ("Failed to create stream for URI %s\n", uri);
-    return NULL;
-  }
-
-  oml_free ((void*)scheme);
-  oml_free ((void*)hostname);
-  oml_free ((void*)port);
-  oml_free ((void*)filepath);
-
-  // Now create a write on top of the stream
-  OmlWriter* writer = NULL;
-
-  switch (encoding) {
-  case SE_Text:   writer = text_writer_new (out_stream); break;
-  case SE_Binary: writer = bin_writer_new (out_stream); break;
-  case SE_None:
-    logerror ("No encoding specified (this should never happen -- please report this as an OML bug)\n");
-    // should cleanup streams
-    return NULL;
-  }
-  if (writer == NULL) {
-    logerror ("Failed to create writer for encoding '%s'.\n", encoding == SE_Binary ? "binary" : "text");
-    return NULL;
-  }
-  writer->next = omlc_instance->first_writer;
-  omlc_instance->first_writer = writer;
-
-  return writer;
-}
 
 /** Find a named measurement point.
  *
@@ -1043,7 +958,7 @@ destroy_ms(OmlMStream *ms)
   return next;
 }
 
-/** Loop through registered measurment points and define sample based filters with sampling rate '1' and 'FIRST' filters
+/** Loop through registered measurement points and define sample based filters with sampling rate '1' and 'FIRST' filters
  *
  * \return 0 if successful, -1 otherwise
  */
@@ -1053,10 +968,13 @@ default_configuration(void)
   OmlMP *mp;
 
   if (NULL == omlc_instance->default_writer) {
-    if ((omlc_instance->default_writer =
-          create_writer(omlc_instance->collection_uri,
-            omlc_instance->default_encoding)
-        ) == NULL) {
+    if(NULL == omlc_instance->first_writer) {
+      omlc_instance->first_writer =
+        create_writer(omlc_instance->collection_uri,
+            omlc_instance->default_encoding);
+    }
+    omlc_instance->default_writer = omlc_instance->first_writer;
+    if (NULL == omlc_instance->default_writer) {
       return -1;
     }
   }

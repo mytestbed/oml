@@ -17,6 +17,56 @@
 
 #include "oml2/omlc.h"
 #include "oml2/oml_out_stream.h"
+#include "oml_utils.h"
+
+/** Create an OmlOutStream for the specified URI */
+OmlOutStream*
+create_out_stream(const char *uri)
+{
+  const char *scheme= NULL;
+  const char *hostname = NULL;
+  const char *port = NULL;
+  const char *filepath = NULL;
+  OmlOutStream* os = NULL;
+  OmlURIType uri_type;
+
+  if (uri == NULL || strlen(uri) < 1) {
+    logerror ("Missing or invalid collection URI definition (e.g., --oml-collect)\n");
+    return NULL;
+  }
+
+  uri_type = oml_uri_type(uri);
+
+  if (parse_uri (uri, &scheme, &hostname, &port, &filepath) == -1) {
+    logerror ("Error parsing collection URI '%s'; failed to create stream for this destination\n",
+              uri);
+    if (scheme) oml_free ((void*)scheme);
+    if (hostname) oml_free ((void*)hostname);
+    if (port) oml_free ((void*)port);
+    if (filepath) oml_free ((void*)filepath);
+    return NULL;
+  }
+
+  if (oml_uri_is_file(uri_type)) {
+    os = file_stream_new(filepath);
+    if(OML_URI_FILE_FLUSH == uri_type) {
+      file_stream_set_buffered(os, 0);
+    }
+  } else {
+    os = net_stream_new(scheme, hostname, port);
+  }
+  if (os == NULL) {
+    logerror ("Failed to create stream for URI %s\n", uri);
+    return NULL;
+  }
+
+  oml_free ((void*)scheme);
+  oml_free ((void*)hostname);
+  oml_free ((void*)port);
+  oml_free ((void*)filepath);
+
+  return os;
+}
 
 /** Write header information if not already done, and record this fact */
 ssize_t

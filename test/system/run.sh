@@ -180,7 +180,7 @@ backendparams=`${backend}_params $dir $exp`
 
 # Start server
 server_pid=`startdaemon ${dir}/server.log "EventLoop" ${top_builddir}/server/oml2-server \
-	-d $loglevel --logfile - -l $port $backendparams`
+	-d $loglevel --logfile - -l $port $backendparams --oml-noop`
 
 # Start client
 cd ${dir}

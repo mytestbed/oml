@@ -57,6 +57,15 @@ typedef int (*oml_outs_close_f)(struct OmlOutStream* writer);
  */
 typedef ssize_t (*oml_outs_write_f_immediate)(struct OmlOutStream* outs, uint8_t* buffer, size_t length);
 
+/** Create an OmlOutStream for the specified URI
+ *
+ * \param uri 	collection URI
+ * \return a pointer to the newly allocated OmlOutStream, or NULL on error
+ *
+ * \see create_writer
+ */
+struct OmlOutStream* create_out_stream(const char *uri);
+
 /** Write header information if not already done, and record this fact
  *
  * This function call writefp to write the header data if self->header_written is 0.
@@ -82,6 +91,15 @@ typedef struct OmlOutStream {
   /** True if header has been written to the stream */
   int   header_written;
 } OmlOutStream;
+
+extern OmlOutStream *file_stream_new(const char *file);
+
+int file_stream_set_buffered(OmlOutStream* hdl, int buffered);
+int file_stream_get_buffered(OmlOutStream* hdl);
+
+/* from net_stream.c */
+
+extern OmlOutStream *net_stream_new(const char *transport, const char *hostname, const char *port);
 
 #ifdef __cplusplus
 }

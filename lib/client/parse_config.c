@@ -300,6 +300,13 @@ parse_collector(xmlNodePtr el)
   }
   if ((writer = create_writer(url, encoding)) == NULL) {
     return -2;
+
+  } else {
+    writer->next = omlc_instance->first_writer;
+    omlc_instance->first_writer = writer;
+    if (NULL == omlc_instance->default_writer) {
+      omlc_instance->default_writer = omlc_instance->first_writer;
+    }
   }
 
   xmlNodePtr cur = el->xmlChildrenNode;

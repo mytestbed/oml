@@ -20,7 +20,8 @@
 #ifndef OML_WRITER_H_
 #define OML_WRITER_H_
 
-#include <oml2/omlc.h>
+#include "oml2/omlc.h"
+#include "oml2/oml_out_stream.h"
 
 /** The OMSP version that this library speaks.
  *
@@ -133,6 +134,11 @@ extern "C" {
 #endif
 
 OmlWriter* create_writer(const char* uri, enum StreamEncoding encoding);
+
+/* from (bin|text)_writer.c */
+
+OmlWriter *text_writer_new(OmlOutStream* out_stream);
+OmlWriter *bin_writer_new(OmlOutStream* out_stream);
 
 #ifdef __cplusplus
 }
