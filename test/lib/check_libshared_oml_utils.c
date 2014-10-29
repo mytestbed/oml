@@ -34,6 +34,10 @@ static struct uri_scheme {
   { "flush://blah", OML_URI_FILE_FLUSH },
   { "tcp://blah", OML_URI_TCP },
   { "udp://blah", OML_URI_UDP },
+  { "zlib+tcp://blah", OML_URI_ZLIB },
+  { "zlib+file:blah", OML_URI_ZLIB },
+  { "zlib://blah", OML_URI_ZLIB }, /* XXX: Not sure that this one is desirable as a URI, see comments in test_uris */
+  { "zlib:blah", OML_URI_ZLIB }, /* XXX: Ditto */
 };
 
 START_TEST (test_util_uri_scheme)

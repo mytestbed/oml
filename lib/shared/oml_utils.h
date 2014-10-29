@@ -38,6 +38,7 @@ typedef enum {
   OML_URI_FILE_FLUSH,
   OML_URI_TCP,
   OML_URI_UDP,
+  OML_URI_ZLIB,
 } OmlURIType;
 
 #define DEF_PORT 3003

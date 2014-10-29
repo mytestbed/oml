@@ -168,6 +168,9 @@ OmlURIType oml_uri_type(const char* uri) {
   } else if(URI_MATCH(uri, "file")) { /* len == 4 */
     ret = OML_URI_FILE;
 
+  } else if(URI_MATCH(uri, "zlib")) {
+    ret = OML_URI_ZLIB;
+
   } else if(URI_MATCH(uri, "tcp")) { /* len == 3 */
     ret = OML_URI_TCP;
 
