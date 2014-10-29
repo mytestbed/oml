@@ -37,6 +37,7 @@
 #define URI_RE_NGROUP (0xD)
 /* Offsets in the list of matched substring */
 #define URI_RE_SCHEME 2
+#define URI_RE_AUTHORITY_WITH_SLASHES 5
 #define URI_RE_AUTHORITY 7
 #define URI_RE_HOST 8
 #define URI_RE_PORT 0xA
@@ -215,7 +216,7 @@ parse_uri (const char *uri, const char **scheme, const char **host, const char *
   int bracket_offset = 0;
   int ret;
   char *str;
-  int len;
+  int len, authlen;
 
   assert(scheme);
   assert(host);
@@ -294,9 +295,11 @@ parse_uri (const char *uri, const char **scheme, const char **host, const char *
     if(!(*port)) {
       *port = oml_strndup(DEF_PORT_STRING, sizeof(DEF_PORT_STRING));
     }
+
   } else if ((*host) && oml_uri_is_file(oml_uri_type(*scheme))) {
-    /* We split the filename into host and path in a URI without host; concatenate them back together */
-    len = strlen(*host);
+    /* We split the filename into host and path in a URI without host;
+     * concatenate them back together, adding all the leading slashes that were initially present */
+    authlen = len = pmatch[URI_RE_AUTHORITY_WITH_SLASHES].rm_eo - pmatch[URI_RE_AUTHORITY_WITH_SLASHES].rm_so;
     if (*path) { len += strlen(*path); }
     str = oml_malloc(len + 1);
     if (!str) {
@@ -304,9 +307,9 @@ parse_uri (const char *uri, const char **scheme, const char **host, const char *
       return -1;
     }
     *str=0;
-    strncat(str, *host, len);
+    strncat(str, uri+pmatch[URI_RE_AUTHORITY_WITH_SLASHES].rm_so, authlen);
     if (*path) {
-      len -= strlen(str);
+      len -= authlen;
       strncat(str, *path, len);
     }
     oml_free((void*)*host);

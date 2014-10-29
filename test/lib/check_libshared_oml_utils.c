@@ -64,33 +64,37 @@ static struct uri {
   char *path;
 } test_uris[] = {
   { "localhost", 0, "tcp", "localhost", DEF_PORT_STRING, NULL},
-  { "tcp:localhost", 0, "tcp", "localhost", DEF_PORT_STRING, NULL},
-  { "tcp:localhost:3004", 0, "tcp", "localhost", "3004", NULL},
+  { "tcp://localhost", 0, "tcp", "localhost", DEF_PORT_STRING, NULL},
+  { "tcp://localhost:3004", 0, "tcp", "localhost", "3004", NULL},
   { "localhost:3004", 0, "tcp", "localhost", "3004", NULL},
 
   { "127.0.0.1", 0, "tcp", "127.0.0.1", DEF_PORT_STRING, NULL},
   { "127.0.0.1:3004", 0, "tcp", "127.0.0.1", "3004", NULL},
-  { "tcp:127.0.0.1", 0, "tcp", "127.0.0.1", DEF_PORT_STRING, NULL},
-  { "tcp:127.0.0.1:3004", 0, "tcp", "127.0.0.1", "3004", NULL},
+  { "tcp://127.0.0.1", 0, "tcp", "127.0.0.1", DEF_PORT_STRING, NULL},
+  { "tcp://127.0.0.1:3004", 0, "tcp", "127.0.0.1", "3004", NULL},
   { "[127.0.0.1]", 0, "tcp", "127.0.0.1", DEF_PORT_STRING, NULL},
 
-  { "tcp:[127.0.0.1]", 0, "tcp", "127.0.0.1", DEF_PORT_STRING, NULL},
-  { "tcp:[127.0.0.1]:3004", 0, "tcp", "127.0.0.1", "3004", NULL},
+  { "tcp://[127.0.0.1]", 0, "tcp", "127.0.0.1", DEF_PORT_STRING, NULL},
+  { "tcp://[127.0.0.1]:3004", 0, "tcp", "127.0.0.1", "3004", NULL},
   { "[127.0.0.1]:3004", 0, "tcp", "127.0.0.1", "3004", NULL},
 
   { "[::1]", 0, "tcp", "::1", DEF_PORT_STRING, NULL},
   { "[::1]:3004", 0, "tcp", "::1", "3004", NULL},
-  { "tcp:[::1]", 0, "tcp", "::1", DEF_PORT_STRING, NULL},
-  { "tcp:[::1]:3004", 0, "tcp", "::1", "3004", NULL},
+  { "tcp://[::1]", 0, "tcp", "::1", DEF_PORT_STRING, NULL},
+  { "tcp://[::1]:3004", 0, "tcp", "::1", "3004", NULL},
 
   { "file:-", 0, "file", NULL, NULL, "-"},
+
+  /* Backward compatibility */
+  { "tcp:localhost:3004", 0, "tcp", "localhost", "3004", NULL},
+  { "file:test_api_metadata", 0, "file", NULL, NULL, "test_api_metadata"},
+  { "file://test_api_metadata", 0, "file", NULL, NULL, "//test_api_metadata"},
+  { "file:///test_api_metadata", 0, "file", NULL, NULL, "///test_api_metadata"},
 
   { "::1", -1, NULL, NULL, NULL, NULL},
   { "::1:3003", -1, NULL, NULL, NULL, NULL},
   { "tcp:::1", -1, NULL, NULL, NULL, NULL},
   { "tcp:::1:3003", -1, NULL, NULL, NULL, NULL},
-
-  { "file:test_api_metadata", 0, "file", NULL, NULL, "test_api_metadata"},
 };
 
 #define check_match(field) do { \
