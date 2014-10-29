@@ -28,7 +28,7 @@
 /** Regular expression for URI parsing.
  *  Adapted from RFC 3986, Appendix B to allow missing '//' before the authority, separate port and host,
  *  allow bracketted IPs, and be more specific on schemes */
-#define URI_RE "^(((zlib+)?(tcp|(flush)?file)):)?((//)?(([a-zA-Z0-9][-0-9A-Za-z+.]+|\\[[0-9a-fA-F:.]+])(:([0-9]+))?))?([^?#]*)(\\?([^#]*))?(#(.*))?"
+#define URI_RE "^(((zlib\\+)?(tcp|(flush)?file)):)?((//)?(([a-zA-Z0-9][-0-9A-Za-z+.]+|\\[[0-9a-fA-F:.]+])(:([0-9]+))?))?([^?#]*)(\\?([^#]*))?(#(.*))?"
 /*               123       4     5               67    89                                                a b            c       d   e        f 10
  *                `scheme                              |`host                                              `port        `path       `query     `fragment
  *                                                     `authority

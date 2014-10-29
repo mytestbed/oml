@@ -77,6 +77,16 @@ static struct uri {
 
   { "file:-", 0, "file", NULL, NULL, "-"},
 
+  { "zlib+tcp://localhost:3004", 0, "zlib+tcp", "localhost", "3004", NULL},
+  { "zlib+file:-", 0, "zlib+file", NULL, NULL, "-"},
+  /* XXX: Do we want to allow this? */
+  //{ "zlib://localhost:3004", 0, "zlib+tcp", "localhost", "3004", NULL},
+  /* XXX: Or that? */
+  //{ "zlib:/path/to/file", 0, "zlib+file", NULL, NULL, "/path/to/file"},
+  //{ "zlib:///path/to/file", 0, "zlib+file", NULL, NULL, "///path/to/file"},
+  //{ "zlib:file", 0, "zlib+file", NULL, NULL, "file"},
+  /* XXX: A first issue here is that the '+' after 'zlib' is not present anymore, and doesn't match the RE */
+
   /* Backward compatibility */
   { "tcp:localhost:3004", 0, "tcp", "localhost", "3004", NULL},
   { "file:test_api_metadata", 0, "file", NULL, NULL, "test_api_metadata"},
