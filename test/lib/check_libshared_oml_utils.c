@@ -25,33 +25,25 @@
 #include "ocomm/o_log.h"
 #include "oml_utils.h"
 
-#define N_URI_TEST 5
-START_TEST (test_util_uri)
+static struct uri_scheme {
+  char *uri;
+  OmlURIType expect;
+} test_uri_schemes[] = {
+  { "blah", OML_URI_UNKNOWN},
+  { "file://blah", OML_URI_FILE },
+  { "flush://blah", OML_URI_FILE_FLUSH },
+  { "tcp://blah", OML_URI_TCP },
+  { "udp://blah", OML_URI_UDP },
+};
+
+START_TEST (test_util_uri_scheme)
 {
-  int i;
   OmlURIType res;
-  struct {
-    char *uri;
-    OmlURIType expect;
-  } test_data[N_URI_TEST];
 
-  test_data[0].uri = "blah";
-  test_data[0].expect = OML_URI_UNKNOWN;
-  test_data[1].uri = "file://blah";
-  test_data[1].expect = OML_URI_FILE;
-  test_data[2].uri = "flush://blah";
-  test_data[2].expect = OML_URI_FILE_FLUSH;
-  test_data[3].uri = "tcp://blah";
-  test_data[3].expect = OML_URI_TCP;
-  test_data[4].uri = "udp://blah";
-  test_data[4].expect = OML_URI_UDP;
-
-  for (i=0; i<N_URI_TEST; i++) {
-    res = oml_uri_type(test_data[i].uri);
-    fail_unless(
-        res == test_data[i].expect,
-        "Invalid type for `%s': %d instead of %d", test_data[i].uri, res, test_data[i].expect); 
-  }
+  res = oml_uri_type(test_uri_schemes[_i].uri);
+  fail_unless(
+      res == test_uri_schemes[_i].expect,
+      "Invalid type for `%s': %d instead of %d", test_uri_schemes[_i].uri, res, test_uri_schemes[_i].expect); 
 }
 END_TEST
 
@@ -128,8 +120,7 @@ Suite* util_suite (void)
   Suite* s = suite_create ("oml_utils");
 
   TCase* tc_util = tcase_create ("oml_utils");
-
-  tcase_add_test (tc_util, test_util_uri);
+  tcase_add_loop_test (tc_util, test_util_uri_scheme, 0, LENGTH(test_uri_schemes));
   tcase_add_loop_test (tc_util, test_util_parse_uri, 0, LENGTH(test_uris));
 
   suite_add_tcase (s, tc_util);

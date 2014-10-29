@@ -151,7 +151,8 @@ int resolve_service(const char *service, int defport)
  * \see oml_uri_is_file, oml_uri_is_network
  */
 OmlURIType oml_uri_type(const char* uri) {
-  int len, ret=OML_URI_UNKNOWN;
+  size_t len;
+  int ret=OML_URI_UNKNOWN;
 
   if (!uri) {
     return OML_URI_UNKNOWN;
@@ -159,15 +160,23 @@ OmlURIType oml_uri_type(const char* uri) {
 
   len = strlen(uri);
 
-  if(len>=5 && !strncmp(uri, "flush", 5)) {
+#define URI_MATCH(uri, match) ((len>=sizeof(match)-1) && !strncmp(uri, match, sizeof(match)-1))
+
+  if(URI_MATCH(uri, "flush")) { /* len == 5 */
     ret = OML_URI_FILE_FLUSH;
-  } else if(len>=4 && !strncmp(uri, "file", 4)) {
+
+  } else if(URI_MATCH(uri, "file")) { /* len == 4 */
     ret = OML_URI_FILE;
-  } else if(len>=3 && !strncmp(uri, "tcp", 3)) {
+
+  } else if(URI_MATCH(uri, "tcp")) { /* len == 3 */
     ret = OML_URI_TCP;
-  } else if(len>=3 && !strncmp(uri, "udp", 3)) {
+
+  } else if(URI_MATCH(uri, "udp")) {
     ret = OML_URI_UDP;
   }
+
+#undef URI_MATCH
+
   return ret;
 }
 
