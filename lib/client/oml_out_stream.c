@@ -35,6 +35,7 @@ static OmlOutStream*
 create_out_stream_from_components(const char *scheme, const char *hostname, const char *port, const char *filepath)
 {
   OmlOutStream *os = NULL;
+  const char *next_scheme;
 
   assert(scheme);
   assert((hostname && port) || filepath);
@@ -53,6 +54,13 @@ create_out_stream_from_components(const char *scheme, const char *hostname, cons
 
   case OML_URI_TCP:
     os = net_stream_new(scheme, hostname, port);
+    break;
+
+  case OML_URI_ZLIB:
+    next_scheme = find_charn(scheme, '+', strlen(scheme)) + 1; /* we could just use scheme[sizeof("zlib')],
+                                                                  but let's not hardcode too many assumptions*/
+    os = create_out_stream_from_components(next_scheme, hostname, port, filepath);
+    os = zlib_stream_new(os);
     break;
 
   case OML_URI_UDP:
