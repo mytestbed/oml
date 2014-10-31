@@ -188,7 +188,6 @@ OmlURIType oml_uri_type(const char* uri) {
      * Here, we assume that we don't do this often, so we don't care.*/
     colon = find_charn(uri, ':', len) + 1;
     if ((next_scheme = find_charn(uri, '+', colon?(colon-uri):len))) {
-      loginfo("next_scheme: %s\n", next_scheme);
       ret |= oml_uri_type(next_scheme+1);
     }
   }
