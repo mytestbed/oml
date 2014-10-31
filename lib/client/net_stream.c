@@ -189,6 +189,9 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length)
   OmlNetOutStream* self = (OmlNetOutStream*)hdl;
   size_t count;
 
+  if (!self) { return -1; }
+  if (!length) { return 0; }
+
   /* Initialise the socket the first time */
   while (self->socket == NULL) {
     logdebug ("%s: Connecting to server\n", self->dest);

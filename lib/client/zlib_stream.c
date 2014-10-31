@@ -130,8 +130,9 @@ zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length)
   int ret = -1;
   OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
 
-  assert(self);
-  assert(self->os);
+  if (!self) { return -1; }
+  if (!self->os) { return -1; }
+  if (!length) { return 0; }
 
   /* Header (re)writing management is done by the underlying OmlOutStream*/
 

@@ -94,8 +94,9 @@ file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length)
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
   size_t count;
 
-  if (!self) return -1;
-  if (!self->f) return -1;
+  if (!self) { return -1; }
+  if (!self->f) { return -1; }
+  if (!length) { return 0; }
 
   out_stream_write_header(hdl, _file_stream_write);
 
