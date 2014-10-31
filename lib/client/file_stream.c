@@ -44,8 +44,6 @@ file_stream_new(const char *file)
   OmlFileOutStream* self = (OmlFileOutStream *)oml_malloc(sizeof(OmlFileOutStream));
   memset(self, 0, sizeof(OmlFileOutStream));
 
-  loginfo ("File_stream: opening local storage file '%s'\n", file);
-
   if (strcmp(file, "stdout") == 0 || strcmp(file, "-") == 0) {
     self->f = stdout;
   } else {
@@ -59,6 +57,8 @@ file_stream_new(const char *file)
   mstring_sprintf(dest, "file:%s", file);
   self->dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
   mstring_delete(dest);
+
+  logdebug("%s: Created OmlFileOutStream\n", self->dest);
 
   self->write = file_stream_write;
   self->close = file_stream_close;

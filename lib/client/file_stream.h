@@ -11,9 +11,10 @@
  * \brief Interface for the file OmlOutStream.
  * \see OmlOutStream
  */
-#include "mbuf.h"
 #include <stdio.h>
+
 #include "oml2/oml_out_stream.h"
+#include "mbuf.h"
 
 typedef struct OmlFileOutStream {
 

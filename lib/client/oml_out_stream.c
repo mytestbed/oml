@@ -45,6 +45,13 @@ create_out_stream_from_components(const char *scheme, const char *hostname, cons
   assert(scheme);
   assert((hostname && port) || filepath);
 
+  logdebug ("Creating OutStream to URI %s:%s%s%s%s%s%s\n",
+      scheme,
+      hostname?"//[":"", hostname?hostname:"",
+      hostname?"]":"",
+      port?":":"", port?port:"",
+      filepath);
+
   OmlURIType uri_type;
   uri_type = oml_uri_type(scheme);
 
@@ -82,8 +89,12 @@ create_out_stream_from_components(const char *scheme, const char *hostname, cons
   }
 
   if (os == NULL) {
-    logerror ("Failed to create stream for URI %s:%s[%s]%s%s%s\n",
-        scheme, hostname?"//":"", hostname, port?":":"", port, filepath);
+    logerror ("Failed to create stream for URI %s:%s%s%s%s%s%s\n",
+      scheme,
+      hostname?"//[":"", hostname?hostname:"",
+      hostname?"]":"",
+      port?":":"", port?port:"",
+      filepath);
     return NULL;
   }
 

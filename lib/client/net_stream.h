@@ -11,9 +11,9 @@
  * \brief Interface for the network OmlOutStream.
  * \see OmlOutStream, OSocket
  */
-#include "mbuf.h"
 #include "ocomm/o_socket.h"
 #include "oml2/oml_out_stream.h"
+#include "mbuf.h"
 
 /** OmlOutStream writing out to an OComm Socket */
 typedef struct OmlNetOutStream {
