@@ -34,6 +34,8 @@ static struct uri_scheme {
   { "flush://blah", OML_URI_FILE_FLUSH },
   { "tcp://blah", OML_URI_TCP },
   { "udp://blah", OML_URI_UDP },
+  /* Meaningless, but this allows to check compound URI schemes */
+  { "tcp+file://blah", OML_URI_TCP | OML_URI_FILE },
   { "zlib+tcp://blah", OML_URI_ZLIB },
   { "zlib+file:blah", OML_URI_ZLIB },
   { "zlib://blah", OML_URI_ZLIB }, /* XXX: Not sure that this one is desirable as a URI, see comments in test_uris */

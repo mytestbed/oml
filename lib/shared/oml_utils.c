@@ -152,6 +152,7 @@ int resolve_service(const char *service, int defport)
  */
 OmlURIType oml_uri_type(const char* uri) {
   size_t len;
+  const char *next_scheme, *colon;
   int ret=OML_URI_UNKNOWN;
 
   if (!uri) {
@@ -179,6 +180,18 @@ OmlURIType oml_uri_type(const char* uri) {
   }
 
 #undef URI_MATCH
+
+  if (ret != OML_URI_UNKNOWN) {
+    /* XXX: we re-search the colon in each recursive iteration.
+     * This is inefficient, and could be avoided by passing the length
+     * information to a recursive helper for oml_uri_type.
+     * Here, we assume that we don't do this often, so we don't care.*/
+    colon = find_charn(uri, ':', len) + 1;
+    if ((next_scheme = find_charn(uri, '+', colon?(colon-uri):len))) {
+      loginfo("next_scheme: %s\n", next_scheme);
+      ret |= oml_uri_type(next_scheme+1);
+    }
+  }
 
   return ret;
 }
