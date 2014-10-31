@@ -91,6 +91,11 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
   int ret = -1;
   int have, had = self->strm.avail_in, had_this_round;
 
+  assert(self);
+  assert(self->os);
+  assert(self->os->write);
+  assert(self->out);
+
   do {
     had_this_round = self->strm.avail_in;
     self->strm.avail_out = self->chunk_size;

@@ -11,6 +11,9 @@
  * \brief Helper functions for all OmlOutStreams
  * \see OmlOutStream
  */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
@@ -35,7 +38,9 @@ static OmlOutStream*
 create_out_stream_from_components(const char *scheme, const char *hostname, const char *port, const char *filepath)
 {
   OmlOutStream *os = NULL;
-  const char *next_scheme;
+#ifdef HAVE_LIBZ
+  const char* next_scheme;
+#endif
 
   assert(scheme);
   assert((hostname && port) || filepath);
@@ -57,10 +62,16 @@ create_out_stream_from_components(const char *scheme, const char *hostname, cons
     break;
 
   case OML_URI_ZLIB:
+#ifdef HAVE_LIBZ
     next_scheme = find_charn(scheme, '+', strlen(scheme)) + 1; /* we could just use scheme[sizeof("zlib')],
                                                                   but let's not hardcode too many assumptions*/
     os = create_out_stream_from_components(next_scheme, hostname, port, filepath);
     os = zlib_stream_new(os);
+
+#else
+    logerror("This version of the OML library has not been compiled with Zlib support");
+    return NULL;
+#endif
     break;
 
   case OML_URI_UDP:

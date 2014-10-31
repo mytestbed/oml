@@ -14,6 +14,7 @@
 #include <zlib.h>
 
 #include "oml2/oml_out_stream.h"
+#include "mbuf.h"
 
 typedef struct OmlZlibOutStream {
 
@@ -28,6 +29,12 @@ typedef struct OmlZlibOutStream {
 
   /** \see OmlOutStream::dest */
   char *dest;
+
+  /** \see OmlOutStream::header_data */
+  MBuffer* header_data;
+
+  /** \see OmlOutStream::header_written */
+  int   header_written;
 
   /*
    * Fields specific to the OmlZlibOutStream
