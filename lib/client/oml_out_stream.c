@@ -55,7 +55,7 @@ create_out_stream_from_components(const char *scheme, const char *hostname, cons
   OmlURIType uri_type;
   uri_type = oml_uri_type(scheme);
 
-  switch (uri_type) {
+  switch ((unsigned int)uri_type) { /* The compiler complains when we try OR'ing values otherwise */
   case OML_URI_FILE:
   case OML_URI_FILE_FLUSH:
     os = file_stream_new(filepath);
