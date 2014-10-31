@@ -299,6 +299,7 @@ parse_uri (const char *uri, const char **scheme, const char **host, const char *
   if (!(*scheme)) {
     *scheme = oml_strndup("tcp", 3);
   }
+  /* FIXME: return port for zlib if not specified */
   if(oml_uri_is_network(oml_uri_type(*scheme))) {
     if(!(*host)) {
       logerror("Network URI '%s' does not contain host"

@@ -81,8 +81,11 @@ static struct uri {
 
   { "file:-", 0, "file", NULL, NULL, "-"},
 
+  { "zlib+tcp://localhost", 0, "zlib+tcp", "localhost", DEF_PORT_STRING, NULL},
   { "zlib+tcp://localhost:3004", 0, "zlib+tcp", "localhost", "3004", NULL},
   { "zlib+file:-", 0, "zlib+file", NULL, NULL, "-"},
+  { "zlib+file:/a", 0, "zlib+file", NULL, NULL, "/a"},
+  { "zlib+file:///a", 0, "zlib+file", NULL, NULL, "///a"},
   /* XXX: Do we want to allow this? */
   //{ "zlib://localhost:3004", 0, "zlib+tcp", "localhost", "3004", NULL},
   /* XXX: Or that? */
