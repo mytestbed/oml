@@ -32,12 +32,15 @@ char* to_octets (unsigned char* buf, int len);
 
 int resolve_service(const char *service, int defport);
 
+/** Bit field allowing to identify the type(s) of a URI or scheme */
 typedef enum {
-  OML_URI_UNKNOWN = -1,
-  OML_URI_FILE = 0,
-  OML_URI_FILE_FLUSH,
-  OML_URI_TCP,
-  OML_URI_UDP,
+  OML_URI_UNKNOWN = 0,
+  OML_URI_FILE = 1,
+  OML_URI_FLUSH = 1<<1,
+  OML_URI_NET = 1<<2,
+  OML_URI_FILE_FLUSH = OML_URI_FILE | OML_URI_FLUSH, /* 1 + 1<<1 = 3 */
+  OML_URI_TCP = 1<<3 | OML_URI_NET,
+  OML_URI_UDP = 1<<4 | OML_URI_NET,
   OML_URI_ZLIB,
 } OmlURIType;
 

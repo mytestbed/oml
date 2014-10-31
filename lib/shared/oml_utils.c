@@ -189,7 +189,7 @@ OmlURIType oml_uri_type(const char* uri) {
  * \see oml_uri_type
  */
 inline int oml_uri_is_file(OmlURIType t) {
-  return t>=OML_URI_FILE && t<=OML_URI_FILE_FLUSH;
+  return (t & OML_URI_FILE) != 0;
 }
 
 /** Test OmlURIType as a network URI
@@ -198,7 +198,7 @@ inline int oml_uri_is_file(OmlURIType t) {
  * \see oml_uri_type
  */
 inline int oml_uri_is_network(OmlURIType t) {
-  return t>=OML_URI_TCP && t<=OML_URI_UDP;
+  return (t & OML_URI_NET) != 0;
 }
 
 /** Parse a collection URI of the form [scheme:][host[:port]][/path].
