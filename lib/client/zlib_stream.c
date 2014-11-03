@@ -78,8 +78,6 @@ zlib_stream_new(OmlOutStream *out)
  *
  * \param self OmlZlibOutStream being written
  * \param flush instruct Zlib to flush output or not, should be one of (Z_NO_FLUSH, Z_SYNC_FLUSH, Z_PARTIAL_FLUSH, Z_BLOCK, Z_FULL_FLUSH or Z_FINISH; \see deflate)
- * \param header pointer to the beginning of header data to write in case of disconnection
- * \param header_length length of header data to write in case of disconnection
  *
  * \return the amount of data consumed from the input buffer (i.e., NOT the amount of compressed data written out) on succes, -1 otherwise
  * \see oml_outs_write_f, zlib_stream_write
