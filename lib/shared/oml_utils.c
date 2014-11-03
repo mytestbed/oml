@@ -302,6 +302,11 @@ parse_uri (const char *uri, const char **scheme, const char **host, const char *
           " (did you forget to put literal IPv6 addresses in brackets?)'\n", uri);
       return -1;
     }
+    if (pmatch[URI_RE_SCHEME].rm_so >= 0 && pmatch[URI_RE_HOST].rm_so >= 0 &&
+        pmatch[URI_RE_AUTHORITY_WITH_SLASHES].rm_so == pmatch[URI_RE_AUTHORITY].rm_so) {
+      logwarn("Network URI without a double slash before authority part is deprecated: '%s' should be '%s://%s%s%s'\n",
+          uri, *scheme, *host, *port?":":"", *port?*port:"");
+    }
     if(!(*port)) {
       *port = oml_strndup(DEF_PORT_STRING, sizeof(DEF_PORT_STRING));
     }
