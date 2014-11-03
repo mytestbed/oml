@@ -180,9 +180,9 @@ OmlURIType oml_uri_type(const char* uri) {
   return ret;
 }
 
-/** Test OmlURIType as a network URI
+/** Test OmlURIType as a file URI
  * \param t OmlURIType
- * \return 1 if t is a network type (tcp or udp schemes, 0 otherwise
+ * \return 1 if t is a file type (file or flushfile schemes), 0 otherwise
  * \see oml_uri_type
  */
 inline int oml_uri_is_file(OmlURIType t) {
@@ -191,7 +191,8 @@ inline int oml_uri_is_file(OmlURIType t) {
 
 /** Test OmlURIType as a network URI
  * \param t OmlURIType
- * \return 1 if t is a network type (tcp or udp schemes, 0 otherwise
+ * \return 1 if t is a network type (tcp or udp schemes), 0 otherwise
+ * \see oml_uri_type
  */
 inline int oml_uri_is_network(OmlURIType t) {
   return t>=OML_URI_TCP && t<=OML_URI_UDP;
