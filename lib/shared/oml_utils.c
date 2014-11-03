@@ -28,10 +28,10 @@
 /** Regular expression for URI parsing.
  *  Adapted from RFC 3986, Appendix B to allow missing '//' before the authority, separate port and host,
  *  allow bracketted IPs, and be more specific on schemes */
-#define URI_RE "^(((zlib\\+)?(tcp|(flush)?file)):)?((//)?(([a-zA-Z0-9][-0-9A-Za-z+.]+|\\[[0-9a-fA-F:.]+])(:([0-9]+))?))?([^?#]*)(\\?([^#]*))?(#(.*))?"
-/*               123       4     5               67    89                                                a b            c       d   e        f 10
- *                `scheme                              |`host                                              `port        `path       `query     `fragment
- *                                                     `authority
+#define URI_RE "^(((zlib\\+|gzip\\+)?(tcp|(flush)?file)):)?((//)?(([a-zA-Z0-9][-0-9A-Za-z+.]+|\\[[0-9a-fA-F:.]+])(:([0-9]+))?))?([^?#]*)(\\?([^#]*))?(#(.*))?"
+/*               123                 4    5                67    89                                                a b            c       d   e        f 10
+ *                `scheme                                        |`host                                              `port        `path       `query     `fragment
+ *                                                               `authority
  */
 /** Number of parenthesised groups in URI_RI */
 #define URI_RE_NGROUP (0xD)
@@ -169,6 +169,9 @@ OmlURIType oml_uri_type(const char* uri) {
   } else if(URI_MATCH(uri, "file")) { /* len == 4 */
     ret = OML_URI_FILE;
 
+  } else if(URI_MATCH(uri, "gzip")) {
+    ret = OML_URI_GZIP;
+
   } else if(URI_MATCH(uri, "zlib")) {
     ret = OML_URI_ZLIB;
 
@@ -211,6 +214,15 @@ inline int oml_uri_is_file(OmlURIType t) {
  */
 inline int oml_uri_is_network(OmlURIType t) {
   return (t & OML_URI_NET) != 0;
+}
+
+/** Test OmlURIType as a compressed URI
+ * \param t OmlURIType
+ * \return 1 if t is a network type (zlib or gzip schemes), 0 otherwise
+ * \see oml_uri_type
+ */
+inline int oml_uri_is_compressed(OmlURIType t) {
+  return (t & OML_URI_COMPRESSED) != 0;
 }
 
 /** Parse a collection URI of the form [scheme:][host[:port]][/path].

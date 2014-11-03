@@ -83,6 +83,12 @@ static struct uri {
 
   { "file:-", 0, "file", NULL, NULL, "-"},
 
+  { "gzip+tcp://localhost", 0, "gzip+tcp", "localhost", DEF_PORT_STRING, NULL},
+  { "gzip+tcp://localhost:3004", 0, "gzip+tcp", "localhost", "3004", NULL},
+  { "gzip+file:-", 0, "gzip+file", NULL, NULL, "-"},
+  { "gzip+file:/a", 0, "gzip+file", NULL, NULL, "/a"},
+  { "gzip+file:///a", 0, "gzip+file", NULL, NULL, "///a"},
+
   { "zlib+tcp://localhost", 0, "zlib+tcp", "localhost", DEF_PORT_STRING, NULL},
   { "zlib+tcp://localhost:3004", 0, "zlib+tcp", "localhost", "3004", NULL},
   { "zlib+file:-", 0, "zlib+file", NULL, NULL, "-"},

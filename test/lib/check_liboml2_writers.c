@@ -118,8 +118,8 @@ END_TEST
 #define ZFN	"test_zw_create_buffered"
 
 /* def() and inf() adapted from the (public domain) zlib usage example at [0]
- * to use (de/in)flateInit2 with -15 as the windowBits to not include any
- * header/trailer.
+ * to use (de/in)flateInit2 with OML_ZLIB_WINDOWBITS  as the windowBits to
+ * parametrise header/trailer addition.
  * [0] http://zlib.net/zlib_how.html
  */
 #define CHUNK 512
@@ -142,7 +142,7 @@ int def(FILE *source, FILE *dest, int level)
     strm.zalloc = Z_NULL;
     strm.zfree = Z_NULL;
     strm.opaque = Z_NULL;
-    ret = deflateInit2(&strm, level, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY);
+    ret = deflateInit2(&strm, level, Z_DEFLATED, OML_ZLIB_WINDOWBITS, 8, Z_DEFAULT_STRATEGY);
     if (ret != Z_OK) {
       return ret;
     }
@@ -206,7 +206,7 @@ int inf(FILE *source, FILE *dest)
     strm.opaque = Z_NULL;
     strm.avail_in = 0;
     strm.next_in = Z_NULL;
-    ret = inflateInit2(&strm, -15);
+    ret = inflateInit2(&strm, OML_ZLIB_WINDOWBITS);
     if (ret != Z_OK)
         return ret;
 

@@ -69,6 +69,14 @@ create_out_stream_from_components(const char *scheme, const char *hostname, cons
     break;
 
   case OML_URI_ZLIB:
+  case OML_URI_ZLIB | OML_URI_FILE:
+  case OML_URI_ZLIB | OML_URI_FILE_FLUSH:
+  case OML_URI_ZLIB | OML_URI_TCP:
+    logwarn("'zlib' URIs default to 'gzip'\n");
+  case OML_URI_GZIP:
+  case OML_URI_GZIP | OML_URI_FILE:
+  case OML_URI_GZIP | OML_URI_FILE_FLUSH:
+  case OML_URI_GZIP | OML_URI_TCP:
 #ifdef HAVE_LIBZ
     next_scheme = find_charn(scheme, '+', strlen(scheme)) + 1; /* we could just use scheme[sizeof("zlib')],
                                                                   but let's not hardcode too many assumptions*/

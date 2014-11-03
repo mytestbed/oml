@@ -16,6 +16,8 @@
 #include "oml2/oml_out_stream.h"
 #include "mbuf.h"
 
+#define OML_ZLIB_WINDOWBITS 31 /* This makes Zlib output GZip headers */
+
 typedef struct OmlZlibOutStream {
 
   /*

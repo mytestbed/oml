@@ -37,7 +37,7 @@ zlib_stream_new(OmlOutStream *out)
   memset(self, 0, sizeof(OmlZlibOutStream));
 
   dest = mstring_create();
-  mstring_sprintf(dest, "zlib+%s", out->dest);
+  mstring_sprintf(dest, "gzip+%s", out->dest);
   self->dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
   mstring_delete(dest);
 
@@ -54,8 +54,7 @@ zlib_stream_new(OmlOutStream *out)
   self->strm.zalloc = Z_NULL;
   self->strm.zfree = Z_NULL;
   self->strm.opaque = Z_NULL;
-  /* We use deflateInit2 so we can disable Zlib header and trailers (windowBits=-15 rather than 15) */
-  if (deflateInit2(&self->strm, self->zlevel, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
+  if (deflateInit2(&self->strm, self->zlevel, Z_DEFLATED, OML_ZLIB_WINDOWBITS, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
     logerror("%s: Cannot allocate Zlib structure", self->dest);
     oml_free(self);
     return NULL;

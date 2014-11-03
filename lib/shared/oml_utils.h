@@ -41,7 +41,9 @@ typedef enum {
   OML_URI_FILE_FLUSH = OML_URI_FILE | OML_URI_FLUSH, /* 1 + 1<<1 = 3 */
   OML_URI_TCP = 1<<3 | OML_URI_NET,
   OML_URI_UDP = 1<<4 | OML_URI_NET,
-  OML_URI_ZLIB,
+  OML_URI_COMPRESSED = 1 << 5,
+  OML_URI_ZLIB = 1 << 6 | OML_URI_COMPRESSED,
+  OML_URI_GZIP = 1 << 7 | OML_URI_COMPRESSED,
 } OmlURIType;
 
 #define DEF_PORT 3003
@@ -50,6 +52,7 @@ typedef enum {
 OmlURIType oml_uri_type(const char* uri);
 int oml_uri_is_file(OmlURIType t);
 int oml_uri_is_network(OmlURIType t);
+int oml_uri_is_compressed(OmlURIType t);
 int parse_uri (const char *uri, const char **scheme, const char **host, const char **port, const char **path);
 char *default_uri(const char *app_name, const char *name, const char *domain);
 
