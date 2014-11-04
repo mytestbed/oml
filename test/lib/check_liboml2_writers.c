@@ -78,9 +78,9 @@ START_TEST (test_fw_create_buffered)
   fs = (OmlFileOutStream*) os;
 
   fail_if(fs->f==NULL);
-  fail_if(fs->write==NULL);
+  fail_if(fs->os.write==NULL);
   /* Not set nor used at the moment
-   *fail_if(fs->close==NULL); */
+   *fail_if(fs->os.close==NULL); */
 
   /* The OmlFileOutStream is buffered by default */
   fail_unless(file_stream_get_buffered(os));
@@ -275,10 +275,10 @@ START_TEST (test_zw_create_buffered)
   os = zlib_stream_new(fs);
   zs = (OmlZlibOutStream*) os;
 
-  fail_unless(zs->os==fs);
-  fail_if(zs->write==NULL);
-  fail_if(zs->close==NULL);
-  fail_unless(zs->os!=os);
+  fail_unless(zs->outs==fs);
+  fail_if(zs->os.write==NULL);
+  fail_if(zs->os.close==NULL);
+  fail_unless(zs->outs!=os);
 
   blob = fopen("blob", "r");
   fail_if(blob == NULL, "Failure opening %s", "blob");

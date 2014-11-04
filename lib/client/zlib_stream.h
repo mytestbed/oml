@@ -20,17 +20,7 @@
 
 typedef struct OmlZlibOutStream {
 
-  /*
-   * Fields from OmlOutStream interface
-   */
-
-  /** \see OmlOutStream::write, oml_outs_write_f */
-  oml_outs_write_f write;
-  /** \see OmlOutStream::close, oml_outs_close_f */
-  oml_outs_close_f close;
-
-  /** \see OmlOutStream::dest */
-  char *dest;
+  OmlOutStream os;              /**< OmlOutStream header */
 
   /** \see OmlOutStream::header_data */
   MBuffer* header_data;
@@ -42,8 +32,7 @@ typedef struct OmlZlibOutStream {
    * Fields specific to the OmlZlibOutStream
    */
 
-  OmlOutStream* os;             /**< OmlOutStream into which to write result */
-
+  OmlOutStream* outs;           /**< OmlOutStream into which to write result */
 
   int   chunk_size;             /**< Zlib buffer size */
   int	zlevel;                 /**< Compression level for Zlib */

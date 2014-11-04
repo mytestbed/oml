@@ -54,15 +54,15 @@ net_stream_new(const char *transport, const char *hostname, const char *service)
   memset(self, 0, sizeof(OmlNetOutStream));
 
   dest = mstring_create();
-  mstring_sprintf(dest, "%s://%s:%s", transport, hostname, service);
-  self->dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
+  mstring_sprintf(dest, "%s:%s:%s", transport, hostname, service);
+  self->os.dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
   mstring_delete(dest);
 
   self->protocol = (char*)oml_strndup (transport, strlen (transport));
   self->host = (char*)oml_strndup (hostname, strlen (hostname));
   self->service = (char*)oml_strndup (service, strlen (service));
 
-  logdebug("%s: Created OmlNetOutStream\n", self->dest);
+  logdebug("%s: Created OmlNetOutStream\n", self->os.dest);
   socket_set_non_blocking_mode(0);
 
   /* // Now see if we can connect to server */
@@ -71,9 +71,9 @@ net_stream_new(const char *transport, const char *hostname, const char *service)
   /*   return NULL; */
   /* } */
 
-  self->write = net_stream_write;
-  self->write_immediate = net_stream_write_immediate;
-  self->close = net_stream_close;
+  self->os.write = net_stream_write;
+  self->os.write_immediate = net_stream_write_immediate;
+  self->os.close = net_stream_close;
   return (OmlOutStream*)self;
 }
 
@@ -93,9 +93,9 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length)
 
   /* Initialise the socket the first time */
   while (self->socket == NULL) {
-    logdebug ("%s: Connecting to server\n", self->dest);
+    logdebug ("%s: Connecting to server\n", self->os.dest);
     if (!open_socket(self)) {
-      logdebug("%s: Connection attempt failed\n", self->dest);
+      logdebug("%s: Connection attempt failed\n", self->os.dest);
       return 0;
     }
   }
@@ -103,14 +103,14 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length)
   /* If the underlying socket has registered a disconnection, it will reconnect on its own
    * however, we need to check it to make sure we send the headers before anything else */
   if(socket_is_disconnected(self->socket)) {
-    self->header_written = 0;
+    self->os.header_written = 0;
   }
 
   out_stream_write_header(hdl);
 
   if(o_log_level_active(O_LOG_DEBUG4)) {
     char *out = to_octets(buffer, length);
-    logdebug("%s: Sending data %s\n", self->dest, out);
+    logdebug("%s: Sending data %s\n", self->os.dest, out);
     oml_free(out);
   }
   count = net_stream_write_immediate(hdl, buffer, length);
@@ -131,7 +131,7 @@ net_stream_write_immediate(OmlOutStream* outs, uint8_t* buffer, size_t  length)
   int result = socket_sendto(self->socket, (char*)buffer, length);
 
   if (result == -1 && socket_is_disconnected (self->socket)) {
-    logwarn ("%s: Connection lost\n", self->dest);
+    logwarn ("%s: Connection lost\n", self->os.dest);
     self->socket = NULL;      // Server closed the connection
   }
   return result;
@@ -147,17 +147,15 @@ net_stream_close(OmlOutStream* stream)
 
   if(!self) { return 0; }
 
-  logdebug("%s: Destroying OmlNetOutStream at %p\n", self->dest, self);
+  logdebug("%s: Destroying OmlNetOutStream at %p\n", self->os.dest, self);
 
   if (self->socket != 0) {
     socket_close(self->socket);
     self->socket = NULL;
   }
-  oml_free(self->dest);
   oml_free(self->host);
   oml_free(self->protocol);
   oml_free(self->service);
-  oml_free(self);
   return 0;
 }
 
@@ -194,14 +192,14 @@ open_socket(OmlNetOutStream* self)
   }
   if (strcmp(self->protocol, "tcp") == 0) {
     Socket* sock;
-    if ((sock = socket_tcp_out_new(self->dest, self->host, self->service)) == NULL) {
+    if ((sock = socket_tcp_out_new(self->os.dest, self->host, self->service)) == NULL) {
       return 0;
     }
 
     self->socket = sock;
-    self->header_written = 0;
+    self->os.header_written = 0;
   } else {
-    logerror("%s: Unsupported transport protocol '%s'\n", self->dest, self->protocol);
+    logerror("%s: Unsupported transport protocol '%s'\n", self->os.dest, self->protocol);
     return 0;
   }
 

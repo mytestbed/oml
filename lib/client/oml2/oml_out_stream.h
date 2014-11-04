@@ -28,13 +28,16 @@ struct OmlOutStream;
 
 /** Interface to write a chunk into the lower level out stream
  *
+ * \warning This function should take care of properly sending the headers, if
+ * needed, prior to writing out the data.
+ *
  * \param outs OmlOutStream to write into
  * \param buffer pointer to the beginning of the data to write
  * \param length length of data to read from buffer
  *
  * \return the number of sent bytes on success, -1 otherwise
  *
- * \see OmlOutStream::write, out_stream_write
+ * \see OmlOutStream::write, out_stream_write, OmlOutStream::header_written, out_stream_write_header,
  */
 typedef ssize_t (*oml_outs_write_f)(struct OmlOutStream* outs, uint8_t* buffer, size_t length);
 
@@ -52,12 +55,15 @@ typedef ssize_t (*oml_outs_write_immediate_f)(struct OmlOutStream* outs, uint8_t
 
 /** Interface to close an OmlOutStream
  *
- * \param writer OmlOutStream to close
+ * \warning This function should note call oml_free() on outs, as
+ * oml_stream_close takes care of it.
+ *
+ * \param outs OmlOutStream to close
  * \return 0 on success, -1 otherwise
  *
  * \see OmlOutStream::close, oml_stream_close
  */
-typedef int (*oml_outs_close_f)(struct OmlOutStream* writer);
+typedef int (*oml_outs_close_f)(struct OmlOutStream* outs);
 
 /** Create an OmlOutStream for the specified URI
  *
@@ -153,6 +159,10 @@ int file_stream_get_buffered(OmlOutStream* hdl);
 /* from net_stream.c */
 
 extern OmlOutStream *net_stream_new(const char *transport, const char *hostname, const char *port);
+
+/* from zlib_stream.c */
+
+extern OmlOutStream *zlib_stream_new(OmlOutStream *out);
 
 #ifdef __cplusplus
 }

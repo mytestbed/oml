@@ -780,7 +780,8 @@ FILE_PATTERNS          = *.c \
                          *.rb \
                          *.dox \
                          *.md \
-                         oml2-server-hook.sh
+                         oml2-server-hook.sh \
+                         README.txt
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.

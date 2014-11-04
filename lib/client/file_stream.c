@@ -56,14 +56,14 @@ file_stream_new(const char *file)
 
   dest = mstring_create();
   mstring_sprintf(dest, "file:%s", file);
-  self->dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
+  self->os.dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
   mstring_delete(dest);
 
-  logdebug("%s: Created OmlFileOutStream\n", self->dest);
+  logdebug("%s: Created OmlFileOutStream\n", self->os.dest);
 
-  self->write = file_stream_write;
-  self->write_immediate = file_stream_write_immediate;
-  self->close = file_stream_close;
+  self->os.write = file_stream_write;
+  self->os.write_immediate = file_stream_write_immediate;
+  self->os.close = file_stream_close;
   return (OmlOutStream*)self;
 }
 
@@ -129,14 +129,12 @@ file_stream_close(OmlOutStream* hdl)
 
   if(!self) { return 0; }
 
-  logdebug("Destroying OmlFileOutStream to file %s at %p\n", self->dest, self);
+  logdebug("Destroying OmlFileOutStream to file %s at %p\n", self->os.dest, self);
 
   if (self->f != NULL) {
     ret = fclose(self->f);
     self->f = NULL;
   }
-  oml_free(self->dest);
-  oml_free(self);
   return ret;
 }
 

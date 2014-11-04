@@ -278,9 +278,9 @@ filter:
 
 --------
 <omlc domain="my_experiment" id="my_source_id">
-  <collect url="file:-">
-    <stream mp="lin" samples="1" />
-  </collect>
+ <collect url="file:-">
+   <stream mp="lin" samples="1" />
+ </collect>
 </omlc>
 --------
 

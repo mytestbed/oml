@@ -189,9 +189,10 @@ OmlURIType oml_uri_type(const char* uri) {
      * This is inefficient, and could be avoided by passing the length
      * information to a recursive helper for oml_uri_type.
      * Here, we assume that we don't do this often, so we don't care.*/
-    colon = find_charn(uri, ':', len) + 1;
-    if ((next_scheme = find_charn(uri, '+', colon?(colon-uri):len))) {
-      ret |= oml_uri_type(next_scheme+1);
+    colon = find_charn(uri, ':', len);
+    next_scheme = find_charn(uri, '+', (colon)?(colon-uri):len);
+      if (next_scheme && *next_scheme) {
+        ret |= oml_uri_type(next_scheme + 1);
     }
   }
 
@@ -254,6 +255,7 @@ parse_uri (const char *uri, const char **scheme, const char **host, const char *
   int ret;
   char *str;
   int len, authlen;
+  OmlURIType uri_type;
 
   assert(scheme);
   assert(host);
@@ -323,8 +325,9 @@ parse_uri (const char *uri, const char **scheme, const char **host, const char *
   if (!(*scheme)) {
     *scheme = oml_strndup("tcp", 3);
   }
+  uri_type = oml_uri_type(*scheme);
   /* FIXME: return port for zlib if not specified */
-  if(oml_uri_is_network(oml_uri_type(*scheme))) {
+  if(oml_uri_is_network(uri_type)) {
     if(!(*host)) {
       logerror("Network URI '%s' does not contain host"
           " (did you forget to put literal IPv6 addresses in brackets?)'\n", uri);
@@ -339,7 +342,7 @@ parse_uri (const char *uri, const char **scheme, const char **host, const char *
       *port = oml_strndup(DEF_PORT_STRING, sizeof(DEF_PORT_STRING));
     }
 
-  } else if ((*host) && oml_uri_is_file(oml_uri_type(*scheme))) {
+  } else if ((*host) && oml_uri_is_file(uri_type)) {
     /* We split the filename into host and path in a URI without host;
      * concatenate them back together, adding all the leading slashes that were initially present */
     authlen = len = pmatch[URI_RE_AUTHORITY_WITH_SLASHES].rm_eo - pmatch[URI_RE_AUTHORITY_WITH_SLASHES].rm_so;

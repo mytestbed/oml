@@ -38,10 +38,10 @@ zlib_stream_new(OmlOutStream *out)
 
   dest = mstring_create();
   mstring_sprintf(dest, "gzip+%s", out->dest);
-  self->dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
+  self->os.dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
   mstring_delete(dest);
 
-  logdebug("%s: Created OmlZlibOutStream\n", self->dest);
+  logdebug("%s: Created OmlZlibOutStream\n", self->os.dest);
 
   self->write = zlib_stream_write;
   self->close = zlib_stream_close;
@@ -89,8 +89,8 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
   int have, had = self->strm.avail_in, had_this_round;
 
   assert(self);
-  assert(self->os);
-  assert(self->os->write);
+  assert(self->outs);
+  assert(self->outs->write);
   assert(self->out);
 
   do {
@@ -100,7 +100,7 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
 
     switch(deflate(&self->strm, flush)) {
     case Z_STREAM_ERROR:
-                        logerror("%s: Error deflating data\n", self->dest);
+                        logerror("%s: Error deflating data\n", self->os.dest);
                         /* XXX: terminate stream */
                         return -1;
                         break;
@@ -128,7 +128,7 @@ zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length)
   OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
 
   if (!self) { return -1; }
-  if (!self->os) { return -1; }
+  if (!self->outs) { return -1; }
   if (!length) { return 0; }
 
   /* Header (re)writing management is done by the underlying OmlOutStream*/
@@ -154,11 +154,11 @@ zlib_stream_close(OmlOutStream* stream)
   assert(self);
   assert(self->os);
 
-  logdebug("Destroying OmlZlibOutStream to file %s at %p\n", self->dest, self);
+  logdebug("Destroying OmlZlibOutStream to file %s at %p\n", self->os.dest, self);
 
   len =  self->strm.avail_out;
   zlib_stream_deflate_write(self, Z_FINISH);
-  logdebug3("%s: Flushed the last %dB of the compressed stream\n", self->dest, len);
+  logdebug3("%s: Flushed the last %dB of the compressed stream\n", self->os.dest, len);
   deflateEnd(&self->strm);
   if(self->os) {
     self->os->close(self->os);

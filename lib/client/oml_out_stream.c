@@ -183,7 +183,7 @@ out_stream_write_header(OmlOutStream* self)
   uint8_t* header;
   size_t header_length;
 
-  assert(self);
+  if (!self) { return -1; }
 
   if ((hdrmbuf=(MBuffer*)self->header_data)) {
 
@@ -239,6 +239,8 @@ out_stream_close(OmlOutStream* self)
     if(self->close) {
       ret = self->close(self);
     }
+  oml_free(self->dest);
+  oml_free(self);
   return ret;
 }
 

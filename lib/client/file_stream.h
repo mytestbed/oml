@@ -18,25 +18,7 @@
 
 typedef struct OmlFileOutStream {
 
-  /*
-   * Fields from OmlOutStream interface
-   */
-
-  /** \see OmlOutStream::write, oml_outs_write_f */
-  oml_outs_write_f write;
-  /** \see OmlOutStream::write, oml_outs_write_f */
-  oml_outs_write_immediate_f write_immediate;
-  /** \see OmlOutStream::close, oml_outs_close_f */
-  oml_outs_close_f close;
-
-  /** \see OmlOutStream::header_data, oml_outs_set_header_data */
-  char *dest;
-
-  /** \see OmlOutStream::header_data */
-  MBuffer* header_data;
-
-  /** \see OmlOutStream::header_written */
-  int   header_written;
+  OmlOutStream os;
 
   /*
    * Fields specific to the OmlFileOutStream
