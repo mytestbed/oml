@@ -24,6 +24,8 @@ typedef struct OmlFileOutStream {
 
   /** \see OmlOutStream::write, oml_outs_write_f */
   oml_outs_write_f write;
+  /** \see OmlOutStream::write, oml_outs_write_f */
+  oml_outs_write_immediate_f write_immediate;
   /** \see OmlOutStream::close, oml_outs_close_f */
   oml_outs_close_f close;
 

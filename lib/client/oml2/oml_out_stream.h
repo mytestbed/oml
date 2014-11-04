@@ -26,32 +26,59 @@ extern "C" {
 
 struct OmlOutStream;
 
-/** Write a chunk into the lower level out stream
+/** Interface to write a chunk into the lower level out stream
  *
  * \param outs OmlOutStream to write into
  * \param buffer pointer to the beginning of the data to write
  * \param length length of data to read from buffer
  *
  * \return the number of sent bytes on success, -1 otherwise
+ *
+ * \see OmlOutStream::write, out_stream_write
  */
 typedef ssize_t (*oml_outs_write_f)(struct OmlOutStream* outs, uint8_t* buffer, size_t length);
 
-/** Close an OmlOutStream
- *
- * \param writer OmlOutStream to close
- * \return 0 on success, -1 otherwise
- */
-typedef int (*oml_outs_close_f)(struct OmlOutStream* writer);
-
-/** Immediately write a chunk into the lower level out stream
+/** Interface to immediately write a chunk into the lower level out stream
  *
  * \param outs OmlOutStream to write into
  * \param buffer pointer to the beginning of the data to write
  * \param length length of data to read from buffer
  *
  * \return the number of sent bytes on success, -1 otherwise
+ *
+ * \see OmlOutStream::write_immediate, out_stream_write_immediate
  */
-typedef ssize_t (*oml_outs_write_f_immediate)(struct OmlOutStream* outs, uint8_t* buffer, size_t length);
+typedef ssize_t (*oml_outs_write_immediate_f)(struct OmlOutStream* outs, uint8_t* buffer, size_t length);
+
+/** Interface to close an OmlOutStream
+ *
+ * \param writer OmlOutStream to close
+ * \return 0 on success, -1 otherwise
+ *
+ * \see OmlOutStream::close, oml_stream_close
+ */
+typedef int (*oml_outs_close_f)(struct OmlOutStream* writer);
+
+/** Create an OmlOutStream for the specified URI
+ *
+ * \param uri	collection URI
+ * \return a pointer to the newly allocated OmlOutStream, or NULL on error
+ *
+ * \see create_writer
+ */
+struct OmlOutStream* create_out_stream(const char *uri);
+
+/** Write data into stream
+ *
+ * \param outs OmlOutStream to write into
+ * \param buffer pointer to the beginning of the data to write
+ * \param length length of data to read from buffer
+ *
+ * \return the number of sent bytes on success, -1 otherwise
+ *
+ * \see oml_outs_write_f
+ */
+ssize_t out_stream_write(struct OmlOutStream* self, uint8_t* buffer, size_t length);
 
 /** Create an OmlOutStream for the specified URI
  *
@@ -70,22 +97,44 @@ struct OmlOutStream* create_out_stream(const char *uri);
  */
 void* out_stream_set_header_data(struct OmlOutStream* outs, void* header_data);
 
+/** Immediately write data into stream
+ *
+ * \param outs OmlOutStream to write into
+ * \param buffer pointer to the beginning of the data to write
+ * \param length length of data to read from buffer
+ *
+ * \return the number of sent bytes on success, -1 otherwise
+ *
+ * \see oml_outs_write_immediate_f
+ */
+ssize_t out_stream_write_immediate(struct OmlOutStream* self, uint8_t* buffer, size_t length);
+
 /** Write header information if not already done, and record this fact
  *
  * This function call writefp to write the header data if self->header_written is 0.
  *
  * \param outs OmlOutStream to write into
- * \param writefp pointer to an oml_outs_write_f_immediate function to write the data in the stream
  *
  * \return the number of sent bytes on success (0 if no header was written), -1 otherwise
- * \see oml_outs_write_f_immediate, OmlOutStream::header_written
+ * \see oml_outs_write_immediate_f, OmlOutStream::header_written
  */
-ssize_t out_stream_write_header(struct OmlOutStream* outs, oml_outs_write_f_immediate writefp);
+ssize_t out_stream_write_header(struct OmlOutStream* outs);
+
+/** Close OmlOutStream
+ *
+ * \param writer OmlOutStream to close
+ * \return 0 on success, -1 otherwise
+ *
+ * \see oml_outs_close_f
+ */
+int out_stream_close(struct OmlOutStream* self);
 
 /** A low-level output stream */
 typedef struct OmlOutStream {
   /** Pointer to a function in charge of writing into the stream \see oml_outs_write_f */
   oml_outs_write_f write;
+  /** Pointer to a function in charge of immediately writing data into the underlying stream \see oml_outs_write_immediate_f*/
+  oml_outs_write_immediate_f write_immediate;
   /** Pointer to a function in charge of closing the stream \see oml_outs_close_f */
   oml_outs_close_f close;
   /** Description of this output stream, usually overriden by a URI or filename */

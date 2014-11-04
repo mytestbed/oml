@@ -188,7 +188,7 @@ bw_close(BufferedWriter* instance)
     }
   }
 
-  self->outStream->close(self->outStream);
+  out_stream_close(self->outStream);
   destroyBufferChain(self);
   oml_free(self);
 }
@@ -630,10 +630,9 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
 
   while (mbuf_write_offset(read_buf) > mbuf_read_offset(read_buf)) {
     oml_lock(&self->meta_lock, __FUNCTION__);
-    cnt = self->outStream->write(self->outStream,
+    cnt = out_stream_write(self->outStream,
         mbuf_rdptr(read_buf), mbuf_message_offset(read_buf) - mbuf_read_offset(read_buf));
     oml_unlock(&self->meta_lock, __FUNCTION__);
-
     if (cnt > 0) {
       mbuf_read_skip(read_buf, cnt);
       if (self->backoff) {

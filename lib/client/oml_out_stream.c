@@ -146,9 +146,37 @@ create_out_stream(const char *uri)
 
 #include "mbuf.h"
 
+/** Write data into stream */
+inline ssize_t
+out_stream_write(OmlOutStream* self, uint8_t* buffer, size_t length)
+{
+  ssize_t ret = -1;
+  if(self && buffer) {
+    ret = 0;
+    if(self->write) {
+      ret = self->write(self, buffer, length);
+    }
+  }
+  return ret;
+}
+
+/** Immediately write data into stream */
+inline ssize_t
+out_stream_write_immediate(OmlOutStream* self, uint8_t* buffer, size_t length)
+{
+  ssize_t ret = -1;
+  if(self && buffer) {
+    ret = 0;
+    if(self->write_immediate) {
+      ret = self->write_immediate(self, buffer, length);
+    }
+  }
+  return ret;
+}
+
 /** Write header information if not already done, and record this fact */
-ssize_t
-out_stream_write_header(OmlOutStream* self, oml_outs_write_f_immediate writefp)
+inline ssize_t
+out_stream_write_header(OmlOutStream* self)
 {
   ssize_t count=0;
   MBuffer* hdrmbuf;
@@ -156,17 +184,16 @@ out_stream_write_header(OmlOutStream* self, oml_outs_write_f_immediate writefp)
   size_t header_length;
 
   assert(self);
-  assert(writefp);
 
   if ((hdrmbuf=(MBuffer*)self->header_data)) {
 
     header = mbuf_rdptr(hdrmbuf);
     header_length  = mbuf_fill(hdrmbuf);
 
-    if (! self->header_written) {
-      if ((count = writefp(self, header, header_length)) < 0) {
-        logerror("%s: Error writing header: %s\n", self->dest, strerror(errno));
-        return -1;
+  if (! self->header_written) {
+    if ((count = out_stream_write_immediate(self, header, header_length)) < 0) {
+      logerror("%s: Error writing header: %s\n", self->dest, strerror(errno));
+      return -1;
 
     } else {
       if (((size_t)count < header_length))
@@ -201,6 +228,20 @@ out_stream_set_header_data(struct OmlOutStream* outs, void* header_data)
 
   return old;
 }
+
+/** Close OmlOutStream */
+inline int
+out_stream_close(OmlOutStream* self)
+{
+  int ret = -1;
+  if(self)
+    ret = 0;
+    if(self->close) {
+      ret = self->close(self);
+    }
+  return ret;
+}
+
 /*
  Local Variables:
  mode: C

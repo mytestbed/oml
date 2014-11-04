@@ -25,6 +25,7 @@
 #include "file_stream.h"
 
 static ssize_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
+static ssize_t file_stream_write_immediate(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
 static ssize_t file_stream_write_flush(OmlOutStream* hdl, uint8_t* buffer, size_t  length);
 static int file_stream_close(OmlOutStream* hdl);
 
@@ -61,32 +62,14 @@ file_stream_new(const char *file)
   logdebug("%s: Created OmlFileOutStream\n", self->dest);
 
   self->write = file_stream_write;
+  self->write_immediate = file_stream_write_immediate;
   self->close = file_stream_close;
   return (OmlOutStream*)self;
 }
 
-/** Write data to a file without any sanity check
- * \param file_hdl FILE pointer
- * \param buffer pointer to the buffer containing the data to write
- * \param buffer length of the data
- * \return amount of data written, or -1 on error
- */
-static ssize_t
-_file_stream_write(OmlOutStream *outs, uint8_t* buffer, size_t length)
-{
-  OmlFileOutStream *self = (OmlFileOutStream*) outs;
-  assert(self->f);
-  return fwrite(buffer, 1, length, self->f); //(FILE*)((OmlFileOutStream*)hdl)->f);
-}
-
 /** Write data to a file
- * \param hdl pointer to the OmlOutStream
- * \param buffer pointer to the buffer containing the data to write
- * \param length length of the buffer to write
- * \param header pointer to an optional buffer containing headers to be sent after (re)connecting
- * \param header_length length of the header to write; must be 0 if header is NULL
- * \return amount of data written, or -1 on error
- * \see _file_stream_write
+ * \copy oml_outs_write_f
+ * \see file_stream_write_immediate
  */
 static ssize_t
 file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length)
@@ -95,35 +78,66 @@ file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length)
   size_t count;
 
   if (!self) { return -1; }
-  if (!self->f) { return -1; }
   if (!length) { return 0; }
 
-  out_stream_write_header(hdl, _file_stream_write);
+  out_stream_write_header(hdl);
 
-  count = _file_stream_write(hdl, buffer, length);
+  count = file_stream_write_immediate(hdl, buffer, length);
   return count;
 }
 
+/** Write data to a file without any sanity check
+ * \copydetails oml_outs_write_immediate_f
+ */
+static ssize_t
+file_stream_write_immediate(OmlOutStream *outs, uint8_t* buffer, size_t length)
+{
+  OmlFileOutStream *self = (OmlFileOutStream*) outs;
+
+  if (!self) { return -1; }
+  assert(self->f);
+
+  return fwrite(buffer, 1, length, self->f);
+}
+
 /** Write data to a file and flush it afterwards
- *
- * Use fflush(3) after each right.
- *
- * \param hdl pointer to the OmlOutStream
- * \param buffer pointer to the buffer containing the data to write
- * \param length length of the buffer to write
- * \param header pointer to an optional buffer containing headers to be sent after (re)connecting
- * \param header_length length of the header to write; must be 0 if header is NULL
- * \return amount of data written, or -1 on error
+ * \copy oml_outs_write_f
+ * \see file_stream_write,file_stream_write_immediate
  */
 ssize_t
 file_stream_write_flush(OmlOutStream* hdl, uint8_t* buffer, size_t length)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
 
+  if (!self) { return -1; }
+  assert(self->f);
+
   size_t count = file_stream_write(hdl, buffer, length);
   fflush(self->f);
 
   return count;
+}
+
+/** Close an OmlFileOutStream's output file
+ * \copydetails oml_outs_write_f
+ */
+static int
+file_stream_close(OmlOutStream* hdl)
+{
+  OmlFileOutStream* self = (OmlFileOutStream*)hdl;
+  int ret = -1;
+
+  if(!self) { return 0; }
+
+  logdebug("Destroying OmlFileOutStream to file %s at %p\n", self->dest, self);
+
+  if (self->f != NULL) {
+    ret = fclose(self->f);
+    self->f = NULL;
+  }
+  oml_free(self->dest);
+  oml_free(self);
+  return ret;
 }
 
 /** * Set the buffering startegy of an OmlOutStream
@@ -139,7 +153,7 @@ file_stream_set_buffered(OmlOutStream* hdl, int buffered)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
 
-  if (self == NULL) return -1;
+  if (!self) { return -1; }
 
   if(buffered) {
     hdl->write=file_stream_write;
@@ -162,30 +176,9 @@ file_stream_get_buffered(OmlOutStream* hdl)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
 
-  if (self == NULL) return -1;
+  if (!self) { return -1; }
 
   return (hdl->write==file_stream_write);
-}
-
-/** Close an OmlFileOutStream's output file
- * \param hdl pointer to the OmlFileOutStream
- * \return amount of data written, or -1 on error
- */
-static int
-file_stream_close(OmlOutStream* hdl)
-{
-  OmlFileOutStream* self = (OmlFileOutStream*)hdl;
-  int ret = -1;
-
-  logdebug("Destroying OmlFileOutStream to file %s at %p\n", self->dest, self);
-
-  if (self->f != NULL) {
-    ret = fclose(self->f);
-    self->f = NULL;
-  }
-  oml_free(self->dest);
-  oml_free(self);
-  return ret;
 }
 
 /*
