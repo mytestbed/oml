@@ -208,13 +208,18 @@ out_stream_write_header(OmlOutStream* self)
 
 /** Set the pointer to the opaque data structure containing the headers
  *
- * *ONLY USE MBUFFERS HERE*
+ * \warning Only use MBuffer objects here
  *
- * XXX: All this "opaque data structure" nonsense is to avoid exposing MBuffers
+ * \bug All this "opaque data structure" nonsense is to avoid exposing MBuffers
  * to the user; see #1318. This is not very good for us, as we lose
  * type-checking.
  *
- * \see OmlFileOutStream, OmlNetOutStream
+ * \copydetails oml_outs_set_header_data_f
+ *
+ * If the OmlOutStream defined a specific function to do this, call it, or
+ * default to just setting outs->header_data.
+ *
+ * \see OmlFileOutStream, OmlNetOutStream, OmlOutStream::header_data
  */
 void*
 out_stream_set_header_data(struct OmlOutStream* outs, void* header_data)
@@ -223,8 +228,14 @@ out_stream_set_header_data(struct OmlOutStream* outs, void* header_data)
 
   if(!outs) { return NULL; }
 
-  old = outs->header_data;
-  outs->header_data = header_data;
+  if(outs->set_header_data) {
+    old = outs->set_header_data(outs, header_data);
+
+  } else {
+    old = outs->header_data;
+    outs->header_data = header_data;
+
+  }
 
   return old;
 }

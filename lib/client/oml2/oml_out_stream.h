@@ -65,6 +65,16 @@ typedef ssize_t (*oml_outs_write_immediate_f)(struct OmlOutStream* outs, uint8_t
  */
 typedef int (*oml_outs_close_f)(struct OmlOutStream* outs);
 
+/** Interface to set the object containing header data
+ *
+ * \param outs OmlOutStream to manipulate
+ * \param header_data pointer to the opaque data structure containing the headers (can be NULL)
+ * \return a pointer to the old structure, cast as a (void*)
+ *
+ * \see OmlOutStream::write, out_stream_write, out_stream_set_header_data, OmlOutStream::header_data
+ */
+typedef void* (*oml_outs_set_header_data_f)(struct OmlOutStream* outs, void* header_data);
+
 /** Create an OmlOutStream for the specified URI
  *
  * \param uri	collection URI
@@ -95,14 +105,6 @@ ssize_t out_stream_write(struct OmlOutStream* self, uint8_t* buffer, size_t leng
  */
 struct OmlOutStream* create_out_stream(const char *uri);
 
-/** Set the pointer to the opaque data structure containing the headers
- * \param outs OmlOutStream to manipulate
- * \param header_data pointer to the opaque data structure containing the headers (can be NULL)
- * \return a pointer to the old structure, cast as a (void*)
- * \see OmlOutStream::header_data
- */
-void* out_stream_set_header_data(struct OmlOutStream* outs, void* header_data);
-
 /** Immediately write data into stream
  *
  * \param outs OmlOutStream to write into
@@ -115,6 +117,24 @@ void* out_stream_set_header_data(struct OmlOutStream* outs, void* header_data);
  */
 ssize_t out_stream_write_immediate(struct OmlOutStream* self, uint8_t* buffer, size_t length);
 
+/** Close OmlOutStream
+ *
+ * \param writer OmlOutStream to close
+ * \return 0 on success, -1 otherwise
+ *
+ * \see oml_outs_close_f
+ */
+int out_stream_close(struct OmlOutStream* self);
+
+/** Set the pointer to the opaque data structure containing the headers
+ *
+ * \param outs OmlOutStream to manipulate
+ * \param header_data pointer to the opaque data structure containing the headers (can be NULL)
+ * \return a pointer to the old structure, cast as a (void*)
+ * \see OmlOutStream::header_data
+ */
+void* out_stream_set_header_data(struct OmlOutStream* outs, void* header_data);
+
 /** Write header information if not already done, and record this fact
  *
  * This function call writefp to write the header data if self->header_written is 0.
@@ -126,15 +146,6 @@ ssize_t out_stream_write_immediate(struct OmlOutStream* self, uint8_t* buffer, s
  */
 ssize_t out_stream_write_header(struct OmlOutStream* outs);
 
-/** Close OmlOutStream
- *
- * \param writer OmlOutStream to close
- * \return 0 on success, -1 otherwise
- *
- * \see oml_outs_close_f
- */
-int out_stream_close(struct OmlOutStream* self);
-
 /** A low-level output stream */
 typedef struct OmlOutStream {
   /** Pointer to a function in charge of writing into the stream \see oml_outs_write_f */
@@ -143,6 +154,8 @@ typedef struct OmlOutStream {
   oml_outs_write_immediate_f write_immediate;
   /** Pointer to a function in charge of closing the stream \see oml_outs_close_f */
   oml_outs_close_f close;
+  /** Pointer to a function in charge of setting header data \see oml_outs_set_header_data_f */
+  oml_outs_set_header_data_f set_header_data;
   /** Description of this output stream, usually overriden by a URI or filename */
   char* dest;
   /** Pointer to data structure containing the header data to be transmitted at the beginning; not owned by the OmlOutStream \see out_stream_set_header_data*/
