@@ -148,20 +148,15 @@ ssize_t out_stream_write_header(struct OmlOutStream* outs);
 
 /** A low-level output stream */
 typedef struct OmlOutStream {
-  /** Pointer to a function in charge of writing into the stream \see oml_outs_write_f */
-  oml_outs_write_f write;
-  /** Pointer to a function in charge of immediately writing data into the underlying stream \see oml_outs_write_immediate_f*/
-  oml_outs_write_immediate_f write_immediate;
-  /** Pointer to a function in charge of closing the stream \see oml_outs_close_f */
-  oml_outs_close_f close;
-  /** Pointer to a function in charge of setting header data \see oml_outs_set_header_data_f */
-  oml_outs_set_header_data_f set_header_data;
-  /** Description of this output stream, usually overriden by a URI or filename */
-  char* dest;
-  /** Pointer to data structure containing the header data to be transmitted at the beginning; not owned by the OmlOutStream \see out_stream_set_header_data*/
-  void* header_data;
-  /** True if header has been written to the stream */
-  int   header_written;
+  oml_outs_write_f write;                     /**< Pointer to a function in charge of writing into the stream \see out_stream_write */
+  oml_outs_write_immediate_f write_immediate; /**< Pointer to a function in charge of immediately writing data into the underlying stream \see out_stream_write_immediate */
+  oml_outs_close_f close;                     /**< Pointer to a function in charge of closing the stream \see out_stream_close */
+  oml_outs_set_header_data_f set_header_data; /**< Pointer to a function in charge of setting header data \see out_stream_set_header_data */
+
+  char* dest; /**< Description of this output stream, usually overriden by a URI or filename */
+
+  void* header_data;                          /**< Pointer to data structure containing the header data to be transmitted at the beginning; not owned by the OmlOutStream \see out_stream_set_header_data, OmlOutStream::set_header_data */
+  int   header_written;                       /**< True if header has been written to the stream */
 } OmlOutStream;
 
 extern OmlOutStream *file_stream_new(const char *file);

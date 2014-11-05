@@ -18,7 +18,7 @@
 
 typedef struct OmlFileOutStream {
 
-  OmlOutStream os;
+  OmlOutStream os;                /**< OmlOutStream header */
 
   /*
    * Fields specific to the OmlFileOutStream

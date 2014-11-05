@@ -240,7 +240,13 @@ out_stream_set_header_data(struct OmlOutStream* outs, void* header_data)
   return old;
 }
 
-/** Close OmlOutStream */
+/** Close OmlOutStream
+ *
+ * Free self->dest and self after having called self->close if present.
+ *
+ * \copydetails oml_outs_close_f
+ *
+ */
 inline int
 out_stream_close(OmlOutStream* self)
 {

@@ -18,21 +18,17 @@
 /** OmlOutStream writing out to an OComm Socket */
 typedef struct OmlNetOutStream {
 
-  OmlOutStream os;
+  OmlOutStream os;                /**< OmlOutStream header */
 
   /*
    * Fields specific to the OmlNetOutStream
    */
 
-  /** OComm Socket in which the data is written */
-  Socket*    socket;
+  Socket*    socket;              /**< OComm Socket in which the data is written */
 
-  /** Protocol used to establish the connection */
-  char*       protocol;
-  /** Host to connect to */
-  char*       host;
-  /** Service to connect to */
-  char*       service;
+  char*       protocol;           /**< Protocol used to establish the connection */
+  char*       host;               /**< Host to connect to */
+  char*       service;            /**< Service to connect to */
 
 } OmlNetOutStream;
 
