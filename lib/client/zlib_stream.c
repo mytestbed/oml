@@ -87,7 +87,7 @@ zlib_stream_new(OmlOutStream *out)
 static ssize_t
 zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
 {
-  int ret = -1;
+  int ret = -1, deflate_ret = -1, more_data = 0;
   int have, had = self->strm.avail_in, had_this_round;
 
   assert(self);
@@ -100,24 +100,36 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
     self->strm.avail_out = self->chunk_size;
     self->strm.next_out = self->out;
 
-    switch(deflate(&self->strm, flush)) {
+    switch(deflate_ret=deflate(&self->strm, flush)) {
     case Z_STREAM_ERROR:
                         logerror("%s: Error deflating data\n", self->os.dest);
                         /* XXX: terminate stream */
-                        return -1;
+                        ret = -1;
+                        break;
+
+    case Z_OK: /* do something if flush == Z_finish */
+                        if(Z_FINISH == flush) {
+                          more_data = 1;
+                        }
+                        /* Continue to the next block */
+    case Z_STREAM_END:
+                        have = self->chunk_size - self->strm.avail_out;
+                        logdebug3("%s: Deflated %dB to %dB and wrote out to %s\n",
+                            self->os.dest, had_this_round - self->strm.avail_in, have, self->outs->dest);
+                        ret = out_stream_write(self->outs, self->out, have);
+                        break;
+
+    default:
+                        logerror("%s: Unknow return from deflate: %d\n", self->os.dest, deflate_ret);
                         break;
     }
 
-    have = self->chunk_size - self->strm.avail_out;
-    logdebug3("%s: Deflated %dB to %dB and wrote out to %s\n",
-        self->dest, had_this_round - self->strm.avail_in, have, self->os->dest);
-    ret = self->os->write(self->os, self->out, have);
+  } while(ret > -1 &&               /* Writing was successful, and */
+      (self->strm.avail_out == 0 || /* While all the output buffer was used or */
+       more_data)                   /* More compressed output should be coming before the end */
+      );
 
-  } while(self->strm.avail_out == 0 /* While all the output buffer is used */
-      || (Z_FINISH == flush && Z_OK == ret /* More compressed output coming */
-       ));
-
-  return had - self->strm.avail_in;
+  return (ret>-1)?(had - self->strm.avail_in):-1;
 }
 
 
