@@ -52,7 +52,8 @@ To build this example without installing the OML components system wide, run
 The generator can then be run with, e.g.,
 
     LD_LIBRARY_PATH=$PWD/../../lib/client/.libs:$PWD/../../lib/ocomm/.libs \
-      ./generator -n 10 -i .5  --oml-id generator --oml-domain test
+      ./generator -n 10 -i .5 -a 100 -f .025 \
+      --oml-id generator --oml-domain test
 
 
 [oml-scaffold-tute]: http://oml.mytestbed.net/projects/oml/wiki/OML2_scaffold_Tutorial
