@@ -48,14 +48,14 @@ zlib_stream_new(OmlOutStream *out)
   self->os = out;
 
   /* Initialise Zlib stream*/
-  self->chunk_size = 16384; /* XXX */
-  self->zlevel = Z_DEFAULT_COMPRESSION;
+  self->chunk_size = OML_ZLIB_CHUNKSIZE;
+  self->zlevel = OML_ZLIB_ZLEVEL;
 
   self->strm.zalloc = Z_NULL;
   self->strm.zfree = Z_NULL;
   self->strm.opaque = Z_NULL;
-  if (deflateInit2(&self->strm, self->zlevel, Z_DEFLATED, OML_ZLIB_WINDOWBITS, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
-    logerror("%s: Cannot allocate Zlib structure", self->dest);
+  if (deflateInit2(&self->strm, self->zlevel, Z_DEFLATED, OML_ZLIB_WINDOWBITS, 8, OML_ZLIB_STRATEGY) != Z_OK) {
+    logerror("%s: Cannot allocate Zlib structure", self->os.dest);
     oml_free(self);
     return NULL;
   }
@@ -136,7 +136,7 @@ zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length)
   self->strm.avail_in = length;
   self->strm.next_in = buffer;
 
-  ret = zlib_stream_deflate_write(self, Z_NO_FLUSH);
+  ret = zlib_stream_deflate_write(self, OML_ZLIB_FLUSH);
 
   return ret;
 }
