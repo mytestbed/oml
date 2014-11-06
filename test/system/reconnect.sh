@@ -10,7 +10,7 @@
 # in the License.
 #
 # Can be run manually as
-#  top_srcdir=../.. srcdir=. top_builddir=../.. builddir=. ./reconnect.sh [--text]
+#  top_srcdir=../.. srcdir=. top_builddir=../.. builddir=. ./reconnect.sh [--text] [--gzip]
 #
 N=${0/#.\//$PWD\/}		# Get script name, replacing ./ with a full path
 srcdir=${srcdir/#./$PWD\/.}	# Ditto for directories
@@ -19,13 +19,23 @@ builddir=${builddir/#./$PWD\/.}
 
 BN=`basename $0`
 DOMAIN=${BN%%.sh}
-if [ "$1" = "--text" ]; then
-	OPTARGS=--oml-text
-	DOMAIN=${DOMAIN}-text
-	MODE=text
-else
-	MODE=binary
-fi
+MODE=binary
+OUTFILTER=cat
+while [ $# -ge 0 ] ; do
+	case $1 in
+		"--text")
+			OPTARGS=--oml-text
+			DOMAIN=${DOMAIN}-text
+			MODE=${MODE/binary/text} # Avoid losing a potential suffix
+			;;
+		"--gzip")
+			OPTSCHEME=gzip+
+			DOMAIN=${DOMAIN}-gzip
+			MODE=${MODE}-gzip
+			;;
+	esac
+	shift || break
+done
 
 OMSPDUMP="${DOMAIN}.omsp"
 n=15
@@ -54,12 +64,12 @@ port=$((RANDOM + 32766))
 # which confuses it into (sometimes) closing the reverse connection to the
 # client when put in the background, which in turns leads the client
 # to disconnect
-${NC} -ld $port > ${OMSPDUMP} &
+${NC} -ld $port > ${OMSPDUMP}.out &
 tap_test "start netcat" yes test x$? == x0
 NCPID=$!
 tap_message "started $NC with PID $NCPID (might need manual killing if the suit bails out)"
 
-${builddir}/blobgen -f 10 -n $n -i 1000 ${OPTARGS} --oml-id generator --oml-domain ${DOMAIN} --oml-collect localhost:$port > ${DOMAIN}-client.log 2>&1 &
+${builddir}/blobgen -f 10 -n $n -i 1000 ${OPTARGS} --oml-id generator --oml-domain ${DOMAIN} --oml-collect ${OPTSCHEME}tcp://localhost:$port > ${DOMAIN}-client.log 2>&1 &
 tap_test "start blobgen" yes test x$? == x0
 GENPID=$!
 tap_message "started blobgen with PID $GENPID (might need manual killing if the suit bails out)"
@@ -70,19 +80,22 @@ tap_test "kill netcat ($NCPID)" no kill $NCPID
 tap_message "waiting some more..."
 sleep 2
 
-${NC} -ld $port >> ${OMSPDUMP} &
+${NC} -ld $port >> ${OMSPDUMP}.out &
 tap_test "start new netcat" yes test x$? == x0
 NCPID=$!
 tap_message "started new $NC with PID $NCPID (might need manual killing if the suit bails out)"
 
-tap_message "waiting some more..."
-sleep 10
+tap_message "waiting for $GENPID to finish..."
+while kill -0 $GENPID; do
+	sleep 1
+done
 
 tap_message "killing netcat ($NCPID), in case it's still around..."
 kill $NCPID
 tap_message "waiting some more..."
 sleep 2
 
+tap_test "post-process output to plain OMSP" yes $(${OUTFILTER} ${OMSPDUMP}.out > ${OMSPDUMP})
 tap_test "confirm that headers were sent twice" yes test `grep -a start-time ${OMSPDUMP} | wc -l` -eq 2
 tap_test "confirm that all data was received" yes test `strings ${OMSPDUMP} | grep sample- | wc -l` -eq $n # The generator has two string outputs
 
