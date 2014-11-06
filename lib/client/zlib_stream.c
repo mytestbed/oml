@@ -23,6 +23,7 @@
 
 static ssize_t zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length);
 static int zlib_stream_close(OmlOutStream* stream);
+static void *zlib_stream_set_header_data(struct OmlOutStream* stream, void* header_data);
 
 /** Create a new OmlOutStream writing compressed data into another OmlOutStream
  * \param out pointer to the downstream OmlOutStream into which the compressed data will be written
@@ -43,9 +44,10 @@ zlib_stream_new(OmlOutStream *out)
 
   logdebug("%s: Created OmlZlibOutStream\n", self->os.dest);
 
-  self->write = zlib_stream_write;
-  self->close = zlib_stream_close;
-  self->os = out;
+  self->os.write = zlib_stream_write;
+  self->os.set_header_data= zlib_stream_set_header_data;
+  self->os.close = zlib_stream_close;
+  self->outs = out;
 
   /* Initialise Zlib stream*/
   self->chunk_size = OML_ZLIB_CHUNKSIZE;
@@ -118,6 +120,8 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
   return had - self->strm.avail_in;
 }
 
+
+
 /** Compress input data and write into downstream OmlOutStream
  * \see oml_outs_write_f
  */
@@ -144,15 +148,15 @@ zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length)
 /** Called to close the socket
  * \see oml_outs_close_f
  */
-  static int
+static int
 zlib_stream_close(OmlOutStream* stream)
 {
   int ret = -1;
   ssize_t len;
   OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
 
+  if (!self) { return -1; }
   assert(self);
-  assert(self->os);
 
   logdebug("Destroying OmlZlibOutStream to file %s at %p\n", self->os.dest, self);
 
@@ -169,6 +173,20 @@ zlib_stream_close(OmlOutStream* stream)
   oml_free(self);
 
   return ret;
+}
+
+/** Pass on the header data to the underlying stream
+ * \see oml_outs_set_header_data_f
+ */
+static void*
+zlib_stream_set_header_data(struct OmlOutStream* stream, void* header_data)
+{
+  OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
+
+  if (!self) { return NULL; }
+  assert(self->outs);
+
+  return out_stream_set_header_data(self->outs, header_data);
 }
 
 /*
