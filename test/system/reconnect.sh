@@ -10,7 +10,7 @@
 # in the License.
 #
 # Can be run manually as
-#  top_srcdir=../.. srcdir=. top_builddir=../.. builddir=. ./reconnect.sh [--text] [--gzip]
+#  top_srcdir=../.. srcdir=. top_builddir=../.. builddir=. TIMEOUT=`which timeout` ./reconnect.sh [--text] [--gzip]
 #
 N=${0/#.\//$PWD\/}		# Get script name, replacing ./ with a full path
 srcdir=${srcdir/#./$PWD\/.}	# Ditto for directories
@@ -32,16 +32,24 @@ while [ $# -ge 0 ] ; do
 			OPTSCHEME=gzip+
 			DOMAIN=${DOMAIN}-gzip
 			MODE=${MODE}-gzip
+			OUTFILTER="gunzip -c"
 			;;
 	esac
 	shift || break
 done
 
-OMSPDUMP="${DOMAIN}.omsp"
-n=15
-
 LOG=$PWD/${DOMAIN}.log
 source ${srcdir}/tap_helper.sh
+
+OMSPDUMP="${DOMAIN}.omsp"
+NSAMPLES=10
+GENINTERVAL=1000 #ms
+TO=$((NSAMPLES*GENINTERVAL/900)) # That's a banker's second
+if [ ! -z "${TIMEOUT}" ]; then
+	TIMEOUT="${TIMEOUT} -k ${TO}s $((TO*3))s"
+else
+	tap_message "timeout(1) utility not found; this test might hang indefinitely"
+fi
 
 # On Debian-ishes, we need netcat-openbsd;
 # it can also be set to be the default with
@@ -69,7 +77,7 @@ tap_test "start netcat" yes test x$? == x0
 NCPID=$!
 tap_message "started $NC with PID $NCPID (might need manual killing if the suit bails out)"
 
-${builddir}/blobgen -f 10 -n $n -i 1000 ${OPTARGS} --oml-id generator --oml-domain ${DOMAIN} --oml-collect ${OPTSCHEME}tcp://localhost:$port > ${DOMAIN}-client.log 2>&1 &
+${TIMEOUT} ${builddir}/blobgen -f 10 -n ${NSAMPLES} -i ${GENINTERVAL} ${OPTARGS} --oml-id generator --oml-domain ${DOMAIN} --oml-collect ${OPTSCHEME}tcp://localhost:$port > ${DOMAIN}-client.log 2>&1 &
 tap_test "start blobgen" yes test x$? == x0
 GENPID=$!
 tap_message "started blobgen with PID $GENPID (might need manual killing if the suit bails out)"
@@ -97,7 +105,7 @@ sleep 2
 
 tap_test "post-process output to plain OMSP" yes $(${OUTFILTER} ${OMSPDUMP}.out > ${OMSPDUMP})
 tap_test "confirm that headers were sent twice" yes test `grep -a start-time ${OMSPDUMP} | wc -l` -eq 2
-tap_test "confirm that all data was received" yes test `strings ${OMSPDUMP} | grep sample- | wc -l` -eq $n # The generator has two string outputs
+tap_test "confirm that all data was received" yes test `strings ${OMSPDUMP} | grep sample- | wc -l` -eq ${NSAMPLES} # The generator has two string outputs
 
 #tap_message "full OMSP follows"
 #cat ${OMSPDUMP}
