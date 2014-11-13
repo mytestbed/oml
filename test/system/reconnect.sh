@@ -21,6 +21,7 @@ BN=`basename $0`
 DOMAIN=${BN%%.sh}
 MODE=binary
 OUTFILTER=cat
+DATACHECK=tap_test
 while [ $# -ge 0 ] ; do
 	case $1 in
 		"--text")
@@ -33,6 +34,8 @@ while [ $# -ge 0 ] ; do
 			DOMAIN=${DOMAIN}-gzip
 			MODE=${MODE}-gzip
 			OUTFILTER="gunzip -c"
+			# As Gzip data is bundled together, we cannot guarantee that no data will be lost
+			DATACHECK=tap_skip
 			;;
 	esac
 	shift || break
@@ -105,7 +108,7 @@ sleep 2
 
 tap_test "post-process output to plain OMSP" yes $(${OUTFILTER} ${OMSPDUMP}.out > ${OMSPDUMP})
 tap_test "confirm that headers were sent twice" yes test `grep -a start-time ${OMSPDUMP} | wc -l` -eq 2
-tap_test "confirm that all data was received" yes test `strings ${OMSPDUMP} | grep sample- | wc -l` -eq ${NSAMPLES} # The generator has two string outputs
+eval "${DATACHECK} \"confirm that all data was received\" yes test `strings ${OMSPDUMP} | grep sample- | wc -l` -eq ${NSAMPLES}" # The generator has two string outputs
 
 #tap_message "full OMSP follows"
 #cat ${OMSPDUMP}
