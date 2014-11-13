@@ -21,7 +21,10 @@
 #include "oml2/oml_out_stream.h"
 #include "zlib_stream.h"
 
+static int zlib_stream_init(OmlZlibOutStream *self);
 static ssize_t zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length);
+static ssize_t zlib_stream_write_immediate(OmlOutStream* stream, uint8_t* buffer, size_t  length);
+static inline ssize_t _zlib_stream_write(OmlZlibOutStream* self, uint8_t* buffer, size_t  length, int flush);
 static int zlib_stream_close(OmlOutStream* stream);
 static void *zlib_stream_set_header_data(struct OmlOutStream* stream, void* header_data);
 
@@ -45,18 +48,12 @@ zlib_stream_new(OmlOutStream *out)
   logdebug("%s: Created OmlZlibOutStream\n", self->os.dest);
 
   self->os.write = zlib_stream_write;
-  self->os.set_header_data= zlib_stream_set_header_data;
+  self->os.write_immediate = zlib_stream_write_immediate;
+  /* self->os.set_header_data = zlib_stream_set_header_data; */
   self->os.close = zlib_stream_close;
   self->outs = out;
 
-  /* Initialise Zlib stream*/
-  self->chunk_size = OML_ZLIB_CHUNKSIZE;
-  self->zlevel = OML_ZLIB_ZLEVEL;
-
-  self->strm.zalloc = Z_NULL;
-  self->strm.zfree = Z_NULL;
-  self->strm.opaque = Z_NULL;
-  if (deflateInit2(&self->strm, self->zlevel, Z_DEFLATED, OML_ZLIB_WINDOWBITS, 8, OML_ZLIB_STRATEGY) != Z_OK) {
+  if (zlib_stream_init(self)) {
     logerror("%s: Cannot allocate Zlib structure", self->os.dest);
     oml_free(self);
     return NULL;
@@ -71,6 +68,32 @@ zlib_stream_new(OmlOutStream *out)
     oml_free(self);
   }
   return (OmlOutStream*)self;
+}
+
+/** (Re)initialise the Zlib stream.
+ * \param self OmlZlibOutStream which Zlib stream needs (re)initialisation
+ *
+ * \return 0 on success, -1 otherwise
+ * \see deflateInit2
+ */
+static int
+zlib_stream_init(OmlZlibOutStream *self)
+{
+  int ret = -1;
+
+  /* New stream; start by sending headers */
+  self->os.header_written = 0;
+
+  /* Initialise Zlib stream*/
+  self->chunk_size = OML_ZLIB_CHUNKSIZE;
+  self->zlevel = OML_ZLIB_ZLEVEL;
+
+  self->strm.zalloc = Z_NULL;
+  self->strm.zfree = Z_NULL;
+  self->strm.opaque = Z_NULL;
+  ret = deflateInit2(&self->strm, self->zlevel, Z_DEFLATED, OML_ZLIB_WINDOWBITS, 8, OML_ZLIB_STRATEGY);
+
+  return ret;
 }
 
 /** Drain the input buffer, compressing and writing the data out
@@ -106,7 +129,6 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
                         /* XXX: terminate stream */
                         ret = -1;
                         break;
-
     case Z_OK: /* do something if flush == Z_finish */
                         if(Z_FINISH == flush) {
                           more_data = 1;
@@ -129,35 +151,63 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
        more_data)                   /* More compressed output should be coming before the end */
       );
 
+  if (ret<0) {
+    /* Get ready to send again */
+    zlib_stream_init(self);
+  }
+
   return (ret>-1)?(had - self->strm.avail_in):-1;
 }
 
-
-
 /** Compress input data and write into downstream OmlOutStream
+ * \copydetails oml_outs_write_f
  * \see oml_outs_write_f
  */
 static ssize_t
 zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length)
 {
-  int ret = -1;
   OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
 
+  return _zlib_stream_write(self, buffer, length, OML_ZLIB_FLUSH);
+}
+
+/** Immediately write data into stream
+ * \copydetails oml_outs_write_immediate_f
+ * \see oml_outs_write_immediate_f
+ */
+static ssize_t
+zlib_stream_write_immediate(OmlOutStream* stream, uint8_t* buffer, size_t  length)
+{
+  OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
+
+  return _zlib_stream_write(self, buffer, length, Z_FULL_FLUSH);
+}
+
+/** Helper in charge of actually passing the data to deflate(), with the selected flush mode.
+ * \param self OmlZlibOutStream to write into
+ * \param buffer pointer to the beginning of the data to write
+ * \param length length of data to read from buffer
+ * \param flush instruct Zlib to flush output or not, should be one of (Z_NO_FLUSH, Z_SYNC_FLUSH, Z_PARTIAL_FLUSH, Z_BLOCK, Z_FULL_FLUSH or Z_FINISH; \see deflate)
+ *
+ * \return the number of sent bytes on success, -1 otherwise
+ *
+ * \see oml_outs_write_f, zlib_stream_write, zlib_stream_write_immediate, zlib_stream_deflate_write, deflate
+ */
+static inline ssize_t
+_zlib_stream_write(OmlZlibOutStream* self, uint8_t* buffer, size_t  length, int flush)
+{
   if (!self) { return -1; }
   if (!self->outs) { return -1; }
   if (!length) { return 0; }
 
-  /* Header (re)writing management is done by the underlying OmlOutStream*/
-
   self->strm.avail_in = length;
   self->strm.next_in = buffer;
 
-  ret = zlib_stream_deflate_write(self, OML_ZLIB_FLUSH);
-
-  return ret;
+  return zlib_stream_deflate_write(self, flush);
 }
 
 /** Called to close the socket
+ * \copydetails oml_outs_close_f
  * \see oml_outs_close_f
  */
 static int
@@ -188,6 +238,7 @@ zlib_stream_close(OmlOutStream* stream)
 }
 
 /** Pass on the header data to the underlying stream
+ * \copydetails oml_outs_set_header_data_f
  * \see oml_outs_set_header_data_f
  */
 static void*
