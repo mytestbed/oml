@@ -14,6 +14,7 @@
 #include <assert.h>
 #include <string.h>
 #include <zlib.h>
+#include <sys/time.h>
 
 #include "oml2/omlc.h"
 #include "mem.h"
@@ -151,6 +152,14 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
        more_data)                   /* More compressed output should be coming before the end */
       );
 
+  if(Z_NO_FLUSH == flush) {
+    self->nwrites++;
+
+  } else {
+    time(&self->last_flush);
+    self->nwrites = 0;
+  }
+
   if (ret<0) {
     /* Get ready to send again */
     zlib_stream_init(self);
@@ -166,9 +175,17 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
 static ssize_t
 zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length)
 {
+  time_t t;
+  int flush = OML_ZLIB_FLUSH;
   OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
 
-  return _zlib_stream_write(self, buffer, length, OML_ZLIB_FLUSH);
+  time(&t);
+  if (self->nwrites>=10 ||
+      (t-self->last_flush) > 1) {
+    flush = Z_FULL_FLUSH;
+  }
+
+  return _zlib_stream_write(self, buffer, length, flush);
 }
 
 /** Immediately write data into stream

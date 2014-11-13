@@ -12,6 +12,7 @@
  * \see OmlOutStream
  */
 #include <zlib.h>
+#include <sys/time.h>
 
 #include "oml2/oml_out_stream.h"
 #include "mbuf.h"
@@ -50,6 +51,8 @@ typedef struct OmlZlibOutStream {
   uint8_t*  out_length;         /**< output buffer length*/
   uint8_t*  out_wr_offset;      /**< output buffer write offset */
 
+  time_t    last_flush;         /**< last time the Zlib stream was force-flushed */
+  int       nwrites;             /**< number of times OmlZlibOutStream::write has been called since last fush */
 
 } OmlZlibOutStream;
 
