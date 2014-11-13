@@ -187,21 +187,28 @@ out_stream_write_header(OmlOutStream* self)
 
   if (!self) { return -1; }
 
-  if ((hdrmbuf=(MBuffer*)self->header_data)) {
-
-    header = mbuf_rdptr(hdrmbuf);
-    header_length  = mbuf_fill(hdrmbuf);
-
-  if (! self->header_written) {
-    if ((count = out_stream_write_immediate(self, header, header_length)) < 0) {
-      logerror("%s: Error writing header: %s\n", self->dest, strerror(errno));
-      return -1;
+  if (!self->header_written) {
+    if (!(hdrmbuf=(MBuffer*)self->header_data)) {
+      /* No headers to write, easy */
+      self->header_written = 1;
 
     } else {
-      if (((size_t)count < header_length))
-        logwarn("%s: Only wrote parts of the header; this might cause problem later on\n", self->dest);
+      header = mbuf_rdptr(hdrmbuf);
+      header_length  = mbuf_fill(hdrmbuf);
+
+      loginfo("%s: writing headers\n", self->dest);
+
+      if ((count = out_stream_write_immediate(self, header, header_length)) < 0) {
+        logerror("%s: Error writing header: %s\n", self->dest, strerror(errno));
+        count = -1;
+
+      } else {
+        self->header_written = 1;
+        if ((size_t)count < header_length) {
+          logwarn("%s: Only wrote parts of the header; this might cause problem later on\n", self->dest);
+        }
+
       }
-      self->header_written = 1;
     }
   }
 

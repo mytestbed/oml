@@ -100,11 +100,6 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length)
     }
   }
 
-  /* If the underlying socket has registered a disconnection, it will reconnect on its own
-   * however, we need to check it to make sure we send the headers before anything else */
-  if(socket_is_disconnected(self->socket)) {
-    self->os.header_written = 0;
-  }
 
   out_stream_write_header(hdl);
 
@@ -130,9 +125,15 @@ net_stream_write_immediate(OmlOutStream* outs, uint8_t* buffer, size_t  length)
 
   int result = socket_sendto(self->socket, (char*)buffer, length);
 
-  if (result == -1 && socket_is_disconnected (self->socket)) {
+  if (result < 1 && socket_is_disconnected (self->socket)) {
     logwarn ("%s: Connection lost\n", self->os.dest);
-    self->socket = NULL;      // Server closed the connection
+    if (!result) {
+      self->os.header_written = 0;
+
+    } else { /* result < 0 */
+      socket_free(self->socket);
+      self->socket = NULL;
+    }
   }
   return result;
 }
