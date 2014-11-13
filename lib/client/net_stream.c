@@ -167,6 +167,7 @@ socket_write(OmlOutStream* outs, uint8_t* buffer, size_t  length)
 
   if (result == -1 && socket_is_disconnected (self->socket)) {
     logwarn ("%s: Connection lost\n", self->dest);
+    socket_free(self->socket);
     self->socket = NULL;      // Server closed the connection
   }
   return result;
