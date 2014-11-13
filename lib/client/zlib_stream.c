@@ -147,20 +147,27 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
                         break;
     }
 
-  } while(ret > -1 &&               /* Writing was successful, and */
+  } while(ret > 0 &&               /* Writing was successful, and */
       (self->strm.avail_out == 0 || /* While all the output buffer was used or */
        more_data)                   /* More compressed output should be coming before the end */
       );
 
-  if(Z_NO_FLUSH == flush) {
-    self->nwrites++;
 
-  } else {
-    time(&self->last_flush);
-    self->nwrites = 0;
-  }
+  if (ret) {
+    if(Z_NO_FLUSH == flush) {
+      self->nwrites++;
 
-  if (ret<0) {
+    } else {
+      time(&self->last_flush);
+      self->nwrites = 0;
+    }
+
+  } else if(0 == ret) {
+    /* XXX No data was written, but we don't know why.
+     * adopt the view of the underlying stream about the headers in case they need to be resent */
+    self->os.header_written = self->outs->header_written;
+
+  } else { /* ret < 0 */
     /* Get ready to send again */
     zlib_stream_init(self);
   }
@@ -178,6 +185,9 @@ zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length)
   time_t t;
   int flush = OML_ZLIB_FLUSH;
   OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
+
+  self->os.header_written = self->outs->header_written;
+  out_stream_write_header(stream);
 
   time(&t);
   if (self->nwrites>=10 ||
