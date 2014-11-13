@@ -27,7 +27,6 @@ static ssize_t zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  
 static ssize_t zlib_stream_write_immediate(OmlOutStream* stream, uint8_t* buffer, size_t  length);
 static inline ssize_t _zlib_stream_write(OmlZlibOutStream* self, uint8_t* buffer, size_t  length, int flush);
 static int zlib_stream_close(OmlOutStream* stream);
-static void *zlib_stream_set_header_data(struct OmlOutStream* stream, void* header_data);
 
 /** Create a new OmlOutStream writing compressed data into another OmlOutStream
  * \param out pointer to the downstream OmlOutStream into which the compressed data will be written
@@ -50,7 +49,6 @@ zlib_stream_new(OmlOutStream *out)
 
   self->os.write = zlib_stream_write;
   self->os.write_immediate = zlib_stream_write_immediate;
-  /* self->os.set_header_data = zlib_stream_set_header_data; */
   self->os.close = zlib_stream_close;
   self->outs = out;
 
@@ -262,21 +260,6 @@ zlib_stream_close(OmlOutStream* stream)
   oml_free(self);
 
   return ret;
-}
-
-/** Pass on the header data to the underlying stream
- * \copydetails oml_outs_set_header_data_f
- * \see oml_outs_set_header_data_f
- */
-static void*
-zlib_stream_set_header_data(struct OmlOutStream* stream, void* header_data)
-{
-  OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
-
-  if (!self) { return NULL; }
-  assert(self->outs);
-
-  return out_stream_set_header_data(self->outs, header_data);
 }
 
 /*
