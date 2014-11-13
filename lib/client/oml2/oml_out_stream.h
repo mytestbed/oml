@@ -105,7 +105,9 @@ ssize_t out_stream_write(struct OmlOutStream* self, uint8_t* buffer, size_t leng
  */
 struct OmlOutStream* create_out_stream(const char *uri);
 
-/** Immediately write data into stream
+/** Immediately write data into stream.
+ *
+ * Default to OmlOutStream::write if NULL.
  *
  * \param outs OmlOutStream to write into
  * \param buffer pointer to the beginning of the data to write
@@ -113,7 +115,7 @@ struct OmlOutStream* create_out_stream(const char *uri);
  *
  * \return the number of sent bytes on success, -1 otherwise
  *
- * \see oml_outs_write_immediate_f
+ * \see oml_outs_write_immediate_f, oml_outs_write_f
  */
 ssize_t out_stream_write_immediate(struct OmlOutStream* self, uint8_t* buffer, size_t length);
 

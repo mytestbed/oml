@@ -169,6 +169,8 @@ out_stream_write_immediate(OmlOutStream* self, uint8_t* buffer, size_t length)
     ret = 0;
     if(self->write_immediate) {
       ret = self->write_immediate(self, buffer, length);
+    } else if(self->write) {
+      ret = self->write(self, buffer, length);
     }
   }
   return ret;
