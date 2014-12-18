@@ -551,7 +551,7 @@ END_TEST
 
 #warning test_marshal_value_blob is missing
 
-#warning test_marshall_array_double
+#warning test_marshall_array_double is missing
 
 START_TEST(test_marshal_guid)
 {

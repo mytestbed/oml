@@ -506,7 +506,7 @@ omlc_start()
       return -1;
     }
   } else {
-    if (omlc_instance->collection_uri == NULL) {
+    if (0 == *omlc_instance->collection_uri) {
       logerror("Missing --oml-collect declaration.\n");
       omlc_close();
       return -2;

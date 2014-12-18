@@ -55,6 +55,7 @@ typedef OmlValueT (*typemap)(const char *type);
 /** \see db_adapter_oml_to_type */
 typedef const char* (*reverse_typemap)(OmlValueT type);
 
+int schema_field_from_meta (const char *meta, size_t len, struct schema_field *field);
 struct schema* schema_from_meta (const char *meta);
 char *schema_to_meta (const struct schema *schema);
 struct schema* schema_from_sql (const char *sql, typemap t2o);
