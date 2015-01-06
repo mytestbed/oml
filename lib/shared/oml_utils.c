@@ -64,7 +64,7 @@ char* to_octets(unsigned char *buf, int len)
   const int outlength = rows * rowlength + 1;
   char *out = oml_malloc (outlength);
   char strrep[columns + 1];
-  int n = 0, i, col, rw=0;
+  int n = 0, i, col=0, rw=0;
 
   strrep[columns] = 0;
 
