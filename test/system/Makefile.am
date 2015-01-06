@@ -52,5 +52,19 @@ blobgen_LDADD = \
 	$(top_builddir)/lib/client/liboml2.la \
 	-lpopt
 
+if HAVE_LIBZ
+check_PROGRAMS += inflate
+
+inflate_SOURCES = inflate.c
+
+inflate_CPPFLAGS = \
+	-I$(top_srcdir)/lib/shared \
+	-I$(top_srcdir)/lib/ocomm
+
+inflate_LDADD = \
+	$(top_builddir)/lib/ocomm/libocomm.la \
+	@LIBZ_LIBS@
+endif
+
 clean-local:
 	rm -rf sq3*/ pg*/

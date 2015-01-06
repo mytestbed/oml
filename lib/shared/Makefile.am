@@ -42,3 +42,9 @@ libshared_la_SOURCES = \
 	guid.h \
 	json.c \
 	json.h
+
+if HAVE_LIBZ
+libshared_la_SOURCES +=  \
+			 zlib_utils.c \
+			 zlib_utils.h
+endif

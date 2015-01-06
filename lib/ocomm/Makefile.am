@@ -22,6 +22,7 @@ libocomm_la_SOURCES = \
 
 libocomm_la_LIBADD = \
 		     $(top_builddir)/lib/shared/libshared.la \
-		     $(PTHREAD_LIBS)
+		     $(PTHREAD_LIBS) \
+		     @LIBZ_LIBS@
 
 libocomm_la_LDFLAGS = -version-info $(LIBOCOMM_LT_VER)

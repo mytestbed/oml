@@ -15,14 +15,8 @@
 #include <sys/time.h>
 
 #include "oml2/oml_out_stream.h"
+#include "zlib_utils.h"
 #include "mbuf.h"
-
-/* Zlib parameters that we might want to adjust */
-#define OML_ZLIB_CHUNKSIZE  16384                   /**< \see OmlZlibOutStream::chunk_size */
-#define OML_ZLIB_WINDOWBITS 31                      /**< 31 makes Zlib output GZip headers \see deflateInit2. */
-#define OML_ZLIB_ZLEVEL     Z_DEFAULT_COMPRESSION   /**< \see deflateInit2 */
-#define OML_ZLIB_STRATEGY   Z_DEFAULT_STRATEGY      /**< \see deflateInit2 */
-#define OML_ZLIB_FLUSH      Z_NO_FLUSH              /**< \see deflate */
 
 typedef struct OmlZlibOutStream {
 
