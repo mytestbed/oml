@@ -33,7 +33,7 @@ while [ $# -ge 0 ] ; do
 			OPTSCHEME=gzip+
 			DOMAIN=${DOMAIN}-gzip
 			MODE=${MODE}-gzip
-			OUTFILTER="gunzip -c"
+			OUTFILTER="${builddir}/inflate"
 			# As Gzip data is bundled together, we cannot guarantee that no data will be lost
 			DATACHECK=tap_skip
 			;;

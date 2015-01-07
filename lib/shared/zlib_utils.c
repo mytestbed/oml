@@ -123,6 +123,7 @@ int
 oml_zlib_inf(FILE *source, FILE *dest)
 {
   int ret;
+  int resynced = 0;
   unsigned have;
   z_stream strm;
   unsigned char in[OML_ZLIB_CHUNKSIZE];
@@ -139,7 +140,7 @@ oml_zlib_inf(FILE *source, FILE *dest)
     return ret;
   }
 
-  /* decompress until deflate stream ends or end of file */
+  /* run inflate() on input until output buffer not full */
   do {
 
     strm.avail_in = fread(in, 1, OML_ZLIB_CHUNKSIZE, source);
@@ -147,15 +148,18 @@ oml_zlib_inf(FILE *source, FILE *dest)
       (void)inflateEnd(&strm);
       return Z_ERRNO;
     }
-    if (strm.avail_in == 0)
+    if (strm.avail_in == 0) {
       break;
+    }
     strm.next_in = in;
 
     /* run inflate() on input until output buffer not full */
     do {
 
-      strm.avail_out = OML_ZLIB_CHUNKSIZE;
-      strm.next_out = out;
+      if(!resynced) {
+        strm.avail_out = OML_ZLIB_CHUNKSIZE;
+        strm.next_out = out;
+      }
 
       ret = inflate(&strm, Z_NO_FLUSH);
       if (ret == Z_STREAM_ERROR) {  /* state not clobbered */
@@ -166,21 +170,31 @@ oml_zlib_inf(FILE *source, FILE *dest)
       case Z_NEED_DICT:
         ret = Z_DATA_ERROR;     /* and fall through */
       case Z_DATA_ERROR:
+        if (resynced == 1) {
+          resynced = 2;
+
+        } else if(inflateSync(&strm) == Z_OK) {
+          /* TODO use find_charn input stream to find either
+           * gzip header 8b1f
+           * block header 0x0000ffffi
+           */
+          resynced = 1;
+        }
+        break;
       case Z_MEM_ERROR:
         (void)inflateEnd(&strm);
         return ret;
       }
 
-
-
       have = OML_ZLIB_CHUNKSIZE - strm.avail_out;
       if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
         (void)inflateEnd(&strm);
         return Z_ERRNO;
+      } else if (have > 0) {
+        resynced = 0;
       }
 
-
-    } while (strm.avail_out == 0);
+    } while (strm.avail_out == 0 || resynced);
 
     /* done when inflate() says it's done */
   } while (ret != Z_STREAM_END);
