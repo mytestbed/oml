@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <check.h>
 
+#include "config.h"
 #include "ocomm/o_log.h"
 #include "check_libshared_suites.h"
 
@@ -37,6 +38,11 @@ main (void)
   srunner_add_suite (sr, base64_suite ());
   srunner_add_suite (sr, json_suite ());
   srunner_add_suite (sr, string_utils_suite ());
+#ifdef HAVE_LIBZ
+  srunner_add_suite (sr, zlib_utils_suite ());
+#else
+# warning "Zlib not found, zlib_utils not tested"
+#endif
   srunner_add_suite (sr, util_suite ());
   srunner_add_suite (sr, headers_suite ());
   srunner_add_suite (sr, marshal_suite ());

@@ -20,7 +20,12 @@
  *
  * \see OmlZlibOutStream;
  */
+#define _GNU_SOURCE /* For memmem(3) */
 #include <stdio.h>
+#include <stddef.h> /* ptrdiff_t is in there */
+#include <unistd.h>
+#include <inttypes.h>
+#include <string.h>
 #include <zlib.h>
 
 #include "ocomm/o_log.h"
@@ -203,6 +208,52 @@ oml_zlib_inf(FILE *source, FILE *dest)
   /* clean up and return */
   (void)inflateEnd(&strm);
   return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
+}
+
+
+/** Search for the next block or new GZip header, whichever comes first.
+ *
+ * Looks for a GZip block or new header in buf, up to len bytes.
+ *
+ * \warning This function stops after len bytes, it doesn't look for nul bytes.
+ *
+ * The two markers looked for are:
+ * - GZip header: 0x8b1f
+ * - Block header: 0x0000ffff
+ *
+ * \param buf buffer of length (at least) len
+ *
+ * \return an offset to the first marker, if found, or -1 otherwise.
+ */
+ptrdiff_t
+oml_zlib_find_sync(const char *buf, size_t len)
+{
+  ptrdiff_t offset = -1;
+  static char gziphdr[] = { 0x1f, 0x8b };
+  static char blockhdr[] = { 0x00, 0x00, 0xff, 0xff};
+  const char *gziphdrptr = NULL, *blockhdrptr = NULL;
+
+
+  /** \bug Header marker search is not the most efficient.
+   * \todo We need someting like find_charn_2 looking for the first of two markers, lather, and repeat. */
+  if (len >= 2) { gziphdrptr = memmem(buf, len, gziphdr, sizeof(gziphdr)); }
+  if (len >= 4) { blockhdrptr = memmem(buf, len, blockhdr, sizeof(blockhdr)); }
+
+  if (blockhdrptr && !gziphdrptr) {
+    offset = (ptrdiff_t)(blockhdrptr - buf);
+
+  } else if (gziphdrptr && !blockhdrptr) {
+    offset = (ptrdiff_t)(gziphdrptr - buf);
+
+  } else if (blockhdrptr && blockhdrptr < gziphdrptr) {
+    offset = (ptrdiff_t)(blockhdrptr - buf);
+
+  } else if (gziphdrptr && gziphdrptr < blockhdrptr ) {
+    offset = (ptrdiff_t)(gziphdrptr - buf);
+
+  }
+
+  return offset;
 }
 
 /*

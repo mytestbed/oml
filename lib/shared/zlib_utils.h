@@ -17,6 +17,7 @@
 #define OML_ZLIB_H_
 
 #include <stdio.h>
+#include <zlib.h>
 
 /* Zlib parameters that we might want to adjust */
 #define OML_ZLIB_CHUNKSIZE  16384                   /**< \see OmlZlibOutStream::chunk_size */
@@ -30,6 +31,8 @@
 int oml_zlib_def(FILE *source, FILE *dest, int level);
 /** Decompress from file source to file dest until stream ends or EOF. */
 int oml_zlib_inf(FILE *source, FILE *dest);
+/** Search for the next block or new GZip header, whichever comes first. */
+off_t oml_zlib_find_sync(const char *buf, size_t len);
 
 #endif /* OML_ZLIB_H_ */
 

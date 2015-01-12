@@ -58,6 +58,11 @@ check_libshared_LDADD = @CHECK_LIBS@ \
 			$(top_builddir)/lib/shared/libshared.la \
 			$(top_builddir)/lib/ocomm/libocomm.la
 
+if HAVE_LIBZ
+check_libshared_SOURCES += check_libshared_zlib_utils.c
+check_libshared_LDADD += @LIBZ_LIBS@
+endif
+
 blob:
 	dd if=$(RANDDEV) of=$@ bs=10M count=1
 
