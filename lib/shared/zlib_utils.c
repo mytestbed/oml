@@ -178,11 +178,7 @@ oml_zlib_inf(FILE *source, FILE *dest)
         if (resynced == 1) {
           resynced = 2;
 
-        } else if(inflateSync(&strm) == Z_OK) {
-          /* TODO use find_charn input stream to find either
-           * gzip header 8b1f
-           * block header 0x0000ffffi
-           */
+        } else if(oml_zlib_sync(&strm) == Z_OK) {
           resynced = 1;
         }
         break;
@@ -204,12 +200,73 @@ oml_zlib_inf(FILE *source, FILE *dest)
     /* done when inflate() says it's done */
   } while (ret != Z_STREAM_END);
 
+  if(strm.avail_in > 0) {
+    /* If same data has not been consumed, reset the file to there */
+    /* \bug fseeking back to the end of the Gzip stream will not work on stdin */
+    fseek(source, ftell(source)-(long)strm.avail_in, SEEK_SET);
+  }
 
   /* clean up and return */
   (void)inflateEnd(&strm);
   return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
 }
 
+/** Search for the next block or new GZip header, whichever comes first, and advance the string.
+ *
+ * This function looks as far as strm->avail_in, and overwrites strm->total_in
+ * with the number of bits to skip to the first, if found. It should be usable
+ * as a drop-in replacement for Zlib's inflateSync.
+ *
+ * XXX: There might be false positives. As for inflateSync, trying to inflate
+ * from the new block might return a Z_STREAM_ERROR due to a CRC32 mismatch,
+ * but the data would have been decompressed properly nonetheless [0].
+ *
+ * [0] http://newsgroups.derkeiler.com/Archive/Comp/comp.compression/2006-02/msg00327.html
+ *
+ * TODO: If a new header is found, the state should be reset.
+ *
+ * \param strm pointer to zlib's z_stream
+ *
+ * \return Z_OK if a possible full flush point has been found, Z_BUF_ERROR if
+ * no more input was provided, Z_DATA_ERROR if no flush point has been found,
+ * or Z_STREAM_ERROR if the stream structure was inconsistent.Z_OK if a
+ * potential sync point has been found, Z_DATA_ERROR otherwise.
+ *
+ * \see oml_zlib_find_sync, inflateSync
+ */
+ptrdiff_t
+oml_zlib_sync(z_streamp strm)
+{
+  int ret = Z_DATA_ERROR;
+  unsigned long in, out;
+  ptrdiff_t offset = -1;
+  size_t len;
+
+  /* From the code of inflateSync() */
+  if (strm == Z_NULL || strm->state == Z_NULL) { return Z_STREAM_ERROR; }
+  if (strm->avail_in == 0) { return Z_BUF_ERROR; }
+
+  /** \bug we should look in the state bits (in strm->state->hold), but this
+   * requires a lot of assumptions to be imported about the internal state of
+   * Zlib */
+
+  len = strm->avail_in-strm->total_in;
+
+  offset = oml_zlib_find_sync((const char*)(strm->next_in), len);
+
+  if(offset >= 0 && (unsigned)offset<=len) {
+    strm->total_in += offset;
+    strm->next_in += offset;
+    strm->avail_in -= offset;
+    ret = Z_OK;
+    in = strm->total_in;  out = strm->total_out;
+    inflateReset(strm);
+    strm->total_in = in;  strm->total_out = out;
+    ret = Z_OK;
+  }
+
+  return ret;
+}
 
 /** Search for the next block or new GZip header, whichever comes first.
  *

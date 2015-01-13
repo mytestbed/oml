@@ -31,6 +31,8 @@
 int oml_zlib_def(FILE *source, FILE *dest, int level);
 /** Decompress from file source to file dest until stream ends or EOF. */
 int oml_zlib_inf(FILE *source, FILE *dest);
+/** Search for the next block or new GZip header, whichever comes first, and advance the string. */
+off_t oml_zlib_sync(z_streamp strm);
 /** Search for the next block or new GZip header, whichever comes first. */
 off_t oml_zlib_find_sync(const char *buf, size_t len);
 
