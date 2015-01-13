@@ -24,6 +24,15 @@
 extern "C" {
 #endif
 
+/** OML2 encapsulation header.
+ * Use as
+ *
+ *     #define whateverENCAPHEADER ENCAPHEADER " value"
+ *
+ * \see OmlZlibOutStream
+ */
+#define ENCAPHEADER "encapsulation:"
+
 struct OmlOutStream;
 
 /** Interface to write a chunk into the lower level out stream

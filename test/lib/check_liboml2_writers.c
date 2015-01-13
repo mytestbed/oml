@@ -109,7 +109,7 @@ END_TEST
 
 START_TEST (test_zw_create_buffered)
 {
-  int len, len2, acc=0;
+  int len, len2, acc=0, ret;
   uint8_t buf[512], buf2[512];
   FILE *blob, *f;
   OmlOutStream *os, *fs;
@@ -153,7 +153,14 @@ START_TEST (test_zw_create_buffered)
   f = fopen(ZFN, "r");
   blob = fopen(ZFN ".blob", "w");
 
-  fail_unless(oml_zlib_inf(f,blob)==Z_OK, "Error inflating " ZFN);
+  /* TODO: read and skip first line */
+
+  /* Skip uncompressed encapsulation header */
+  ret = oml_zlib_inf(f,blob);
+  fail_unless(Z_DATA_ERROR==ret, "Error inflating " ZFN ": %d", ret);
+  /* Inflate the blob */
+  ret = oml_zlib_inf(f,blob);
+  fail_unless(Z_OK==ret, "Error inflating " ZFN ": %d", ret);
 
   fclose(f);
   fclose(blob);

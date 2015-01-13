@@ -19,6 +19,7 @@
 #include "oml2/omlc.h"
 #include "mem.h"
 #include "mstring.h"
+#include "mbuf.h"
 #include "oml2/oml_out_stream.h"
 #include "zlib_stream.h"
 
@@ -52,21 +53,38 @@ zlib_stream_new(OmlOutStream *out)
   self->os.close = zlib_stream_close;
   self->outs = out;
 
-  if (zlib_stream_init(self)) {
-    logerror("%s: Cannot allocate Zlib structure", self->os.dest);
-    oml_free(self);
-    return NULL;
+  if(!(self->encapheader = mbuf_create())) {
+    logerror("%s: Cannot allocate encapsulation header buffer", self->os.dest);
+    goto fail_free_self;
   }
 
+  if (zlib_stream_init(self)) {
+    logerror("%s: Cannot allocate Zlib structure", self->os.dest);
+    goto fail_free_mbuf;
+  }
+
+  mbuf_write(self->encapheader, (uint8_t*)(ZENCAPHEADER), sizeof(ZENCAPHEADER)-1); /* Don't want the terminating nul byte */
+  out_stream_set_header_data(self->outs, self->encapheader);
+
   if(!(self->in = oml_malloc(self->chunk_size))) {
-    logerror("%s: Cannot allocate Zlib input buffer", self->dest);
-    oml_free(self);
+    logerror("%s: Cannot allocate Zlib input buffer", self->os.dest);
+    goto fail_free_mbuf;
   } else if (!(self->out = oml_malloc(self->chunk_size))) {
-    logerror("%s: Cannot allocate Zlib output buffer", self->dest);
-    oml_free(self->in);
-    oml_free(self);
+    logerror("%s: Cannot allocate Zlib output buffer", self->os.dest);
+    goto fail_free_input;
   }
   return (OmlOutStream*)self;
+
+fail_free_input:
+  oml_free(self->in);
+
+fail_free_mbuf:
+  mbuf_destroy(self->encapheader);
+
+fail_free_self:
+  oml_free(self);
+
+  return NULL;
 }
 
 /** (Re)initialise the Zlib stream.
@@ -252,13 +270,8 @@ zlib_stream_close(OmlOutStream* stream)
   zlib_stream_deflate_write(self, Z_FINISH);
   logdebug3("%s: Flushed the last %dB of the compressed stream\n", self->os.dest, len);
   deflateEnd(&self->strm);
-  if(self->os) {
-    self->os->close(self->os);
-    self->os = NULL;
-  }
-
-  oml_free(self->dest);
-  oml_free(self);
+  out_stream_close(self->outs);
+  mbuf_destroy(self->encapheader);
 
   return ret;
 }

@@ -18,6 +18,9 @@
 #include "zlib_utils.h"
 #include "mbuf.h"
 
+/** Encapsulation header sent uncompressed into the underlying stream */
+#define ZENCAPHEADER ENCAPHEADER " gzip\n"
+
 typedef struct OmlZlibOutStream {
 
   OmlOutStream os;              /**< OmlOutStream header */
@@ -46,7 +49,9 @@ typedef struct OmlZlibOutStream {
   uint8_t*  out_wr_offset;      /**< output buffer write offset */
 
   time_t    last_flush;         /**< last time the Zlib stream was force-flushed */
-  int       nwrites;             /**< number of times OmlZlibOutStream::write has been called since last fush */
+  int       nwrites;            /**< number of times OmlZlibOutStream::write has been called since last fush */
+
+  MBuffer*  encapheader;        /**< MBuffer containing headers to be sent uncompressed on the underlying stream */
 
 } OmlZlibOutStream;
 

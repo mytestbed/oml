@@ -260,13 +260,14 @@ inline int
 out_stream_close(OmlOutStream* self)
 {
   int ret = -1;
-  if(self)
+  if(self) {
     ret = 0;
     if(self->close) {
       ret = self->close(self);
     }
-  oml_free(self->dest);
-  oml_free(self);
+    oml_free(self->dest);
+    oml_free(self);
+  }
   return ret;
 }
 

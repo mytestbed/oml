@@ -50,7 +50,10 @@
  * - OMSP V5 which is the current, most recent and implemented version (since
  *   OML 2.11); its main advantages are the support for vectors, and the
  *   introduction of a DOUBLE64_T IEEE 754 binary64 for more precision in
- *   representing doubles in binary mode (vectors only).
+ *   representing doubles in binary mode (vectors only),
+ *   - OMSPv5 was extended with an `encapsulation` header, sent before the protocol
+ *     version, to inform the server of an extra encapsulation (e.g., gzip) being used
+ *     (since OML 2.12).
  *
  * The protocol is loosely modelled after HTTP. The client first start
  * with a few \ref omspheaders "textual headers", then switches into
@@ -80,8 +83,12 @@
  * property, using a key/value model. The properties (and their keys) are the
  * following.
  *
+ * - `encapsulation`: (optional) type of encapsulation (e.g, gzip) for the data, this is
+ *     version-independent (only supported with \ref oml2-server "oml2-server">=2.12);
+ *     currently supported encapsulations are:
+ *     - gzip: the following data is gzip-compressed (\ref oml2-server "oml2-server">=2.12);
  * - `protocol`: OMSP version, as specified in this document. The
- *     \ref oml2-server "oml2-server" currently supports 1--4;
+ *     \ref oml2-server "oml2-server" currently supports 1--5;
  * - `domain` (`experiment-id` in V<4): string identifying the experimental
  *     domain (should match `/[-_A-Za-z0-9]+/`);
  * - `start-time` (`start_time` in V<4): local UNIX time in seconds taken at
@@ -115,7 +122,8 @@
  * inserted.
  * - `timestamp`: a *double* timestamp in seconds relative to the
  *     `start-time` sent in the headers,
- *     \ref timestamps "the server uses this information to rebase timestamps within its own timeline";
+ *     \ref timestamps "the server uses this information to rebase timestamps within
+ *     its own timeline";
  * - `stream_id:` an *integer* (marshalled specifically as a `uint8_t` in
  *      \ref omspbin "binary mode") indicating which previously defined schema
  *      this tuple follows;
@@ -165,6 +173,27 @@
  *     content: text
  *     
  *     0.163925        0       1       .       schema  2 generator_d_sin label:string phase:double value:double
+ *
+ * Since OML 2.12 (OMSP>=v5), data can be compressed in-flight by encapsulating it
+ * into gzip.
+ *
+ *     encapsulation: gzip
+ *     [gzip-compressed content]
+ *
+ * Inflating the rest of  content (not including the first line) with, say, `gunzip -c`, shows the data.
+ *
+ *     protocol: 5
+ *     domain: test
+ *     start-time: 1420517574
+ *     sender-id: generator
+ *     app-name: generator
+ *     schema: 0 _experiment_metadata subject:string key:string value:string
+ *     schema: 1 _client_instrumentation measurements_injected:uint32 measurements_dropped:uint32 bytes_allocated:uint64 bytes_freed:uint64 bytes_in_use:uint64 bytes_max:uint64
+ *     schema: 2 generator_d_lin label:string seq_no:uint32
+ *     schema: 3 generator_d_sin label:string phase:double value:double
+ *     content: text
+ *     
+ *     0.227902        0       1       .       appname generator
  *
  */
 
