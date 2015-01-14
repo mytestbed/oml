@@ -53,7 +53,10 @@ main(int argc, char **argv)
 
   int ret = 0;
   while(!feof(in)) {
-    ret = oml_zlib_inf(in, out);
+    if((ret = oml_zlib_inf(in, out))) {
+      fflush(stdout);
+      fprintf(stderr, "oml_zlib_inf() failed with %d, %d\n", ret, feof(in));
+    }
   }
   return ret;
 }

@@ -150,13 +150,15 @@ oml_zlib_inf(FILE *source, FILE *dest)
 
     strm.avail_in = fread(in, 1, OML_ZLIB_CHUNKSIZE, source);
     if (ferror(source)) {
-      (void)inflateEnd(&strm);
-      return Z_ERRNO;
+      ret = Z_ERRNO;
+      goto cleanup;
     }
     if (strm.avail_in == 0) {
       break;
     }
     strm.next_in = in;
+
+    logdebug3("%s: read %d bytes\n", __FUNCTION__, strm.avail_in);
 
     /* run inflate() on input until output buffer not full */
     do {
@@ -167,31 +169,34 @@ oml_zlib_inf(FILE *source, FILE *dest)
       }
 
       ret = inflate(&strm, Z_NO_FLUSH);
-      if (ret == Z_STREAM_ERROR) {  /* state not clobbered */
-        logerror("Zlib inflate state clobbered\n");
-        return Z_STREAM_ERROR;
-      }
       switch (ret) {
       case Z_NEED_DICT:
         ret = Z_DATA_ERROR;     /* and fall through */
       case Z_DATA_ERROR:
         if (resynced == 1) {
-          resynced = 2;
+          logdebug3("%s: error after resync\n", __FUNCTION__);
+          /* goto cleanup; */
 
-        } else if(oml_zlib_sync(&strm) == Z_OK) {
+        } else if(oml_zlib_sync(&strm) == Z_OK) { /** \bug Doesn't handle resyncing cases with a new GZip header */
+          logdebug3("%s: found potential next block\n", __FUNCTION__);
           resynced = 1;
+        } else {
+          goto cleanup;
         }
         break;
+      case Z_STREAM_ERROR:
+        logerror("Zlib inflate state clobbered\n");
       case Z_MEM_ERROR:
-        (void)inflateEnd(&strm);
-        return ret;
+        goto cleanup;
       }
 
       have = OML_ZLIB_CHUNKSIZE - strm.avail_out;
       if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
-        (void)inflateEnd(&strm);
-        return Z_ERRNO;
+        ret = Z_ERRNO;
+        goto cleanup;
       } else if (have > 0) {
+        loginfo("reset sync\n");
+        strm.avail_out = OML_ZLIB_CHUNKSIZE;
         resynced = 0;
       }
 
@@ -200,7 +205,16 @@ oml_zlib_inf(FILE *source, FILE *dest)
     /* done when inflate() says it's done */
   } while (ret != Z_STREAM_END);
 
+cleanup:
+
+  /* Write data out if any is still available */
+  if((have = OML_ZLIB_CHUNKSIZE - strm.avail_out)>0) {
+    fwrite(out, 1, have, dest); /* XXX: we can't really do anything of this fails at this stage... */
+  }
+
+  logdebug3("%s: Cleanup with status %d, %td bytes unread\n", __FUNCTION__, ret, strm.avail_in);
   if(strm.avail_in > 0) {
+    logdebug3("%s: Rewinding input by %td\n", __FUNCTION__, strm.avail_in);
     /* If same data has not been consumed, reset the file to there */
     /* \bug fseeking back to the end of the Gzip stream will not work on stdin */
     fseek(source, ftell(source)-(long)strm.avail_in, SEEK_SET);
@@ -208,7 +222,7 @@ oml_zlib_inf(FILE *source, FILE *dest)
 
   /* clean up and return */
   (void)inflateEnd(&strm);
-  return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
+  return ret == Z_STREAM_END ? Z_OK : ret;
 }
 
 /** Search for the next block or new GZip header, whichever comes first, and advance the string.
@@ -230,7 +244,8 @@ oml_zlib_inf(FILE *source, FILE *dest)
  * \return Z_OK if a possible full flush point has been found, Z_BUF_ERROR if
  * no more input was provided, Z_DATA_ERROR if no flush point has been found,
  * or Z_STREAM_ERROR if the stream structure was inconsistent.Z_OK if a
- * potential sync point has been found, Z_DATA_ERROR otherwise.
+ * potential sync point has been found, Z_STREAM_END if a new GZip header has
+ * been found, Z_DATA_ERROR otherwise.
  *
  * \see oml_zlib_find_sync, inflateSync
  */
@@ -262,7 +277,12 @@ oml_zlib_sync(z_streamp strm)
     in = strm->total_in;  out = strm->total_out;
     inflateReset(strm);
     strm->total_in = in;  strm->total_out = out;
-    ret = Z_OK;
+    if ((*strm->next_in) == 0x1f) {
+      ret = Z_STREAM_END;
+
+    } else if ((*strm->next_in) == 0x00) {
+      ret = Z_OK;
+    }
   }
 
   return ret;
