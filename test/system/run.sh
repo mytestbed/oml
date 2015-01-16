@@ -16,7 +16,7 @@
 # forensic inspection in case of failures.
 #
 # Can be run manually as
-#  srcdir=. top_builddir=../.. POSTGRES=`which postgres` TIMEOUT=`which timeout` VERSION=`git describe` ./run.sh
+#  srcdir=. top_builddir=../.. POSTGRES=`which postgres` TIMEOUT=`which timeout` VERSION=`git describe` ./run.sh [BACKEND=sq3|pg] [--long] [--gzip]
 
 loglevel=1
 nblobs=100
@@ -26,14 +26,21 @@ interval=0 # [ms]
 bufsize=$((65536 * nblobs)) # [B], OML defaults to 2048
 
 backend=${1:-sq3}
-long=$2
-
 dir=${backend}
-if [ "x$long" = "x--long" ]; then
-	longopt="--long"
-	dir=${dir}_long
-	bufsize=$((1024 * 1024 * nblobs))
-fi
+
+while shift; do
+	case "$1" in
+		"--long")
+			longopt="--long"
+			dir=${dir}_long
+			bufsize=$((1024 * 1024 * nblobs))
+			;;
+		"--gzip")
+			gzipscheme="gzip+"
+			dir=${dir}_gzip
+			;;
+	esac
+done
 
 ntests=0
 tottests=$(($nblobs+$nmeta))
@@ -193,9 +200,9 @@ if [ ! -z "${TIMEOUT}" ]; then
 else
 	echo "# $0: timeout(1) utility not found; this test might hang indefinitely" >&2
 fi
-${TIMEOUT} ../blobgen -h -n $nblobs $longopt -i $interval \
-	--oml-id a --oml-domain ${exp} --oml-collect localhost:$port --oml-bufsize 110000 \
-	--oml-log-level $loglevel --oml-log-file client.log --oml-bufsize $bufsize
+${TIMEOUT} ../blobgen -h -n $nblobs $longopt \
+	--oml-id a --oml-domain ${exp} --oml-collect ${gzipscheme}tcp://localhost:$port --oml-bufsize $bufsize \
+	--oml-log-level $loglevel --oml-log-file client.log
 ret=$?
 if [ ! $ret = 0 ]; then
 	if [ $ret = 124 ]; then

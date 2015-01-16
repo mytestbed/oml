@@ -5,11 +5,21 @@ TESTS_ENVIRONMENT = top_srcdir=$(top_srcdir) srcdir=$(srcdir) \
 		    POSTGRES=$(POSTGRES) TIMEOUT="$(TIMEOUT)" \
 		    MALLOC_CHECK_=3
 TESTS = scaffold.sh reconnect.sh reconnect-text.sh reconnect-gzip.sh reconnect-text-gzip.sh run.sh run-long.sh
+if HAVE_LIBZ
+TESTS += run-gzip.sh
+endif #HAVE_LIBZ
+
 if HAVE_LIBPQ
 if HAVE_POSTGRES
 TESTS += runpg.sh runpg-long.sh
+
+if HAVE_LIBZ
+TESTS += runpg-long-gzip.sh
+endif #HAVE_LIBZ
+
 endif #HAVE_POSTGRES
 endif #HAVE_LIBPQ
+
 
 if HAVE_PYTHON
 TESTS += self-inst.sh
@@ -18,6 +28,7 @@ endif
 EXTRA_DIST = \
 	     tap_helper.sh \
 	     run.sh run-long.sh runpg.sh runpg-long.sh \
+	     run-gzip.sh runpg-long-gzip.sh \
 	     scaffold.sh \
 	     reconnect.sh reconnect-text.sh \
 	     reconnect-gzip.sh reconnect-text-gzip.sh \
