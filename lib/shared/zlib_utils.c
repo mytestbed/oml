@@ -35,6 +35,7 @@
  *
  * \param source FILE pointer to the undcompressed source stream
  * \param dest FILE pointer to the compressed destination stream
+ * \param level compression level 0--9, or -1 for default
  *
  * \return Z_OK on success, Z_MEM_ERROR if memory could not be
  * allocated for processing, Z_STREAM_ERROR if an invalid compression
@@ -299,6 +300,7 @@ oml_zlib_sync(z_streamp strm)
  * - Block header: 0x0000ffff
  *
  * \param buf buffer of length (at least) len
+ * \param len length of data in buf
  *
  * \return an offset to the first marker, if found, or -1 otherwise.
  */

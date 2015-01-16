@@ -197,14 +197,14 @@ zlib_stream_deflate_write(OmlZlibOutStream* self, int flush)
  * \see oml_outs_write_f
  */
 static ssize_t
-zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length)
+zlib_stream_write(OmlOutStream* outs, uint8_t* buffer, size_t  length)
 {
   time_t t;
   int flush = OML_ZLIB_FLUSH;
-  OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
+  OmlZlibOutStream* self = (OmlZlibOutStream*)outs;
 
   self->os.header_written = self->outs->header_written;
-  out_stream_write_header(stream);
+  out_stream_write_header(outs);
 
   time(&t);
   if (self->nwrites>=10 ||
@@ -220,9 +220,9 @@ zlib_stream_write(OmlOutStream* stream, uint8_t* buffer, size_t  length)
  * \see oml_outs_write_immediate_f
  */
 static ssize_t
-zlib_stream_write_immediate(OmlOutStream* stream, uint8_t* buffer, size_t  length)
+zlib_stream_write_immediate(OmlOutStream* outs, uint8_t* buffer, size_t  length)
 {
-  OmlZlibOutStream* self = (OmlZlibOutStream*)stream;
+  OmlZlibOutStream* self = (OmlZlibOutStream*)outs;
 
   return _zlib_stream_write(self, buffer, length, Z_FULL_FLUSH);
 }
