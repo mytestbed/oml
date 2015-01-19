@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA)
+ * Copyright 2007-2015 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -34,7 +34,7 @@
 #include "oml_utils.h"
 #include "client.h"
 
-#define OMLC_COPYRIGHT "Copyright 2007-2014, NICTA"
+#define OMLC_COPYRIGHT "Copyright 2007-2015, NICTA"
 
 OmlClient* omlc_instance = NULL;
 
