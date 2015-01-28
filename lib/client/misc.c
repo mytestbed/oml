@@ -51,6 +51,7 @@ mp_unlock(OmlMP* mp)
 int
 oml_lock(pthread_mutex_t* mutexP, const char* mutexName)
 {
+  logdebug3("%s trying to lock %p\n", mutexName, mutexP);
   if (mutexP) {
     if (pthread_mutex_lock(mutexP)) {
       logwarn("%s: Couldn't get mutex lock (%s)\n",
@@ -70,6 +71,7 @@ void
 oml_unlock(pthread_mutex_t* mutexP, const char* mutexName)
 {
   if (mutexP) {
+    logdebug3("%s unlocking %p\n", mutexName, mutexP);
     if (pthread_mutex_unlock(mutexP)) {
       logwarn("%s: Couldn't unlock mutex (%s)\n",
           mutexName, strerror(errno));

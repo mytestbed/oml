@@ -81,7 +81,7 @@
  *  out()
  * }
  * note "row_start() calls bw_get_write_buf()\nwith exclusive access" as row_start
- * note "row_end() calls bw_unlock_buf()" as row_end
+ * note "row_end() calls bw_release_write_buf()" as row_end
  * row_start <-- filter_process
  * row_end <-- filter_process
  * OmlWriter .. row_start
@@ -99,20 +99,20 @@
  *    semaphore
  *    readerThread()
  *    bw_get_write_buf()
- *    bw_unlock_buf()
+ *    bw_release_write_buf()
  *   }
  *   BufferedWriter *-- "1..*" BufferChunk: writerchunk, firstchunk
  *   BufferChunk -- "1..*" BufferChunk: next
  *   note "readerThread() wakes up on semaphore, holds lock,\nand empties processes the BufferChunk\nlist with outStream::write()" as readerThread #ff6600
  *  note "bw_get_write_buf() acquires lock,\nand returns writerChunk" as bw_get_write_buf
- *  note "bw_unlock_buf() releases lock,\nand signals semaphore" as bw_unlock_buf
+ *  note "bw_release_write_buf() releases lock,\nand signals semaphore" as bw_unlock_buf
  *  BufferedWriter .. readerThread
  *  OmlOutStream .. readerThread
  *  BufferedWriter .. bw_get_write_buf
- *  BufferedWriter .. bw_unlock_buf
+ *  BufferedWriter .. bw_release_write_buf
  * }
  * row_start --> bw_get_write_buf
- * row_end --> bw_unlock_buf
+ * row_end --> bw_release_write_buf
  * OmlOutStream <|-- OmlNetOutStream
  * OmlOutStream <|-- OmlFileOutStream
  * class OmlOutStream {

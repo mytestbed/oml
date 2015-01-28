@@ -31,9 +31,9 @@ int bw_msgcount_add(BufferedWriter* instance, int nmessages);
 int bw_msgcount_reset(BufferedWriter* instance);
 int bw_nlost_reset(BufferedWriter* instance);
 
-MBuffer* bw_get_write_buf(BufferedWriter* instance, int exclusive);
+MBuffer* bw_get_write_buf(BufferedWriter* instance);
 
-void bw_unlock_buf(BufferedWriter* instance);
+void bw_release_write_buf(BufferedWriter* instance);
 
 #endif // OML_BUFFERED_WRITER_H_
 

@@ -298,7 +298,7 @@ owt_row_start(OmlWriter* writer, OmlMStream* ms, double now)
   assert(self->bufferedWriter != NULL);
 
   MBuffer* mbuf;
-  if ((mbuf = self->mbuf = bw_get_write_buf(self->bufferedWriter, 1)) == NULL) {
+  if ((mbuf = self->mbuf = bw_get_write_buf(self->bufferedWriter)) == NULL) {
     return 0;
   }
 
@@ -356,7 +356,7 @@ owt_row_end(OmlWriter* writer, OmlMStream* ms)
 
   self->mbuf = NULL;
   bw_msgcount_add(self->bufferedWriter, 1);
-  bw_unlock_buf(self->bufferedWriter);
+  bw_release_write_buf(self->bufferedWriter);
   return res == 0;
 }
 
