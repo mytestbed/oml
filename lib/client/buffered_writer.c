@@ -32,59 +32,42 @@
 /** A chunk of data to be put in a circular chain */
 typedef struct BufferChunk {
 
-  /** Link to the next buffer in the chunk */
-  struct BufferChunk*  next;
+  struct BufferChunk*  next;	/**< Link to the next buffer in the chunk */
 
-  /** MBuffer used for storage */
-  MBuffer* mbuf;
-  /** Target maximal size of mbuf for that chunk */
-  size_t   targetBufSize;
+  MBuffer* mbuf;		/**< MBuffer used for storage */
+  size_t   targetBufSize;	/**< Target maximal size of mbuf for that chunk */
 
-  /** Set to 1 when the reader is processing this chunk */
-  int   reading;
+  int   reading;                /** Set to 1 when the reader is processing this chunk */
 
-  int nmessages; /**< Number of messages contained in this chunk */
+  int nmessages;		/**< Number of messages contained in this chunk */
 
 } BufferChunk;
 
 /** A writer reading from a chain of BufferChunks */
 struct BufferedWriter {
-  /** Set to !0 if buffer is active; 0 kills the thread */
-  int  active;
+  int  active;			/**< Set to !0 if buffer is active; 0 kills the thread */
 
-  /** Number of links which can still be allocated */
-  long unallocatedBuffers;
-  /** Target size of MBuffer in each chunk*/
-  size_t bufSize;
+  long unallocatedBuffers;	/**< Number of links which can still be allocated */
+  size_t bufSize;		/**< Target size of MBuffer in each chunk*/
 
-  /** Opaque handler to  the output stream*/
-  OmlOutStream*    outStream;
+  OmlOutStream*    outStream;	/**< Opaque handler to  the output stream*/
 
-  /** Chunk where the data gets stored until it's pushed out */
-  BufferChunk* writerChunk;
-  /** Immutable entry into the chain */
-  BufferChunk* firstChunk;
+  BufferChunk* writerChunk;	/**< Chunk where the data gets stored until it's pushed out */
+  BufferChunk* firstChunk;	/**< Immutable entry into the chain */
 
-  /** Buffer holding protocol headers */
-  MBuffer*     meta_buf;
+  MBuffer*     meta_buf;	/**< Buffer holding protocol headers */
 
-  /** Mutex protecting the object */
-  pthread_mutex_t lock;
-  /** Semaphore for this object */
-  pthread_cond_t semaphore;
-  /** Thread in charge of reading the queue and writing the data out */
-  pthread_t  readerThread;
+  pthread_mutex_t lock;		/**< Mutex protecting the chain structure */
+  pthread_cond_t semaphore;	/**< Semaphore indicating that more data has been written */
+  pthread_t  readerThread;	/**< Thread in charge of reading the queue and writing the data out */
 
-  /** Time of the last failure, to backoff for REATTEMP_INTERVAL before retryying **/
-  time_t last_failure_time;
+  time_t last_failure_time;	/**< Time of the last failure, to backoff for REATTEMP_INTERVAL before retryying **/
 
-  /** Backoff time, in seconds */
-  uint8_t backoff;
+  uint8_t backoff;		/**< Backoff time, in seconds */
 
-  /** Return status from the thread */
-  int retval;
+  int retval;			/**< Return status from the thread */
 
-  int nlost; /**< Number of lost messages since last query */
+  int nlost;			/**< Number of lost messages since last query */
 
 };
 #define REATTEMP_INTERVAL 5    //! Seconds to open the stream again
