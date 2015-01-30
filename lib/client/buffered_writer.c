@@ -399,9 +399,9 @@ getNextWriteChunk(BufferedWriter* self, BufferChunk* current) {
 
   if (mbuf_rd_remaining(nextBuffer->mbuf) == 0) {
     // It's empty (the reader has finished with it), we can use it
-    mbuf_clear2(nextBuffer->mbuf, 0);
     self->writerChunk = nextBuffer;
     bw_msgcount_reset(self);
+    mbuf_clear2(nextBuffer->mbuf, 0);
 
   } else if (self->unallocatedBuffers > 0) {
     // Insert a new chunk between current and next one.
@@ -418,9 +418,11 @@ getNextWriteChunk(BufferedWriter* self, BufferChunk* current) {
     self->writerChunk = nextBuffer;
 
     nlost = bw_msgcount_reset(self);
-    self->nlost += nlost;
-    logwarn("Dropped %d samples (%dB)\n", nlost, mbuf_fill(nextBuffer->mbuf));
-    mbuf_repack_message2(self->writerChunk->mbuf);
+    if (nlost) {
+      self->nlost += nlost;
+      logwarn("%s: Dropping %d samples (%dB)\n", self->outStream->dest, nlost, mbuf_fill(nextBuffer->mbuf));
+    }
+    mbuf_clear2(nextBuffer->mbuf, 0);
   }
 
   // Now we just need to copy the message from current to self->writerChunk
