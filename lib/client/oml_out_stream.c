@@ -122,8 +122,9 @@ out_stream_write_header(OmlOutStream* self, oml_outs_write_f_immediate writefp, 
       return -1;
 
     } else {
-      if ((size_t)count < header_length)
+      if (((size_t)count > 0) && ((size_t)count < header_length)) {
         logwarn("%s: Only wrote parts of the header; this might cause problem later on\n", self->dest);
+      }
       self->header_written = 1;
     }
   }
