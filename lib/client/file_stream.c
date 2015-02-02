@@ -25,6 +25,7 @@
 #include "file_stream.h"
 
 static ssize_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
+static ssize_t file_stream_write_flush(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length);
 static int file_stream_close(OmlOutStream* hdl);
 
 /** Create a new out stream for writing into a local file.
@@ -114,7 +115,7 @@ file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* he
  * \param header_length length of the header to write; must be 0 if header is NULL
  * \return amount of data written, or -1 on error
  */
-ssize_t
+static ssize_t
 file_stream_write_flush(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;

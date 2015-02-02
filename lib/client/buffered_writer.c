@@ -553,6 +553,7 @@ threadStart(void* handle)
 static int
 processChunk(BufferedWriter* self, BufferChunk* chunk)
 {
+  ssize_t cnt = 0;
   assert(self);
   assert(self->meta_buf);
   assert(chunk);
@@ -575,7 +576,7 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
   chunk->reading = 1;
 
   while (size > sent) {
-    long cnt = self->outStream->write(self->outStream, (void*)(buf + sent), size - sent,
+    cnt = self->outStream->write(self->outStream, (void*)(buf + sent), size - sent,
                                meta->rdptr, meta->fill);
     if (cnt > 0) {
       sent += cnt;
