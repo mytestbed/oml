@@ -18,6 +18,13 @@
 # Can be run manually as
 #  srcdir=. top_builddir=../.. POSTGRES=`which postgres` TIMEOUT=`which timeout` VERSION=`git describe` ./run.sh
 
+loglevel=1
+nblobs=100
+nmeta=2
+
+interval=0 # [ms]
+bufsize=$((65536 * nblobs)) # [B], OML defaults to 2048
+
 backend=${1:-sq3}
 long=$2
 
@@ -25,11 +32,8 @@ dir=${backend}
 if [ "x$long" = "x--long" ]; then
 	longopt="--long"
 	dir=${dir}_long
+	bufsize=$((1024 * 1024 * nblobs))
 fi
-
-loglevel=1
-nblobs=100
-nmeta=2
 
 ntests=0
 tottests=$(($nblobs+$nmeta))
@@ -39,7 +43,7 @@ exp=blobgen
 
 ## Each backend should provide the following functions:
 #  ${backend}_prepare:	to prepare the backend and output the PID of daemons that were started, if relevant
-#  ${backend}_params: 	giving the specific parameters for the oml2-server
+#  ${backend}_params:	giving the specific parameters for the oml2-server
 #  ${backend}_extract:	to extract data from the storage backend as HEXs
 
 ## Sqlite3 functions
@@ -189,9 +193,9 @@ if [ ! -z "${TIMEOUT}" ]; then
 else
 	echo "# $0: timeout(1) utility not found; this test might hang indefinitely" >&2
 fi
-${TIMEOUT} ../blobgen -h -n $nblobs $longopt \
+${TIMEOUT} ../blobgen -h -n $nblobs $longopt -i $interval \
 	--oml-id a --oml-domain ${exp} --oml-collect localhost:$port --oml-bufsize 110000 \
-	--oml-log-level $loglevel --oml-log-file client.log
+	--oml-log-level $loglevel --oml-log-file client.log --oml-bufsize $bufsize
 ret=$?
 if [ ! $ret = 0 ]; then
 	if [ $ret = 124 ]; then
