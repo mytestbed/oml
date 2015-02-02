@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2015 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,11 +32,11 @@
 #include <check.h>
 
 #include "oml2/omlc.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "htonll.h"
 #include "oml_value.h"
 #include "marshal.h"
-#include "check_util.h"
+#include "check_utils.h"
 
 #define FIRST_VALPTR(mbuf) (mbuf->base + 5)
 
@@ -551,7 +551,7 @@ END_TEST
 
 #warning test_marshal_value_blob is missing
 
-#warning test_marshall_array_double
+#warning test_marshall_array_double is missing
 
 START_TEST(test_marshal_guid)
 {

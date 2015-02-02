@@ -43,14 +43,17 @@ Measurement Streams can be directed to one or more collection point, and
 filterred or further processed along the way.
 
 To build this example without installing the OML components system wide, run
-  make CC="$PWD/../../libtool compile gcc" CCLD="$PWD/../../libtool link --tag=CC gcc" \
-    SCAFFOLD="ruby $PWD/../../ruby/oml2-scaffold" \
-    CFLAGS="-I$PWD/../../lib/client -I$PWD/../../lib/ocomm" \
-    LDFLAGS="-L$PWD/../../lib/client/.libs -L$PWD/../../lib/ocomm/.libs"
+
+    make CC="$PWD/../../libtool compile gcc" CCLD="$PWD/../../libtool link --tag=CC gcc" \
+      SCAFFOLD="ruby $PWD/../../ruby/oml2-scaffold" \
+      CFLAGS="-I$PWD/../../lib/client -I$PWD/../../lib/ocomm" \
+      LDFLAGS="-L$PWD/../../lib/client/.libs -L$PWD/../../lib/ocomm/.libs"
 
 The generator can then be run with, e.g.,
-  LD_LIBRARY_PATH=$PWD/../../lib/client/.libs:$PWD/../../lib/ocomm/.libs \
-    ./generator -n 10 -i .5  --oml-id generator --oml-domain test
+
+    LD_LIBRARY_PATH=$PWD/../../lib/client/.libs:$PWD/../../lib/ocomm/.libs \
+      ./generator -n 10 -i .5 -a 100 -f .025 \
+      --oml-id generator --oml-domain test
 
 
 [oml-scaffold-tute]: http://oml.mytestbed.net/projects/oml/wiki/OML2_scaffold_Tutorial

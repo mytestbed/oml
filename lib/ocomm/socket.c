@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA)
+ * Copyright 2007-2015 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -517,12 +517,16 @@ socket_close(Socket* socket)
 
 /** Send a message through the socket
  *
+ * If a disconnection occurs, 0 will be returned, as no data was sent.  To
+ * differentiate from cases where data couldn't be written just yet, the socket
+ * should be inspected with socket_is_disconnected().
+ *
  * \param socket Socket to send message through
  * \param buf data to send
  * \param buf_size amount of data to read from buf
- * \return the amount of data sent
+ * \return the amount of data sent, or -1 on error
  *
- * \see sendto(3)
+ * \see socket_is_disconnected, sendto(3)
  */
 int
 socket_sendto(Socket* socket, char* buf, int buf_size)

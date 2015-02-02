@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA)
+ * Copyright 2007-2015 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -24,11 +24,6 @@
 #include <mstring.h>
 
 #define COLLECTION_URI_MAX_LENGTH 64
-
-#define xstr(s) str(s)
-#define str(s) #s
-#define DEF_PORT 3003
-#define DEF_PORT_STRING  xstr(DEF_PORT)
 
 /** Internal data structure holding OML parameters */
 typedef struct OmlClient {
@@ -123,22 +118,6 @@ void mp_unlock(OmlMP* mp);
 int oml_lock(pthread_mutex_t* mutexP, const char* mutexName);
 void oml_unlock(pthread_mutex_t* mutexP, const char* mutexName);
 void oml_lock_persistent(pthread_mutex_t* mutexP, const char* mutexName);
-
-/* from (bin|text)_writer.c */
-
-extern OmlWriter *text_writer_new(OmlOutStream* out_stream);
-extern OmlWriter *bin_writer_new(OmlOutStream* out_stream);
-
-/* from file_stream.c */
-
-extern OmlOutStream *file_stream_new(const char *file);
-
-int file_stream_set_buffered(OmlOutStream* hdl, int buffered);
-int file_stream_get_buffered(OmlOutStream* hdl);
-
-/* from net_stream.c */
-
-extern OmlOutStream *net_stream_new(const char *transport, const char *hostname, const char *port);
 
 /* from validate.c */
 

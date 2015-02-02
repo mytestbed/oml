@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA)
+ * Copyright 2007-2015 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
-#include <time.h>
 
 #include "oml2/omlc.h"
 #include "oml2/oml_filter.h"
@@ -32,10 +31,10 @@
 #include "oml_value.h"
 #include "validate.h"
 #include "filter/factory.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "client.h"
 
-#define OMLC_COPYRIGHT "Copyright 2007-2014, NICTA"
+#define OMLC_COPYRIGHT "Copyright 2007-2015, NICTA"
 
 OmlClient* omlc_instance = NULL;
 
@@ -72,8 +71,6 @@ static int  write_schema(OmlMStream* ms, int index);
 static void termination_handler(int signum);
 static void install_close_handler(sighandler sig_hdl);
 static void setup_features(const char * const features);
-
-static char *default_uri(const char *app_name, const char *name, const char *domain);
 
 extern int parse_config(char* config_file);
 
@@ -118,8 +115,14 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   omlc_instance = NULL;
 
   o_set_log_level(O_LOG_INFO);
-  if (custom_oml_log)
+  if (custom_oml_log) {
     o_set_log (custom_oml_log);
+  }
+
+  loginfo ("OML Client %s [OMSPv%d] %s\n",
+           VERSION,
+           OML_PROTOCOL_VERSION,
+           OMLC_COPYRIGHT);
 
   if (pargc && arg) {
     int i;
@@ -236,6 +239,7 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
 
       } else if (strcmp(*arg, "--oml-noop") == 0) {
         *pargc -= 1;
+        loginfo("OML reporting disabled from command line\n");
         omlc_close();
         return 1;
       } else if (strcmp(*arg, "--oml-help") == 0) {
@@ -309,11 +313,6 @@ omlc_init(const char* application, int* pargc, const char** argv, o_log_fn custo
   schema0 = omlc_add_mp("_experiment_metadata", _experiment_metadata);
 
   omlc_instance->client_instr = omlc_add_mp("_client_instrumentation", _client_instrumentation);
-
-  loginfo ("OML Client %s [OMSPv%d] %s\n",
-           VERSION,
-           OML_PROTOCOL_VERSION,
-           OMLC_COPYRIGHT);
 
   return 0;
 }
@@ -507,7 +506,7 @@ omlc_start()
       return -1;
     }
   } else {
-    if (omlc_instance->collection_uri == NULL) {
+    if (0 == *omlc_instance->collection_uri) {
       logerror("Missing --oml-collect declaration.\n");
       omlc_close();
       return -2;
@@ -644,7 +643,7 @@ usage(void)
   printf("  --oml-list-filters     .. List the available types of filters\n");
   printf("  --oml-help             .. Print this message\n");
   printf("\n");
-  printf("Valid URI: [tcp:]host[:service], (file|flush):localPath\n");
+  printf("Valid URI: [tcp://]host[:service], (file|flush):localPath\n");
   printf("\n");
   printf("The following environment variables are recognized:\n");
   printf("  OML_NAME=id            .. Name to identify this app instance (--oml-id)\n");
@@ -669,8 +668,9 @@ print_filters(void)
 {
   register_builtin_filters();
 
-  printf("OML Client V%s\n", VERSION);
-  printf("OML Protocol V%d\n", OML_PROTOCOL_VERSION);
+  printf("OML Client %s [OMSPv%d]\n",
+           VERSION,
+           OML_PROTOCOL_VERSION);
   printf("%s\n", OMLC_COPYRIGHT);
   printf("\n");
   printf("OML filters available:\n\n");
@@ -686,115 +686,6 @@ print_filters(void)
   printf ("\n");
 }
 
-/** Create either a file writer or a network writer
- * \param uri collection URI
- * \param encoding StreamEncoding to use for the output, either SE_Text or SE_Binary
- *
- * \return a pointer to the new OmlWriter, or NULL on error
- */
-OmlWriter*
-create_writer(const char* uri, enum StreamEncoding encoding)
-{
-  OmlURIType uri_type = oml_uri_type(uri);
-
-  if (omlc_instance == NULL){
-    logerror("No omlc_instance: OML client was not initialized properly.\n");
-    return NULL;
-  }
-
-  if (uri == NULL || strlen(uri) < 1) {
-    logerror ("Missing or invalid collection URI definition (e.g., --oml-collect)\n");
-    return NULL;
-  }
-  if (omlc_instance->node_name == NULL) {
-    logerror ("Missing '--oml-id' flag \n");
-    return NULL;
-  }
-  if (omlc_instance->domain == NULL) {
-    logerror ("Missing '--oml-domain' flag \n");
-    return NULL;
-  }
-
-  const char *transport = NULL;
-  const char *path = NULL;
-  const char *port = NULL;
-
-  if (parse_uri (uri, &transport, &path, &port) == -1) {
-    logerror ("Error parsing server destination URI '%s'; failed to create stream for this destination\n",
-              uri);
-    if (transport) oml_free ((void*)transport);
-    if (path) oml_free ((void*)path);
-    if (port) oml_free ((void*)port);
-    return NULL;
-  }
-
-  const char *filepath = NULL;
-  const char *hostname = NULL;
-  if (oml_uri_is_file(uri_type)) {
-    /* 'file://path/to/file' is equivalent to unix path '/path/to/file' */
-    if (strncmp (path, "//", 2) == 0)
-      filepath = &path[1];
-    else
-      filepath = path;
-  } else if (transport) {
-    if (strncmp (path, "//", 2) == 0)
-      hostname = &path[2];
-    else
-      hostname = path;
-  } else {
-    hostname = path; /* If no transport specified, it must be tcp */
-  }
-
-  /* Default transport is tcp if not specified */
-  if (!transport) {
-    transport = oml_strndup ("tcp", strlen ("tcp"));
-  }
-
-  /* If not file transport, use the OML default port if unspecified */
-  if (!port && !oml_uri_is_file(uri_type)) {
-    port = oml_strndup (DEF_PORT_STRING, strlen (DEF_PORT_STRING));
-  }
-
-  OmlOutStream* out_stream;
-  if (oml_uri_is_file(uri_type)) {
-    out_stream = file_stream_new(filepath);
-    if (encoding == SE_None) encoding = SE_Text; /* default encoding */
-    if(OML_URI_FILE_FLUSH == uri_type) {
-      file_stream_set_buffered(out_stream, 0);
-    }
-  } else {
-    out_stream = net_stream_new(transport, hostname, port);
-    if (encoding == SE_None) encoding = SE_Binary; /* default encoding */
-  }
-  if (out_stream == NULL) {
-    logerror ("Failed to create stream for URI %s\n", uri);
-    return NULL;
-  }
-
-  oml_free ((void*)transport);
-  oml_free ((void*)path);
-  oml_free ((void*)port);
-
-  // Now create a write on top of the stream
-  OmlWriter* writer = NULL;
-
-  switch (encoding) {
-  case SE_Text:   writer = text_writer_new (out_stream); break;
-  case SE_Binary: writer = bin_writer_new (out_stream); break;
-  case SE_None:
-    logerror ("No encoding specified (this should never happen -- please report this as an OML bug)\n");
-    // should cleanup streams
-    return NULL;
-  }
-  if (writer == NULL) {
-    logerror ("Failed to create writer for encoding '%s'.\n", encoding == SE_Binary ? "binary" : "text");
-    return NULL;
-  }
-  writer->next = omlc_instance->first_writer;
-  omlc_instance->first_writer = writer;
-
-  return writer;
-}
 
 /** Find a named measurement point.
  *
@@ -1067,7 +958,7 @@ destroy_ms(OmlMStream *ms)
   return next;
 }
 
-/** Loop through registered measurment points and define sample based filters with sampling rate '1' and 'FIRST' filters
+/** Loop through registered measurement points and define sample based filters with sampling rate '1' and 'FIRST' filters
  *
  * \return 0 if successful, -1 otherwise
  */
@@ -1077,10 +968,13 @@ default_configuration(void)
   OmlMP *mp;
 
   if (NULL == omlc_instance->default_writer) {
-    if ((omlc_instance->default_writer =
-          create_writer(omlc_instance->collection_uri,
-            omlc_instance->default_encoding)
-        ) == NULL) {
+    if(NULL == omlc_instance->first_writer) {
+      omlc_instance->first_writer =
+        create_writer(omlc_instance->collection_uri,
+            omlc_instance->default_encoding);
+    }
+    omlc_instance->default_writer = omlc_instance->first_writer;
+    if (NULL == omlc_instance->default_writer) {
       return -1;
     }
   }
@@ -1425,56 +1319,6 @@ setup_features (const char * const features)
         feature_table[i].enable();
     oml_free (name);
   }
-}
-
-/*
- * Generate default file name to use when no output parameters are given.
- *
- * @param app_ame	the name of the application
- * @param name		the OML ID of the instance
- * @param domain	the experimental domain
- *
- * @return	A statically allocated buffer containing the URI of the output
- */
-static char*
-default_uri(const char *app_name, const char *name, const char *domain)
-{
-  /* Use a statically allocated buffer to avoid having to free it,
-   * just like other URI sources in omlc_init() */
-  static char uri[256];
-  int remaining = sizeof(uri) - 1; /* reserve 1 for the terminating null byte */
-  char *protocol = "file:";
-  char time[25];
-  struct timeval tv;
-
-  gettimeofday(&tv, NULL);
-  strftime(time, sizeof(time), "%Y-%m-%dt%H.%M.%S%z", localtime(&tv.tv_sec));
-
-  *uri = 0;
-  strncat(uri, protocol, remaining);
-  remaining -= sizeof(protocol);
-
-  strncat(uri, app_name, remaining);
-  remaining -= strlen(app_name);
-
-  if (name) {
-    strncat(uri, "_", remaining);
-    remaining--;
-    strncat(uri, name, remaining);
-    remaining -= strlen(name);
-  }
-
-  if (domain) {
-    strncat(uri, "_", remaining);
-    remaining--;
-    strncat(uri, domain, remaining);
-  }
-
-  strncat(uri, "_", remaining);
-  remaining--;
-  strncat(uri, time, remaining);
-
-  return uri;
 }
 
 /*

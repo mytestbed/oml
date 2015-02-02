@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 #
-# Copyright 2009-2014 National ICT Australia (NICTA), Australia
+# Copyright 2009-2015 National ICT Australia (NICTA), Australia
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,8 @@
 #
 
 PROG = 'oml2-scaffold'
-VERSION_STRING = "#{PROG} V@VERSION@"
-COPYRIGHT = "Copyright 2009-2014, NICTA"
+VERSION_STRING = "#{PROG} @VERSION@"
+COPYRIGHT = "Copyright 2009-2015, NICTA"
 
 require 'stringio'
 require 'optparse'
@@ -823,7 +823,9 @@ extern "C" {
 #endif
 
 /* Define HUGE, etc.. */
-#define _GNU_SOURCE
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
 #include <math.h>
 /* Get size_t and NULL from <stddef.h> */
 #include <stddef.h>
@@ -1118,6 +1120,7 @@ main(int argc, const char *argv[])
 #define PACKAGE_NAME		PACKAGE
 #define PACKAGE_TAR_NAME	PACKAGE
 #define PACKAGE_VERSION		VERSION
+#define PACKAGE_STRING PACKAGE_NAME " " PACKAGE_VERSION
 
 |
   end

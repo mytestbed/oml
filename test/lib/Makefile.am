@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 AM_TESTS_ENVIRONMENT = CK_VERBOSITY=verbose MALLOC_CHECK_=3
 
 if HAVE_CHECK
-TESTS = check_liboml2 check_libshared
+TESTS = check_libshared check_liboml2
 check_PROGRAMS = check_libshared check_liboml2
 
 AM_CPPFLAGS = \
@@ -11,8 +11,8 @@ AM_CPPFLAGS = \
 	-I  $(top_srcdir)/lib/shared
 
 check_liboml2_SOURCES = \
-	check_util.c \
-	check_util.h \
+	check_utils.c \
+	check_utils.h \
 	check_liboml2.c \
 	check_liboml2_api.c \
 	check_liboml2_bswap.c \
@@ -25,18 +25,19 @@ check_liboml2_SOURCES = \
 	check_liboml2_suites.h \
 	check_liboml2_writers.c \
 	$(top_srcdir)/lib/client/oml2/omlc.h \
-	$(top_srcdir)/lib/client/oml2/oml_filter.h
+	$(top_srcdir)/lib/client/oml2/oml_filter.h \
+	$(top_srcdir)/lib/client/file_stream.h
 
 check_libshared_SOURCES = \
+	check_utils.c \
+	check_utils.h \
+	check_libshared.c \
 	check_libshared_base64.c \
 	check_libshared_json.c \
 	check_libshared_string_utils.c \
-	check_util.c \
-	check_util.h \
-	check_libshared.c \
 	check_libshared_suites.h \
 	check_libshared_mstring.c \
-	check_libshared_util.c \
+	check_libshared_oml_utils.c \
 	check_libshared_headers.c \
 	check_libshared_marshal.c
 
@@ -60,9 +61,9 @@ BUILT_SOURCES = \
 CLEANFILES = \
 	stddev_0.c \
 	stddev_1.c \
-	check_liboml2_oml.log \
 	check_liboml2_log.log \
-	check_libshared_oml.log \
+	check_liboml2.oml.log \
+	check_libshared.oml.log \
 	test_api_basic \
 	test_api_metadata \
 	test_config_empty_collect.xml \

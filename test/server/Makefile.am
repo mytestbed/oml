@@ -55,7 +55,7 @@ AM_CPPFLAGS = \
 
 EXTRA_DIST = msggen.rb
 CLEANFILES = \
-	check_server_oml.log \
+	check_server.oml.log \
 	dummy.bin \
 	log.txt \
 	text-test.sq3 \

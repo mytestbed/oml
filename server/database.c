@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia Limited (NICTA)
+ * Copyright 2007-2015 National ICT Australia Limited (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -42,7 +42,7 @@
  *    injected (according to the client's clock), \ref timestamps "rebased to the start-time";
  *  - `oml_ts_client` the offset from `start-time` of when that tuple was
  *    processed (according to the server's clock), \ref timestamps "rebased to the start-time";
- *    \ref omspheader "header" upon connection from the particular sender);
+ *    \ref omspheaders "header" upon connection from the particular sender);
  *  - Each element of the \ref omspschema "schema", in order, with a database type able to
  *    store the information of the OML type;
  *
@@ -58,7 +58,7 @@
 #include <assert.h>
 
 #include "ocomm/o_log.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "oml_value.h"
 #include "mem.h"
 #include "mstring.h"

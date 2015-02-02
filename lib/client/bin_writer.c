@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA)
+ * Copyright 2007-2015 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "oml2/omlc.h"
 #include "oml2/oml_writer.h"
@@ -24,10 +25,6 @@
 #include "marshal.h"
 #include "mbuf.h"
 #include "buffered_writer.h"
-#include "assert.h"
-
-#define DEF_PROTOCOL "tcp"
-#define DEF_PORT 3003
 
 /** An OmlWriter using the binary marshalling functions \ref omspbin */
 typedef struct OmlBinWriter {

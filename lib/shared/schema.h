@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2014 National ICT Australia (NICTA), Australia
+ * Copyright 2010-2015 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,6 +55,7 @@ typedef OmlValueT (*typemap)(const char *type);
 /** \see db_adapter_oml_to_type */
 typedef const char* (*reverse_typemap)(OmlValueT type);
 
+int schema_field_from_meta (const char *meta, size_t len, struct schema_field *field);
 struct schema* schema_from_meta (const char *meta);
 char *schema_to_meta (const struct schema *schema);
 struct schema* schema_from_sql (const char *sql, typemap t2o);

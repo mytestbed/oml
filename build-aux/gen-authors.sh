@@ -1,7 +1,7 @@
 #! /bin/sh
 
 
-echo '# Copyright (c) 2007-2013 Nicta, OML Contributors <oml-user@lists.nicta.com.au>'
+echo '# Copyright (c) 2007-2014 Nicta, OML Contributors <oml-user@lists.nicta.com.au>'
 echo '#'
 echo '# Licensing information can be found in file COPYING.'
 echo ''

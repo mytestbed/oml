@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2014 National ICT Australia (NICTA), Australia
+ * Copyright 2010-2015 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ main (void)
 {
   int number_failed = 0;
 
-  o_set_log_file ("check_libshared_oml.log");
+  o_set_log_file ("check_libshared.oml.log");
   SRunner *sr = srunner_create (mstring_suite ());
   srunner_add_suite (sr, base64_suite ());
   srunner_add_suite (sr, json_suite ());

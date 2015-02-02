@@ -5,7 +5,7 @@
 @c %**end of header
 
 @copying
-Copyright @copyright{} 2009-2014, NICTA
+Copyright @copyright{} 2009-2015, NICTA
 
 Locked Bag 9013 @*
 Alexandria NSW 1430 @*
@@ -376,7 +376,7 @@ Send measurement output to the collection point indicated by the
 protocol, together with a host and port number to connect to.  For
 example:
 @example
---oml-collect tcp:[2001:db8::1]:1234
+--oml-collect tcp://[2001:db8::1]:1234
 @end example
 @noindent
 would connect to port 1234 on machine 192.0.2.1 using TCP protocol.
@@ -722,13 +722,13 @@ XML configuration file.
 
 @smallexample
 <omlc domain="exp99" id="node11">
-    <collect url="tcp:localhost:15500">
+    <collect url="tcp://localhost:15500">
         <mp name="omlsigar" interval="2" >
             <f fname="avg" sname="cpu_user" pname="cpu_user" />
         </mp>
     </collect>
 
-    <collect url="tcp:192.0.2.1:15502">
+    <collect url="tcp://192.0.2.1:15502">
         <mp name="omlsigar" interval="2" >
             <f fname="avg" sname="rx_bytes" pname="rx_bytes"/>
             <f fname="histogram" sname="rx_hist" pname="rx_bytes">

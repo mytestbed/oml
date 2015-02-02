@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA)
+ * Copyright 2007-2015 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -20,33 +20,12 @@
 #include "oml2/oml_out_stream.h"
 #include "ocomm/o_log.h"
 #include "mem.h"
+#include "mstring.h"
 #include "client.h"
+#include "file_stream.h"
 
-typedef struct OmlFileOutStream {
-
-  /*
-   * Fields from OmlOutStream interface
-   */
-
-  /** \see OmlOutStream::write, oml_outs_write_f */
-  oml_outs_write_f write;
-  /** \see OmlOutStream::close, oml_outs_close_f */
-  oml_outs_close_f close;
-
-  /** \see OmlOutStream::dest */
-  char *dest;
-
-  /*
-   * Fields specific to the OmlFileOutStream
-   */
-
-  FILE* f;                      /**< File pointer into which to write result to */
-  int   header_written;         /**< True if header has been written to file */
-
-} OmlFileOutStream;
-
-static size_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
-static inline int file_stream_close(OmlOutStream* hdl);
+static ssize_t file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
+static int file_stream_close(OmlOutStream* hdl);
 
 /** Create a new out stream for writing into a local file.
  *
@@ -58,6 +37,7 @@ static inline int file_stream_close(OmlOutStream* hdl);
 OmlOutStream*
 file_stream_new(const char *file)
 {
+  MString *dest;
   OmlFileOutStream* self = (OmlFileOutStream *)oml_malloc(sizeof(OmlFileOutStream));
   memset(self, 0, sizeof(OmlFileOutStream));
 
@@ -72,23 +52,28 @@ file_stream_new(const char *file)
     }
   }
 
+  dest = mstring_create();
+  mstring_sprintf(dest, "file:%s", file);
+  self->dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
+  mstring_delete(dest);
+
   self->write = file_stream_write;
   self->close = file_stream_close;
-  self->dest = (char*)oml_strndup (file, strlen (file));
-  self->header_written = 0;
   return (OmlOutStream*)self;
 }
 
 /** Write data to a file without any sanity check
  * \param file_hdl FILE pointer
  * \param buffer pointer to the buffer containing the data to write
- * \param buffer length of the header information
+ * \param buffer length of the data
  * \return amount of data written, or -1 on error
  */
-static inline size_t
-_file_stream_write(FILE* file_hdl, uint8_t* buffer, size_t length)
+static ssize_t
+_file_stream_write(OmlOutStream *outs, uint8_t* buffer, size_t length)
 {
-  return fwrite(buffer, 1, length, file_hdl); //(FILE*)((OmlFileOutStream*)hdl)->f);
+  OmlFileOutStream *self = (OmlFileOutStream*) outs;
+  assert(self->f);
+  return fwrite(buffer, 1, length, self->f); //(FILE*)((OmlFileOutStream*)hdl)->f);
 }
 
 /** Write data to a file
@@ -100,33 +85,21 @@ _file_stream_write(FILE* file_hdl, uint8_t* buffer, size_t length)
  * \return amount of data written, or -1 on error
  * \see _file_stream_write
  */
-size_t
+static ssize_t
 file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
+  size_t count;
 
   /* The header can be NULL, but header_length MUST be 0 in that case */
   assert(header || !header_length);
 
   if (!self) return -1;
-  FILE* f = self->f;
-  if (f == NULL) return -1;
+  if (!self->f) return -1;
 
-  if (! self->header_written) {
-    size_t count;
-    if ((count = _file_stream_write(f, header, header_length)) < header_length) {
-      // TODO: This is not completely right as we end up rewriting the same header
-      // if we can only partially write it. At this stage we think this is too hard 
-      // to deal with and we assume it doesn't happen.
-      if (count > 0) {
-        // PANIC
-        logerror("Only wrote part of the header. May screw up further processing\n");
-      }
-      return 0;
-    }
-    self->header_written = 1;
-  }
-  size_t count = _file_stream_write(f, buffer, length);
+  out_stream_write_header(hdl, _file_stream_write, header, header_length);
+
+  count = _file_stream_write(hdl, buffer, length);
   return count;
 }
 
@@ -141,17 +114,13 @@ file_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* he
  * \param header_length length of the header to write; must be 0 if header is NULL
  * \return amount of data written, or -1 on error
  */
-size_t
+ssize_t
 file_stream_write_flush(OmlOutStream* hdl, uint8_t* buffer, size_t length, uint8_t* header, size_t header_length)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
 
-  if (!self) return -1;
-  FILE* f = self->f;
-  if (f == NULL) return -1;
-
   size_t count = file_stream_write(hdl, buffer, length, header, header_length);
-  fflush(f);
+  fflush(self->f);
 
   return count;
 }
@@ -171,10 +140,11 @@ file_stream_set_buffered(OmlOutStream* hdl, int buffered)
 
   if (self == NULL) return -1;
 
-  if(buffered)
+  if(buffered) {
     hdl->write=file_stream_write;
-  else
+  } else {
     hdl->write=file_stream_write_flush;
+  }
 
   return 0;
 }
@@ -200,17 +170,18 @@ file_stream_get_buffered(OmlOutStream* hdl)
  * \param hdl pointer to the OmlFileOutStream
  * \return amount of data written, or -1 on error
  */
-static inline int
+static int
 file_stream_close(OmlOutStream* hdl)
 {
   OmlFileOutStream* self = (OmlFileOutStream*)hdl;
   int ret = -1;
 
+  logdebug("Destroying OmlFileOutStream to file %s at %p\n", self->dest, self);
+
   if (self->f != NULL) {
     ret = fclose(self->f);
     self->f = NULL;
   }
-  logdebug("Destroying OmlFileOutStream to file %s at %p\n", self->dest, self);
   oml_free(self->dest);
   oml_free(self);
   return ret;

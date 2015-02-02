@@ -6,7 +6,6 @@ info_TEXINFOS = oml-user-manual.texi
 DATE=`date "+%Y-%m-%d"`
 ALL_MAN_FILES= \
 	liboml2.1.txt \
-	oml2-server.1.txt \
 	oml2-proxy-server.1.txt \
 	oml2-proxycon.1.txt \
 	oml2-scaffold.1.txt \
@@ -18,6 +17,10 @@ ALL_MAN_FILES= \
 	omlc_close.3.txt \
 	OmlValueU.3.txt \
 	liboml2.conf.5.txt
+if BUILD_SERVER
+ALL_MAN_FILES += \
+	oml2-server.1.txt
+endif
 
 LIBOML3_LINKS = \
 	omlc_guid_generate.3 \
@@ -143,7 +146,7 @@ ASCIIDOC_ARGS += --attribute='pkglocalstatedir=$(pkglocalstatedir)' --attribute=
 if HAVE_LIBPQ
 ASCIIDOC_ARGS += --attribute='have_pg'
 endif
-A2X_ARGS = --destination-dir=. -f manpage $(ASCIIDOC_ARGS) --attribute='date=$(DATE)'
+A2X_ARGS = -f manpage $(ASCIIDOC_ARGS) --attribute='date=$(DATE)'
 
 if HAVE_A2X
 man_MANS = $(ALL_MAN_FILES:.txt=) \
@@ -201,7 +204,7 @@ publish-man: $(html_docs)
 	scp $(html_docs) oml_logo.png $(USER)$(WWWHOST):$(HTDOCS)/
 
 else #!HAVE_ASCIIDOC
-	@echo "*** a2x (asciidoc) is required to generate $(@) ***"
+	@echo "*** asciidoc is required to generate $(@) ***"
 endif #HAVE_ASCIIDOC
 
 endif #ENABLE_DOC

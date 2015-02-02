@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 National ICT Australia (NICTA), Australia
+ * Copyright 2012-2015 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -77,7 +77,7 @@ main (void)
 {
   int number_failed = 0;
 
-  o_set_log_file ("check_server_oml.log");
+  o_set_log_file ("check_server.oml.log");
   SRunner *sr = srunner_create (text_protocol_suite ());
   srunner_add_suite (sr, binary_protocol_suite ());
   //  srunner_add_suite (sr, database_suite ()); /* For example ... */

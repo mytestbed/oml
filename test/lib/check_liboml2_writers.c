@@ -31,7 +31,8 @@
 
 #include "mbuf.h"
 #include "client.h"
-#include "oml_util.h"
+#include "oml_utils.h"
+#include "file_stream.h"
 
 /*
 START_TEST (test_bw_create)
@@ -52,13 +53,6 @@ START_TEST (test_bw_create)
 }
 END_TEST
 */
-
-/* XXX: Duplicated from lib/client/file_stream.c */
-typedef struct _omlFileOutStream {
-  oml_outs_write_f write;
-  oml_outs_close_f close;
-  FILE* f;
-} OmlFileOutStream;
 
 #define FN	"test_fw_create_buffered"
 

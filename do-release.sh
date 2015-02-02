@@ -3,7 +3,7 @@
 #
 # [0] http://oml.mytestbed.net/projects/oml/wiki/Release_Process
 #
-# Copyright 2013-2014 National ICT Australia (NICTA), Olivier Mehani
+# Copyright 2013-2015 National ICT Australia (NICTA), Olivier Mehani
 #
 # This software may be used and distributed solely under the terms of
 # the MIT license (License).  You should find a copy of the License in
@@ -11,6 +11,18 @@
 # using this software you accept the terms and the liability disclaimer
 # in the License.
 #
+# Release the apps with:
+# SOFTWARE_NAME="OML Applications" PACKAGE_NAME=oml2-apps REDMINE_PROJECT=omlapp ../oml/do-release.sh
+# Don't forget to tag submodules before building the distribution tarball
+SOFTWARE_NAME=${SOFTWARE_NAME:-OML}
+PACKAGE_NAME=${PACKAGE_NAME:-oml2}
+REDMINE_PROJECT=${REDMINE_PROJECT:-oml}
+
+REDMINE_URL=http://oml.mytestbed.net
+
+OBS_URL=https://build.opensuse.org
+OBS_NS=devel:tools:mytestbed:stable
+OBS_NS_STAGING= devel:tools:mytestbed:sid
 
 # XXX: Linux-only
 NPROC=$((`grep processor /proc/cpuinfo | wc -l`+1))
@@ -19,6 +31,11 @@ MAKE="make -j $NPROC"
 GIT=git
 DCH=dch
 MKTEMP="mktemp --tmpdir"
+
+TS=$(date +%Y-%m-%d_%H:%M)
+if [ -e .gitmodules ]; then
+	MODULES=`sed -n 's/^.*path = //p' .gitmodules`
+fi
 
 DEBPSQL=/usr/include/postgresql
 test -d $DEBPSQL && export CFLAGS="$CFLAGS -I$DEBPSQL"
@@ -137,7 +154,15 @@ check_branch()
 # (i.e., there are instructions to delete it on failure)
 is_new_branch()
 {
-	echo "$revert" | grep -q "branch -D `check_branch $1`"
+	grep -q "branch -D `check_branch $1`" ${REVERT}
+}
+
+# Cleanup workdir (incl. submodules)
+workdir_cleanup()
+{
+	for dir in . ${MODULES}; do
+		cd ${dir}; ${GIT} clean -fdx; cd -
+	done >> $LOG 2>&1 || exit 1
 }
 
 ## UI HELPERS ##
@@ -185,8 +210,7 @@ prompt()
 test_build()
 {
 	echolog "Testing build of candidate $CURVER for $OML_VER..."
-	(${GIT} clean -fdx && \
-		./autogen.sh && \
+	(./autogen.sh && \
 		./configure && \
 		${MAKE} CFLAGS="-Wall" distcheck
 	) >> $LOG 2>&1 || exit 1
@@ -205,11 +229,11 @@ update_changelog()
 {
 	prompt Y 'echo -n "Did you properly merge ChangeLogs from previous stable branch release/2.$((OML_MINOR - 1)) (this is your time to do so!) [y/N] "' Y YES y yes N NO n no
 	is_in $prompt_var "Y YES y yes" || exit 1
-	CL=`${MKTEMP} oml-cl.XXX`
+	export CL=`${MKTEMP} ${PACKAGE_NAME}.${TS}.ChangeLog.XXX`
 	echolog "Creating ChangeLog entry stub (in $CL)..."
 	# XXX: Find the real predecessor here; at the moment, the needed 
 	# comparisons only happen when creating packages
-	(echo "`date +%Y-%m-%d`  `${GIT} config --get user.name` <`${GIT} config --get user.email`>"; \
+	(echo "$(date +%Y-%m-%d)  `${GIT} config --get user.name` <`${GIT} config --get user.email`>"; \
 		echo "	* OML: Version ${OML_VER}"; \
 		${GIT} log v2.$((OML_MINOR - 1)).0..HEAD  --pretty="		%s";
 	) > $CL
@@ -227,44 +251,53 @@ update_changelog()
 	echolog "Committing to git..."
 	${GIT} add ChangeLog >> $LOG 2>&1
 	${GIT} commit -sm "Update ChangeLog for ${OML_VER}" >> $LOG 2>&1
-	revert="${GIT} checkout -B `check_branch` `check_branch`^\n$revert"
+	echo ${GIT} checkout -B `check_branch` `check_branch`^ >> ${REVERT}
 }
 
 update_git()
 {
-	echolog "Tagging `${GIT} rev-parse` as v${OML_VER}..."
+	echolog "Tagging `${GIT} rev-parse HEAD` as v${OML_VER}..."
 	# XXX: Ask for PGP ID?
-	${GIT} tag -as v${OML_VER} -m "OML v${OML_VER}"
-	revert="${GIT} tag -d v${OML_VER}\n$revert"
+	${GIT} tag -as v${OML_VER} -m "${SOFTWARE_NAME} v${OML_VER}"
+	echo ${GIT} tag -d v${OML_VER} >> ${REVERT}
 
 	if check_branch release/${VERSION} >/dev/null; then
 		echolog "Branch release/${VERSION} already exists"
-		# FIXME: Check that we are on it; or fail
+		if [ `check_branch` != "release/${VERSION}" ]; then
+			echolog "'***' ... but is not currently checked out!"
+			exit 1
+		fi
 	else
 		echolog "Creating branch release/${VERSION}..."
 		${GIT} checkout -b release/${VERSION} >> $LOG 2>&1
-		revert="${GIT} branch -D release/${VERSION}\n$revert"
+		echo ${GIT} branch -D release/${VERSION} >> ${REVERT}
+	fi
+	workdir_cleanup
+	if [ -n "$MODULES" ]; then
+		echolog "'***' Remember to tag submodules (${MODULES}) as appropriate before continuing, e.g.,"
+		echolog "	git tag -sm \"XXX for OML ${VERSION}\" vXXX+oml${VERSION}"
 	fi
 }
 
 create_tarball()
 {
-	echolog "Creating release tarball... "
-	(${GIT} clean -fdx && \
-		./autogen.sh && \
+	prompt Y 'echo -n "Ready to create release tarball? [Y/n] "' Y YES y yes N NO n no
+	is_in $prompt_var "Y YES y yes" || exit 1
+	workdir_cleanup
+	(./autogen.sh && \
 		${GIT} checkout m4/gnulib-cache.m4; rm -rf autom4te.cache/; autoreconf -I /usr/share/aclocal && \
 		./configure && \
 		eval "${MAKE} distcheck `test -d $DEBPSQL && echo DISTCHECK_CONFIGURE_FLAGS=--with-pgsql-inc=$DEBPSQL`"
 	) >> $LOG 2>&1 || exit 1
-	TARBALL=`ls oml2-${OML_VER}.tar.gz`
-	echolog "Upload ${PWD}/${TARBALL} to http://oml.mytestbed.net/projects/oml/files/new for version ${VERSION}"
+	TARBALL=`ls ${PACKAGE_NAME}-${OML_VER}.tar.gz`
+	echolog "Upload ${PWD}/${TARBALL} to ${REDMINE_URL}/projects/${REDMINE_PROJECT}/files/new for version ${VERSION}"
 }
 
 prepare_packages()
 {
 	prompt Y 'echo -n "Did you properly merge packaging code from previous stable branches {debian,rpm,archlinux}/release/2.$((OML_MINOR - 1)) [y/N] "' Y YES y yes N NO n no
 	is_in $prompt_var "Y YES y yes" || exit 1
-	prompt ' ' 'echo -n "Confirm REDMINEID for the uploaded ${TARBALL} (hint: http://oml.mytestbed.net/attachments/download/REDMINEID/${TARBALL}): [$prompt_var] "'
+	prompt ' ' 'echo -n "Confirm REDMINEID for the uploaded ${TARBALL} (hint: ${REDMINE_URL}/attachments/download/REDMINEID/${TARBALL}): [$prompt_var] "'
 	REDMINEID=$prompt_var
 
 	package_wrap debian mytestbed
@@ -278,8 +311,8 @@ build_packages()
 	${GIT} checkout release/${VERSION} >> $LOG 2>&1
 	echolog -e "\nBuilding packages from `check_branch`..."
 
-	(${GIT} clean -fdx && \
-		./autogen.sh && \
+	workdir_cleanup
+	(./autogen.sh && \
 		${GIT} checkout m4/gnulib-cache.m4; rm -rf autom4te.cache/; autoreconf -I /usr/share/aclocal && \
 		./configure --enable-packaging `test -d $DEBPSQL && echo --with-pgsql-inc=$DEBPSQL` && \
 		make pkg-all # XXX We do not want concurency here, as it seems to break package-building
@@ -299,23 +332,34 @@ build_obs()
 	prompt Y 'echo -n "Build special tarball for OBS? [Y/n] "' Y YES y yes N NO n no
 	is_in $prompt_var "Y YES y yes" || return 0
 	SRC=$PWD
-	OBS=`${MKTEMP} -d oml-${OML_VER}-obs.XXX`
+	OBS=`${MKTEMP} -d ${PACKAGE_NAME}.${TS}.obs.XXX`
 	SPECIAL_TARBALL=${OBS}/obs.tar.gz
 	echolog "Working in $OBS (will not be deleted in case of failure)..."
 	cd $OBS
-	cp $SRC/p-debian/oml2_${VERSION}*{.diff.gz,.dsc,.orig.tar.gz} . || exit 1
-	find $SRC/p-rpm -type f -exec cp {} $PWD \; || exit 1
+	find $SRC/p-debian \(						\
+		-name ${PACKAGE_NAME}_${VERSION}\*.dsc			\
+		-o -name ${PACKAGE_NAME}_${VERSION}*.diff.gz		\
+		-o -name ${PACKAGE_NAME}_${VERSION}\*.orig.tar.gz	\
+		-o -name ${PACKAGE_NAME}_${VERSION}\*.debian.tar.gz	\
+		\) -exec cp -H {} ${PWD} \; || exit 1
+	find $SRC/p-rpm \(						\
+		-name \*.spec						\
+		-o -name \*.tar.gz					\
+		\) -exec cp -H {} ${PWD} \; || exit 1
+	find $SRC/p-arch \(						\
+		-name PKGBUILD						\
+		\) -exec cp -H {} ${PWD} \; || exit 1
 	tar czvhf ${SPECIAL_TARBALL} * >> $LOG 2>&1 || exit 1
 	cd $SRC
 
 	if [ -z $OML_TYPE ]; then
-		echolog "[RELEASE] Upload ${SPECIAL_TARBALL} to https://build.opensuse.org/package/add_file/home:cdwertmann:oml/oml2"
+		echolog "[RELEASE] Upload ${SPECIAL_TARBALL} to ${OBS_URL}/package/add_file/${OBS_NS}/${PACKAGE_NAME}"
 	else
-		echolog "[TEST] Upload ${SPECIAL_TARBALL} to https://build.opensuse.org/package/add_file/home:cdwertmann:oml-staging/oml2"
+		echolog "[TEST] Upload ${SPECIAL_TARBALL} to ${OBS_URL}/package/add_file/${OBS_NS_STAGING}/${PACKAGE_NAME}"
 	fi
 
 	# XXX: This is not the best place to do it, but it should do the job...
-	ARCHSRC=`ls p-arch/oml2-${VERSION}*.src.tar.* 2>/dev/null`
+	ARCHSRC=`ls p-arch/${PACKAGE_NAME}-${VERSION}*.src.tar.* 2>/dev/null`
 	test -z "$ARCHSRC" || echolog "ArchLinux source ${ARCHSRC} should be uploaded to AUR at https://aur.archlinux.org/submit/ "
 }
 
@@ -342,11 +386,11 @@ package_wrap()
 		echolog "Branch origin/${DISTRO}/release/${VERSION} exists, creating remote-tracking branch..."
 		# FIXME: Check that we are on it; or fail
 		${GIT} checkout -b ${DISTRO}/release/${VERSION} --track origin/${DISTRO}/release/${VERSION} >> $LOG 2>&1
-		revert="${GIT} branch -D ${DISTRO}/release/${VERSION}\n$revert"
+		echo ${GIT} branch -D ${DISTRO}/release/${VERSION} >> ${REVERT}
 	else
 		echolog "Creating branch ${DISTRO}/release/${VERSION} from ${DISTRO}/master..."
 		${GIT} checkout -b ${DISTRO}/release/${VERSION} ${DISTRO}/master >> $LOG 2>&1
-		revert="${GIT} branch -D ${DISTRO}/release/${VERSION}\n$revert"
+		echo ${GIT} branch -D ${DISTRO}/release/${VERSION} >> ${REVERT}
 	fi
 	PKGBRANCHES+="${DISTRO}/master ${DISTRO}/release/${VERSION} "
 
@@ -368,8 +412,8 @@ package_wrap()
 			echolog "Creating new $DISTRO package revision ${OML_PKGVER}-${OML_PKGEXTRA}..."
 			;;
 		1)
-			echolog "'***' Releasing an old package?"
-			return 1
+			prompt N 'echo -n "Releasing an old package? [y/N] "' Y YES y yes N NO n no
+			is_in $prompt_var "Y YES y yes" || exit 1
 			;;
 	esac
 	# FIXME: Ask user for confirmation
@@ -378,10 +422,11 @@ package_wrap()
 
 	# Git stuff
 	echolog "Committing to git..."
-	${GIT} commit -as -m "OML ${DISTRO} package ${OML_PKGVER}" >> $LOG 2>&1
-	echolog "Tagging `${GIT} rev-parse` as ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA}..." # Git tags cannot contain tildes
-	${GIT} tag -as ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA} -m "OML ${DISTRO} package ${OML_PKGVER}-${OML_PKGEXTRA}" >> $LOG 2>&1
-	revert="${GIT} tag -d ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA}\n$revert"
+	${GIT} commit -as -m "${SOFTWARE_NAME} ${DISTRO} package ${OML_PKGVER}" >> $LOG 2>&1
+	echo ${GIT} checkout -B `check_branch` `check_branch`^ >> ${REVERT}
+	echolog "Tagging `${GIT} rev-parse HEAD` as ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA}..." # Git tags cannot contain tildes
+	${GIT} tag -as ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA} -m "${SOFTWARE_NAME} ${DISTRO} package ${OML_PKGVER}-${OML_PKGEXTRA}" >> $LOG 2>&1
+	echo ${GIT} tag -d ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA} >> ${REVERT}
 	PKGTAGS+="tag ${DISTRO}/v${OML_VER}-${OML_PKGEXTRA} "
 }
 
@@ -397,9 +442,10 @@ package_debian()
 package_rpm()
 {
 	echolog "Updating RPM SPEC..."
-	SPECFILE=SPECS/oml2.spec
-	sed -i "s/^\(%define srcver\).*/\1	${OML_VER}/; \
-		s/^\(%define pkgver\).*/\1	`test "${OML_PKGVER}" = "${OML_VER}" && echo "%{srcver}" || echo "${OML_PKGVER}"`/; \
+	SPECFILE=SPECS/${PACKAGE_NAME}.spec
+	sed -i "s/^\(%define srcver[[:blank:]]\).*/\1	${OML_VER}/; \
+		s/^\(%define pkgver[[:blank:]]\).*/\1	${OML_PKGVER}/; \
+		s/^\(%define pkgvernotilde[[:blank:]]\).*/\1	`echo "${OML_PKGVER}"|sed s/\~//`/; \
 		s/^\(%define redmineid\).*/\1	${REDMINEID}/; \
 		s/^\(Release:\).*/\1	${OML_PKGEXTRA}/" \
 		${SPECFILE}
@@ -412,8 +458,9 @@ package_archlinux()
 {
 	echolog "Updating ArchLinux PKGBUILD..."
 	PKGBUILD=PKGBUILD.proto
-	sed -i "s/^\(pkgver\).*/\1=${OML_VER}/; \
+	sed -i "s/^\(pkgver\).*/\1=${OML_PKGVER}/; \
 		s/^\(_redmineid\).*/\1=${REDMINEID}/; \
+		s/^\(_srcver\).*/\1=${OML_VER}/; \
 		s/^\(pkgrel\).*/\1=${OML_PKGEXTRA}/" \
 		${PKGBUILD}
 	less $PKGBUILD
@@ -424,14 +471,16 @@ package_archlinux()
 
 ### MAIN LOGIC ###
 
-revert=""
-trap '(test $? != 0 && echo -e "\n*** Something went wrong; check $LOG" && test -n "$revert" && echo -e "*** Revert changes to this repo with:\n${GIT} checkout -f master\n$revert") || echo -e "*** Changes can be reverted with:\n${GIT} checkout master\n$revert" > $LOG' EXIT SIGINT
+LOG=`${MKTEMP} ${PACKAGE_NAME}.${TS}.log.XXX`
+echo ${TS} > $LOG
+REVERT=`${MKTEMP} ${PACKAGE_NAME}.${TS}.revert.XXX`
+echo "${GIT} checkout `check_branch`" > ${REVERT}
 
-LOG=`${MKTEMP} oml-release.XXX`
-date > $LOG
+echolog "Verbose logfile: ${LOG}; Revert file: ${REVERT}"
 
-echolog "Verbose logfile: $LOG"
+trap '(test $? != 0 && echo -e "\n*** Something went wrong; check $LOG" && echo -e "*** Revert changes to this repo with:\n${GIT} checkout -f master\n`tac ${REVERT}`") || echo -e "*** Changes can be reverted with:\n${GIT} checkout master\n`tac ${REVERT}`" >> $LOG' EXIT SIGINT
 
+workdir_cleanup
 if [ ! -e build-aux/git-version-gen ]; then
 	echolog "Regenerating build-aux/git-version-gen..."
 	(./autogen.sh && \
@@ -484,11 +533,11 @@ fi
 PUSH="${GIT} push ${REPO} master release/${VERSION} tag v${OML_VER} ${PKGBRANCHES} ${PKGTAGS}"
 prompt N 'echo -n "Push changes upstream to $REPO? [y/N] "' Y YES y yes N NO n no
 if is_in $prompt_var "Y YES y yes"; then
-	eval $PUSH 2>&1 | tee -a $LOG
+	eval $PUSH --set-upstream 2>&1 | tee -a $LOG
 	echolog -e "'***' If ${REPO} is not he official MyTestbed repository, don't forget to push there too:\n${PUSH}"
 else
 	echolog -e "'***' Run the following when ready (changing ${REPO} for the official MyTestbed repository if need be):\n${PUSH}"
 fi
 
-echolog -e "All done! Now tell the world:\n - Finalise the Release Notes (using the ChangeLog at $CL);\n - Add a news item in the OML news (http://oml.mytestbed.net/projects/oml/news);\n - Send an email to the <oml-user@mytestbed.net> mailing list (containing the ChangeLog and a link to the source)."
+echolog -e "All done! Now tell the world:\n - Finalise the Release Notes (using the ChangeLog at $CL);\n - Add a news item in the OML news (${REDMINE_URL}/projects/oml/news);\n - Send an email to the <oml-user@mytestbed.net> mailing list (containing the ChangeLog and a link to the source)."
 echo "Logfile $LOG kept."

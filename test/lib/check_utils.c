@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2015 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 #include "oml2/omlc.h"
 #include "oml_value.h"
 #include "oml2/oml_writer.h"
-#include "check_util.h"
+#include "check_utils.h"
 
 
 OmlValueU*

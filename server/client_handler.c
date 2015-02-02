@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA)
+ * Copyright 2007-2015 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -25,8 +25,9 @@
 #include "mem.h"
 #include "monitoring_server.h"
 #include "mbuf.h"
+#include "string_utils.h"
 #include "oml_value.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "validate.h"
 #include "marshal.h"
 #include "binary.h"
@@ -220,6 +221,7 @@ client_handler_new(Socket* new_sock)
   const char *event = "Connect";
   const char *message = "";
   client_event_report(self, event, message);
+  loginfo("%s: New incoming connection\n", self->name);
 
   return self;
 }

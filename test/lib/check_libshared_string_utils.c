@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 National ICT Australia Limited (NICTA)
+ * Copyright 2007-2015 National ICT Australia Limited (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -10,7 +10,54 @@
 
 #include <check.h>
 #include <string.h>
-#include <string_utils.h>
+
+#include "string_utils.h"
+
+START_TEST (test_util_find)
+{
+  char ws[] = "   ";
+  char ts[] = " abc def";
+  char *tsnwf = ts + 1;
+  char *tsnw = tsnwf + 4;
+  const char *got;
+
+  /* XXX: This should really be using a loop test */
+
+  got=skip_white(ws);
+  fail_unless(got == ws+sizeof(ws)-1,
+      "exp: %p :'%s'; got: %p: '%s'", ws+sizeof(ws)-1, ws+sizeof(ws)-1, got, got);
+  got=skip_white(ts);
+  fail_unless(got == tsnwf,
+      "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
+  got=skip_white(tsnwf);
+  fail_unless(got == tsnwf,
+      "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
+  got=skip_white(tsnw);
+  fail_unless(got == tsnw,
+      "exp: %p :'%s'; got: %p: '%s'", tsnw, tsnw, got, got);
+
+  got=find_white(ts);
+  fail_unless(got == ts,
+      "exp: %p :'%s'; got: %p: '%s'", ts, ts, got, got);
+  got=find_white(tsnwf);
+  fail_unless(got == tsnw - 1,
+      "exp: %p :'%s'; got: %p: '%s'", tsnw-1, tsnw-1, got, got);
+  got=find_white(tsnw);
+  fail_unless(got == tsnw+strlen(tsnw),
+      "exp: %p :'%s'; got: %p: '%s'", tsnw+strlen(tsnw), tsnw+strlen(tsnw), got, got);
+
+  got=find_charn(ts, 'a', sizeof(ts));
+  fail_unless(got == tsnwf,
+      "exp: %p :'%s'; got: %p: '%s'", tsnwf, tsnwf, got, got);
+  got=find_charn(ts, 'z', sizeof(ts) + 10);
+  fail_unless(got == NULL,
+      "exp: %p :'%s'; got: %p: '%s'", NULL, NULL, got, got);
+  got=find_charn(ts, 'a', 1);
+  fail_unless(got == NULL,
+      "exp: %p :'%s'; got: %p: '%s'", NULL, NULL, got, got);
+}
+END_TEST
+
 
 START_TEST(test_round_trip)
 {
@@ -114,6 +161,7 @@ string_utils_suite(void)
   Suite *s = suite_create("string_utils");
   TCase *tc_core = tcase_create("string_utils");
   tcase_add_test(tc_core, test_round_trip);
+  tcase_add_test (tc_core, test_util_find);
   suite_add_tcase(s, tc_core);
   return s;
 }

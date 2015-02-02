@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA)
+ * Copyright 2007-2015 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -300,6 +300,13 @@ parse_collector(xmlNodePtr el)
   }
   if ((writer = create_writer(url, encoding)) == NULL) {
     return -2;
+
+  } else {
+    writer->next = omlc_instance->first_writer;
+    omlc_instance->first_writer = writer;
+    if (NULL == omlc_instance->default_writer) {
+      omlc_instance->default_writer = omlc_instance->first_writer;
+    }
   }
 
   xmlNodePtr cur = el->xmlChildrenNode;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA)
+ * Copyright 2007-2015 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -41,7 +41,7 @@
 #include "ocomm/o_socket.h"
 #include "ocomm/o_eventloop.h"
 #include "mem.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "hook.h"
 #include "client_handler.h"
 #include "database.h"
@@ -50,7 +50,7 @@
 
 #define V_STRING  "OML Server %s\n"
 
-#define COPYRIGHT "Copyright 2007-2014 NICTA\n"
+#define COPYRIGHT "Copyright 2007-2015 NICTA\n"
 
 #if HAVE_LIBPQ
 #include <libpq-fe.h>
@@ -273,7 +273,7 @@ static void on_connect(Socket* new_sock, void* handle)
 
 int main(int argc, const char **argv)
 {
-  int c;
+  int c, len;
 #ifdef HAVE_LIBPQ
   char *pass_replace = "--pg-pass=WITHHELD", *conninfo_replace = "--pg-connect=WITHHELD";
 #endif
@@ -302,12 +302,15 @@ int main(int argc, const char **argv)
    */
   if (pg_pass || pg_conninfo) {
     for(c=1; c<argc; c++) {
+      len = strlen(argv[c]);
       if(pg_pass && !strncmp(argv[c],"--pg-pass", 9)) {
-        argv[c] = pass_replace;
+        strncpy((char*)argv[c], pass_replace, len);
+        ((char*)argv[c])[len] = 0;
       }
 
       if(pg_conninfo && !strncmp(argv[c],"--pg-connect", 12)) {
-        argv[c] = conninfo_replace;
+        strncpy((char*)argv[c], conninfo_replace, len);
+        ((char*)argv[c])[len] = 0;
       }
     }
   }

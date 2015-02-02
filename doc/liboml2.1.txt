@@ -330,36 +330,35 @@ an optional network protocol, a host identifier, and an optional port
 number, or a mandatory *file* (or *flush* )scheme and a local filesystem
 path.  The format of the network server version is:
 ---------------------------
-[tcp:][//]<host>[:<port>]
+[tcp://]<host>[:<port>]
 ---------------------------
 The formats for the local file version is:
 ---------------------------
 (file|flush):<local-path>
 ---------------------------
 
-For instance, 'tcp:collect.example.net:3003' or
-'tcp://collect.example.net:3003' will send measurements to an
-*oml2-server* listening on port '3003' on host 'collect.example.net',
-using TCP. The '//' is recognized but optional and not recommended.
-Either a hostname or an IP address can be used as the '<host>'
-specifier. Both IPv4 and IPv6 addresses are supported, but it is
-mandatory to put the latter between square brackets; this is optional
-for the former.  'tcp:[2001:db8::1]:3003', 'tcp:[192.0.2.200]:3003' and
-'tcp:192.0.2.200:3003' are all valid forms.  The '<port>' specifier is
+For instance, 'tcp://collect.example.net:3003' will send measurements to
+an *oml2-server* listening on port '3003' on host 'collect.example.net',
+using TCP. The '//' is recommended for URIs with a 'host' part, but not
+mandatory to preserve backward compatibility.  Either a hostname or an
+IP address can be used as the '<host>' specifier. Both IPv4 and IPv6
+addresses are supported, but it is mandatory to put the latter between
+square brackets; this is optional for the former.
+'tcp://[2001:db8::1]:3003', 'tcp://[192.0.2.200]:3003' and
+'tcp://192.0.2.200:3003' are all valid forms.  The '<port>' specifier is
 optional, defaulting to port 3003. The *tcp* scheme is the default if
 this part is omitted.
 
 Alternatively, 'file:/tmp/myfile.txt' writes to the /tmp/myfile.txt file
 in the local filesystem. Relative paths are also accepted. There should
-be no double-slash after the colon: 'file://myfile.txt' is treated the
-same as 'file:/myfile.txt', i.e., it will try to write the output in the
-root directory. The special file URL 'file:-' will write output to the
-standard output. The *flush* scheme behaves exactly in the same way as
-*file* except the file descriptor is flushed after each a measurement
-line is written out. This allows to prevent any size-based buffering in
-the C library from delaying the recording of samples. This is useful in
-case of, e.g., real time graphing of the data based on the contents of
-the file.
+be no double-slash after the colon: 'file://myfile.txt' will try to
+write the output in the root directory. The special file URL 'file:-'
+will write output to the standard output. The *flush* scheme behaves
+exactly in the same way as *file* except the file descriptor is flushed
+after each a measurement line is written out. This allows to prevent any
+size-based buffering in the C library from delaying the recording of
+samples. This is useful in case of, e.g., real time graphing of the data
+based on the contents of the file.
 
 ENVIRONMENT VARIABLES
 ---------------------

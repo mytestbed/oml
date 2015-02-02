@@ -46,6 +46,7 @@ doc/*.3
 doc/*.5
 doc/*.html
 doc/doxygen/
+doc/images/
 m4/*
 !m4/ax_check_postgres_db.m4
 !m4/ax_compare_version.m4
@@ -70,3 +71,14 @@ test/server/issue610.rb
 test/testclient
 server/oml2-server.rb
 server/oml2-server_oml.h
+test/*/*.log
+test/*/*.trs
+test/lib/blob
+test/lib/check_liboml2
+test/lib/check_libshared
+test/lib/test_api_basic
+test/lib/test_api_metadata
+test/lib/test_config_empty_collect*
+test/lib/test_config_metadata*
+test/lib/test_config_multi_collect*
+test/lib/test_*_create_buffered

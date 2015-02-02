@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia Limited (NICTA)
+ * Copyright 2007-2015 National ICT Australia Limited (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -19,7 +19,7 @@
 
 #include "oml2/omlc.h"
 #include "mem.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "oml_value.h"
 
 #define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))

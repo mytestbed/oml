@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA)
+ * Copyright 2007-2015 National ICT Australia (NICTA)
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License in
@@ -23,50 +23,12 @@
 #include "ocomm/o_log.h"
 #include "ocomm/o_socket.h"
 #include "mem.h"
-#include "oml_util.h"
+#include "oml_utils.h"
 #include "client.h"
+#include "net_stream.h"
 
-/** OmlOutStream writing out to an OComm Socket */
-typedef struct OmlNetOutStream {
-
-  /*
-   * Fields from OmlOutStream interface
-   */
-
-  /** \see OmlOutStream::write, oml_outs_write_f */
-  oml_outs_write_f write;
-  /** \see OmlOutStream::close, oml_outs_close_f */
-  oml_outs_close_f close;
-
-  /** \see OmlOutStream::dest */
-  char *dest;
-
-  /*
-   * Fields specific to the OmlNetOutStream
-   */
-
-  /** OComm Socket in which the data is writte */
-  Socket*    socket;
-
-  /** Protocol used to establish the connection */
-  char*       protocol;
-  /** Host to connect to */
-  char*       host;
-  /** Service to connect to */
-  char*       service;
-
-  /** Old storage, no longer used, kept for compatibility */
-  char  storage;
-
-  /** True if header has been written to the stream \see open_socket*/
-  int   header_written;
-
-} OmlNetOutStream;
-
-static int open_socket(OmlNetOutStream* self);
-static size_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
+static ssize_t net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length);
 static int net_stream_close(OmlOutStream* hdl);
-static ssize_t socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length);
 
 /** Create a new out stream for sending over the network
  * \param transport string representing the protocol used to establish the connection (oml_strndup()'d locally)
@@ -85,7 +47,7 @@ net_stream_new(const char *transport, const char *hostname, const char *service)
   memset(self, 0, sizeof(OmlNetOutStream));
 
   dest = mstring_create();
-  mstring_sprintf(dest, "%s:%s:%s", transport, hostname, service);
+  mstring_sprintf(dest, "%s://%s:%s", transport, hostname, service);
   self->dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
   mstring_delete(dest);
 
@@ -115,11 +77,12 @@ net_stream_close(OmlOutStream* stream)
 {
   OmlNetOutStream* self = (OmlNetOutStream*)stream;
 
+  logdebug("%s: Destroying OmlNetOutStream at %p\n", self->dest, self);
+
   if (self->socket != 0) {
     socket_close(self->socket);
     self->socket = NULL;
   }
-  logdebug("%s: Destroying OmlNetOutStream at %p\n", self->dest, self);
   oml_free(self->dest);
   oml_free(self->host);
   oml_free(self->protocol);
@@ -187,61 +150,6 @@ open_socket(OmlNetOutStream* self)
   return 1;
 }
 
-/** Called to write into the socket
- * \see oml_outs_write_f
- *
- * If the connection needs to be re-established, header is sent first, then buffer,
- *
- * \see \see open_socket, socket_write
- */
-static size_t
-net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length)
-{
-  OmlNetOutStream* self = (OmlNetOutStream*)hdl;
-
-  /* Initialise the socket the first time */
-  while (self->socket == NULL) {
-    logdebug ("%s: Connecting to server\n", self->dest);
-    if (!open_socket(self)) {
-      logdebug("%s: Connection attempt failed\n", self->dest);
-      return 0;
-    }
-  }
-
-  /* If the underlying socket as registered a disconnection, it will reconnect on its own
-   * however, we need to check it to make sure we send the headers before anything else */
-  if(socket_is_disconnected(self->socket)) {
-    self->header_written = 0;
-  }
-
-  size_t count;
-  if (! self->header_written) {
-    if(o_log_level_active(O_LOG_DEBUG4)) {
-      char *out = to_octets(header, header_length);
-      logdebug("%s: Sending header %s\n", self->dest, out);
-      oml_free(out);
-    }
-    if ((count = socket_write(self, header, header_length)) < header_length) {
-      // TODO: This is not completely right as we end up rewriting the same header
-      // if we can only partially write it. At this stage we think this is too hard
-      // to deal with and we assume it doesn't happen.
-      if (count > 0) {
-        // PANIC
-        logwarn("%s: Only wrote parts of the header; this might cause problem later on\n", self->dest);
-      }
-      return 0;
-    }
-    self->header_written = 1;
-  }
-  if(o_log_level_active(O_LOG_DEBUG4)) {
-    char *out = to_octets(buffer, length);
-    logdebug("%s: Sending data %s\n", self->dest, out);
-    oml_free(out);
-  }
-  count = socket_write(self, buffer, length);
-  return count;
-}
-
 /** Do the actual writing into the OComm Socket, with error handling
  * \param self OmlNetOutStream through which the data should be written
  * \param buffer data to write
@@ -252,17 +160,60 @@ net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* he
  * \see write(3)
  */
 static ssize_t
-socket_write(OmlNetOutStream* self, uint8_t* buffer, size_t  length)
+socket_write(OmlOutStream* outs, uint8_t* buffer, size_t  length)
 {
+  OmlNetOutStream *self = (OmlNetOutStream*) outs;
   int result = socket_sendto(self->socket, (char*)buffer, length);
 
   if (result == -1 && socket_is_disconnected (self->socket)) {
     logwarn ("%s: Connection lost\n", self->dest);
+    socket_free(self->socket);
     self->socket = NULL;      // Server closed the connection
   }
   return result;
 }
 
+/** Called to write into the socket
+ * \see oml_outs_write_f
+ *
+ * If the connection needs to be re-established, header is sent first, then buffer,
+ *
+ * \see \see open_socket, socket_write
+ */
+static ssize_t
+net_stream_write(OmlOutStream* hdl, uint8_t* buffer, size_t  length, uint8_t* header, size_t  header_length)
+{
+  OmlNetOutStream* self = (OmlNetOutStream*)hdl;
+  size_t count;
+
+  /* The header can be NULL, but header_length MUST be 0 in that case */
+  assert(header || !header_length);
+
+  /* Initialise the socket the first time */
+  while (self->socket == NULL) {
+    logdebug ("%s: Connecting to server\n", self->dest);
+    if (!open_socket(self)) {
+      logdebug("%s: Connection attempt failed\n", self->dest);
+      return 0;
+    }
+  }
+
+  /* If the underlying socket has registered a disconnection, it will reconnect on its own
+   * however, we need to check it to make sure we send the headers before anything else */
+  if(socket_is_disconnected(self->socket)) {
+    self->header_written = 0;
+  }
+
+  out_stream_write_header(hdl, socket_write, header, header_length);
+
+  if(o_log_level_active(O_LOG_DEBUG4)) {
+    char *out = to_octets(buffer, length);
+    logdebug("%s: Sending data %s\n", self->dest, out);
+    oml_free(out);
+  }
+  count = socket_write(hdl, buffer, length);
+  return count;
+}
 
 /*
  Local Variables:

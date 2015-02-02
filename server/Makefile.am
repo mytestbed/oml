@@ -14,9 +14,14 @@ AM_CPPFLAGS = \
 	-DLOCAL_STATE_DIR=\"$(localstatedir)\" \
 	-DPKG_LOCAL_STATE_DIR=\"$(pkglocalstatedir)\"
 
+if BUILD_SERVER
 bin_PROGRAMS = oml2-server
 
 noinst_LTLIBRARIES = libserver-test.la
+
+BUILT_SOURCES = oml2-server.rb \
+		oml2-server_oml.h
+endif
 
 oml2_server_SOURCES = \
 	oml2-server.c \
@@ -49,9 +54,6 @@ libserver_test_la_SOURCES = \
 			    database.h \
 			    table_descr.c \
 			    table_descr.h
-
-BUILT_SOURCES = oml2-server.rb \
-		oml2-server_oml.h
 
 CLEANFILES = $(BUILT_SOURCES)
 

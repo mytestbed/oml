@@ -11,7 +11,7 @@ AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 # automake 1.12 seems to require this, but automake 1.11 doesn't recognize it
-m4_pattern_allow([AM_PROG_AR]) 
+m4_pattern_allow([AM_PROG_AR])
 AM_PROG_AR
 
 LT_INIT
@@ -26,6 +26,9 @@ AC_PROG_MAKE_SET
 gl_INIT
 
 OML_CHECK_MACOSX
+AS_IF([test "x$is_macosx" = "xyes" ],
+      AC_DEFINE([MSG_NOSIGNAL], [SO_NOSIGPIPE], [Define to system's equivalent to disable SIGPIPE when writing to unconnected sockets.])
+      )
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
@@ -278,24 +281,30 @@ AM_CONDITIONAL([IS_ARCH], [test "x$isarch" != "x"])
 AM_CONDITIONAL([IS_DEBIAN], [test "x$isdebian" != "x"])
 AM_CONDITIONAL([IS_REDHAT], [test "x$isredhat" != "x"])
 
-AX_WITH_PROG([PYTHON],[python],[missing_python="yes"])
+AX_WITH_PROG([PYTHON],[python])
+AS_IF([test x"$PYTHON" = x], [missing_python=yes])
 AM_CONDITIONAL([HAVE_PYTHON], [test x"${missing_python}" != xyes])
 
 AX_WITH_PROG([RUBY],[ruby])
-AX_PROG_RUBY_VERSION([1.8.7],
-		     [
-		      missing_rubyge187=no
-		     ],
-		     [
-		      AC_MSG_WARN([No Ruby>=1.8.7 found; some tests will be skipped])
-		      missing_rubyge187=yes
-		      AS_IF([test "x$enable_android" = "xyes"],
-			    [AC_MSG_WARN([The Android source package will not contain a working example-oml2, please do not distribute it])])
-		     ]
-		    )
-AM_CONDITIONAL([HAVE_RUBY_MIN_1_8_7], [test x"${missing_rubyge187}" != xyes])
 
-missing_check=""
+AS_IF([test x"$RUBY" = x],
+      [missing_ruby=yes
+       missing_rubyge187=yes
+       AC_MSG_WARN([Ruby (preferably>=1.8.7) is needed to build the oml2-server])],
+       AX_PROG_RUBY_VERSION([1.8.7],
+			    [
+			     missing_rubyge187=no
+			     ],
+			     [
+			      AC_MSG_WARN([No Ruby>=1.8.7 found; some tests will be skipped])
+			      missing_rubyge187=yes
+			      ])
+       )
+AM_CONDITIONAL([BUILD_SERVER], [test x"${missing_ruby}" != xyes])
+AM_CONDITIONAL([HAVE_RUBY_MIN_1_8_7], [test x"${missing_rubyge187}" != xyes])
+AS_IF([test "x$enable_android" = "xyes" -a x"${missing_rubyge187}" = xyes],
+      [AC_MSG_WARN([The Android source package will not contain a working example-oml2, please do not distribute it])])
+
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4], [], [missing_check="yes"])
 AM_CONDITIONAL([HAVE_CHECK], [test x"${missing_check}" != xyes])
 AX_WITH_PROG([TIMEOUT],[timeout])

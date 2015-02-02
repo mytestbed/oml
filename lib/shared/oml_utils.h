@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 National ICT Australia (NICTA), Australia
+ * Copyright 2007-2015 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,13 +24,9 @@
 #ifndef UTIL_H__
 #define UTIL_H__
 
+#include "string_utils.h"
+
 #define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
-
-void chomp (char* str);
-
-const char *skip_white (const char *p);
-const char *find_white (const char *p);
-const char *find_charn (const char *p, char c, int len);
 
 char* to_octets (unsigned char* buf, int len);
 
@@ -44,10 +40,14 @@ typedef enum {
   OML_URI_UDP,
 } OmlURIType;
 
+#define DEF_PORT 3003
+#define DEF_PORT_STRING  xstr(DEF_PORT)
+
 OmlURIType oml_uri_type(const char* uri);
-#define oml_uri_is_file(t) (t>=OML_URI_FILE && t<=OML_URI_FILE_FLUSH)
-#define oml_uri_is_network(t) (t>=OML_URI_TCP && t<=OML_URI_UDP)
-int parse_uri (const char *uri, const char **protocol, const char **path, const char **port);
+int oml_uri_is_file(OmlURIType t);
+int oml_uri_is_network(OmlURIType t);
+int parse_uri (const char *uri, const char **scheme, const char **host, const char **port, const char **path);
+char *default_uri(const char *app_name, const char *name, const char *domain);
 
 #endif // UTIL_H__
 
