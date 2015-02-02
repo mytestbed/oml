@@ -488,6 +488,8 @@ destroyBufferChain(BufferedWriter* self) {
     oml_free(chunk);
   }
 
+  mbuf_destroy(self->meta_buf);
+
   pthread_cond_destroy(&self->semaphore);
   pthread_mutex_destroy(&self->lock);
 
