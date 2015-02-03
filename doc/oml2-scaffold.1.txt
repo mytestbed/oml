@@ -415,10 +415,7 @@ myobj1.foo(42, "hello", 'a' => 1, 'b' => { :var_name => 'report_cpu' })
 
 If you do want to find out more about Ruby syntax, there are many good
 tutorials on the Internet. This one is a good starting point:
-
---------
 http://www.ruby-lang.org/en/documentation/quickstart/
---------
 
 RESTRICTIONS ON NAMES
 ---------------------

@@ -7,8 +7,8 @@ http://oml.mytestbed.net/tab/show?id=oml).
 
 It is however advisable to open a ticket on our issue tracker at
 http://oml.mytestbed.net/projects/oml/issues/new. Don't forget to
-include details such as client and server logs (at '[--oml-log-level|-d]
-2'). It also helps if you can share the source code of a (minimal, if
+include details such as client and server logs (at *[--oml-log-level|-d]
+2*). It also helps if you can share the source code of a (minimal, if
 possible) example reliably triggering the problem.
 
 // vim: ft=asciidoc:tw=72

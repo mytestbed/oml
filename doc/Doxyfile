@@ -780,8 +780,7 @@ FILE_PATTERNS          = *.c \
                          *.rb \
                          *.dox \
                          *.md \
-                         oml2-server-hook.sh \
-                         README.txt
+                         oml2-server-hook.sh
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
@@ -2280,7 +2279,8 @@ DIAFILE_DIRS           =
 # will not generate output for the diagram.
 # This tag requires that the tag HAVE_DOT is set to YES.
 
-PLANTUML_JAR_PATH      =
+# XXX: Assumes we have downloaded the JAR as part of the build process
+PLANTUML_JAR_PATH      = $(TOPSRCDIR)
 
 # The DOT_GRAPH_MAX_NODES tag can be used to set the maximum number of nodes
 # that will be shown in the graph. If the number of nodes in a graph becomes

@@ -1,3 +1,5 @@
+// @file oml2-server.txt
+// @page oml2-server(1)
 oml2-server(1)
 ==============
 
@@ -147,7 +149,7 @@ You can create this user in PostgreSQL as follows (where 'postgresql' is
 the admin user for the database, and 'oml' is the user being created).
 +
 --------------------------
-  createuser -U postgres --pwprompt --no-superuser --createdb --no-createrole --no-replication oml
+$ createuser -U postgres --pwprompt --no-superuser --createdb --no-createrole --no-replication oml
 --------------------------
 +
 Doing so will ask you to enter and confirm the password for this role.
@@ -155,14 +157,14 @@ It should match that passed to *--pg-pass* below. Alternatively, the
 role can be created through and interactive console.
 +
 --------------------------
-    $ psql -U DBADMIN
-    psql (9.3.2)
-    Type "help" for help.
-    
-    DBADMIN=# CREATE USER oml WITH PASSWORD 'oml';
-    CREATE ROLE
-    DBADMIN=# ALTER ROLE oml WITH CREATEDB;
-    ALTER ROLE
+$ psql -U DBADMIN
+psql (9.3.2)
+Type "help" for help.
+
+DBADMIN=# CREATE USER oml WITH PASSWORD 'oml';
+CREATE ROLE
+DBADMIN=# ALTER ROLE oml WITH CREATEDB;
+ALTER ROLE
 --------------------------
 
 --pg-pass=pass::
@@ -179,7 +181,7 @@ role can be created through and interactive console.
 	following being passed to the server:
 +
 --------------------------
-  host=postgres.example.net password=secret user=oml2
+host=postgres.example.net password=secret user=oml2
 --------------------------
 +
 Though parameters which have specific *--pg-* options can be passed
@@ -192,7 +194,7 @@ make things difficult. A workaround is to wrap the entire argument in quotes,
 that is:
 +
 --------------------------
-  oml2-server --pg-user=oml2 "--pg-connect=host=postgres.example.net password=secret"
+oml2-server --pg-user=oml2 "--pg-connect=host=postgres.example.net password=secret"
 --------------------------
 endif::have_pg[]
 
@@ -378,7 +380,7 @@ endif::have_pg[]
 
 IRODS
 ~~~~~
-http://www.irods.org/
+http://www.irods.org
 
 HAProxy
 ~~~~~~
