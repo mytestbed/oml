@@ -983,7 +983,7 @@ $(PROGRAM)_oml.h: $(PROGRAM).rb
   def write_main(stream = $stdout)
     write_file_header(stream, "Please edit to suit your needs; the run() function should contain application code.")
     stream.puts %Q|
-#include <unistd.h> /* Needed for sleep(3) in run() */
+#include <unistd.h> /* Needed for usleep(3) in run() */
 #include <signal.h>
 #include <string.h>
 #include <popt.h>
@@ -1035,7 +1035,8 @@ run(opts_t *opts, oml_mps_t *oml_mps)
     end
     stream.puts %Q|
     val += 2;
-    sleep(1);
+    /* The following depends on the delay command-line parameter in #{template(:app_name)}.rb */
+    usleep(g_opts_storage.delay*1000000);
   } while (loop);
 }
 
@@ -1149,7 +1150,7 @@ is doing and useful for.
   app.defProperty('loop', 'Create periodic result', '-l',
         :type => :boolean, :mnemonic => 'l')
   app.defProperty('delay', 'Delay between consecutive measurements', '-d',
-        :type => :integer, :unit => 'seconds', :mnemonic => 'd')
+        :type => :double, :unit => 'seconds', :mnemonic => 'd', :default => '1.0')
 
   # Example of all supported command-line argument types; see popt(3) for more details
 #{
