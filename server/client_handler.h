@@ -20,6 +20,9 @@
  * THE SOFTWARE.
  *
  */
+/** \file client_handler.h
+ * \brief Interface for the ClientHandler.
+ */
 #ifndef CLIENT_HANDLER_H_
 #define CLIENT_HANDLER_H_
 
@@ -34,39 +37,40 @@
 #define MAX_PROTOCOL_VERSION OML_PROTOCOL_VERSION
 #define MIN_PROTOCOL_VERSION 1
 
-typedef enum _cstate {
-  C_HEADER,       // processing header info
-  C_BINARY_DATA,  // data is of binary format
-  C_TEXT_DATA,    // data in binary format
-  C_PROTOCOL_ERROR,// a protocol error occurred --> kick the client
-  C_BINARY_SKIP,  // somehow invalid binary message, we need to resync
+/** Enum representing the current state of a ClientHandler
+ * \bug C_TEXT_DATA and C_BINARY_* should be in a separate level */
+typedef enum {
+  C_HEADER,         /**< processing header info */
+  C_BINARY_DATA,    /**< data is of binary format */
+  C_TEXT_DATA,      /**< data in binary format */
+  C_PROTOCOL_ERROR, /**< a protocol error occurred --> kick the client */
+  C_BINARY_SKIP,    /**< somehow invalid binary message, we need to resync */
 } CState;
 
 #define DEF_NUM_VALUES  30
 #define MAX_STRING_SIZE 64
 
-typedef struct _clientHandler {
-  //! Name used for debugging
-  char name[MAX_STRING_SIZE];
+/** Structure to hold the state of each connected client and associated socket, event and database */
+typedef struct ClientHandler {
+  char name[MAX_STRING_SIZE];       /**< Name used for debugging */
 
-  Database*   database;
-  DbTable**   tables;
-  int*        seqno_offsets;
-  OmlValue**  values_vectors;
-  int*        values_vector_counts; // size of each vector in values_vectors
-  int         table_count;    // size of tables, seqno_offsets and values_vectors arrays
-  int         sender_id;
-  char*       sender_name;
-  char*       app_name;
+  Database*   database;             /**< Handler to the database object for this client */
+  DbTable**   tables;               /**< Array of the tables for that client, indexed by MS id */
+  int*        seqno_offsets;        /**< Array of the current sequence numbers for each MS, indexed by MS id \bug: not currently used */
+  OmlValue**  values_vectors;       /**< Array of arrays of OmlValue to hold a new sample for each MS, indexed by MS id */
+  int*        values_vector_counts; /**< Array of sizes of each vector in values_vectors, indexed by MS id */
+  int         table_count;          /**< Size of the tables, seqno_offsets and values_vectors arrays */
+  int         sender_id;            /**< ID of this sender in the database*/
+  char*       sender_name;          /**< Name of the sender as sent in headers */
+  char*       app_name;             /**< Name of the application as sent in headers */
 
-  CState      state;
-  CState      content;
-  Socket*     socket;
-  SockEvtSource *event;
-  MBuffer* mbuf;
+  CState      state;                /**< Current state of the ClientHandler, \see CState */
+  CState      content;              /**< Type of expected content, \see CState \bug should not be a CState*/
+  Socket*     socket;               /**< OSocket from which the data is coming */
+  SockEvtSource *event;             /**< Event handler for the OComm EventLoop */
+  MBuffer* mbuf;                    /**< Mbuffer for incoming data */
 
-  time_t      time_offset;  // value to add to remote ts to
-                            // sync time across all connections
+  time_t      time_offset;          /**< value to add to remote ts to sync time across all connections */
 } ClientHandler;
 
 ClientHandler* client_handler_new (Socket* new_sock);
