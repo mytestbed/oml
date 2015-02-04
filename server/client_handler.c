@@ -44,11 +44,15 @@ static void
 status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle);
 
 static const char *client_state_s[] = {
-  [C_HEADER]          = "C_HEADER",
-  [C_BINARY_DATA]     = "C_BINARY_DATA",
-  [C_TEXT_DATA]       = "C_TEXT_DATA",
-  [C_PROTOCOL_ERROR]  = "C_PROTOCOL_ERROR",
-  [C_BINARY_SKIP]     = "C_BINARY_SKIP",
+  [CS_HEADER]          = "CS_HEADER",
+  [CS_DATA]            = "CS_DATA",
+  [CS_PROTOCOL_ERROR]  = "CS_PROTOCOL_ERROR",
+};
+
+static const char *client_mode_s[] = {
+  [CM_UNSPEC_DATA]     = "C_UNSPEC_DATA",
+  [CM_TEXT_DATA]       = "C_TEXT_DATA",
+  [CM_BINARY_DATA]     = "C_BINARY_DATA",
 };
 
 /**
@@ -205,8 +209,8 @@ client_handler_new(Socket* new_sock)
   if (!self) return NULL;
 
   memset(self, 0, sizeof(*self));
-  self->state = C_HEADER;
-  self->content = C_TEXT_DATA;
+  self->state = CS_HEADER;
+  self->content = CM_UNSPEC_DATA;
   self->mbuf = mbuf_create ();
   self->socket = new_sock;
   self->event = eventloop_on_read_in_channel(new_sock, client_callback,
@@ -298,14 +302,14 @@ process_schema(ClientHandler* self, char* value)
   struct schema *schema = schema_from_meta (value);
   if (!schema) {
     logerror ("%s: Failure parsing schema '%s'; disconnecting client.\n", self->name, value);
-    self->state = C_PROTOCOL_ERROR;
+    self->state = CS_PROTOCOL_ERROR;
     return;
   }
 
   char *invalid = NULL;
   if (!validate_schema_names (schema, &invalid)) {
     logerror ("%s: Invalid name '%s' in schema '%s'\n", self->name, invalid, value);
-    self->state = C_PROTOCOL_ERROR;
+    self->state = CS_PROTOCOL_ERROR;
     schema_free (schema);
     return;
   }
@@ -317,7 +321,7 @@ process_schema(ClientHandler* self, char* value)
   if (table == NULL) {
     logerror("%s: Can't find table '%s' or client schema '%s' doesn't match any of the existing tables.\n",
         self->name, schema->name, value);
-    self->state = C_PROTOCOL_ERROR;
+    self->state = CS_PROTOCOL_ERROR;
     schema_free (schema);
     return;
   }
@@ -362,7 +366,7 @@ process_meta(ClientHandler* self, char* key, char* value)
 
   if (strcmp(key, "protocol") == 0) {
     protocol = atoi (value);
-    if (self->state != C_HEADER) {
+    if (self->state != CS_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
       return -1;
@@ -372,7 +376,7 @@ process_meta(ClientHandler* self, char* key, char* value)
           self->name, value, protocol, MAX_PROTOCOL_VERSION);
       logdebug("%s:    Maybe the client was built with a newer version of OML.\n",
           self->name);
-      self->state = C_PROTOCOL_ERROR;
+      self->state = CS_PROTOCOL_ERROR;
       return -2;
 
     } else {
@@ -380,13 +384,13 @@ process_meta(ClientHandler* self, char* key, char* value)
     }
 
   } else if (strcmp(key, "domain") == 0 || strcmp(key, "experiment-id") == 0) {
-    if (self->state != C_HEADER) {
+    if (self->state != CS_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
       return -1;
 
     } else if (!(self->database = database_find(value))) {
-      self->state = C_PROTOCOL_ERROR;
+      self->state = CS_PROTOCOL_ERROR;
       return -2;
 
     } else {
@@ -394,7 +398,7 @@ process_meta(ClientHandler* self, char* key, char* value)
     }
 
   } else if (strcmp(key, "start-time") == 0 || strcmp(key, "start_time") == 0) {
-    if (self->state != C_HEADER) {
+    if (self->state != CS_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
       return -1;
@@ -402,7 +406,7 @@ process_meta(ClientHandler* self, char* key, char* value)
     } else if (self->database == NULL) {
       logerror("%s: Meta 'start-time' needs to come after 'domain'.\n",
           self->name);
-      self->state = C_PROTOCOL_ERROR;
+      self->state = CS_PROTOCOL_ERROR;
       return -2;
 
     } else {
@@ -473,7 +477,7 @@ process_meta(ClientHandler* self, char* key, char* value)
     }
 
   } else if (strcmp(key, "sender-id") == 0) {
-    if (self->state != C_HEADER) {
+    if (self->state != CS_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
       return -1;
@@ -481,7 +485,7 @@ process_meta(ClientHandler* self, char* key, char* value)
     } else if (self->database == NULL) {
       logerror("%s: Meta 'sender-id' needs to come after 'domain'.\n",
           self->name);
-      self->state = C_PROTOCOL_ERROR;
+      self->state = CS_PROTOCOL_ERROR;
       return -2;
 
     } else {
@@ -491,7 +495,7 @@ process_meta(ClientHandler* self, char* key, char* value)
     }
 
   } else if (strcmp(key, "app-name") == 0) {
-    if (self->state != C_HEADER) {
+    if (self->state != CS_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
 
@@ -511,25 +515,24 @@ process_meta(ClientHandler* self, char* key, char* value)
     return 0;
 
   } else if (strcmp(key, "content") == 0) {
-    if (self->state != C_HEADER) {
+    if (self->state != CS_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
           self->name, key);
       return -1;
 
     } else if (strcmp(value, "binary") == 0) {
       logdebug("%s: Switching to binary mode\n", self->name);
-      self->content = C_BINARY_DATA;
-      return 0;
+      self->content = CM_BINARY_DATA;
 
     } else if (strcmp(value, "text") == 0) {
-      self->content = C_TEXT_DATA;
-      return 0;
+      self->content = CM_TEXT_DATA;
 
     } else {
       logerror("%s: Unknown content type '%s'\n", self->name, value);
-      self->state = C_PROTOCOL_ERROR;
+      self->state = CS_PROTOCOL_ERROR;
       return -2;
     }
+    return 0;
 
   } else {
     /* Unknown key, let the caller deal with it */
@@ -589,7 +592,7 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     int skip_count = mbuf_find_not (mbuf, '\n');
     mbuf_read_skip (mbuf, skip_count + 1);
     mbuf_consume_message (mbuf);
-    self->state = self->content;
+    self->state = CS_DATA;
     client_event_report(self, "Ready", "");
     loginfo("%s: Client %s ready to send data\n", self->name, self->event->name);
     return 0;
@@ -613,11 +616,11 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     process_meta(self, line, value);
   } else {
     logerror("%s: Malformed meta line in header: '%s'\n", self->name, line);
-    self->state = C_PROTOCOL_ERROR;
+    self->state = CS_PROTOCOL_ERROR;
   }
 
   // process_meta() might have signalled protocol error, so we have to check here.
-  if (self->state == C_PROTOCOL_ERROR)
+  if (self->state == CS_PROTOCOL_ERROR)
     return 0;
   else
     return 1; // still in header
@@ -784,14 +787,16 @@ process_bin_message(ClientHandler* self, MBuffer* mbuf)
   case OMB_DATA_P:
   case OMB_LDATA_P:
     process_bin_data_message(self, &header);
-    if (self->state != C_BINARY_DATA)
+    if (self->state != CS_DATA) {
+      /* Did we receive an error? */
       return 0;
+    }
     break;
   default:
     logwarn("%s(bin): Ignoring unsupported message type '%d'\n", self->name, header.type);
     /* XXX: Assume we could read the full header, just skip it
      * FIXME: We might have to skip the data too
-     self->state = C_PROTOCOL_ERROR;
+     self->state = CS_PROTOCOL_ERROR;
      */
     return 0;
   }
@@ -931,7 +936,7 @@ process_text_message(ClientHandler* self, MBuffer* mbuf)
   char* line;
   int len;
 
-  while (C_TEXT_DATA == self->state) {
+  while (CM_TEXT_DATA == self->content) {
     if (read_line(&line, &len, mbuf) == 0) {
       return 0;
     }
@@ -988,15 +993,19 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
   ClientHandler* self = (ClientHandler*)handle;
   MBuffer* mbuf = self->mbuf;
 
-  logdebug2("%s(%s): Received %d bytes of data\n",
+  logdebug2("%s(%s/%s): Received %d bytes of data\n",
       source->name,
       client_state_s[self->state],
+      client_mode_s[self->state],
       buf_size);
 
   if(o_log_level_active(O_LOG_DEBUG4)) {
     in = to_octets(buf, buf_size);
-    logdebug2("%s(%s): Received new packet\n%s\n",
-        source->name, client_state_s[self->state], in);
+    logdebug2("%s(%s/%s): Received new packet\n%s\n",
+        source->name,
+        client_state_s[self->state],
+        client_mode_s[self->state],
+        in);
     oml_free(in);
   }
 
@@ -1011,27 +1020,35 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
 process:
   switch (self->state)
   {
-  case C_HEADER:
+  case CS_HEADER:
     while (process_header(self, mbuf));
-    if (self->state != C_HEADER) {
+    if (self->state != CS_HEADER) {
       //finished header, let someone else process rest of buffer
       goto process;
     }
     break;
 
-  case C_BINARY_DATA:
-    while (process_bin_message(self, mbuf));
+  case CS_DATA:
+    switch(self->content) {
+    case CM_BINARY_DATA:
+      while (process_bin_message(self, mbuf));
+      break;
+
+    case CM_TEXT_DATA:
+      while (process_text_message(self, mbuf));
+      break;
+
+    case CM_UNSPEC_DATA:
+      logerror("%s: Received data in unknown mode\n");
+      break;
+    }
     break;
 
-  case C_TEXT_DATA:
-    while (process_text_message(self, mbuf));
-    break;
-
-  case C_PROTOCOL_ERROR:
+  case CS_PROTOCOL_ERROR:
     // Protocol error:  close the client connection
     logerror("%s: Fatal error, disconnecting client\n",
         source->name);
-    client_event_report(self, "Disconnect", "C_PROTOCOL_ERROR");
+    client_event_report(self, "Disconnect", "CS_PROTOCOL_ERROR");
     client_handler_free (self);
     /*
      * Protocol error --> no need to repack buffer, so just return;
@@ -1043,7 +1060,7 @@ process:
     return;
   }
 
-  if (self->state == C_PROTOCOL_ERROR)
+  if (self->state == CS_PROTOCOL_ERROR)
     goto process;
 
   // move remaining buffer content to beginning

@@ -49,8 +49,8 @@ check_server_prepare_client_handler(const char* name, SockEvtSource *source) {
   ch = (ClientHandler*) oml_malloc(sizeof(ClientHandler));
   fail_if(ch == NULL, "Problem allocating ClientHandler");
 
-  ch->state = C_HEADER;
-  ch->content = C_TEXT_DATA;
+  ch->state = CS_HEADER;
+  ch->content = CM_UNSPEC_DATA;
   ch->mbuf = mbuf_create ();
   ch->socket = NULL;
   ch->event = source;

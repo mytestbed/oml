@@ -64,7 +64,6 @@ START_TEST(test_text_insert)
 
   int rc = -1;
 
-  o_set_log_level(-1);
   logdebug("%s\n", __FUNCTION__);
 
   /* Remove pre-existing databases */
@@ -72,7 +71,7 @@ START_TEST(test_text_insert)
   snprintf(dbname, sizeof(dbname), "%s.sq3", domain);
   unlink(dbname);
 
-  snprintf(h, sizeof(h),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\nschema: 1 %s size:uint32\n\n", domain, basename(__FILE__), __FUNCTION__, table);
+  snprintf(h, sizeof(h),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\ncontent: text\nschema: 1 %s size:uint32\n\n", domain, basename(__FILE__), __FUNCTION__, table);
   snprintf(s1, sizeof(s1), "%f\t1\t%d\t%d\n", time1, 1, d1);
   snprintf(s2, sizeof(s2), "%f\t1\t%d\t%d\n", time2, 2, d2);
   snprintf(select, sizeof(select), "select oml_ts_client, oml_seq, size from %s;", table);
@@ -80,14 +79,14 @@ START_TEST(test_text_insert)
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "text insert socket";
   ch = check_server_prepare_client_handler("test_text_insert", &source);
-  fail_unless(ch->state == C_HEADER);
+  fail_unless(ch->state == CS_HEADER);
 
   logdebug("Processing text protocol for issue #672\n");
   /* Process the header */
   client_callback(&source, ch, h, strlen(h));
 
-  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
-  fail_unless(ch->content == C_TEXT_DATA);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_TEXT_DATA, "Inconsistent content: expected %d, got %d", CM_TEXT_DATA, ch->content);
   fail_if(ch->database == NULL);
   fail_if(ch->sender_id == 0);
   fail_if(ch->sender_name == NULL);
@@ -176,7 +175,6 @@ START_TEST(test_text_types)
 
   int rc = -1;
 
-  o_set_log_level(2);
   logdebug("%s\n", __FUNCTION__);
 
   snprintf(dbname, sizeof(dbname), "%s.sq3", domain);
@@ -185,7 +183,7 @@ START_TEST(test_text_types)
   /* Remove pre-existing databases */
   unlink(dbname);
 
-  snprintf(h, sizeof(h),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\nschema: 1 %s val:%s\n\n",
+  snprintf(h, sizeof(h),  "protocol: 4\ndomain: %s\nstart-time: 1332132092\nsender-id: %s\napp-name: %s\ncontent: text\nschema: 1 %s val:%s\n\n",
       domain, basename(__FILE__), __FUNCTION__, table, type_tests[_i].proto_type);
   snprintf(s, sizeof(s), "%f\t1\t%d\t%s\n", time1, 1, type_tests[_i].rep);
   snprintf(select, sizeof(select), "select val from %s;", table);
@@ -193,14 +191,14 @@ START_TEST(test_text_types)
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "text types socket";
   ch = check_server_prepare_client_handler("test_text_types", &source);
-  fail_unless(ch->state == C_HEADER);
+  fail_unless(ch->state == CS_HEADER);
 
   logdebug("Processing text protocol for type %s\n", type_tests[_i].proto_type);
   /* Process the header */
   client_callback(&source, ch, h, strlen(h));
 
-  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
-  fail_unless(ch->content == C_TEXT_DATA);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_TEXT_DATA, "Inconsistent content: expected %d, got %d", CM_TEXT_DATA, ch->content);
   fail_if(ch->database == NULL);
   fail_if(ch->sender_id == 0);
   fail_if(ch->sender_name == NULL);
@@ -261,7 +259,6 @@ START_TEST(test_text_flexibility)
 
   int rc = -1;
 
-  o_set_log_level(-1);
   logdebug("%s\n", __FUNCTION__);
 
   /* Remove pre-existing databases */
@@ -280,14 +277,14 @@ START_TEST(test_text_flexibility)
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "text flex socket";
   ch = check_server_prepare_client_handler("test_text_flex", &source);
-  fail_unless(ch->state == C_HEADER);
+  fail_unless(ch->state == CS_HEADER);
   fail_unless(ch->table_count == 0, "Unexpected number of tables (%d instead of 0)", ch->table_count);
 
   logdebug("Sending header '%s'\n", h);
   client_callback(&source, ch, h, strlen(h));
 
-  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
-  fail_unless(ch->content == C_TEXT_DATA);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_TEXT_DATA, "Inconsistent content: expected %d, got %d", CM_TEXT_DATA, ch->content);
   fail_if(ch->database == NULL);
   fail_if(ch->sender_id == 0);
   fail_if(ch->sender_name == NULL);
@@ -307,7 +304,8 @@ START_TEST(test_text_flexibility)
       time2,    0,      1,        s2
       );
   client_callback(&source, ch, sample, strlen(sample));
-  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_TEXT_DATA, "Inconsistent content: expected %d, got %d", CM_TEXT_DATA, ch->content);
   fail_unless(ch->table_count == 3, "Unexpected number of tables (%d instead of 3)", ch->table_count);
 
   logdebug("Sending second sample\n");
@@ -323,9 +321,9 @@ START_TEST(test_text_flexibility)
       time2,    0,      1,        s3
       );
   client_callback(&source, ch, sample, strlen(sample));
-  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_TEXT_DATA, "Inconsistent content: expected %d, got %d", CM_TEXT_DATA, ch->content);
   fail_unless(ch->table_count == 3, "Unexpected number of tables (%d instead of 3)", ch->table_count);
-  fail_unless(ch->state == C_TEXT_DATA);
 
   logdebug("Sending third sample\n");
   snprintf(sample, sizeof(sample), "%f\t%d\t%d\t%d\n",
@@ -407,7 +405,6 @@ START_TEST(test_text_metadata)
 
   int rc = -1;
 
-  o_set_log_level(-1);
   logdebug("%s\n", __FUNCTION__);
 
   /* Remove pre-existing databases */
@@ -423,14 +420,14 @@ START_TEST(test_text_metadata)
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "text meta socket";
   ch = check_server_prepare_client_handler("test_text_meta", &source);
-  fail_unless(ch->state == C_HEADER);
+  fail_unless(ch->state == CS_HEADER);
   fail_unless(ch->table_count == 0, "Unexpected number of tables (%d instead of 0)", ch->table_count);
 
   logdebug("Sending header '%s'\n", h);
   client_callback(&source, ch, h, strlen(h));
 
-  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
-  fail_unless(ch->content == C_TEXT_DATA);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_TEXT_DATA, "Inconsistent content: expected %d, got %d", CM_TEXT_DATA, ch->content);
   fail_if(ch->database == NULL);
   fail_if(ch->sender_id == 0);
   fail_if(ch->sender_name == NULL);
@@ -446,7 +443,8 @@ START_TEST(test_text_metadata)
       time1,    0,      1,        subject,  k1,  v1
       );
   client_callback(&source, ch, sample, strlen(sample));
-  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_TEXT_DATA, "Inconsistent content: expected %d, got %d", CM_TEXT_DATA, ch->content);
 
   logdebug("Sending second meta '%s %s %s'\n", subject, k2, v2);
   strcat(subject, mp1);
@@ -455,7 +453,8 @@ START_TEST(test_text_metadata)
       time1,    0,      2,        subject,  k2,  v2
       );
   client_callback(&source, ch, sample, strlen(sample));
-  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_TEXT_DATA, "Inconsistent content: expected %d, got %d", CM_TEXT_DATA, ch->content);
 
 #if DB_HAS_PKEY /* #814 */
   logdebug("Sending third meta '%s %s %s'\n", subject, k1, v2);
@@ -466,7 +465,8 @@ START_TEST(test_text_metadata)
       time1,    0,      3,        subject,  k1,  v2
       );
   client_callback(&source, ch, sample, strlen(sample));
-  fail_unless(ch->state == C_TEXT_DATA, "Inconsistent state: expected %d, got %d", C_TEXT_DATA, ch->state);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_TEXT_DATA, "Inconsistent content: expected %d, got %d", CM_TEXT_DATA, ch->content);
 #endif
 
   database_release(ch->database);
@@ -537,6 +537,8 @@ text_protocol_suite (void)
 
   dbbackend = "sqlite";
   sqlite_database_dir = ".";
+
+  o_set_log_level(-1);
 
   TCase* tc_text_insert = tcase_create ("Text insert");
   tcase_add_test (tc_text_insert, test_text_insert);

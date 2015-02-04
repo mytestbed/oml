@@ -115,7 +115,6 @@ START_TEST(test_binary_resync)
 
   int rc = -1;
 
-  o_set_log_level(-1);
   logdebug("%s\n", __FUNCTION__);
 
   /* Remove pre-existing databases */
@@ -129,13 +128,13 @@ START_TEST(test_binary_resync)
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "binary resync socket";
   ch = check_server_prepare_client_handler("test_binary_resync", &source);
-  fail_unless(ch->state == C_HEADER);
+  fail_unless(ch->state == CS_HEADER);
 
   logdebug("Sending header '%s'\n", h1);
   client_callback(&source, ch, h1, strlen(h1));
 
-  fail_unless(ch->state == C_BINARY_DATA, "Inconsistent state: expected %d, got %d", C_BINARY_DATA, ch->state);
-  fail_unless(ch->content == C_BINARY_DATA);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_BINARY_DATA, "Inconsistent content: expected %d, got %d", CM_BINARY_DATA, ch->content);
   fail_if(ch->database == NULL);
   fail_if(ch->sender_id == 0);
   fail_if(ch->sender_name == NULL);
@@ -161,17 +160,17 @@ START_TEST(test_binary_resync)
   marshal_finalize(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), 5);
   printmbuf(mbuf);
-  fail_if(ch->state == C_PROTOCOL_ERROR, "An incomplete sample confused the client_handler");
+  fail_if(ch->state == CS_PROTOCOL_ERROR, "An incomplete sample confused the client_handler");
   printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf)+5, mbuf_rd_remaining(mbuf)-5);
   printmbuf(mbuf);
-  fail_if(ch->state == C_PROTOCOL_ERROR, "A sample for a non existing stream confused the client_handler");
+  fail_if(ch->state == CS_PROTOCOL_ERROR, "A sample for a non existing stream confused the client_handler");
 
   logdebug("Sending some noise\n");
   mbuf_clear(mbuf);
   mbuf_write(mbuf, (uint8_t*)"BRuit", 6);
   client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_rd_remaining(mbuf));
-  fail_if(ch->state == C_PROTOCOL_ERROR, "Some more noise disturbed the client_handler");
+  fail_if(ch->state == CS_PROTOCOL_ERROR, "Some more noise disturbed the client_handler");
 
   logdebug("Sending third sample, in two steps\n");
   oml_value_set_type(&v, OML_UINT32_VALUE);
@@ -183,10 +182,10 @@ START_TEST(test_binary_resync)
   marshal_finalize(mbuf);
   printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), 5);
-  fail_if(ch->state == C_PROTOCOL_ERROR, "An incomplete sample after resync confused the client_handler");
+  fail_if(ch->state == CS_PROTOCOL_ERROR, "An incomplete sample after resync confused the client_handler");
   client_callback(&source, ch, mbuf_buffer(mbuf)+5, mbuf_rd_remaining(mbuf)-5);
 
-  fail_unless(ch->state == C_BINARY_DATA, "The client handler didn't manage to recover");
+  fail_unless(ch->state == CS_DATA, "The client handler didn't manage to recover");
 
   database_release(ch->database);
   check_server_destroy_client_handler(ch);
@@ -249,7 +248,6 @@ START_TEST(test_binary_flexibility)
 
   int rc = -1;
 
-  o_set_log_level(-1);
   logdebug("%s\n", __FUNCTION__);
 
   /* Remove pre-existing databases */
@@ -268,14 +266,14 @@ START_TEST(test_binary_flexibility)
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "binary flexibility socket";
   ch = check_server_prepare_client_handler("test_binary_flexibility", &source);
-  fail_unless(ch->state == C_HEADER);
+  fail_unless(ch->state == CS_HEADER);
   fail_unless(ch->table_count == 0, "Unexpected number of tables (%d instead of 0)", ch->table_count);
 
   logdebug("Sending header '%s'\n", h);
   client_callback(&source, ch, h, strlen(h));
 
-  fail_unless(ch->state == C_BINARY_DATA, "Inconsistent state: expected %d, got %d", C_BINARY_DATA, ch->state);
-  fail_unless(ch->content == C_BINARY_DATA);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_BINARY_DATA, "Inconsistent content: expected %d, got %d", CM_BINARY_DATA, ch->content);
   fail_if(ch->database == NULL);
   fail_if(ch->sender_id == 0);
   fail_if(ch->sender_name == NULL);
@@ -306,7 +304,8 @@ START_TEST(test_binary_flexibility)
   oml_value_array_reset(v, 3);
   printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_fill(mbuf));
-  fail_unless(ch->state == C_BINARY_DATA, "Inconsistent state: expected %d, got %d", C_BINARY_DATA, ch->state);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_BINARY_DATA, "Inconsistent content: expected %d, got %d", CM_BINARY_DATA, ch->content);
   fail_unless(ch->table_count == 3, "Unexpected number of tables (%d instead of 3)", ch->table_count);
 
   logdebug("Sending second sample\n");
@@ -334,7 +333,8 @@ START_TEST(test_binary_flexibility)
   oml_value_array_reset(v, 3);
   printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_fill(mbuf));
-  fail_unless(ch->state == C_BINARY_DATA, "Inconsistent state: expected %d, got %d", C_BINARY_DATA, ch->state);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_BINARY_DATA, "Inconsistent content: expected %d, got %d", CM_BINARY_DATA, ch->content);
   fail_unless(ch->table_count == 3, "Unexpected number of tables (%d instead of 3)", ch->table_count);
 
   logdebug("Sending third sample\n");
@@ -429,7 +429,6 @@ START_TEST(test_binary_metadata)
   snprintf(dbname, sizeof(dbname), "%s.sq3", domain);
   unlink(dbname);
 
-  o_set_log_level(-1);
   logdebug("%s\n", __FUNCTION__);
 
   snprintf(s1, sizeof(s1), "1 %s size:uint32", table[0]);
@@ -440,14 +439,14 @@ START_TEST(test_binary_metadata)
   memset(&source, 0, sizeof(SockEvtSource));
   source.name = "bin meta socket";
   ch = check_server_prepare_client_handler("test_bin_meta", &source);
-  fail_unless(ch->state == C_HEADER);
+  fail_unless(ch->state == CS_HEADER);
   fail_unless(ch->table_count == 0, "Unexpected number of tables (%d instead of 0)", ch->table_count);
 
   logdebug("Sending header '%s'\n", h);
   client_callback(&source, ch, h, strlen(h));
 
-  fail_unless(ch->state == C_BINARY_DATA, "Inconsistent state: expected %d, got %d", C_BINARY_DATA, ch->state);
-  fail_unless(ch->content == C_BINARY_DATA);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_BINARY_DATA, "Inconsistent content: expected %d, got %d", CM_BINARY_DATA, ch->content);
   fail_if(ch->database == NULL);
   fail_if(ch->sender_id == 0);
   fail_if(ch->sender_name == NULL);
@@ -472,7 +471,8 @@ START_TEST(test_binary_metadata)
   oml_value_array_reset(v, 3);
   printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_fill(mbuf));
-  fail_unless(ch->state == C_BINARY_DATA, "Inconsistent state: expected %d, got %d", C_BINARY_DATA, ch->state);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_BINARY_DATA, "Inconsistent content: expected %d, got %d", CM_BINARY_DATA, ch->content);
 
   logdebug("Sending second meta '%s %s %s'\n", subject, k2, v2);
   strcat(subject, mp1);
@@ -490,7 +490,8 @@ START_TEST(test_binary_metadata)
   oml_value_array_reset(v, 3);
   printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_fill(mbuf));
-  fail_unless(ch->state == C_BINARY_DATA, "Inconsistent state: expected %d, got %d", C_BINARY_DATA, ch->state);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_BINARY_DATA, "Inconsistent content: expected %d, got %d", CM_BINARY_DATA, ch->content);
 
 #if DB_HAS_PKEY /* #814 */
   logdebug("Sending third meta '%s %s %s'\n", subject, k1, v2);
@@ -510,7 +511,8 @@ START_TEST(test_binary_metadata)
   oml_value_array_reset(v, 3);
   printmbuf(mbuf);
   client_callback(&source, ch, mbuf_buffer(mbuf), mbuf_fill(mbuf));
-  fail_unless(ch->state == C_BINARY_DATA, "Inconsistent state: expected %d, got %d", C_BINARY_DATA, ch->state);
+  fail_unless(ch->state == CS_DATA, "Inconsistent state: expected %d, got %d", CS_DATA, ch->state);
+  fail_unless(ch->content == CM_BINARY_DATA, "Inconsistent content: expected %d, got %d", CM_BINARY_DATA, ch->content);
 #endif
 
   database_release(ch->database);
@@ -581,6 +583,7 @@ Suite* binary_protocol_suite (void)
 
   dbbackend = "sqlite";
   sqlite_database_dir = ".";
+  o_set_log_level(-1);
 
   TCase *tc_bin_sync = tcase_create ("Sync");
   tcase_add_test (tc_bin_sync, test_find_sync);

@@ -83,30 +83,34 @@
  * property, using a key/value model. The properties (and their keys) are the
  * following.
  *
- * - `encapsulation`: (optional) type of encapsulation (e.g, gzip) for the data, this is
- *     version-independent (only supported with \ref oml2-server "oml2-server">=2.12);
- *     currently supported encapsulations are:
+ * - `encapsulation`: (optional, before any of the keys below) type of encapsulation
+ *   (e.g, gzip) for the data, this is version-independent (only supported with
+ *   \ref oml2-server "oml2-server">=2.12); currently supported encapsulations are:
  *     - gzip: the following data is gzip-compressed (\ref oml2-server "oml2-server">=2.12);
- * - `protocol`: OMSP version, as specified in this document. The
+ * - `protocol`: (always first) OMSP version, as specified in this document. The
  *     \ref oml2-server "oml2-server" currently supports 1--5;
  * - `domain` (`experiment-id` in V<4): string identifying the experimental
  *     domain (should match `/[-_A-Za-z0-9]+/`);
- * - `start-time` (`start_time` in V<4): local UNIX time in seconds taken at
- *     the time the header is being sent (see
- *     <a href="http://linux.die.net/man/3/gettimeofday">gettimeofday(3)</a>),
- *     \ref timestamps "the server uses this information to rebase timestamps
- *     within its own timeline";
+ * - `start-time` (`start_time` in V<4; not before `domain`): local UNIX time in
+ *   seconds taken at the time the header is being sent (see
+ *     <a href="http://linux.die.net/man/3/gettimeofday">gettimeofday(3)</a>).
+ *     This key must not appear before `domain`; \ref timestamps "the server
+ *     uses this information to rebase timestamps within its own timeline";
  * - `sender-id`: string identifying the source of this stream (should match
  *   `/[_A-Za-z0-9]+/`);
  * - `app-name`: string identifying the application producing the
  *     a measurements (should match `/[_A-Za-z0-9]+/`), in the storage backend, this
  *     may be used to identify specific measurements collections (e.g., tables in SQL);
- * - `content`: encoding of forthcoming tuples, can be either `binary` for
- *     the \ref omspbin "binary protocol" or `text` for the \ref omsptext "text protocol".
  * - `schema`: describes the \ref omspschema "schema of each measurement stream".
+ * - `content`: encoding of forthcoming tuples, can be either `binary` for the
+ *     \ref omspbin "binary protocol" or `text` for the \ref omsptext "text
+ *     protocol".
  *
- * These parameters can only be set as part of the \ref omspheaders "headers",
- * and are not valid once the server expects serialised measurements (V<4).
+ * A blank line marks the end of the headers and informs the receiver that
+ * samples follow (\ref omspbinary "binary" or \ref omsptext "text" depending
+ * on the `content` advertised).  * These parameters can only be set as
+ * part of the \ref omspheaders "headers" and are not valid once the server
+ * expects serialised measurements (V<4).
  *
  * Since V>=4, key/value metadata can be sent along with tuples using the \ref
  * schema0 "schema 0", the rest of the key/value parameters presented here
@@ -141,7 +145,8 @@
  * \ref kv "key/value  parameters of the experiment".  All of them have to appear
  * exactly once, in the order they were introduced in \ref kv "that section".
  * The only exception is the `schema` key which needs to appear once for
- * every measurement stream carried by the connection.
+ * every measurement stream carried by the connection. In a similar fashion to
+ * HTTP, the end of header data is indicated by a blank line.
  *
  * \subsection omspheadersexample Examples
  *
@@ -155,6 +160,7 @@
  *     schema: 1 generator_sin label:string phase:double value:double
  *     schema: 2 generator_lin label:string counter:long
  *     content: text
+ *     
  *
  * Protocol version 4 added the possibility to declare MP after headers are
  * sent, though the use of the newly introduced _schema0_ metadata stream.

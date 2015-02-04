@@ -37,15 +37,19 @@
 #define MAX_PROTOCOL_VERSION OML_PROTOCOL_VERSION
 #define MIN_PROTOCOL_VERSION 1
 
-/** Enum representing the current state of a ClientHandler
- * \bug C_TEXT_DATA and C_BINARY_* should be in a separate level */
+/** Enum representing the current state of a ClientHandler */
 typedef enum {
-  C_HEADER,         /**< processing header info */
-  C_BINARY_DATA,    /**< data is of binary format */
-  C_TEXT_DATA,      /**< data in binary format */
-  C_PROTOCOL_ERROR, /**< a protocol error occurred --> kick the client */
-  C_BINARY_SKIP,    /**< somehow invalid binary message, we need to resync */
+  CS_HEADER = 0,     /**< processing header info */
+  CS_DATA,           /**< receiving data */
+  CS_PROTOCOL_ERROR, /**< a protocol error occurred */
 } CState;
+
+/** Enum representing the current OMSP mode of a ClientHandler */
+typedef enum {
+  CM_UNSPEC_DATA = 0,  /**< data format unknown yet*/
+  CM_TEXT_DATA,        /**< data in text format */
+  CM_BINARY_DATA,      /**< data in binary format */
+} CMode;
 
 #define DEF_NUM_VALUES  30
 #define MAX_STRING_SIZE 64
