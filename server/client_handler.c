@@ -43,18 +43,13 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 static void
 status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle);
 
-  const char *
-client_state_to_s (CState state)
-{
-  static const char *states [] = {
-    "C_HEADER",
-    "C_BINARY_DATA",
-    "C_TEXT_DATA",
-    "C_PROTOCOL_ERROR"
-  };
-  return states[state];
-}
-
+static const char *client_state_s[] = {
+  [C_HEADER]          = "C_HEADER",
+  [C_BINARY_DATA]     = "C_BINARY_DATA",
+  [C_TEXT_DATA]       = "C_TEXT_DATA",
+  [C_PROTOCOL_ERROR]  = "C_PROTOCOL_ERROR",
+  [C_BINARY_SKIP]     = "C_BINARY_SKIP",
+};
 
 /**
  * Logs a measurement with the monitoring OML server.
@@ -995,13 +990,13 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
 
   logdebug2("%s(%s): Received %d bytes of data\n",
       source->name,
-      client_state_to_s (self->state),
+      client_state_s[self->state],
       buf_size);
 
   if(o_log_level_active(O_LOG_DEBUG4)) {
     in = to_octets(buf, buf_size);
     logdebug2("%s(%s): Received new packet\n%s\n",
-        source->name, client_state_to_s (self->state), in);
+        source->name, client_state_s[self->state], in);
     oml_free(in);
   }
 
