@@ -28,6 +28,8 @@ oml2_server_SOURCES = \
 	oml2-server_oml.h \
 	client_handler.c \
 	client_handler.h \
+	input_filter.c \
+	input_filter.h \
 	database.c \
 	database.h \
 	hook.c \
@@ -40,6 +42,15 @@ oml2_server_SOURCES = \
 	sqlite_adapter.h \
 	table_descr.c \
 	table_descr.h
+oml2_server_CPPFLAGS = $(AM_CPPFLAGS) @PQINCPATH@
+oml2_server_LDFLAGS =
+oml2_server_LDADD = $(top_builddir)/lib/client/liboml2.la \
+		    $(top_builddir)/lib/ocomm/libocomm.la \
+		    $(top_builddir)/lib/shared/libshared.la \
+		    @M_LIBS@ \
+		    @POPT_LIBS@ \
+		    @SQLITE3_LIBS@ \
+		    @LIBPQ_LIBS@
 
 libserver_test_la_CPPFLAGS = $(AM_CPPFLAGS) -UHAVE_CONFIG_H -DNOOML
 libserver_test_la_SOURCES = \
@@ -63,18 +74,14 @@ EXTRA_DIST = oml2-server.rb.in
 
 if HAVE_LIBPQ
 oml2_server_SOURCES += psql_adapter.c psql_adapter.h
-oml2_server_LDFLAGS = @PQLIBPATH@
+oml2_server_LDFLAGS += @PQLIBPATH@
 endif
 
-oml2_server_CPPFLAGS = $(AM_CPPFLAGS) @PQINCPATH@
+if HAVE_LIBZ
+oml2_server_SOURCES += gzip_input_filter.c
+oml2_server_CPPFLAGS += @LIBZ_CPPFLAGS@
 
-oml2_server_LDADD = $(top_builddir)/lib/client/liboml2.la \
-		    $(top_builddir)/lib/ocomm/libocomm.la \
-		    $(top_builddir)/lib/shared/libshared.la \
-		    @M_LIBS@ \
-		    @POPT_LIBS@ \
-		    @SQLITE3_LIBS@ \
-		    @LIBPQ_LIBS@
+endif
 
 oml2-server_oml.h: oml2-server.rb
 	$(SCAFFOLD) --oml $<

@@ -22,13 +22,16 @@ check_server_SOURCES = \
 	check_server_suites.h \
 	check_text_protocol.c \
 	check_binary_protocol.c \
+	check_input_filters.c \
 	$(top_srcdir)/lib/shared/mem.h \
 	$(top_srcdir)/lib/shared/mbuf.h \
 	$(top_srcdir)/server/hook.h \
 	$(top_srcdir)/server/sqlite_adapter.h \
 	$(top_srcdir)/server/database_adapter.h \
 	$(top_srcdir)/server/database.h \
-	$(top_srcdir)/server/table_descr.h
+	$(top_srcdir)/server/table_descr.h \
+	$(top_srcdir)/server/input_filter.h
+
 
 msgloop_LDADD = \
 	$(top_builddir)/proxy_server/libproxyserver-test.la \

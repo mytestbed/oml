@@ -27,11 +27,13 @@
 #define CLIENT_HANDLER_H_
 
 #include <time.h>
-#include <ocomm/o_socket.h>
-#include <ocomm/o_eventloop.h>
-#include <oml2/oml_writer.h>
-#include <mbuf.h>
 
+#include "ocomm/o_socket.h"
+#include "ocomm/o_eventloop.h"
+#include "oml2/oml_writer.h"
+#include "mbuf.h"
+
+#include "input_filter.h"
 #include "database.h"
 
 #define MAX_PROTOCOL_VERSION OML_PROTOCOL_VERSION
@@ -69,12 +71,15 @@ typedef struct ClientHandler {
   char*       app_name;             /**< Name of the application as sent in headers */
 
   CState      state;                /**< Current state of the ClientHandler, \see CState */
-  CState      content;              /**< Type of expected content, \see CState \bug should not be a CState*/
+  CMode       content;              /**< Type of expected content, \see CMode */
   Socket*     socket;               /**< OSocket from which the data is coming */
   SockEvtSource *event;             /**< Event handler for the OComm EventLoop */
   MBuffer* mbuf;                    /**< Mbuffer for incoming data */
 
   time_t      time_offset;          /**< value to add to remote ts to sync time across all connections */
+
+  InputFilter *input_filter;        /**< Linked lists of filters to be applied, in sequence, to new input, to extract usable OMSP */
+
 } ClientHandler;
 
 ClientHandler* client_handler_new (Socket* new_sock);
