@@ -7,7 +7,7 @@
  * using this software you accept the terms and the liability disclaimer
  * in the License.
  */
-/** \file text_writer.c
+/** \file check_text_protocol.c
  * \brief Tests behaviour and issues related to the text protocol.
  */
 

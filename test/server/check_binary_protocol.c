@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 National ICT Australia (NICTA), Australia
+ * Copyright 2012-2015 National ICT Australia (NICTA), Australia
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,9 @@
  * THE SOFTWARE.
  *
  */
-/** \file Tests behaviours and issues related to the binary protocol. */
+/** \file check_binary_protocol.c
+ * Tests behaviours and issues related to the binary protocol.
+ */
 
 #define _GNU_SOURCE  /* For NAN */
 #include <math.h>
