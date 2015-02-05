@@ -28,6 +28,7 @@
 
 extern Suite* text_protocol_suite (void);
 extern Suite* binary_protocol_suite (void);
+extern Suite* input_filter_suite (void);
 
 #endif /* CHECK_LIBOML2_SUITES_H__ */
 

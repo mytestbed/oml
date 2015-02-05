@@ -1,5 +1,6 @@
 ACLOCAL_AMFLAGS = -I ../../m4 -Wnone
 AM_TESTS_ENVIRONMENT = CK_VERBOSITY=verbose MALLOC_CHECK_=3
+RANDDEV=/dev/urandom
 
 if HAVE_CHECK
 TESTS = check_server
@@ -37,12 +38,16 @@ msgloop_LDADD = \
 	$(top_builddir)/proxy_server/libproxyserver-test.la \
 	$(top_builddir)/lib/shared/libshared.la \
 	$(top_builddir)/lib/ocomm/libocomm.la
-check_server_CFLAGS = @CHECK_CFLAGS@ -UHAVE_CONFIG_H -DNOOML
+check_server_CFLAGS = @CHECK_CFLAGS@ -DNOOML
 
 check_server_LDADD = @CHECK_LIBS@ @SQLITE3_LIBS@ \
 	$(top_builddir)/server/libserver-test.la \
 	$(top_builddir)/lib/shared/libshared.la \
-	$(top_builddir)/lib/ocomm/libocomm.la
+	$(top_builddir)/lib/ocomm/libocomm.la \
+	@M_LIBS@ \
+	@POPT_LIBS@ \
+	@SQLITE3_LIBS@ \
+	@LIBPQ_LIBS@
 
 endif
 
@@ -56,10 +61,19 @@ AM_CPPFLAGS = \
 	-D PKG_LOCAL_STATE_DIR=\".\" \
 	-DOML_TEST
 
+# XXX: Should we detect the presence of GZip with autoconf?
+blob.gz: blob
+	gzip -f -k $<
+blob:
+	dd if=$(RANDDEV) of=$@ bs=10M count=1
+
 EXTRA_DIST = msggen.rb
+
+BUILT_SOURCES = blob.gz
 CLEANFILES = \
 	check_server.oml.log \
 	dummy.bin \
+	blob.gz \
 	log.txt \
 	text-test.sq3 \
 	text-test.sq3-journal \

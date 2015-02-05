@@ -80,6 +80,7 @@ main (void)
   o_set_log_file ("check_server.oml.log");
   SRunner *sr = srunner_create (text_protocol_suite ());
   srunner_add_suite (sr, binary_protocol_suite ());
+  srunner_add_suite (sr, input_filter_suite ());
   //  srunner_add_suite (sr, database_suite ()); /* For example ... */
 
   srunner_run_all (sr, CK_ENV);
