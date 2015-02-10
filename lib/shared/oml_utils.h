@@ -27,6 +27,8 @@
 #include "string_utils.h"
 
 #define LENGTH(a) ((sizeof (a)) / (sizeof ((a)[0])))
+#define MAX(a,b)  ((a)<(b)?(b):(a))
+#define MIN(a,b)  ((a)>(b)?(b):(a))
 
 char* to_octets (unsigned char* buf, int len);
 

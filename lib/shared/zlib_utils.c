@@ -28,8 +28,207 @@
 #include <string.h>
 #include <zlib.h>
 
-#include "ocomm/o_log.h"
+#include "mem.h"
+#include "mbuf.h"
+#include "oml_utils.h"
 #include "zlib_utils.h"
+#include "ocomm/o_log.h"
+
+/** Memory allocation function for Zlib
+ * \see oml_malloc, alloc_func
+ */
+static void*
+oml_zalloc (void* opaque, unsigned int items, unsigned int size)
+{
+  (void)opaque;
+  return oml_malloc(items*size);
+}
+
+/** Memory liberation function for Zlib
+ * \see oml_free, free_func
+ */
+static void
+oml_zfree (void* opaque, void* address)
+{
+  (void)opaque;
+  oml_free(address);
+}
+
+/** Initialise a Zlib stream
+ * \param strm pointer to the Zlib stream to initialise
+ * \param mode the mode of operation (deflate/inflate)
+ * \param level compression level 0--9, or -1 for default (only for OML_ZLIB_DEFLATE)
+ * \return 0 on success, <0 on error, as given by deflateInit, inflateInit
+ * \see deflateInit, inflateInit
+ */
+int
+oml_zlib_init(z_streamp strm, OmlZlibMode mode, int level)
+{
+  int ret = Z_STREAM_ERROR;
+
+  if(strm) {
+    strm->zalloc = oml_zalloc;
+    strm->zfree = oml_zfree;
+    strm->opaque = Z_NULL;
+    strm->avail_in = 0;
+    strm->next_in = Z_NULL;
+    strm->avail_out = 0;
+    strm->next_out = Z_NULL;
+
+    switch (mode) {
+    case OML_ZLIB_DEFLATE:
+      ret = deflateInit2(strm, level, Z_DEFLATED, OML_ZLIB_WINDOWBITS, 8, Z_DEFAULT_STRATEGY);
+      break;
+    case OML_ZLIB_INFLATE:
+      ret = inflateInit2(strm, OML_ZLIB_WINDOWBITS);
+      break;
+    }
+  }
+  return ret;
+}
+
+/** Deflate for MBuffers
+ *
+ * This function doesn't use MBuffer messages
+ *
+ * \param strm pointer to the Zlib stream
+ * \param flush flush mode for deflate
+ * \param srcmbuf source MBuffer
+ * \param dstmbuf destination MBuffer
+ * \return Z_OK or Z_STREAM_END or success, others on error
+ * \see MBuffer, deflate
+ */
+int
+oml_zlib_def_mbuf(z_streamp strm, int flush, MBuffer *srcmbuf, MBuffer *dstmbuf)
+{
+  int ret = Z_STREAM_ERROR;
+  int avail_in, avail_out;
+
+  if(!strm) { ret = Z_STREAM_ERROR; }
+  else if(!srcmbuf) { ret = Z_DATA_ERROR; }
+  else if(!dstmbuf) { ret = Z_BUF_ERROR; }
+  else {
+
+    strm->next_in = mbuf_rdptr(srcmbuf);
+    strm->avail_in = avail_in = mbuf_fill(srcmbuf);
+
+    /** \bug the size of the output MBuffer is set to at least deflateBound(...,mbuf_fill),
+     * but this might ignore data already input but not output
+     */
+    mbuf_check_resize(dstmbuf, deflateBound(strm, avail_in));
+
+    strm->next_out = mbuf_wrptr(dstmbuf);
+    strm->avail_out = avail_out = mbuf_wr_remaining(dstmbuf);
+    logdebug("%s: deflating %dB into a %dB buffer\n", __FUNCTION__, avail_in, avail_out);
+
+    ret = deflate(strm, flush);
+
+    if (Z_OK == ret || Z_STREAM_END == ret) {
+      if (0 != strm->avail_in) {
+        logwarn("%s: Not all input was consumed, %dB remaining\n", strm->avail_in);
+      }
+      mbuf_read_skip(srcmbuf, avail_in-strm->avail_in);
+      if (0 == strm->avail_out) {
+        logwarn("%s: All output space was consumed\n");
+      }
+      mbuf_write_extend(dstmbuf, avail_out - strm->avail_out);
+
+    }
+  }
+
+  return ret;
+}
+
+/** Inflate for MBuffers
+ *
+ * This function doesn't use MBuffer messages
+ *
+ * \param strm pointer to the Zlib stream
+ * \param flush flush mode for deflate
+ * \param srcmbuf source MBuffer
+ * \param dstmbuf destination MBuffer
+ * \return Z_OK or Z_STREAM_END or success, others on error
+ * \see MBuffer, deflate
+ */
+int
+oml_zlib_inf_mbuf(z_streamp strm, int flush, MBuffer *srcmbuf, MBuffer *dstmbuf)
+{
+  int ret = Z_STREAM_ERROR;
+  int avail_in, avail_out;
+
+  strm->avail_out=0; /* Ensure we point into the output MBuffer on the first pass */
+
+  if(!strm) { ret = Z_STREAM_ERROR; }
+  else if(!srcmbuf) { ret = Z_DATA_ERROR; }
+  else if(!dstmbuf) { ret = Z_BUF_ERROR; }
+  else {
+
+    do {
+      strm->next_in = mbuf_rdptr(srcmbuf);
+      strm->avail_in = avail_in = mbuf_rd_remaining(srcmbuf);
+
+      if(strm->avail_out<=0) {
+        /* Expand the buffer by at least OML_ZLIB_CHUNKSIZE, but also the data that remains to be read */
+        if (mbuf_check_resize(dstmbuf,  mbuf_rd_remaining(srcmbuf) + OML_ZLIB_CHUNKSIZE)) {
+          logerror("%s: Cannot allocate %d more memory to hold inflated contents\n",
+              __FUNCTION__, OML_ZLIB_CHUNKSIZE);
+          return Z_BUF_ERROR;
+        }
+      }
+      strm->next_out = mbuf_wrptr(dstmbuf);
+      strm->avail_out = avail_out = mbuf_wr_remaining(dstmbuf);
+      logdebug3("%s: inflating %dB into a %d(%d total)B buffer\n",
+          __FUNCTION__, avail_in, avail_out, mbuf_length(dstmbuf));
+      ret = inflate(strm, flush);
+      if (Z_OK == ret || Z_STREAM_END == ret || Z_BUF_ERROR == ret) {
+        if (0 != strm->avail_in) {
+          logdebug3("%s: Not all input was consumed, %dB remaining\n", __FUNCTION__, strm->avail_in);
+        }
+        mbuf_read_skip(srcmbuf, avail_in - strm->avail_in);
+
+        if (0 == strm->avail_out) {
+          logdebug3("%s: All output space was consumed\n", __FUNCTION__);
+        }
+        mbuf_write_extend(dstmbuf, avail_out - strm->avail_out);
+
+      } else if(ret<0 && ret != Z_BUF_ERROR) {
+        logerror("%s: Error inflating data (%d)\n", __FUNCTION__, ret);
+        logdebug2("%s: Data is as follows\n%s\n", __FUNCTION__,  to_octets(mbuf_rdptr(srcmbuf), mbuf_rd_remaining(srcmbuf)));
+      }
+    } while ((Z_BUF_ERROR == ret) &&
+        ((avail_in - strm->avail_in > 0) || (avail_out - strm->avail_out > 0)) /* Ensure something has been read and/or written */
+        );
+  }
+
+  return ret;
+}
+
+/** Terminate a stream, and output the remaining data, if any
+ * \param strm pointer to the Zlib stream to initialise
+ * \param mode the mode of operation (deflate/inflate)
+ * \param dstbuf MBuffer where the remaining output data should be stored
+ * \return 0 on success, <0 on error, as given by deflateInit, inflateInit
+ * \see deflateEnd, inflateEnd
+ */
+int
+oml_zlib_end(z_streamp strm, OmlZlibMode mode, MBuffer *dstbuf)
+{
+  int ret = Z_STREAM_ERROR;
+
+  /** \bug This does not currently output any data to dstbuf */
+
+  switch(mode) {
+  case OML_ZLIB_DEFLATE:
+    ret = deflateEnd(strm);
+    break;
+
+  case OML_ZLIB_INFLATE:
+    ret = inflateEnd(strm);
+    break;
+  }
+
+  return ret;
+}
 
 /** Compress from file source to file dest until EOF on source.
  *
@@ -54,11 +253,7 @@ oml_zlib_def(FILE *source, FILE *dest, int level)
   unsigned char in[OML_ZLIB_CHUNKSIZE];
   unsigned char out[OML_ZLIB_CHUNKSIZE];
 
-  /* allocate deflate state */
-  strm.zalloc = Z_NULL;
-  strm.zfree = Z_NULL;
-  strm.opaque = Z_NULL;
-  ret = deflateInit2(&strm, level, Z_DEFLATED, OML_ZLIB_WINDOWBITS, 8, Z_DEFAULT_STRATEGY);
+  ret = oml_zlib_init(&strm, OML_ZLIB_DEFLATE, level);
   if (ret != Z_OK) {
     return ret;
   }
@@ -136,12 +331,7 @@ oml_zlib_inf(FILE *source, FILE *dest)
   unsigned char out[OML_ZLIB_CHUNKSIZE];
 
   /* allocate inflate state */
-  strm.zalloc = Z_NULL;
-  strm.zfree = Z_NULL;
-  strm.opaque = Z_NULL;
-  strm.avail_in = 0;
-  strm.next_in = Z_NULL;
-  ret = inflateInit2(&strm, OML_ZLIB_WINDOWBITS);
+  ret = oml_zlib_init(&strm, OML_ZLIB_INFLATE, 0);
   if (ret != Z_OK) {
     return ret;
   }
@@ -196,7 +386,6 @@ oml_zlib_inf(FILE *source, FILE *dest)
         ret = Z_ERRNO;
         goto cleanup;
       } else if (have > 0) {
-        loginfo("reset sync\n");
         strm.avail_out = OML_ZLIB_CHUNKSIZE;
         resynced = 0;
       }

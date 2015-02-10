@@ -19,18 +19,35 @@
 #include <stdio.h>
 #include <zlib.h>
 
+#include "mbuf.h"
+
 /* Zlib parameters that we might want to adjust */
 #define OML_ZLIB_CHUNKSIZE  16384                   /**< \see OmlZlibOutStream::chunk_size */
 #define OML_ZLIB_WINDOWBITS 31                      /**< 31 makes Zlib output GZip headers \see deflateInit2. */
 #define OML_ZLIB_ZLEVEL     Z_DEFAULT_COMPRESSION   /**< \see deflateInit2 */
 #define OML_ZLIB_STRATEGY   Z_DEFAULT_STRATEGY      /**< \see deflateInit2 */
 #define OML_ZLIB_FLUSH      Z_NO_FLUSH              /**< \see deflate */
-#define OML_ZLIB_CHUNK      512
+
+/** Mode of operation for the stream \see oml_zlib_init */
+typedef enum {
+  OML_ZLIB_DEFLATE = 0, /**< Deflate */
+  OML_ZLIB_INFLATE,     /**< Inflate */
+} OmlZlibMode;
+
+/** Initialise a Zlib stream */
+int oml_zlib_init(z_streamp strm, OmlZlibMode mode, int level);
+/** Deflate for MBuffers */
+int oml_zlib_def_mbuf(z_streamp strm, int flush, MBuffer *srcmbuf, MBuffer *dstmbuf);
+/** Inflate for MBuffers */
+int oml_zlib_inf_mbuf(z_streamp strm, int flush, MBuffer *srcmbuf, MBuffer *dstmbuf);
+/** Terminate a stream, and output the remaining data, if any */
+int oml_zlib_end(z_streamp strm, OmlZlibMode mode, MBuffer *dstbuf);
 
 /** Compress from file source to file dest until EOF on source. */
 int oml_zlib_def(FILE *source, FILE *dest, int level);
 /** Decompress from file source to file dest until stream ends or EOF. */
 int oml_zlib_inf(FILE *source, FILE *dest);
+
 /** Search for the next block or new GZip header, whichever comes first, and advance the string. */
 off_t oml_zlib_sync(z_streamp strm);
 /** Search for the next block or new GZip header, whichever comes first. */

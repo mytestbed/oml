@@ -105,10 +105,7 @@ zlib_stream_init(OmlZlibOutStream *self)
   self->chunk_size = OML_ZLIB_CHUNKSIZE;
   self->zlevel = OML_ZLIB_ZLEVEL;
 
-  self->strm.zalloc = Z_NULL;
-  self->strm.zfree = Z_NULL;
-  self->strm.opaque = Z_NULL;
-  ret = deflateInit2(&self->strm, self->zlevel, Z_DEFLATED, OML_ZLIB_WINDOWBITS, 8, OML_ZLIB_STRATEGY);
+  ret = oml_zlib_init(&self->strm, OML_ZLIB_DEFLATE, self->zlevel);
 
   return ret;
 }
