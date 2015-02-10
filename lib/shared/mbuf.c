@@ -8,46 +8,10 @@
  * in the License.
  */
 /** \file mbuf.c
- *
  * \brief Managed buffer (MBuffer) abstraction providing functions for reading,
  * writing and memory resizing used to hold a message.
  *
- * An MBuffer is an auto-expanding chunk of memory, with various pointers for
- * writing, reading, and composing a message (e.g., packet) in multiple calls.
- * Several functions rely on these pointers, as illustrated below.
- *
- *     ¦< - - - - - - - - - mbuf_length(); length - - - - - - - - - - >¦
- *     ¦                                                               ¦
- *     ¦                 mbuf_message_length()                         ¦
- *     ¦                      ¦< - - - >¦                              ¦
- *     ¦                      ¦         ¦                              ¦
- *     ¦< - - - - mbuf_fill()-¦- - - - >¦                              ¦
- *     mbuf_fill_excluding_msg()        ¦                              ¦
- *     ¦< - - - - - - - - - ->¦         ¦                              ¦
- *     ¦                      ¦         ¦                              ¦
- *     ¦              mbuf_rd_remaining()                              ¦
- *     ¦              ¦< - - -¦- - - - >¦< - - mbuf_wr_remaining() - ->¦
- *     +--------------+-------+---------+------------------------------+
- *     |rrrrrrrrrrrrrrRRRRRRRRMMMMMMMMMM...............................|
- *     +--------------+-------+---------+------------------------------+
- *      ^             ^       ^         ^
- *      |- - - - - - -|- - - -|- - - -> | mbuf_write_offset()
- *      |             |       |         `- mbuf_wrptr()
- *      |             |       |
- *      |- - - - - - -|- - - >| mbuf_message_offset()
- *      |             |       |- mbuf_message()
- *      |             |       |
- *      |             |- - - >| mbuf_message_index()
- *      |- - - - - - >| mbuf_read_offset()
- *      |             `- mbuf_rdptr()
- *      |
- *      `- mbuf_buffer()
- *
- *    Legend:
- *      r: data already read              R: data to be read
- *      .: data which can be overwritten  M: already written data for the current message
- *
- * XXX: The message can be currently read or written, with no clear distinction.
+ * \bug Duplicated logic between things such as MBuffer::wr_remaining and mbuf_wr_remaining()
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,7 +24,7 @@
 #define DEF_BUF_SIZE 512
 #define DEF_MIN_BUF_RESIZE (size_t)(0.1 * DEF_BUF_SIZE)
 
-static void
+inline static void
 mbuf_check_invariant (MBuffer* mbuf)
 {
   assert (mbuf != NULL);
@@ -74,7 +38,7 @@ mbuf_check_invariant (MBuffer* mbuf)
   assert ((mbuf->msgptr <= mbuf->rdptr) || (mbuf->msgptr <= mbuf->wrptr));
 }
 
-/** Create an MBuf with the default parameters.
+/** Create an MBuffer with the default parameters.
  * \return a pointer to the newly allocated MBuffer
  * \see mbuf_create2, DEF_BUF_SIZE, DEF_MIN_BUF_RESIZE
  */
@@ -84,7 +48,7 @@ mbuf_create (void)
   return mbuf_create2(DEF_BUF_SIZE, DEF_MIN_BUF_RESIZE);
 }
 
-/** Create an MBuf.
+/** Create an MBuffer.
  *
  * If buffer_length or min_resize are negative or NULL, the default values are used instead.
  *
@@ -193,7 +157,7 @@ mbuf_rd_remaining (MBuffer* mbuf)
 size_t
 mbuf_wr_remaining (MBuffer* mbuf)
 {
-  return mbuf->wrptr - mbuf->rdptr;
+  return mbuf->length - mbuf->fill;
 }
 
 
@@ -428,6 +392,29 @@ mbuf_write (MBuffer* mbuf, const uint8_t* buf, size_t len)
 
   memcpy (mbuf->wrptr, buf, len);
 
+  mbuf_write_extend(mbuf, len);
+
+  return 0;
+}
+
+/** Record that more data has been written to the MBuffer
+ *
+ * \warning This will fail without trying to resize if the buffer is too small.
+ *
+ * \param mbuf MBuffer to write data into
+ * \param len length of the added data
+ * \return 0 on success, -1 on failure.
+ *
+ * \see mbuf_check_resize, mbuf_read_skip
+ */
+inline int
+mbuf_write_extend(MBuffer* mbuf, size_t len)
+{
+  if (mbuf == NULL ||
+      mbuf->wr_remaining < len) {
+    return -1;
+  }
+
   mbuf->wrptr += len;
   mbuf->fill += len;
   mbuf->wr_remaining -= len;
@@ -477,10 +464,7 @@ mbuf_print(MBuffer* mbuf, const char* format, ...)
   } while (! success);
 
   /* XXX: should we advance by one more to keep the '\0'? */
-  mbuf->wrptr += len;
-  mbuf->fill += len;
-  mbuf->wr_remaining -= len;
-  mbuf->rd_remaining += len;
+  mbuf_write_extend(mbuf, len);
 
   mbuf_check_invariant (mbuf);
   return 0;
@@ -512,30 +496,29 @@ mbuf_read (MBuffer* mbuf, uint8_t* buf, size_t len)
 
   memcpy (buf, mbuf->rdptr, len);
 
-  mbuf->rdptr += len;
-  mbuf->rd_remaining -= len;
-
-  mbuf_check_invariant (mbuf);
+  mbuf_read_skip(mbuf, len);
 
   return 0;
 }
 
 /** Skip some data to be read from an MBuffer.
- * 
+ *
  * This simply advances the read pointer.
+ * \warning This will fail if advancing the read pointer would put it past the write pointer.
  *
  * \param mbuf MBuffer to manipulate
  * \param len amount of data to skip
  * \return 0 on success, or -1 otherwise
+ *
+ * \see mbuf_write_extend
  */
-int
+inline int
 mbuf_read_skip (MBuffer* mbuf, size_t len)
 {
-  if (mbuf == NULL) return -1;
-
-  mbuf_check_invariant (mbuf);
-
-  if (mbuf->rd_remaining < len) return -1;
+  if (mbuf == NULL ||
+      mbuf->rd_remaining < len) {
+    return -1;
+  }
 
   mbuf->rdptr += len;
   mbuf->rd_remaining -= len;
@@ -561,6 +544,7 @@ mbuf_read_byte (MBuffer* mbuf)
 
   int byte = (int)*(mbuf->rdptr);
 
+  /* XXX: should use mbuf_read_skip */
   mbuf->rdptr++;
   mbuf->rd_remaining--;
 
@@ -756,11 +740,14 @@ mbuf_reset_read (MBuffer* mbuf)
   return 0;
 }
 
-/** Advance to a new message.
+/** Advance to a new message for reading.
+ *
+ * \warning Use when reading messages only
+ * \todo Allow to advance messages for writing too.
  *
  * This is syntactic sugar to be called when all of a message has been
  * processed by the caller, to advance the message pointer to the current read
- * pointer iff it is behind (i.e., not writing). 
+ * pointer iff it is behind (i.e., not writing).
  *
  * \param mbuf MBuffer to manipulate
  * \return 0 on success, -1 otherwise
@@ -869,6 +856,43 @@ mbuf_repack_message2 (MBuffer* mbuf)
 
   mbuf_check_invariant (mbuf);
   return 0;
+}
+
+/** Concatenate content of src MBuffer into dst
+ * \param src pointer to source MBuffer
+ * \param dst pointer to destination MBuffer
+ * \return the number of bytes written into dst (i.e., src's fill), or <0 on error
+ */
+int
+mbuf_concat(MBuffer *src, MBuffer *dst) {
+  int ret = -1;
+
+    if (src && dst) {
+      if(!mbuf_write(dst, mbuf_buffer(src), mbuf_fill(src))) {
+        ret = mbuf_fill(src);
+      }
+    }
+
+  return ret;
+}
+
+/** Copy content of src MBuffer into dst MBuffer
+ * \param src pointer to source MBuffer
+ * \param dst pointer to destination MBuffer
+ * \return the number of bytes written into dst (i.e., src and dst's fill), or <0 on error
+ */
+int
+mbuf_copy(MBuffer*src, MBuffer *dst) {
+  int ret = -1;
+
+    if (src && dst) {
+      mbuf_clear(dst);
+      if(mbuf_write(dst, mbuf_buffer(src), mbuf_fill(src))) {
+        ret = mbuf_fill(src);
+      }
+    }
+
+  return ret;
 }
 
 /*
