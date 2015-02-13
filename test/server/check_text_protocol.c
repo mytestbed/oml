@@ -77,7 +77,7 @@ START_TEST(test_text_insert)
   snprintf(select, sizeof(select), "select oml_ts_client, oml_seq, size from %s;", table);
 
   memset(&source, 0, sizeof(SockEvtSource));
-  source.name = "text insert socket";
+  source.name = __FUNCTION__;
   ch = check_server_prepare_client_handler("test_text_insert", &source);
   fail_unless(ch->state == CS_HEADER);
 
@@ -189,7 +189,7 @@ START_TEST(test_text_types)
   snprintf(select, sizeof(select), "select val from %s;", table);
 
   memset(&source, 0, sizeof(SockEvtSource));
-  source.name = "text types socket";
+  source.name = __FUNCTION__;
   ch = check_server_prepare_client_handler("test_text_types", &source);
   fail_unless(ch->state == CS_HEADER);
 

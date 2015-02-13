@@ -75,6 +75,7 @@ typedef struct ClientHandler {
   Socket*     socket;               /**< OSocket from which the data is coming */
   SockEvtSource *event;             /**< Event handler for the OComm EventLoop */
   MBuffer* mbuf;                    /**< Mbuffer for incoming data */
+  MBuffer* wmbuf;                   /**< Mbuffer for data decapsulation */
 
   time_t      time_offset;          /**< value to add to remote ts to sync time across all connections */
 
@@ -83,7 +84,6 @@ typedef struct ClientHandler {
 } ClientHandler;
 
 ClientHandler* client_handler_new (Socket* new_sock);
-void client_handler_free (ClientHandler* self);
 
 #endif /*CLIENT_HANDLER_H_*/
 

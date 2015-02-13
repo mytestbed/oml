@@ -32,32 +32,33 @@
 #include "marshal.h"
 #include "binary.h"
 #include "schema.h"
+#include "input_filter.h"
 #include "client_handler.h"
 
 #define DEF_TABLE_COUNT 10
 
+
 /* XXX: This cannot be static anymore if we want to test it... */
-void
-client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
+void client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size);
 
-static void
-status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle);
+static void status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle);
+static void client_handler_free (ClientHandler* self);
 
+/** String representations of client state */
 static const char *client_state_s[] = {
   [CS_HEADER]          = "CS_HEADER",
   [CS_DATA]            = "CS_DATA",
   [CS_PROTOCOL_ERROR]  = "CS_PROTOCOL_ERROR",
 };
 
+/** String representations of client mode */
 static const char *client_mode_s[] = {
   [CM_UNSPEC_DATA]     = "C_UNSPEC_DATA",
   [CM_TEXT_DATA]       = "C_TEXT_DATA",
   [CM_BINARY_DATA]     = "C_BINARY_DATA",
 };
 
-/**
- * Logs a measurement with the monitoring OML server.
- *
+/** Log a measurement with the monitoring OML server.
  * \param self A non-NULL pointer to this client_handler.
  * \param event A pointer to a string naming an event.
  * \param message A pointer to a string describing the event.
@@ -102,7 +103,7 @@ client_event_report(ClientHandler *self, const char *event, const char *message)
  *
  * \return 0 on success, -1 otherwise
  */
-int
+static int
 client_realloc_tables (ClientHandler *self, int ntables)
 {
   if (!self || ntables <= 0) {
@@ -166,7 +167,7 @@ client_realloc_tables (ClientHandler *self, int ntables)
  *
  *  \see client_realloc_tables
  */
-int
+static int
 client_realloc_values (ClientHandler *self, int idx, int nvalues)
 {
   int curnvalues;
@@ -205,40 +206,77 @@ client_realloc_values (ClientHandler *self, int idx, int nvalues)
 ClientHandler*
 client_handler_new(Socket* new_sock)
 {
+  const char *event = "Connect";
+  const char *message = "";
   ClientHandler* self = oml_malloc(sizeof(ClientHandler));
-  if (!self) return NULL;
+
+  if (!self) {
+    goto cleanup_self;
+  }
 
   memset(self, 0, sizeof(*self));
   self->state = CS_HEADER;
   self->content = CM_UNSPEC_DATA;
-  self->mbuf = mbuf_create ();
   self->socket = new_sock;
-  self->event = eventloop_on_read_in_channel(new_sock, client_callback,
-      status_callback, (void*)self);
+
+  if(!(self->mbuf = mbuf_create())) {
+    goto cleanup_mbuf;
+
+  } else if(!(self->wmbuf = mbuf_create())) {
+    goto cleanup_wmbuf;
+
+  } else if (!(self->event = eventloop_on_read_in_channel(new_sock, client_callback, status_callback, (void*)self))) {
+    goto cleanup_event;
+  }
+
   strncpy (self->name, self->event->name, MAX_STRING_SIZE);
 
-  const char *event = "Connect";
-  const char *message = "";
   client_event_report(self, event, message);
   loginfo("%s: New incoming connection\n", self->name);
 
   return self;
+
+cleanup_event:
+  oml_free(self->wmbuf);
+
+cleanup_wmbuf:
+  oml_free(self->mbuf);
+
+cleanup_mbuf:
+  oml_free(self);
+
+cleanup_self:
+  return NULL;
 }
 
-void client_handler_free (ClientHandler* self)
+/** Deallocate the data structures and callbacks of a ClientHandler
+ *
+ * \param self pointer to the ClientHandler to free
+ */
+static void
+client_handler_free (ClientHandler* self)
 {
-  if (self->event)
-    eventloop_socket_release (self->event);
-  if (self->database)
-    database_release (self->database);
-  if (self->socket)
-    socket_free (self->socket);
-  if (self->tables)
-    oml_free (self->tables);
-  if (self->seqno_offsets)
-    oml_free (self->seqno_offsets);
-  mbuf_destroy (self->mbuf);
   int i, j;
+  InputFilter *ifilt;
+
+  if(!self) { return; };
+
+  if (self->event) {
+    eventloop_socket_release (self->event);
+  }
+  if (self->database) {
+    database_release (self->database);
+  }
+  if (self->socket) {
+    socket_free (self->socket);
+  }
+
+  if (self->tables) {
+    oml_free (self->tables);
+  }
+  if (self->seqno_offsets) {
+    oml_free (self->seqno_offsets);
+  }
   for (i = 0; i < self->table_count; i++) {
     for (j = 0; j < self->values_vector_counts[i]; j++) {
       oml_value_reset(&self->values_vectors[i][j]);
@@ -247,6 +285,14 @@ void client_handler_free (ClientHandler* self)
   }
   oml_free (self->values_vectors);
   oml_free (self->values_vector_counts);
+
+  if ((ifilt=self->input_filter)) {
+    while((ifilt=input_filter_destroy(ifilt)));
+  }
+
+  mbuf_destroy (self->mbuf);
+  mbuf_destroy (self->wmbuf);
+
   if (self->sender_name)
     oml_free (self->sender_name);
   if (self->app_name)
@@ -256,7 +302,11 @@ void client_handler_free (ClientHandler* self)
   //  oml_memreport ();
 }
 
-void client_handler_update_name(ClientHandler *self)
+/** Update the name of a ClientHandler to better identify the source
+ * \param self ClientHandler to update
+ */
+static void
+client_handler_update_name(ClientHandler *self)
 {
   if (self->database && self->sender_name && self->app_name) {
     snprintf(self->name, MAX_STRING_SIZE, "%s:%s:%s", self->database->name, self->sender_name, self->app_name);
@@ -268,8 +318,76 @@ void client_handler_update_name(ClientHandler *self)
   }
 }
 
+/** Add an InputFilter at the end of a ClientHandler's list
+ * \param self ClientHandler to update
+ * \param ifilt InputFilter to append
+ */
+static void
+client_handler_add_filter(ClientHandler *self, InputFilter *ifilt)
+{
+  InputFilter *it;
+  assert(self);
+  assert(ifilt);
 
-  static int
+  if(!self->input_filter) {
+    self->input_filter = ifilt;
+
+  } else {
+    it = self->input_filter;
+    do {
+      if(it->next) {
+        it = it->next;
+
+      } else {
+        it->next = ifilt;
+        it = NULL;
+      }
+    } while (it);
+  }
+}
+
+/** Input data into the filter chain, and process as far as more output is available
+ * \param self ClientHandler receiving the input
+ * \param buf buffer of received data
+ * \param len length of received data
+ * \return the size of additional OMSP data in the ClientHandler's buffer, or <0 on error
+ */
+static int
+client_handler_filter(ClientHandler *self, uint8_t *buf, size_t len)
+{
+  ssize_t ret = -1;
+  InputFilter *flt;
+  assert(self);
+  assert(buf);
+  assert(len>=0);
+
+  flt = self->input_filter;
+
+  mbuf_clear(self->wmbuf);
+  mbuf_write(self->wmbuf, buf, len);
+
+  while (flt) {
+    ret = input_filter_process(flt, self->wmbuf, self->wmbuf);
+    if(ret>0) {
+      logdebug2("%s: filter %p generated %dB of data\n", __FUNCTION__, flt, ret);
+      flt = flt->next;
+    } else {
+      logdebug2("%s: filter %p didn't generate data\n", __FUNCTION__, flt);
+      break;
+    }
+  }
+
+  ret = mbuf_concat (self->wmbuf, self->mbuf);
+  return ret;
+}
+
+/** Check that a schema and its fields' names are valid
+ * \param schema schema to check
+ * \param invalid pointer to be updated to point to the first invalid field
+ * \return 1 if valid, 0 otherwise
+ * \see validate_name
+ */
+static int
 validate_schema_names (struct schema *schema, char **invalid)
 {
   if (schema == NULL || invalid == NULL)
@@ -296,7 +414,7 @@ validate_schema_names (struct schema *schema, char **invalid)
  * \param value schema to process
  * \return 1 if successful, 0 otherwise
  */
-void
+static void
 process_schema(ClientHandler* self, char* value)
 {
   struct schema *schema = schema_from_meta (value);
@@ -348,23 +466,65 @@ process_schema(ClientHandler* self, char* value)
 
 /** \privatesection Process a single key/value pair contained in the header.
  *
- * XXX: This function actively does text protocol interpretation, see #1088
+ * \warning This function updates self->state and self->mode
+ * 
+ * \bug This function actively does text protocol interpretation, see #1088
  *
  * \param self ClientHandler
  * \param key key
  * \param value value
- * \return 0 if meta was processed successfully, <0 on error, or >0 if key was not recognised
+ * \return 0 if meta was processed successfully, <0 on error (-1: meta ignored; -2: protocol error; -3 unknown error; -4 filter error), or >0 if key was not recognised
  */
 static int
 process_meta(ClientHandler* self, char* key, char* value)
 {
+  char* str = NULL;
   int protocol;
   int start_time;
+  ssize_t out;
+  InputFilter *ifilt;
 
   chomp (value);
   logdebug("%s: Meta '%s':'%s'\n", self->name, key, value);
 
-  if (strcmp(key, "protocol") == 0) {
+  if (strcmp(key, "encapsulation") == 0) {
+    if (self->state != CS_HEADER) {
+      logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
+          self->name, key);
+      return -1;
+
+    } else if (NULL == (ifilt = input_filter_create(value, self))) {
+      logwarn("%s: No input handler found for encapsulation '%s', ignoring\n",
+          self->name, value);
+      return -1;
+
+    } else {
+      client_handler_add_filter(self, ifilt);
+      /* Process the rest of the input through the filter before trying to parse it further */
+      logdebug3("%s: Processing remaining input through new filter %p\n%s\n",
+          __FUNCTION__,
+          ifilt,
+          str = to_octets(mbuf_rdptr(self->mbuf), mbuf_rd_remaining(self->mbuf)));
+      if(str) {oml_free(str);}
+
+      out = input_filter_process(ifilt, self->mbuf, self->mbuf);
+      if (0 == out) {
+        return 0;
+
+      } else if (out>0) {
+        logdebug("%s: processed and generated %dB of output data through new filter\n",
+            __FUNCTION__, out);
+
+      } else if (out < 0) {
+        logerror("%s: error processing through filter %p\n",
+            __FUNCTION__, ifilt);
+        self->state = CS_PROTOCOL_ERROR;
+        return -4;
+      }
+
+    }
+
+  } else if (strcmp(key, "protocol") == 0) {
     protocol = atoi (value);
     if (self->state != CS_HEADER) {
       logwarn("%s: Meta '%s' is only valid in the headers, ignoring\n",
@@ -614,6 +774,7 @@ process_header(ClientHandler* self, MBuffer* mbuf)
     }
     mbuf_read_skip (mbuf, len + 1);
     process_meta(self, line, value);
+
   } else {
     logerror("%s: Malformed meta line in header: '%s'\n", self->name, line);
     self->state = CS_PROTOCOL_ERROR;
@@ -733,9 +894,9 @@ process_bin_data_message(ClientHandler* self, OmlBinaryHeader* header)
           self->name, omlc_get_string_ptr(*oml_value_get_value(&v[ki])),
           oml_value_get_type(&v[vi]));
 
-    } else if(process_meta(self,
+    } else if(0 >= process_meta(self,
           omlc_get_string_ptr(*oml_value_get_value(&v[ki])),
-          omlc_get_string_ptr(*oml_value_get_value(&v[vi]))) <= 0) {
+          omlc_get_string_ptr(*oml_value_get_value(&v[vi])))) {
       logdebug("%s(bin): No need to store metadata separately\n", self->name);
       return;
     }
@@ -893,7 +1054,7 @@ process_text_data_message(ClientHandler* self, char** msg, int count)
       logdebug("%s(txt): Metadata subject '%s' is not the root, not processing\n",
           self->name, msg[si]);
 
-    } else if(process_meta(self, msg[ki], msg[vi]) <=0 ) {
+    } else if(0 >= process_meta(self, msg[ki], msg[vi])) {
       logdebug2("%s(txt): No need to store metadata separately\n", self->name);
       return;
     }
@@ -980,15 +1141,17 @@ process_text_message(ClientHandler* self, MBuffer* mbuf)
   return 0;
 }
 
-/** * Callback function called when the socket receive some data
+/** Callback function called when the socket receive some data
  * \param source the socket event
  * \param handle the client handler
  * \param buf data received from the socket
  * \param bufsize the size of the data set from the socket
+ * \see eventloop_on_read_in_channel, o_el_read_socket_callback
  */
-  void
+void
 client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
 {
+  int ret = -1;
   char *in;
   ClientHandler* self = (ClientHandler*)handle;
   MBuffer* mbuf = self->mbuf;
@@ -1009,9 +1172,13 @@ client_callback(SockEvtSource* source, void* handle, void* buf, int buf_size)
     oml_free(in);
   }
 
-  int result = mbuf_write (mbuf, buf, buf_size);
+  ret = client_handler_filter(self, buf, buf_size);
 
-  if (result == -1) {
+  if (0 == ret) {
+    logdebug2("%s: Successfully processed new data, no OMSP was generated\n");
+    return;
+
+  } else if (ret < 0) {
     logerror("%s: Failed to write message from client into message buffer\n",
         source->name);
     return;
@@ -1067,11 +1234,13 @@ process:
   mbuf_repack_message (mbuf);
   logdebug2("%s: Buffer repacked to %d bytes\n", source->name, mbuf_fill(mbuf));
 }
+
 /** Callback function called when the status of the socket change
  * \param source the socket event
  * \param status the status of the socket
  * \param errno the value of the error if there is
  * \param handle the Client handler structure
+ * \see eventloop_on_read_in_channel, o_el_state_socket_callback
  */
 void
 status_callback(SockEvtSource* source, SocketStatus status, int errcode, void* handle)
