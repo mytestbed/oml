@@ -85,10 +85,10 @@ libserver_test_la_LDFLAGS += @PQLIBPATH@
 endif
 
 if HAVE_LIBZ
-oml2_server_SOURCES += gzip_input_filter.c
+oml2_server_SOURCES += zlib_input_filter.c
 oml2_server_CPPFLAGS += @LIBZ_CPPFLAGS@
 
-libserver_test_la_SOURCES += gzip_input_filter.c
+libserver_test_la_SOURCES += zlib_input_filter.c
 libserver_test_la_CPPFLAGS += @LIBZ_CPPFLAGS@
 endif
 

@@ -29,7 +29,7 @@ static struct {
 } encapsulation_filters[] = {
   { "null", input_filter_initialise },
 #ifdef HAVE_LIBZ
-  { "gzip", gzip_filter_create },
+  { "gzip", zlib_filter_create },
 #endif /* HAVE_LIBZ */
 };
 
@@ -45,6 +45,7 @@ input_filter_initialise(ClientHandler *ch) {
   if ((self=oml_malloc(sizeof(InputFilter)))) {
     memset(self, 0, sizeof(InputFilter));
     self->owner = ch;
+
   }
 
   return self;
@@ -150,7 +151,6 @@ input_filter_out (struct InputFilter *self, MBuffer *mbuf) {
  * \param self InputFilter to destroy
  * \return a pointer to the next InputFilter in the chain
  */
-
 InputFilter* input_filter_destroy(InputFilter *self) {
   InputFilter *next=NULL;
   if(self) {

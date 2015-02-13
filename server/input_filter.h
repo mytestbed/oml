@@ -94,7 +94,7 @@ typedef struct InputFilter {
 /* Creation functions for specific filters */
 
 # if HAVE_LIBZ
-InputFilter *gzip_filter_create (struct ClientHandler* ch);
+InputFilter *zlib_filter_create (struct ClientHandler* ch);
 # endif /* HAVE_LIBZ */
 
 #endif /* INPUT_FILTER_H_ */
