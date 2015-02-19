@@ -141,6 +141,26 @@ START_TEST(test_util_parse_uri)
 }
 END_TEST
 
+static struct {
+  uint8_t* buf;
+  size_t len;
+} test_to_octets[] = {
+  {NULL, 0},
+  {NULL, 2},
+  {(uint8_t*)"1", 0},
+  {(uint8_t*)"1", 2},
+};
+
+START_TEST(test_util_to_octets)
+{
+  char *a;
+  /* We should not segfault...*/
+  loginfo("%s\n%s\n", __FUNCTION__,
+      a=to_octets(test_to_octets[_i].buf, test_to_octets[_i].len));
+  oml_free(a);
+}
+END_TEST
+
 Suite* util_suite (void)
 {
   Suite* s = suite_create ("oml_utils");
@@ -148,6 +168,7 @@ Suite* util_suite (void)
   TCase* tc_util = tcase_create ("oml_utils");
   tcase_add_loop_test (tc_util, test_util_uri_scheme, 0, LENGTH(test_uri_schemes));
   tcase_add_loop_test (tc_util, test_util_parse_uri, 0, LENGTH(test_uris));
+  tcase_add_loop_test (tc_util, test_util_to_octets, 0, LENGTH(test_to_octets));
 
   suite_add_tcase (s, tc_util);
 

@@ -62,40 +62,48 @@ char* to_octets(unsigned char *buf, int len)
   /* Each row has 7 non-data characters (numbers and spaces), one more space, and columns*ASCII characters, plus a '\n' */
   const int rowlength = (octet_width * columns + 7 + 1 + columns + 1);
   const int outlength = rows * rowlength + 1;
+
   char *out = oml_malloc (outlength);
   char strrep[columns + 1];
-  int n = 0, i, col=0, rw=0;
+  int n = 0, i, col = 0, rw = 0;
 
+  *strrep = 0;
   strrep[columns] = 0;
 
   if(out) {
     /* Don't forget nil-terminator in snprintf's size */
     n += snprintf(out, outlength - n, "   0 1 2 3  4 5 6 7   8 9 a b  c d e f  0123456789abcdef\n%2x ", rw++);
-    for (i = 0; i < len; i++) {
-      col = i % columns;
+    if(!buf) {
+      n += snprintf(&out[n], outlength - n, "(nil)");
 
-      if (i == 0) {
-        while(0); /* Do nothing */
+    } else {
+      for (i = 0; i < len; i++) {
+        col = i % columns;
 
-      } else if (col == 0) {
-        n += snprintf(&out[n], outlength - n,  " %s\n%2x ", strrep, rw++);
+        if (i == 0) {
+          while(0); /* Do nothing */
 
-        /* Add some spacing for readability */
-      } else if(0 == (col % 8)) {
-        n += snprintf(&out[n], outlength - n, "  ");
+        } else if (col == 0) {
+          n += snprintf(&out[n], outlength - n,  " %s\n%2x ", strrep, rw++);
 
-      } else if (0 == (col % 4)) {
-        n += snprintf(&out[n], outlength - n, " ");
-      }
+          /* Add some spacing for readability */
+        } else if(0 == (col % 8)) {
+          n += snprintf(&out[n], outlength - n, "  ");
 
-      n += snprintf(&out[n], outlength - n, "%02x", (unsigned int)buf[i]);
-      if (isprint(buf[i])) {
-        strrep[col] = buf[i];
-      } else {
-        strrep[col] = '.';
+        } else if (0 == (col % 4)) {
+          n += snprintf(&out[n], outlength - n, " ");
+        }
+
+        n += snprintf(&out[n], outlength - n, "%02x", (unsigned int)buf[i]);
+        if (isprint(buf[i])) {
+          strrep[col] = buf[i];
+        } else {
+          strrep[col] = '.';
+        }
       }
     }
     if(col != 0) {
+      strrep[col+1] = 0;
       while(++col<columns) {
         /* Add padding to align ASCII output */
         if (0 == (col % 8)) {
@@ -106,7 +114,6 @@ char* to_octets(unsigned char *buf, int len)
           n += snprintf(&out[n], outlength - n, "  ");
         }
       }
-      strrep[col] = 0;
       n += snprintf(&out[n], outlength - n, " %s", strrep);
     }
   }
