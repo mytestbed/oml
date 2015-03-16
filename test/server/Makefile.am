@@ -73,6 +73,7 @@ BUILT_SOURCES = blob.gz
 CLEANFILES = \
 	check_server.oml.log \
 	dummy.bin \
+	blob \
 	blob.gz \
 	log.txt \
 	text-test.sq3 \

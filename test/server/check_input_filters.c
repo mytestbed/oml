@@ -39,12 +39,12 @@ START_TEST(test_input_filters)
   memcpy(&ch.name, __FUNCTION__, sizeof(__FUNCTION__));
 
   mbuf = mbuf_create();
-  ck_assert_msg(mbuf, "error allocating MBuffer");
+  ck_assert_msg(NULL != mbuf, "error allocating MBuffer");
 
   mbuf_write(mbuf, (const unsigned char*)__FUNCTION__, sizeof(__FUNCTION__));
 
   ifl = input_filter_create("null", &ch);
-  ck_assert_msg(ifl, "The null InputFilter wasn't created");
+  ck_assert_msg(NULL != ifl, "The null InputFilter wasn't created");
 
   ck_assert_msg(-1 == (ret = input_filter_in(ifl, mbuf)),
       "The null input filter did not \"generate\" the right amount of data (%d rather than -1)", ret);
@@ -81,12 +81,12 @@ START_TEST(test_gzip)
   memcpy(&ch.name, __FUNCTION__, sizeof(__FUNCTION__));
 
   in = mbuf_create();
-  ck_assert_msg(in, "error allocating input MBuffer");
+  ck_assert_msg(NULL != in, "error allocating input MBuffer");
   out = mbuf_create();
-  ck_assert_msg(out, "error allocatoutg output MBuffer");
+  ck_assert_msg(NULL != out, "error allocatoutg output MBuffer");
 
   ifl = input_filter_create("gzip", &ch);
-  ck_assert_msg(ifl,
+  ck_assert_msg(NULL != ifl,
       "The gzip InputFilter wasn't created");
 
   blobgz = fopen("blob.gz", "r");
@@ -131,7 +131,7 @@ START_TEST(test_gzip)
     }
   }
   /* Force an EOF detection if pending */
-  fread(buf,1,1,blob);
+  len=fread(buf,1,1,blob);
   fail_unless(feof(blob) && mbuf_rd_remaining(out) == 0,
       "One of the files is not finished (blob: %d, inflated: %d) after offset %d",
       feof(blob), mbuf_rd_remaining(out), acc);

@@ -23,6 +23,7 @@
 #include <check.h>
 
 #include "ocomm/o_log.h"
+#include "mem.h"
 #include "oml_utils.h"
 
 static struct uri_scheme {

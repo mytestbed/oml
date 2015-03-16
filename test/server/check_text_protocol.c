@@ -77,7 +77,7 @@ START_TEST(test_text_insert)
   snprintf(select, sizeof(select), "select oml_ts_client, oml_seq, size from %s;", table);
 
   memset(&source, 0, sizeof(SockEvtSource));
-  source.name = __FUNCTION__;
+  source.name = (char*)__FUNCTION__;
   ch = check_server_prepare_client_handler("test_text_insert", &source);
   fail_unless(ch->state == CS_HEADER);
 
@@ -113,7 +113,7 @@ START_TEST(test_text_insert)
   fail_unless(fabs(sqlite3_column_double(stmt, 0) - time1) < 10e-10,
       "Invalid oml_ts_value in 1st row: expected `%f', got `%f'",
       time1, sqlite3_column_double(stmt, 0));
-  fail_unless(fabs(sqlite3_column_int(stmt, 2) == d1),
+  fail_unless(abs(sqlite3_column_int(stmt, 2) == d1),
       "Invalid size in 1st row: expected `%d', got `%d'",
       d1, sqlite3_column_int(stmt, 2));
 
@@ -122,7 +122,7 @@ START_TEST(test_text_insert)
   fail_unless(fabs(sqlite3_column_double(stmt, 0) - time2) < 10e-10,
       "Invalid oml_ts_value in 2nd row: expected `%f', got `%f'",
       time2, sqlite3_column_double(stmt, 0));
-  fail_unless(fabs(sqlite3_column_int(stmt, 2) == d2),
+  fail_unless(abs(sqlite3_column_int(stmt, 2) == d2),
       "Invalid size in 2nd row: expected `%d', got `%d'",
       d2, sqlite3_column_int(stmt, 2));
 
@@ -189,7 +189,7 @@ START_TEST(test_text_types)
   snprintf(select, sizeof(select), "select val from %s;", table);
 
   memset(&source, 0, sizeof(SockEvtSource));
-  source.name = __FUNCTION__;
+  source.name = (char*)__FUNCTION__;
   ch = check_server_prepare_client_handler("test_text_types", &source);
   fail_unless(ch->state == CS_HEADER);
 

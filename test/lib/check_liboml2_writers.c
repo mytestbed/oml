@@ -93,7 +93,7 @@ START_TEST (test_fw_create_buffered)
 
   f = fopen(FN, "r");
   /* Now there should be data */
-  len=fread(buf2, sizeof(char), sizeof(buf2), f);
+  len = fread(buf2, sizeof(char), sizeof(buf2), f);
   fail_unless(len==2*sizeof(buf), "Read %d bytes from " FN ", expected %d", len, 2*sizeof(buf)-2);
   fclose(f);
 
@@ -109,7 +109,8 @@ END_TEST
 
 START_TEST (test_zw_create_buffered)
 {
-  int len, len2, acc=0, ret;
+  ssize_t len, len2;
+  int acc=0, ret;
   uint8_t buf[512], buf2[512];
   FILE *blob, *f;
   OmlOutStream *os, *fs;
@@ -133,7 +134,7 @@ START_TEST (test_zw_create_buffered)
 
 #ifndef DUMMY_COMPRESS
   while(!feof(blob)) {
-    if((len=fread(buf, 1, sizeof(buf), blob))>0) {
+    if((len = fread(buf, 1, sizeof(buf), blob))>0) {
       fail_unless(os->write(os, (uint8_t*)buf, len) == len);
     }
   }
@@ -169,8 +170,8 @@ START_TEST (test_zw_create_buffered)
   blob = fopen("blob", "r");
   f = fopen(ZFN ".blob", "r");
   while(!feof(blob) && !feof(f)) {
-    if((len=(int)fread(buf, 1, sizeof(buf), blob))>0) {
-      fail_unless((len2=fread(buf2, 1, len, f))==len,
+    if((len = fread(buf, 1, sizeof(buf), blob))>0) {
+      fail_unless((len2 = fread(buf2, 1, len, f))==len,
           "Read %d bytes from " ZFN ".blob, expected %d", len2, len);
       fail_if(memcmp(buf, buf2, len) != 0,
           "Contents of blob and " ZFN ".blob differ around offset %d", acc);
@@ -178,8 +179,8 @@ START_TEST (test_zw_create_buffered)
     }
   }
   /* Force an EOF detection if pending */
-  fread(buf,1,1,blob);
-  fread(buf2,1,1,f);
+  len = fread(buf,1,1,blob);
+  len = fread(buf2,1,1,f);
   fail_unless (feof(blob) && feof(f),
       "One of the files is not finished (blob: %d, " ZFN ".blob: %d) after offset %d",
       feof(blob), feof(f), acc);
