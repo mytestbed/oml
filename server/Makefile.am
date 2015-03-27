@@ -87,6 +87,8 @@ endif
 if HAVE_LIBZ
 oml2_server_SOURCES += zlib_input_filter.c
 oml2_server_CPPFLAGS += @LIBZ_CPPFLAGS@
+oml2_server_LDFLAGS += @LIBZ_LDFLAGS@
+oml2_server_LDADD += @LIBZ_LIBS@
 
 libserver_test_la_SOURCES += zlib_input_filter.c
 libserver_test_la_CPPFLAGS += @LIBZ_CPPFLAGS@

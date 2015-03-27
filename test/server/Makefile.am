@@ -38,8 +38,10 @@ msgloop_LDADD = \
 	$(top_builddir)/proxy_server/libproxyserver-test.la \
 	$(top_builddir)/lib/shared/libshared.la \
 	$(top_builddir)/lib/ocomm/libocomm.la
-check_server_CFLAGS = @CHECK_CFLAGS@ -DNOOML
-
+check_server_CFLAGS = -DNOOML \
+		      @CHECK_CFLAGS@ \
+		      @LIBZ_CPPFLAGS@
+check_server_LDFLAGS = @LIBZ_LDFLAGS@
 check_server_LDADD = @CHECK_LIBS@ @SQLITE3_LIBS@ \
 	$(top_builddir)/server/libserver-test.la \
 	$(top_builddir)/lib/shared/libshared.la \
@@ -47,8 +49,8 @@ check_server_LDADD = @CHECK_LIBS@ @SQLITE3_LIBS@ \
 	@M_LIBS@ \
 	@POPT_LIBS@ \
 	@SQLITE3_LIBS@ \
-	@LIBPQ_LIBS@
-
+	@LIBPQ_LIBS@ \
+	@LIBZ_LIBS@
 endif
 
 AM_CPPFLAGS = \

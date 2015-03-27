@@ -120,7 +120,7 @@ START_TEST(test_gzip)
   blob = fopen("blob", "r");
   while(!feof(blob) &&
       (bloblen = mbuf_rd_remaining(out))) {
-    if((len=(int)fread(buf, 1, sizeof(buf), blob))>0) {
+    if((len=fread(buf, 1, sizeof(buf), blob))>0) {
       fail_unless(bloblen >= len,
           "Read %d bytes from blob, but only expected %d around offset %d",
           len, bloblen, acc);
@@ -131,7 +131,7 @@ START_TEST(test_gzip)
     }
   }
   /* Force an EOF detection if pending */
-  len=fread(buf,1,1,blob);
+  len = fread(buf,1,1,blob);
   fail_unless(feof(blob) && mbuf_rd_remaining(out) == 0,
       "One of the files is not finished (blob: %d, inflated: %d) after offset %d",
       feof(blob), mbuf_rd_remaining(out), acc);
