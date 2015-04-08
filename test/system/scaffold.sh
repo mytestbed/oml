@@ -5,7 +5,7 @@
 # [0] http://oml.mytestbed.net/projects/oml/wiki/Quick_Start_Tutorial
 #
 # Can be run manually as
-#  top_srcdir=../.. srcdir=. top_builddir=../.. builddir=. TIMEOUT=`which timeout` [SCAFFOLD=/full/path/to/scaffold] [da]sh ./scaffold.sh
+#  top_srcdir=../.. srcdir=. top_builddir=../.. builddir=. CC=cc TIMEOUT=`which timeout` [SCAFFOLD=/full/path/to/scaffold] [da]sh ./scaffold.sh
 
 absolutise()
 {
@@ -21,6 +21,7 @@ builddir=`absolutise $builddir`
 
 BN=`basename $0`
 APPNAME=generator
+REAL_CC=$CC
 
 LOG=$PWD/${BN%%sh}log
 . ${srcdir}/tap_helper.sh
@@ -51,8 +52,8 @@ tap_test "generate OML header" no $SCAFFOLD --oml ${APPNAME}.rb
 tap_test "generate popt(3) header" no $SCAFFOLD --opts ${APPNAME}.rb
 
 export SCAFFOLD
-export CC="$top_builddir/libtool compile gcc"
-export CCLD="$top_builddir/libtool link --tag=CC gcc"
+export CC="$top_builddir/libtool compile $REAL_CC"
+export CCLD="$top_builddir/libtool link --tag=CC $REAL_CC"
 export CFLAGS="-I$top_srcdir/lib/client -I$top_srcdir/lib/ocomm"
 export LDFLAGS="-L$top_builddir/lib/client/.libs -L$top_builddir/lib/ocomm/.libs"
 tap_test "build generated application" yes make -e
