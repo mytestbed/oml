@@ -74,7 +74,7 @@ client_event_report(ClientHandler *self, const char *event, const char *message)
   socket_get_peer_addr(self->socket, addr, ADDR_SZ);
   uint16_t port = socket_get_port(self->socket);
   const char *oml_id = self->sender_name ? self->sender_name : "";
-  const char *domain = self->database && self->database->name ? self->database->name : "";
+  const char *domain = self->database ? self->database->name : "";
   const char *app_name = self->app_name ? self->app_name : "";
   client_event_inject(addr, port, oml_id, domain, app_name, event, message);
 #endif

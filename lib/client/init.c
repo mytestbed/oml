@@ -878,7 +878,7 @@ find_mstream_in_mp (const char *name, OmlMP *mp)
     return NULL;
 
   while (ms) {
-    if (ms && ms->table_name && strcmp (name, ms->table_name) == 0)
+    if (ms && strcmp (name, ms->table_name) == 0)
       break;
     ms = ms->next;
   }
