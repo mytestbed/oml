@@ -1,3 +1,5 @@
+// @file oml2-server.txt
+// @page oml2-server(1)
 oml2-server(1)
 ==============
 
@@ -147,7 +149,7 @@ You can create this user in PostgreSQL as follows (where 'postgresql' is
 the admin user for the database, and 'oml' is the user being created).
 +
 --------------------------
-  createuser -U postgres --pwprompt --no-superuser --createdb --no-createrole --no-replication oml
+$ createuser -U postgres --pwprompt --no-superuser --createdb --no-createrole --no-replication oml
 --------------------------
 +
 Doing so will ask you to enter and confirm the password for this role.
@@ -155,14 +157,14 @@ It should match that passed to *--pg-pass* below. Alternatively, the
 role can be created through and interactive console.
 +
 --------------------------
-    $ psql -U DBADMIN
-    psql (9.3.2)
-    Type "help" for help.
-    
-    DBADMIN=# CREATE USER oml WITH PASSWORD 'oml';
-    CREATE ROLE
-    DBADMIN=# ALTER ROLE oml WITH CREATEDB;
-    ALTER ROLE
+$ psql -U DBADMIN
+psql (9.3.2)
+Type "help" for help.
+
+DBADMIN=# CREATE USER oml WITH PASSWORD 'oml';
+CREATE ROLE
+DBADMIN=# ALTER ROLE oml WITH CREATEDB;
+ALTER ROLE
 --------------------------
 
 --pg-pass=pass::
@@ -179,7 +181,7 @@ role can be created through and interactive console.
 	following being passed to the server:
 +
 --------------------------
-  host=postgres.example.net password=secret user=oml2
+host=postgres.example.net password=secret user=oml2
 --------------------------
 +
 Though parameters which have specific *--pg-* options can be passed
@@ -192,7 +194,7 @@ make things difficult. A workaround is to wrap the entire argument in quotes,
 that is:
 +
 --------------------------
-  oml2-server --pg-user=oml2 "--pg-connect=host=postgres.example.net password=secret"
+oml2-server --pg-user=oml2 "--pg-connect=host=postgres.example.net password=secret"
 --------------------------
 endif::have_pg[]
 
@@ -290,6 +292,43 @@ Log an information message reporting the status of its allocated memory
 SIGINT & SIGTERM::
 Gracefully terminate, emptying the buffers and closing client connections.
 
+LOAD-BALANCING SERVERS
+----------------------
+
+For heavy measurement load scenarios, it is possible to load-balance
+client streams to multiple instances of the *oml2-server*. This adds
+fault-tolerance and scalability to an existing OML server/clients setup.
+The approach relies on the existing TCP load balancer, such as HAProxy.
+
+The OML client's collection URL needs to be pointed to the machine and
+port on which the linkman:haproxy[1] listens. The proxy will in turns
+redirect the stream to one of the available *oml2-server* instances.
+
+Load-balancing in linkman:haproxy[1] can be enabled as follows.
+--------------------------
+listen oml2server :3003
+        mode tcp
+        option tcplog
+        balance leastconn
+
+        server oml2server1 192.0.2.1:3003 check
+        server oml2server2 192.0.2.2:3003 check
+        server oml2server3 192.0.2.3:3003 check
+--------------------------
+
+HAProxy supports different decision algorithms to load-balance incoming
+TCP flows. This example uses the 'leastconn' algorithm, which selects
+the server with the least number of connections.  A full example
+configuration file can be found as {pkgdatadir}/haproxy.conf.
+
+Each server can store data independently into the same or separate (and
+potentially different) backends.
+ifdef::have_pg[]
+In the former case, the database server can be separately load-balanced
+(e.g., PostgreSQL clustering). This is however out of the scope of this
+documentation.
+endif::have_pg[]
+
 SECURITY CONSIDERATIONS
 -----------------------
 
@@ -335,10 +374,18 @@ ifdef::have_pg[]
 PostgreSQL
 ~~~~~~~~~~
 http://www.postgresql.org
+
+Replication, Clustering, and Connection Pooling: https://wiki.postgresql.org/wiki/Replication%2C_Clustering%2C_and_Connection_Pooling
 endif::have_pg[]
 
 IRODS
 ~~~~~
-http://www.irods.org/
+http://www.irods.org
+
+HAProxy
+~~~~~~
+http://www.haproxy.org
+
+Configuration manual: http://www.haproxy.org/download/1.3/doc/configuration.txt
 
 // vim: ft=asciidoc:tw=72

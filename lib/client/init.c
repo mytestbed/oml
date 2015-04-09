@@ -9,6 +9,118 @@
  */
 /** \file init.c
  * \brief Implement the user-visible initialisation routines of the user-visible OML API.
+ *
+ * \page OML Client Objects Interaction
+ *
+ * The objects and threads of the OML client library interact as follows.
+ * @startuml{omlclient.png}
+ * OmlClient *-- "0..*" OmlMP : mpoints
+ * OmlClient *-- "1..*" OmlWriter : first_writer, default_writer
+ *
+ * class OmlClient {
+ *  app_name
+ *  domain
+ *  node_name
+ *  collection_uri
+ *  first_writer
+ *  default_writer
+ *  mpoints
+ * }
+ * note "omlc_inject() acquires OmlMP::mutex,\ncalls OmlFiter::input() for each filter of each MS,\ncalls filter_process()if OmlMP::sample_size>OmlMP::sample_thres,\nthen releases OmlMP::mutex" as omlc_inject
+ * omlc_inject .. OmlMP
+ * class OmlMP {
+ *   name
+ *   streams
+ *   mutex
+ *   next
+ *   param_count
+ *   table_count
+ * }
+ * OmlMP -- OmlMP : next
+ * package Filtering {
+ *   omlc_inject .. OmlMStream
+ *   omlc_inject .. OmlFilter
+ *   OmlMP *-- "OmlMP::table_count" OmlMStream : streams
+ *   OmlMStream -- "OmlMStream::nwriters" OmlWriter : writers
+ *   OmlMStream *-- "0..mp::param_count" OmlFilter : filters
+ *   OmlMStream -- OmlMStream : next
+ *   class OmlMStream {
+ *    mp
+ *    next
+ *    sample_size
+ *    sample_thres
+ *    sample_interval
+ *    writers
+ *    nwriters
+ *    filters
+ *    filter_thread()
+ *   }
+ *   note "filter_thread() is started if OmlMP::sample_interval>0;\nit calls filter_process() every OmlMP::sample_interval" as filter_thread #ff6600
+ *   OmlMStream .. filter_thread
+ *
+ *   note "filter_process() calls OmlWriter::row_{start,end}(),\nand OmlFilter::output(), which calls OmlWriter::out()" as filter_process
+ *   omlc_inject --> filter_process
+ *   filter_process .. OmlWriter
+ *   filter_thread --> filter_process
+ *
+ *   class OmlFilter {
+ *     index
+ *     input()
+ *     output()
+ *   }
+ * }
+ *
+ * OmlWriter -- OmlWriter : next
+ * OmlWriter <|--- OmlBinWriter
+ * OmlWriter <|--- OmlTextWriter
+ * class OmlWriter {
+ *  bufferedWriter
+ *  next
+ *  row_start()
+ *  row_end()
+ *  out()
+ * }
+ * note "row_start() calls bw_get_write_buf()\nwith exclusive access" as row_start
+ * note "row_end() calls bw_release_write_buf()" as row_end
+ * row_start <-- filter_process
+ * row_end <-- filter_process
+ * OmlWriter .. row_start
+ * OmlWriter .. row_end
+ * package "Output buffering" {
+ *  BufferedWriter *-- OmlOutStream: outStream
+ *  OmlWriter *-- BufferedWriter: bufferedWriter
+ *  BufferedWriter .. row_start
+ *  BufferedWriter .. row_end
+ *   class BufferedWriter {
+ *    outStream
+ *    writerChunk
+ *    firstChunk
+ *    lock
+ *    semaphore
+ *    readerThread()
+ *    bw_get_write_buf()
+ *    bw_release_write_buf()
+ *   }
+ *   BufferedWriter *-- "1..*" BufferChunk: writerchunk, firstchunk
+ *   BufferChunk -- "1..*" BufferChunk: next
+ *   note "readerThread() wakes up on semaphore, holds lock,\nand empties processes the BufferChunk\nlist with outStream::write()" as readerThread #ff6600
+ *  note "bw_get_write_buf() acquires lock,\nand returns writerChunk" as bw_get_write_buf
+ *  note "bw_release_write_buf() releases lock,\nand signals semaphore" as bw_unlock_buf
+ *  BufferedWriter .. readerThread
+ *  OmlOutStream .. readerThread
+ *  BufferedWriter .. bw_get_write_buf
+ *  BufferedWriter .. bw_release_write_buf
+ * }
+ * row_start --> bw_get_write_buf
+ * row_end --> bw_release_write_buf
+ * OmlOutStream <|-- OmlNetOutStream
+ * OmlOutStream <|-- OmlFileOutStream
+ * class OmlOutStream {
+ *  dest
+ *  write()
+ *  close()
+ * }
+ * @enduml
  */
 
 #ifdef HAVE_CONFIG_H

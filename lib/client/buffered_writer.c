@@ -32,67 +32,54 @@
 /** A chunk of data to be put in a circular chain */
 typedef struct BufferChunk {
 
-  /** Link to the next buffer in the chunk */
-  struct BufferChunk*  next;
+  struct BufferChunk*  next;	/**< Link to the next buffer in the chunk */
 
-  /** MBuffer used for storage */
-  MBuffer* mbuf;
-  /** Target maximal size of mbuf for that chunk */
-  size_t   targetBufSize;
+  MBuffer* mbuf;		/**< MBuffer used for storage */
+  size_t   targetBufSize;	/**< Target maximal size of mbuf for that chunk */
 
-  /** Set to 1 when the reader is processing this chunk */
-  int   reading;
+  pthread_mutex_t lock;		/**< Mutex preventing access to chunk's MBuffer by both threads at once */
 
-  int nmessages; /**< Number of messages contained in this chunk */
+  int nmessages;		/**< Number of messages contained in this chunk */
 
 } BufferChunk;
 
 /** A writer reading from a chain of BufferChunks */
 struct BufferedWriter {
-  /** Set to !0 if buffer is active; 0 kills the thread */
-  int  active;
+  int  active;			/**< Set to !0 if buffer is active; 0 kills the thread */
 
-  /** Number of links which can still be allocated */
-  long unallocatedBuffers;
-  /** Target size of MBuffer in each chunk*/
-  size_t bufSize;
+  long unallocatedBuffers;	/**< Number of links which can still be allocated */
+  size_t bufSize;		/**< Target size of MBuffer in each chunk*/
 
-  /** Opaque handler to  the output stream*/
-  OmlOutStream*    outStream;
+  OmlOutStream*    outStream;	/**< Opaque handler to  the output stream*/
 
-  /** Chunk where the data gets stored until it's pushed out */
-  BufferChunk* writerChunk;
-  /** Immutable entry into the chain */
-  BufferChunk* firstChunk;
+  BufferChunk* writerChunk;	/**< Chunk where the data gets stored until it's pushed out */
+  BufferChunk* nextReaderChunk;	/**< Chunk where to read the data next */
+  BufferChunk* firstChunk;	/**< Immutable entry into the chain */
 
-  /** Buffer holding protocol headers */
-  MBuffer*     meta_buf;
+  MBuffer*     meta_buf;	/**< Buffer holding protocol headers */
+  MBuffer*     read_buf;	/**< Read buffer used to double-buffer reading */
 
-  /** Mutex protecting the object */
-  pthread_mutex_t lock;
-  /** Semaphore for this object */
-  pthread_cond_t semaphore;
-  /** Thread in charge of reading the queue and writing the data out */
-  pthread_t  readerThread;
+  pthread_mutex_t lock;		/**< Mutex protecting the chain structure */
+  pthread_mutex_t meta_lock;	/**< Mutex protecting the headers buffer */
+  pthread_cond_t semaphore;	/**< Semaphore indicating that more data has been written */
+  pthread_t  readerThread;	/**< Thread in charge of reading the queue and writing the data out */
 
-  /** Time of the last failure, to backoff for REATTEMP_INTERVAL before retryying **/
-  time_t last_failure_time;
+  time_t last_failure_time;	/**< Time of the last failure, to backoff for REATTEMP_INTERVAL before retryying **/
 
-  /** Backoff time, in seconds */
-  uint8_t backoff;
+  uint8_t backoff;		/**< Backoff time, in seconds */
 
-  /** Return status from the thread */
-  int retval;
+  int retval;			/**< Return status from the thread */
 
-  int nlost; /**< Number of lost messages since last query */
+  int nlost;			/**< Number of lost messages since last query */
 
 };
 #define REATTEMP_INTERVAL 5    //! Seconds to open the stream again
 
 static BufferChunk* getNextWriteChunk(BufferedWriter* self, BufferChunk* current);
+static BufferChunk* getNextReadChunk(BufferedWriter* self);
 static BufferChunk* createBufferChunk(BufferedWriter* self);
 static int destroyBufferChain(BufferedWriter* self);
-static void* threadStart(void* handle);
+static void* bufferedWriterThread(void* handle);
 static int processChunk(BufferedWriter* self, BufferChunk* chunk);
 
 /** Create a BufferedWriter instance
@@ -131,7 +118,7 @@ bw_create(OmlOutStream* outStream, long  queueCapacity, long chunkSize)
         self->unallocatedBuffers*self->bufSize,
         self->unallocatedBuffers, self->bufSize);
 
-    if(NULL == (self->writerChunk = self->firstChunk = createBufferChunk(self))) {
+    if(NULL == (self->writerChunk = self->nextReaderChunk = self->firstChunk = createBufferChunk(self))) {
       oml_free(self);
       self = NULL;
 
@@ -140,17 +127,25 @@ bw_create(OmlOutStream* outStream, long  queueCapacity, long chunkSize)
       oml_free(self);
       self = NULL;
 
+    } else if(NULL == (self->read_buf = mbuf_create())) {
+      destroyBufferChain(self);
+      oml_free(self);
+      self = NULL;
+
     } else {
       /* Initialize mutex and condition variable objects */
       pthread_cond_init(&self->semaphore, NULL);
       pthread_mutex_init(&self->lock, NULL);
+      logdebug3("%s: initialised mutex %p\n", self->outStream->dest, &self->lock);
+      pthread_mutex_init(&self->meta_lock, NULL);
+      logdebug3("%s: initialised mutex %p\n", self->outStream->dest, &self->meta_lock);
 
       /* Initialize and set thread detached attribute */
       pthread_attr_t tattr;
       pthread_attr_init(&tattr);
       pthread_attr_setdetachstate(&tattr, PTHREAD_CREATE_JOINABLE);
       self->active = 1;
-      pthread_create(&self->readerThread, &tattr, threadStart, (void*)self);
+      pthread_create(&self->readerThread, &tattr, bufferedWriterThread, (void*)self);
     }
   }
 
@@ -195,41 +190,20 @@ bw_close(BufferedWriter* instance)
   oml_free(self);
 }
 
-/** Add some data to the end of the queue.
- *
- * This function tries to acquire the lock on the BufferedWriter, and releases
- * it when done.
+/** Add some data to the end of the queue (lock must be held).
  *
  * \param instance BufferedWriter handle
  * \param data Pointer to data to add
  * \param size size of data
  * \return 1 if success, 0 otherwise
  *
- * \see _bw_push
+ * \warning This function is the same assumes that the
+ * lock on the writer chunk is already acquired.
+ *
+ * \see bw_push, bw_get_write_buf, bw_release_write_buf
  */
 int
-bw_push(BufferedWriter* instance, uint8_t *data, size_t size)
-{
-  int result = 0;
-  BufferedWriter* self = (BufferedWriter*)instance;
-  if (oml_lock(&self->lock, __FUNCTION__) == 0) {
-    result =_bw_push(instance, data, size);
-    oml_unlock(&self->lock, __FUNCTION__);
-  }
-  return result;
-}
-
-/** Add some data to the end of the queue (lock must be held).
- *
- * This function is the same as bw_push except it assumes that the
- * lock is already acquired.
- *
- * \copydetails bw_push
- *
- * \see bw_push
- */
-int
-_bw_push(BufferedWriter* instance, uint8_t* data, size_t size)
+bw_push(BufferedWriter* instance, uint8_t* data, size_t size)
 {
   BufferedWriter* self = (BufferedWriter*)instance;
   if (!self->active) { return 0; }
@@ -244,7 +218,6 @@ _bw_push(BufferedWriter* instance, uint8_t* data, size_t size)
   if (mbuf_write(chunk->mbuf, data, size) < 0) {
     return 0;
   }
-
   pthread_cond_signal(&self->semaphore);
 
   return 1;
@@ -252,8 +225,8 @@ _bw_push(BufferedWriter* instance, uint8_t* data, size_t size)
 
 /** Add some data to the end of the header buffer.
  *
- * This function tries to acquire the lock on the BufferedWriter, and releases
- * it when done.
+ * \warning This function tries to acquire the lock on the header data, and
+ * releases it when done.
  *
  * \param instance BufferedWriter handle
  * \param data Pointer to data to add
@@ -267,17 +240,17 @@ bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size)
 {
   int result = 0;
   BufferedWriter* self = (BufferedWriter*)instance;
-  if (oml_lock(&self->lock, __FUNCTION__) == 0) {
+  if (oml_lock(&self->meta_lock, __FUNCTION__) == 0) {
     result = _bw_push_meta(instance, data, size);
-    oml_unlock(&self->lock, __FUNCTION__);
+    oml_unlock(&self->meta_lock, __FUNCTION__);
   }
   return result;
 }
 
 /** Add some data to the end of the header buffer (lock must be held).
  *
- * This function is the same as bw_push_meta except it assumes that the lock is
- * already acquired.
+ * \warning This function is the same as bw_push_meta except it assumes that
+ * the lock on the header data is already acquired.
  *
  * \copydetails bw_push_meta
  *
@@ -347,34 +320,27 @@ bw_nlost_reset(BufferedWriter* instance) {
   instance->nlost = 0;
   return n;
 }
-/** Return an MBuffer with (optional) exclusive write access
- *
- * If exclusive access is required, the caller is in charge of releasing the
- * lock with bw_unlock_buf.
+/** Return an MBuffer with exclusive access
  *
  * \param instance BufferedWriter handle
- * \param exclusive indicate whether the entire BufferedWriter should be locked
  *
  * \return an MBuffer instance if success to write in, NULL otherwise
- * \see bw_unlock_buf
+ * \see bw_release_write_buf
  */
 MBuffer*
-bw_get_write_buf(BufferedWriter* instance, int exclusive)
+bw_get_write_buf(BufferedWriter* instance)
 {
   BufferedWriter* self = (BufferedWriter*)instance;
-  if (oml_lock(&self->lock, __FUNCTION__)) { return 0; }
   if (!self->active) { return 0; }
 
   BufferChunk* chunk = self->writerChunk;
   if (chunk == NULL) { return 0; }
+  oml_lock(&chunk->lock, __FUNCTION__);
 
   MBuffer* mbuf = chunk->mbuf;
   if (mbuf_write_offset(mbuf) >= chunk->targetBufSize) {
     chunk = getNextWriteChunk(self, chunk);
     mbuf = chunk->mbuf;
-  }
-  if (! exclusive) {
-    oml_unlock(&self->lock, __FUNCTION__);
   }
   return mbuf;
 }
@@ -386,72 +352,105 @@ bw_get_write_buf(BufferedWriter* instance, int exclusive)
  * \see bw_get_write_buf
  */
 void
-bw_unlock_buf(BufferedWriter* instance)
+bw_release_write_buf(BufferedWriter* instance)
 {
   BufferedWriter* self = (BufferedWriter*)instance;
   pthread_cond_signal(&self->semaphore); /* assume we locked for a reason */
-  oml_unlock(&self->lock, __FUNCTION__);
+  oml_unlock(&self->writerChunk->lock, __FUNCTION__);
 }
 
-/** Find the next empty write chunk, sets self->writerChunk to it and returns it.
+/** Find the next empty write chunk, sets self->writerChunk to it and returns * it.
  *
  * We only use the next one if it is empty. If not, we essentially just filled
  * up the last chunk and wrapped around to the socket reader. In that case, we
  * either create a new chunk if the overall buffer can still grow, or we drop
  * the data from the current one.
  *
- * This assumes that the current thread holds the self->lock and the lock on
- * the self->writerChunk.
+ * \warning A lock on the current writer chunk should be held prior to calling
+ * this function. It will be released, and the returned writerChunk will be
+ * similarly locked.
  *
  * \param self BufferedWriter pointer
- * \param current BufferChunk to use or from which to find the next
- * \return a BufferChunk in which data can be stored
+ * \param current locked BufferChunk to use or from which to find the next
+ * \return a locked BufferChunk in which data can be stored
  */
 BufferChunk*
 getNextWriteChunk(BufferedWriter* self, BufferChunk* current) {
   int nlost;
+  BufferChunk* nextBuffer;
+
   assert(current != NULL);
-  BufferChunk* nextBuffer = current->next;
+  nextBuffer = current->next;
+  oml_unlock(&current->lock, __FUNCTION__);
   assert(nextBuffer != NULL);
 
-  if (mbuf_rd_remaining(nextBuffer->mbuf) == 0) {
-    // It's empty (the reader has finished with it), we can use it
-    mbuf_clear2(nextBuffer->mbuf, 0);
-    self->writerChunk = nextBuffer;
-    bw_msgcount_reset(self);
+  oml_lock(&self->lock, __FUNCTION__);
+  if (nextBuffer == self->nextReaderChunk) {
+    if (self->unallocatedBuffers > 0) {
+      /* The next buffer is the next to be read, but we can allocate more,
+       * allocate a new buffer, insert it after the current writer, and use it */
+      nextBuffer = createBufferChunk(self);
+      assert(nextBuffer); /** \todo Use existing buffer if allocation fails */
+      oml_unlock(&self->lock, __FUNCTION__);
 
-  } else if (self->unallocatedBuffers > 0) {
-    // Insert a new chunk between current and next one.
-    BufferChunk* newBuffer = createBufferChunk(self);
-    assert(newBuffer);
-    newBuffer->next = nextBuffer;
-    current->next = newBuffer;
-    self->writerChunk = newBuffer;
+      oml_lock(&current->lock, __FUNCTION__);
+      nextBuffer->next = current->next;
+      current->next = nextBuffer; /* we have a lock on this one */
+      oml_unlock(&current->lock, __FUNCTION__);
 
-  } else {
-    // The chain is full, time to drop data and reuse the next buffer
-    current = nextBuffer;
-    assert(nextBuffer->reading == 0); /* Ensure this is not the chunk currently being read */
-    self->writerChunk = nextBuffer;
+      oml_lock(&self->lock, __FUNCTION__);
 
-    nlost = bw_msgcount_reset(self);
-    self->nlost += nlost;
-    logwarn("Dropped %d samples (%dB)\n", nlost, mbuf_fill(nextBuffer->mbuf));
-    mbuf_repack_message2(self->writerChunk->mbuf);
+    } else {
+      /* The next buffer is the next to be read, and we cannot allocate more,
+       * use it, dropping unread data, and advance the read pointer */
+      self->nextReaderChunk = nextBuffer->next;
+    }
   }
+
+  self->writerChunk = nextBuffer;
+  nlost = bw_msgcount_reset(self);
+  self->nlost += nlost;
+  oml_unlock(&self->lock, __FUNCTION__);
+  oml_lock(&nextBuffer->lock, __FUNCTION__);
+  if (nlost) {
+    logwarn("%s: Dropping %d samples (%dB)\n", self->outStream->dest, nlost, mbuf_fill(nextBuffer->mbuf));
+  }
+  mbuf_clear2(nextBuffer->mbuf, 0);
 
   // Now we just need to copy the message from current to self->writerChunk
   int msgSize = mbuf_message_length(current->mbuf);
   if (msgSize > 0) {
-    mbuf_write(self->writerChunk->mbuf, mbuf_message(current->mbuf), msgSize);
+    mbuf_write(nextBuffer->mbuf, mbuf_message(current->mbuf), msgSize);
     mbuf_reset_write(current->mbuf);
-    bw_msgcount_add(self, 1);
   }
 
-  return self->writerChunk;
+  return nextBuffer;
+}
+
+/** Get the next available reader chunck (even if there is nothing to read)
+ *
+ * This function acquires the lock on the BufferedWriter on its own.
+ *
+ * \warning A lock on the BufferedWriter should be held prior to calling
+ * this function. It will be released, and the returned writerChunk will be
+ * similarly locked.
+ *
+ * \param self BufferedWriter pointer
+ * \return a BufferChunk frome which data can next be read
+ */
+static BufferChunk*
+getNextReadChunk(BufferedWriter* self) {
+  BufferChunk* chunk;
+  chunk = self->nextReaderChunk;
+  self->nextReaderChunk = chunk->next;
+  return chunk;
 }
 
 /** Initialise a BufferChunk for a BufferedWriter.
+ *
+ * \warning A lock on the BufferedWriter should be held if the readerThread
+ * has already been started.
+ *
  * \param self BufferedWriter pointer
  * \return a pointer to the newly-created BufferChunk, or NULL on error
  */
@@ -473,6 +472,8 @@ createBufferChunk(BufferedWriter* self)
   chunk->mbuf = buf;
   chunk->targetBufSize = self->bufSize;
   chunk->next = chunk;
+  pthread_mutex_init(&chunk->lock, NULL);
+  logdebug3("%s: initialised chunk mutex %p\n", self->outStream->dest, &chunk->lock);
 
   self->unallocatedBuffers--;
   logdebug("Allocated chunk of size %dB (up to %d), %d remaining\n",
@@ -502,55 +503,61 @@ destroyBufferChain(BufferedWriter* self) {
     self->firstChunk = chunk->next;
 
     mbuf_destroy(chunk->mbuf);
+    pthread_mutex_destroy(&chunk->lock);
     oml_free(chunk);
   }
 
+  mbuf_destroy(self->meta_buf);
+  mbuf_destroy(self->read_buf);
+
   pthread_cond_destroy(&self->semaphore);
+  pthread_mutex_destroy(&self->meta_lock);
   pthread_mutex_destroy(&self->lock);
 
   return 0;
 }
 
 
-/** Writing thread
+/** Writing thread.
  *
  * \param handle the stream to use the filters on
  * \return 1 if all the buffer chain has been processed, <1 otherwise
  */
 static void*
-threadStart(void* handle)
+bufferedWriterThread(void* handle)
 {
   int allsent = 1;
   BufferedWriter* self = (BufferedWriter*)handle;
   BufferChunk* chunk = self->firstChunk;
 
   while (self->active) {
-    oml_lock(&self->lock, "bufferedWriter");
+    oml_lock(&self->lock, __FUNCTION__);
     pthread_cond_wait(&self->semaphore, &self->lock);
     // Process all chunks which have data in them
     do {
-      if (mbuf_message(chunk->mbuf) > mbuf_rdptr(chunk->mbuf)) {
-        allsent = processChunk(self, chunk);
-      }
-      // stop if we caught up to the writer
+      oml_unlock(&self->lock, __FUNCTION__);
+      allsent = processChunk(self, chunk);
 
-      if (chunk == self->writerChunk) break;
-
+      oml_lock(&self->lock, __FUNCTION__);
+      /* Stop if we caught up to the writer... */
+      if (chunk == self->writerChunk) { break; }
+      /* ...otherwise, move on to the next chunk */
       if (allsent>0) {
-        chunk = chunk->next;
+        chunk = getNextReadChunk(self);
       }
     } while(allsent > 0);
-    oml_unlock(&self->lock, "bufferedWriter");
+    oml_unlock(&self->lock, __FUNCTION__);
   }
   /* Drain this writer before terminating */
   /* XXX: “Backing-off for ...” messages might confuse the user as
    * we don't actually wait after a failure when draining at the end */
   while ((allsent=processChunk(self, chunk))>=-1) {
     if(allsent>0) {
-      if (chunk == self->writerChunk) break;
-      chunk = chunk->next;
-    } else if (-1 == allsent) {
-      sleep(self->backoff);
+      if (chunk == self->writerChunk) { break; };
+
+      oml_lock(&self->lock, __FUNCTION__);
+      chunk = getNextReadChunk(self);
+      oml_unlock(&self->lock, __FUNCTION__);
     }
   };
   self->retval = allsent;
@@ -558,6 +565,14 @@ threadStart(void* handle)
 }
 
 /** Send data contained in one chunk.
+ *
+ * \warning This function acquires the lock on the BufferedWriter for the time
+ * it takes to check the double-buffer.
+ *
+ * \warning This function acquires the lock on the chunk being processed for
+ * the time it takes to check it and swap the double buffer.
+ *
+ * \bug The meta buffer should also be protected.
  *
  * \param self BufferedWriter to process
  * \param chunk link of the chunk to process
@@ -568,32 +583,58 @@ threadStart(void* handle)
 static int
 processChunk(BufferedWriter* self, BufferChunk* chunk)
 {
+  time_t now;
+  int ret = -2;
+  ssize_t cnt = 0;
+  MBuffer *read_buf = NULL;
   assert(self);
   assert(self->meta_buf);
+  assert(self->read_buf);
   assert(chunk);
   assert(chunk->mbuf);
 
-  uint8_t* buf = mbuf_rdptr(chunk->mbuf);
-  size_t size = mbuf_message_offset(chunk->mbuf) - mbuf_read_offset(chunk->mbuf);
-  size_t sent = 0;
+  oml_lock(&self->lock, __FUNCTION__);
+  if (mbuf_message(self->read_buf) > mbuf_rdptr(self->read_buf)) {
+    /* There is unread data in the double buffer */
+    read_buf = self->read_buf;
+  }
+  oml_unlock(&self->lock, __FUNCTION__);
 
-  MBuffer* meta = self->meta_buf;
+  oml_lock(&chunk->lock, __FUNCTION__);
+  if ((NULL == read_buf) && (mbuf_message(chunk->mbuf) >= mbuf_rdptr(chunk->mbuf))) {
+    /* There is unread data in the read buffer, swap MBuffers */
+    read_buf = chunk->mbuf;
+    chunk->mbuf = self->read_buf;
+  }
+  oml_unlock(&chunk->lock, __FUNCTION__);
 
-  /* XXX: Should we use a timer instead? */
-  time_t now;
+  oml_lock(&self->lock, __FUNCTION__);
+  self->read_buf = read_buf;
+  oml_unlock(&self->lock, __FUNCTION__);
+
+  if (NULL == read_buf) {
+    /* The current message is not after the read pointer,
+     * we must be on the writer chunk */
+    ret = 1;
+    goto processChunk_cleanup;
+  }
+
   time(&now);
   if (difftime(now, self->last_failure_time) < self->backoff) {
     logdebug("%s: Still in back-off period (%ds)\n", self->outStream->dest, self->backoff);
-    return -1;
+    ret = -1;
+    goto processChunk_cleanup;
   }
 
-  chunk->reading = 1;
+  while (mbuf_write_offset(read_buf) > mbuf_read_offset(read_buf)) {
+    oml_lock(&self->meta_lock, __FUNCTION__);
+    cnt = self->outStream->write(self->outStream,
+        mbuf_rdptr(read_buf), mbuf_message_offset(read_buf) - mbuf_read_offset(read_buf),
+        mbuf_rdptr(self->meta_buf), mbuf_fill(self->meta_buf));
+    oml_unlock(&self->meta_lock, __FUNCTION__);
 
-  while (size > sent) {
-    long cnt = self->outStream->write(self->outStream, (void*)(buf + sent), size - sent,
-                               meta->rdptr, meta->fill);
     if (cnt > 0) {
-      sent += cnt;
+      mbuf_read_skip(read_buf, cnt);
       if (self->backoff) {
         self->backoff = 0;
         loginfo("%s: Connected\n", self->outStream->dest);
@@ -607,23 +648,13 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
         self->backoff *= 2;
       }
       logwarn("%s: Error sending, backing off for %ds\n", self->outStream->dest, self->backoff);
-
-      chunk->reading = 0;
-      return -2;
+      goto processChunk_cleanup;
     }
   }
+  ret = 1;
 
-  /* Check that we have sent everything, and reset the MBuffer
-   * XXX: is this really needed? size>sent *should* be enough
-   */
-  mbuf_read_skip(chunk->mbuf, sent);
-  chunk->reading = 0;
-  /* XXX: Redundant with allsent */
-  if (mbuf_write_offset(chunk->mbuf) == mbuf_read_offset(chunk->mbuf)) {
-    mbuf_clear2(chunk->mbuf, 1);
-    return 1;
-  }
-  return 0;
+processChunk_cleanup:
+  return ret;
 }
 
 /*

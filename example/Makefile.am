@@ -8,6 +8,7 @@ EXTRA_DIST = liboml2/README \
 	     liboml2-conf/config.xml \
 	     liboml2-conf/config_text_stream.xml \
 	     liboml2-conf/config_two_streams.xml \
+	     server/haproxy.conf \
 	     server/oml2-server-hook.sh
 
 nobase_pkgdata_DATA = liboml2/README \
@@ -18,4 +19,5 @@ nobase_pkgdata_DATA = liboml2/README \
 		      liboml2-conf/config.xml \
 		      liboml2-conf/config_text_stream.xml \
 		      liboml2-conf/config_two_streams.xml \
+		      server/haproxy.conf \
 		      server/oml2-server-hook.sh

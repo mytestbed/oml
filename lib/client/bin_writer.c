@@ -160,8 +160,7 @@ owb_row_cols(OmlWriter* writer, OmlValue* values, int value_count)
  * Prepare a new marshalled message with sequence and time information in the
  * writer's Mbuffer.
  *
- * This acquires a lock on the BufferedWriter (bw_get_write_buf(...,
- * exclusive=1)).
+ * This acquires a lock on the BufferedWriter MBuffer via bw_get_write_buf()
  *
  * \see BufferedWriter, bw_get_write_buf, marshal_init, marshal_measurements
  * \see gettimeofday(3)
@@ -173,7 +172,7 @@ owb_row_start(OmlWriter* writer, OmlMStream* ms, double now)
   assert(self->bufferedWriter != NULL);
 
   MBuffer* mbuf;
-  if ((mbuf = self->mbuf = bw_get_write_buf(self->bufferedWriter, 1)) == NULL) {
+  if ((mbuf = self->mbuf = bw_get_write_buf(self->bufferedWriter)) == NULL) {
     return 0;
   }
 
@@ -185,9 +184,9 @@ owb_row_start(OmlWriter* writer, OmlMStream* ms, double now)
 /** Function called after all items in a tuple have been sent
  * \see oml_writer_row_end
  *
- * This releases the lock on the BufferedWriter.
+ * This releases the lock on the BufferedWriter MBuffer.
  *
- * \see BufferedWriter, bw_unlock_buf, marshal_finalize
+ * \see BufferedWriter, bw_release_write_buf, marshal_finalize
  */
 static int
 owb_row_end(OmlWriter* writer, OmlMStream* ms) {
@@ -228,7 +227,7 @@ owb_row_end(OmlWriter* writer, OmlMStream* ms) {
 
   self->mbuf = NULL;
   bw_msgcount_add(self->bufferedWriter, 1);
-  bw_unlock_buf(self->bufferedWriter);
+  bw_release_write_buf(self->bufferedWriter);
   return 1;
 }
 

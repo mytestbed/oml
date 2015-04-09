@@ -105,17 +105,15 @@ The configuration file must be an XML file. The root element must be
 example shows the skeleton of an OML config file:
 
 --------------------------
-    <omlc domain="my_experiment" id="my_source_id">
-        <collect url="..." encoding="binary">
-           ...
-        </collect>
-
-        ...
-
-        <collect url="...">
-           ...
-        </collect>
-    </omlc>
+<omlc domain="my_experiment" id="my_source_id">
+  <collect url="..." encoding="binary">
+     ...
+  </collect>
+  ...
+  <collect url="...">
+     ...
+  </collect>
+</omlc>
 --------------------------
 
 The 'omlc' element recognizes two attributes: 'experiment' and 'id'.
@@ -146,18 +144,18 @@ named MP. Here is an example of a configuration with two 'stream'
 elements:
 
 --------------------------
-    <omlc domain="my_experiment" id="my_source_id">
-        <collect url="tcp:192.0.2.200">
-           <stream mp="radiotap" interval="2">
-              <filter field="sig_strength_dBm" />
-              <filter field="noise_strength_dBm" />
-              <filter field="power" />
-           </stream>
-           <stream mp="udp" samples="10">
-              <filter field="udp_len" />
-           </stream>
-        </collect>
-    </omlc>
+<omlc domain="my_experiment" id="my_source_id">
+  <collect url="tcp:192.0.2.200">
+     <stream mp="radiotap" interval="2">
+      <filter field="sig_strength_dBm" />
+      <filter field="noise_strength_dBm" />
+      <filter field="power" />
+     </stream>
+     <stream mp="udp" samples="10">
+      <filter field="udp_len" />
+     </stream>
+  </collect>
+</omlc>
 --------------------------
 
 This example connects to a server on the default TCP port (3003) at IP
@@ -280,9 +278,9 @@ filter:
 
 --------
 <omlc domain="my_experiment" id="my_source_id">
- <collect url="file:-">
-   <stream mp="lin" samples="1" />
- </collect>
+  <collect url="file:-">
+    <stream mp="lin" samples="1" />
+  </collect>
 </omlc>
 --------
 
@@ -336,9 +334,9 @@ the source MP.  For instance consider this configuration file:
 
 --------
 <omlc domain="my_experiment" id="my_source_id">
- <collect url="file:-">
-   <stream mp="lin" samples="1" name="foo"/>
- </collect>
+  <collect url="file:-">
+     <stream mp="lin" samples="1" name="foo"/>
+  </collect>
 </omlc>
 --------
 
