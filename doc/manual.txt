@@ -2,4 +2,9 @@ OML User Manual
 ~~~~~~~~~~~~~~~
 http://oml.mytestbed.net/projects/oml/wiki/Documentation
 
+
+OML Measurement Stream Protocol (OMSP)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+http://oml.mytestbed.net/doc/oml/{oml_base_version}/doxygen/omsp.html
+
 // vim: ft=asciidoc:tw=72

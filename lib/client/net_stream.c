@@ -54,7 +54,7 @@ net_stream_new(const char *transport, const char *hostname, const char *service)
   memset(self, 0, sizeof(OmlNetOutStream));
 
   dest = mstring_create();
-  mstring_sprintf(dest, "%s:%s:%s", transport, hostname, service);
+  mstring_sprintf(dest, "%s://%s:%s", transport, hostname, service);
   self->os.dest = (char*)oml_strndup (mstring_buf(dest), mstring_len(dest));
   mstring_delete(dest);
 
