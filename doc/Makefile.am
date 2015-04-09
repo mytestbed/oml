@@ -88,7 +88,8 @@ CLEANFILES=$(ALL_MAN_FILES:.txt=) \
 	$(LIBOML3_LINKS) \
 	$(OMLCINJECT3_LINKS) \
 	$(OMLVALUE3_LINKS) \
-	oml2_scaffold.1
+	oml2_scaffold.1 \
+	doxygen/doxygen_sqlite3.db
 
 MOSTLYCLEANFILES=$(DX_CLEANFILES)
 
