@@ -204,6 +204,30 @@ explicitly name each of them. This can be done through the use of a
 configuration file, with these 'rename' attribute of the relevant 'mp'
 element, see linkoml:liboml2.conf[5].
 
+ifdef::have_libz[]
+STREAM COMPRESSION
+------------------
+
+The OML client library can be instructed (see link:#_uri_format[URI
+FORMAT] below) to compress its data streams (using the GZip algorithm).
+In this case, all input data, be it text or binary OMSP.
+
+// See lib/shared/zlib_utils.h:OML_ZLIB_FLUSH
+Currently, OML leaves it up to the  linkman:zlib[3] 'deflate()'
+algorithm to decide when to output compressed data, affording a good
+compression ratio, particularly for the text mode OMSP. However, this
+means that some delay will generally be introduced between the time when
+a sample is injected, and that when a compressed block containing it is
+output towards the collection point. It is therefore not recommended to
+use compression for applications where (near) real-time collection of
+data is required.
+
+Note: for compressed streams to be successfully received by the
+collection point, it needs to have support for this feature. In the case
+of the linkoml:oml2-server[1], this means that it should have been
+compiled and linked against the Zlib.
+endif::have_libz[]
+
 OML OPTIONS
 -----------
 --oml-id OML_NAME::
@@ -359,6 +383,15 @@ after each a measurement line is written out. This allows to prevent any
 size-based buffering in the C library from delaying the recording of
 samples. This is useful in case of, e.g., real time graphing of the data
 based on the contents of the file.
+
+ifdef::have_libz[]
+Both URI schemes can be prefixed by 'gzip+' to enable compression (see
+link:#_stream_compression[STREAM COMPRESSION] above), e.g.,
+'gzip+tcp://collect.example.net:3003' or 'gzip+file:/tmp/myfile.txt'.
+Note however that the main scheme is not optional in this case, and both
+'gzip://collect.example.net:3003' and 'gzip:/tmp/myfile.txt' are
+invalid.
+endif::have_libz[]
 
 ENVIRONMENT VARIABLES
 ---------------------

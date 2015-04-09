@@ -143,9 +143,12 @@ all: doxygen-doc
 endif
 
 ASCIIDOC_ARGS = --attribute='badges' --attribute='icons'
-ASCIIDOC_ARGS += --attribute='pkglocalstatedir=$(pkglocalstatedir)' --attribute='oml_version=$(VERSION)' --attribute='pkgdatadir=$(pkgdatadir)'
+ASCIIDOC_ARGS += --attribute='pkglocalstatedir=$(pkglocalstatedir)' --attribute='oml_version=$(VERSION)' --attribute='oml_base_version=$(OML_BASE_VER)' --attribute='pkgdatadir=$(pkgdatadir)'
 if HAVE_LIBPQ
 ASCIIDOC_ARGS += --attribute='have_pg'
+endif
+if HAVE_LIBZ
+ASCIIDOC_ARGS += --attribute='have_libz'
 endif
 A2X_ARGS = -f manpage $(ASCIIDOC_ARGS) --attribute='date=$(DATE)'
 
