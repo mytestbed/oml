@@ -52,7 +52,7 @@ oml2_server_LDADD = $(top_builddir)/lib/client/liboml2.la \
 		    @SQLITE3_LIBS@ \
 		    @LIBPQ_LIBS@
 
-libserver_test_la_CPPFLAGS = $(AM_CPPFLAGS) -DNOOML
+libserver_test_la_CPPFLAGS = $(AM_CPPFLAGS) -DNOOML @PQINCPATH@
 libserver_test_la_SOURCES = \
 			    input_filter.c \
 			    input_filter.h \
@@ -68,7 +68,7 @@ libserver_test_la_SOURCES = \
 			    database.h \
 			    table_descr.c \
 			    table_descr.h
-libserver_test_la_LDFLAGS =
+libserver_test_la_LDFLAGS = @M_LIBS@ @SQLITE3_LIBS@ @LIBPQ_LIBS@
 
 CLEANFILES = $(BUILT_SOURCES)
 
