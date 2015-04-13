@@ -18,6 +18,8 @@
 #include "oml2/oml_writer.h"
 #include "mbuf.h"
 
+typedef struct BufferChunk BufferChunk;
+
 BufferedWriter* bw_create(OmlOutStream* outStream, long queueCapacity, long chainSize);
 
 void bw_close(BufferedWriter* instance);
@@ -28,7 +30,7 @@ int bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size);
 int _bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size);
 
 int bw_msgcount_add(BufferedWriter* instance, int nmessages);
-int bw_msgcount_reset(BufferedWriter* instance);
+int bw_msgcount_reset(BufferChunk* chunk);
 int bw_nlost_reset(BufferedWriter* instance);
 
 MBuffer* bw_get_write_buf(BufferedWriter* instance);

@@ -58,16 +58,15 @@ struct BufferedWriter {
   BufferChunk* firstChunk;	/**< Immutable entry into the chain */
 
   MBuffer*     meta_buf;	/**< Buffer holding protocol headers */
-  MBuffer*     read_buf;	/**< Read buffer used to double-buffer reading */
+  MBuffer*     read_buf;	/**< Read buffer used to double-buffer reading, \see processChunk */
 
   pthread_mutex_t lock;		/**< Mutex protecting the chain structure */
   pthread_mutex_t meta_lock;	/**< Mutex protecting the headers buffer */
   pthread_cond_t semaphore;	/**< Semaphore indicating that more data has been written */
   pthread_t  readerThread;	/**< Thread in charge of reading the queue and writing the data out */
 
-  time_t last_failure_time;	/**< Time of the last failure, to backoff for REATTEMP_INTERVAL before retryying **/
-
-  uint8_t backoff;		/**< Backoff time, in seconds */
+  time_t last_failure_time;	/**< Time of the last failure, to backoff for REATTEMP_INTERVAL before retryying, \see processChunk*/
+  uint8_t backoff;		/**< Backoff time, in seconds, \see processChunk */
 
   int retval;			/**< Return status from the thread */
 
@@ -214,7 +213,8 @@ bw_push(BufferedWriter* instance, uint8_t* data, size_t size)
   BufferChunk* chunk = self->writerChunk;
   if (chunk == NULL) { return 0; }
 
-  if (mbuf_wr_remaining(chunk->mbuf) < size) {
+  if (mbuf_wr_remaining(chunk->mbuf) < size &&
+      mbuf_write_offset(chunk->mbuf) > 0) { /* Make sure something was written in this buffer... */
     chunk = getNextWriteChunk(self, chunk);
   }
 
@@ -294,18 +294,18 @@ bw_msgcount_add(BufferedWriter* instance, int nmessages) {
   return instance->writerChunk->nmessages;
 }
 
-/** Reset the message count in the current BufferChunk and return its previous value.
+/** Reset the message count in a BufferChunk and return its previous value.
  *
- * \param instance BufferedWriter handle
+ * \param instance BufferChunk handle
  *
  * \return the number of messages in the current writer BufferChunk before resetting
  *
  * \see bw_msgcount_add, bw_nlost_reset
  */
 int
-bw_msgcount_reset(BufferedWriter* instance) {
-  int n = instance->writerChunk->nmessages;
-  instance->writerChunk->nmessages = 0;
+bw_msgcount_reset(BufferChunk* chunk) {
+  int n = chunk->nmessages;
+  chunk->nmessages = 0;
   return n;
 }
 
@@ -411,7 +411,7 @@ getNextWriteChunk(BufferedWriter* self, BufferChunk* current) {
   }
 
   self->writerChunk = nextBuffer;
-  nlost = bw_msgcount_reset(self);
+  nlost = bw_msgcount_reset(self->writerChunk);
   self->nlost += nlost;
   oml_unlock(&self->lock, __FUNCTION__);
   oml_lock(&nextBuffer->lock, __FUNCTION__);
@@ -432,12 +432,6 @@ getNextWriteChunk(BufferedWriter* self, BufferChunk* current) {
 
 /** Get the next available reader chunck (even if there is nothing to read)
  *
- * This function acquires the lock on the BufferedWriter on its own.
- *
- * \warning A lock on the BufferedWriter should be held prior to calling
- * this function. It will be released, and the returned writerChunk will be
- * similarly locked.
- *
  * \param self BufferedWriter pointer
  * \return a BufferChunk frome which data can next be read
  */
@@ -445,7 +439,7 @@ static BufferChunk*
 getNextReadChunk(BufferedWriter* self) {
   BufferChunk* chunk;
   chunk = self->nextReaderChunk;
-  self->nextReaderChunk = chunk->next;
+  self->nextReaderChunk = self->nextReaderChunk->next;
   return chunk;
 }
 
@@ -479,8 +473,8 @@ createBufferChunk(BufferedWriter* self)
   logdebug3("%s: initialised chunk mutex %p\n", self->outStream->dest, &chunk->lock);
 
   self->unallocatedBuffers--;
-  logdebug("Allocated chunk of size %dB (up to %d), %d remaining\n",
-        initsize, self->bufSize, self->unallocatedBuffers);
+  logdebug("%s: Allocated chunk of size %dB (up to %d), %d remaining\n",
+        self->outStream->dest, initsize, self->bufSize, self->unallocatedBuffers);
   return chunk;
 }
 
@@ -546,6 +540,7 @@ bufferedWriterThread(void* handle)
       if (chunk == self->writerChunk) { break; }
       /* ...otherwise, move on to the next chunk */
       if (allsent>0) {
+        bw_msgcount_reset(chunk);
         chunk = getNextReadChunk(self);
       }
     } while(allsent > 0);
@@ -559,6 +554,7 @@ bufferedWriterThread(void* handle)
       if (chunk == self->writerChunk) { break; };
 
       oml_lock(&self->lock, __FUNCTION__);
+      bw_msgcount_reset(chunk);
       chunk = getNextReadChunk(self);
       oml_unlock(&self->lock, __FUNCTION__);
     }
@@ -569,13 +565,15 @@ bufferedWriterThread(void* handle)
 
 /** Send data contained in one chunk.
  *
- * \warning This function acquires the lock on the BufferedWriter for the time
- * it takes to check the double-buffer.
+ * \warning This implementation needs to access self->last_failure_time,
+ * self->backoff and self->read_buf, amongst others. It is currently the only
+ * one that touches these variable. Therefore, the lock is *NOT* acquired on the
+ * BufferedWriter when only these fields are accessed.
  *
  * \warning This function acquires the lock on the chunk being processed for
  * the time it takes to check it and swap the double buffer.
  *
- * \bug The meta buffer should also be protected.
+ * \warning This function acquires the lock on the meta buffer.
  *
  * \param self BufferedWriter to process
  * \param chunk link of the chunk to process
@@ -595,32 +593,6 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
   assert(chunk);
   assert(chunk->mbuf);
 
-  oml_lock(&self->lock, __FUNCTION__);
-  if (mbuf_message(self->read_buf) > mbuf_rdptr(self->read_buf)) {
-    /* There is unread data in the double buffer */
-    read_buf = self->read_buf;
-  }
-  oml_unlock(&self->lock, __FUNCTION__);
-
-  oml_lock(&chunk->lock, __FUNCTION__);
-  if ((NULL == read_buf) && (mbuf_message(chunk->mbuf) >= mbuf_rdptr(chunk->mbuf))) {
-    /* There is unread data in the read buffer, swap MBuffers */
-    read_buf = chunk->mbuf;
-    chunk->mbuf = self->read_buf;
-  }
-  oml_unlock(&chunk->lock, __FUNCTION__);
-
-  oml_lock(&self->lock, __FUNCTION__);
-  self->read_buf = read_buf;
-  oml_unlock(&self->lock, __FUNCTION__);
-
-  if (NULL == read_buf) {
-    /* The current message is not after the read pointer,
-     * we must be on the writer chunk */
-    ret = 1;
-    goto processChunk_cleanup;
-  }
-
   time(&now);
   if (difftime(now, self->last_failure_time) < self->backoff) {
     logdebug("%s: Still in back-off period (%ds)\n", self->outStream->dest, self->backoff);
@@ -628,13 +600,40 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
     goto processChunk_cleanup;
   }
 
-  while (mbuf_write_offset(read_buf) > mbuf_read_offset(read_buf)) {
-    oml_lock(&self->meta_lock, __FUNCTION__);
-    cnt = out_stream_write(self->outStream,
-        mbuf_rdptr(read_buf), mbuf_message_offset(read_buf) - mbuf_read_offset(read_buf));
+  if (mbuf_message(self->read_buf) > mbuf_rdptr(self->read_buf)) {
+    /* There is unread data in the double buffer */
+    ret = 0;
+  }
+
+  oml_lock(&chunk->lock, __FUNCTION__);
+  if (ret < 0 && (mbuf_message(chunk->mbuf) >= mbuf_rdptr(chunk->mbuf))) {
+    /* The double buffer is empty, but there is unread data in the read buffer, swap MBuffers */
+    read_buf = chunk->mbuf;
+
+    chunk->mbuf = self->read_buf;
+    bc_msgcount_reset(chunk);
+
+    self->read_buf = read_buf;
+
+    ret = 1; /* XXX: We are processing the chunk, but we should remember to change this status on error */
+  }
+  oml_unlock(&chunk->lock, __FUNCTION__);
+
+  if (ret < 0) {
+    /* We didn't find any data to read, we're done */
+    ret = 1;
+    goto processChunk_cleanup;
+  }
+
+  while (mbuf_write_offset(self->read_buf) > mbuf_read_offset(self->read_buf)) {
+    oml_lock(&self->meta_lock, __FUNCTION__); /* If there was a disconnection, out_stream_write() will
+                                                 read and transmit the contents of the meta buffer first,
+                                                 so we need to logk it, just in case... */
+    cnt = out_stream_write(self->outStream, mbuf_rdptr(self->read_buf),
+        (mbuf_message_offset(self->read_buf) - mbuf_read_offset(self->read_buf)));
     oml_unlock(&self->meta_lock, __FUNCTION__);
     if (cnt > 0) {
-      mbuf_read_skip(read_buf, cnt);
+      mbuf_read_skip(self->read_buf, cnt);
       if (self->backoff) {
         self->backoff = 0;
         loginfo("%s: Connected\n", self->outStream->dest);
@@ -648,10 +647,10 @@ processChunk(BufferedWriter* self, BufferChunk* chunk)
         self->backoff *= 2;
       }
       logwarn("%s: Error sending, backing off for %ds\n", self->outStream->dest, self->backoff);
+      ret = -1;
       goto processChunk_cleanup;
     }
   }
-  ret = 1;
 
 processChunk_cleanup:
   return ret;
