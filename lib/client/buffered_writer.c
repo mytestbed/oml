@@ -254,7 +254,7 @@ _bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size)
  *
  * \return the (new) current number of messages in the current writer BufferChunk
  *
- * \see bw_msgcount_reset, bw_nlost_reset
+ * \see bc_msgcount_reset, bw_nlost_reset
  */
 int
 bw_msgcount_add(BufferedWriter* instance, int nmessages) {
@@ -271,7 +271,7 @@ bw_msgcount_add(BufferedWriter* instance, int nmessages) {
  * \see bw_msgcount_add, bw_nlost_reset
  */
 int
-bw_msgcount_reset(BufferChunk* chunk) {
+bc_msgcount_reset(BufferChunk* chunk) {
   int n = chunk->nmessages;
   chunk->nmessages = 0;
   return n;
@@ -283,7 +283,7 @@ bw_msgcount_reset(BufferChunk* chunk) {
  *
  * \return the number of lost messages in the BufferedWriter before resetting
  *
- * \see bw_msgcount_add, bw_msgcount_reset
+ * \see bw_msgcount_add, bc_msgcount_reset
  */
 int
 bw_nlost_reset(BufferedWriter* instance) {
@@ -379,7 +379,7 @@ getNextWriteChunk(BufferedWriter* self, BufferChunk* current) {
   }
 
   self->writerChunk = nextBuffer;
-  nlost = bw_msgcount_reset(self->writerChunk);
+  nlost = bc_msgcount_reset(self->writerChunk);
   self->nlost += nlost;
   oml_unlock(&self->lock, __FUNCTION__);
   oml_lock(&nextBuffer->lock, __FUNCTION__);
@@ -508,7 +508,7 @@ bufferedWriterThread(void* handle)
       if (chunk == self->writerChunk) { break; }
       /* ...otherwise, move on to the next chunk */
       if (allsent>0) {
-        bw_msgcount_reset(chunk);
+        bc_msgcount_reset(chunk);
         chunk = getNextReadChunk(self);
       }
     } while(allsent > 0);
@@ -522,7 +522,7 @@ bufferedWriterThread(void* handle)
       if (chunk == self->writerChunk) { break; };
 
       oml_lock(&self->lock, __FUNCTION__);
-      bw_msgcount_reset(chunk);
+      bc_msgcount_reset(chunk);
       chunk = getNextReadChunk(self);
       oml_unlock(&self->lock, __FUNCTION__);
     }
