@@ -441,7 +441,7 @@ createBufferChunk(BufferedWriter* self)
   logdebug3("%s: initialised chunk mutex %p\n", self->outStream->dest, &chunk->lock);
 
   self->unallocatedBuffers--;
-  logdebug("%s: Allocated chunk of size %dB (up to %d), %d remaining\n",
+  logdebug("%s: Allocated chunk of size %dB (up to %dB), %d chunks remaining\n",
         self->outStream->dest, initsize, self->bufSize, self->unallocatedBuffers);
   return chunk;
 }

@@ -61,7 +61,7 @@ InputFilter*
 input_filter_create(const char *type, ClientHandler *ch) {
   size_t i = 0;
   for (i = 0; i < LENGTH (encapsulation_filters); i++) {
-    logdebug("%s: %s -> %d/%d, %s [%d %d]\n", __FUNCTION__, type, i, LENGTH (encapsulation_filters), encapsulation_filters[i].encapsulation, sizeof(encapsulation_filters), sizeof(encapsulation_filters[0]));
+    logdebug2("%s: %s -> %d/%d, %s [%d %d]\n", __FUNCTION__, type, i, LENGTH (encapsulation_filters), encapsulation_filters[i].encapsulation, sizeof(encapsulation_filters), sizeof(encapsulation_filters[0]));
     if (!strncmp (type, encapsulation_filters[i].encapsulation, strlen (encapsulation_filters[i].encapsulation))) {
       logdebug("%s: Creating InputFilter of type %s for ClientHandler %p\n", __FUNCTION__, type, ch);
       return encapsulation_filters[i].factory(ch);

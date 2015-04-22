@@ -196,7 +196,7 @@ out_stream_write_header(OmlOutStream* self)
       header = mbuf_rdptr(hdrmbuf);
       header_length  = mbuf_fill(hdrmbuf);
 
-      loginfo("%s: writing headers\n", self->dest);
+      logdebug("%s: Writing headers\n", self->dest);
 
       if ((count = out_stream_write_immediate(self, header, header_length)) < 0) {
         logerror("%s: Error writing header: %s\n", self->dest, strerror(errno));
