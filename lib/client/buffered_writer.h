@@ -24,10 +24,7 @@ BufferedWriter* bw_create(OmlOutStream* outStream, long queueCapacity, long chai
 
 void bw_close(BufferedWriter* instance);
 
-int bw_push(BufferedWriter* instance, uint8_t* data, size_t size);
-int _bw_push(BufferedWriter* instance, uint8_t* data, size_t size);
 int bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size);
-int _bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size);
 
 int bw_msgcount_add(BufferedWriter* instance, int nmessages);
 int bw_msgcount_reset(BufferChunk* chunk);

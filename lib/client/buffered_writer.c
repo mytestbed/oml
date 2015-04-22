@@ -82,6 +82,8 @@ static int destroyBufferChain(BufferedWriter* self);
 static void* bufferedWriterThread(void* handle);
 static int processChunk(BufferedWriter* self, BufferChunk* chunk);
 
+static int _bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size);
+
 /** Create a BufferedWriter instance
  *
  * \param outStream opaque OmlOutStream handler
@@ -192,40 +194,6 @@ bw_close(BufferedWriter* instance)
   oml_free(self);
 }
 
-/** Add some data to the end of the queue (lock must be held).
- *
- * \param instance BufferedWriter handle
- * \param data Pointer to data to add
- * \param size size of data
- * \return 1 if success, 0 otherwise
- *
- * \warning This function is the same assumes that the
- * lock on the writer chunk is already acquired.
- *
- * \see bw_push, bw_get_write_buf, bw_release_write_buf
- */
-int
-bw_push(BufferedWriter* instance, uint8_t* data, size_t size)
-{
-  BufferedWriter* self = (BufferedWriter*)instance;
-  if (!self->active) { return 0; }
-
-  BufferChunk* chunk = self->writerChunk;
-  if (chunk == NULL) { return 0; }
-
-  if (mbuf_wr_remaining(chunk->mbuf) < size &&
-      mbuf_write_offset(chunk->mbuf) > 0) { /* Make sure something was written in this buffer... */
-    chunk = getNextWriteChunk(self, chunk);
-  }
-
-  if (mbuf_write(chunk->mbuf, data, size) < 0) {
-    return 0;
-  }
-  pthread_cond_signal(&self->semaphore);
-
-  return 1;
-}
-
 /** Add some data to the end of the header buffer.
  *
  * \warning This function tries to acquire the lock on the header data, and
@@ -260,7 +228,7 @@ bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size)
  * \see bw_push_meta
  *
  */
-int
+static int
 _bw_push_meta(BufferedWriter* instance, uint8_t* data, size_t size)
 {
   BufferedWriter* self = (BufferedWriter*)instance;

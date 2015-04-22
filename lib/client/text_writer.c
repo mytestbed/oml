@@ -347,7 +347,7 @@ owt_row_end(OmlWriter* writer, OmlMStream* ms)
        * OmlOutStream (oml_outs_write_f), this require a much bigger refactoring.
        * It is also duplicated with the OmlBinWriter (see #1101).
        */
-      _bw_push_meta(self->bufferedWriter,
+      bw_push_meta(self->bufferedWriter,
           mbuf_message(self->mbuf), mbuf_message_length(self->mbuf));
     }
 
