@@ -330,7 +330,7 @@ bw_release_write_buf(BufferedWriter* instance)
   oml_unlock(&self->writerChunk->lock, __FUNCTION__);
 }
 
-/** Find the next empty write chunk, sets self->writerChunk to it and returns * it.
+/** Find the next empty write chunk, sets self->writerChunk to it and returns it.
  *
  * We only use the next one if it is empty. If not, we essentially just filled
  * up the last chunk and wrapped around to the socket reader. In that case, we
@@ -340,6 +340,8 @@ bw_release_write_buf(BufferedWriter* instance)
  * \warning A lock on the current writer chunk should be held prior to calling
  * this function. It will be released, and the returned writerChunk will be
  * similarly locked.
+ *
+ * \warning In the process, this function will try lo lock the BufferedWriter
  *
  * \param self BufferedWriter pointer
  * \param current locked BufferChunk to use or from which to find the next
@@ -399,6 +401,8 @@ getNextWriteChunk(BufferedWriter* self, BufferChunk* current) {
 }
 
 /** Get the next available reader chunck (even if there is nothing to read)
+ *
+ * \warning The lock on the BufferedWriter must be held
  *
  * \param self BufferedWriter pointer
  * \return a BufferChunk frome which data can next be read
