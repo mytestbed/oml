@@ -17,6 +17,7 @@
 #define OML_ZLIB_H_
 
 #include <stdio.h>
+#include <stddef.h> /* ptrdiff_t is in there */
 #include <zlib.h>
 
 #include "mbuf.h"
@@ -49,9 +50,9 @@ int oml_zlib_def(FILE *source, FILE *dest, int level);
 int oml_zlib_inf(FILE *source, FILE *dest);
 
 /** Search for the next block or new GZip header, whichever comes first, and advance the string. */
-off_t oml_zlib_sync(z_streamp strm);
+ptrdiff_t oml_zlib_sync(z_streamp strm);
 /** Search for the next block or new GZip header, whichever comes first. */
-off_t oml_zlib_find_sync(const char *buf, size_t len);
+ptrdiff_t oml_zlib_find_sync(const char *buf, size_t len);
 
 #endif /* OML_ZLIB_H_ */
 

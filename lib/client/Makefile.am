@@ -52,11 +52,12 @@ liboml2_la_SOURCES = \
 	filter/delta_filter.h \
 	$(oml2inc_HEADERS)
 
+liboml2_la_CPPFLAGS = $(AM_CPPFLAGS)
+
 if HAVE_LIBZ
 liboml2_la_SOURCES += zlib_stream.c \
 		      zlib_stream.h
-liboml2_la_CPPFLAGS = $(AM_CPPFLAGS) \
-		      @LIBZ_CPPFLAGS@
+liboml2_la_CPPFLAGS += @LIBZ_CPPFLAGS@
 endif
 
 liboml2_la_LIBADD = \

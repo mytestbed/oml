@@ -31,7 +31,7 @@
 #define DEF_CHAIN_BUFFER_SIZE 1024
 
 /** A chunk of data to be put in a circular chain */
-typedef struct BufferChunk {
+struct BufferChunk {
 
   struct BufferChunk*  next;	/**< Link to the next buffer in the chunk */
 
@@ -42,7 +42,7 @@ typedef struct BufferChunk {
 
   int nmessages;		/**< Number of messages contained in this chunk */
 
-} BufferChunk;
+};
 
 /** A writer reading from a chain of BufferChunks */
 struct BufferedWriter {
