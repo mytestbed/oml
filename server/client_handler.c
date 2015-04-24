@@ -500,29 +500,35 @@ process_meta(ClientHandler* self, char* key, char* value)
 
     } else {
       client_handler_add_filter(self, ifilt);
-      /* Process the rest of the input through the filter before trying to parse it further */
-      logdebug3("%s: Processing remaining input through new filter %p\n%s\n",
-          __FUNCTION__,
-          ifilt,
-          str = to_octets(mbuf_rdptr(self->mbuf), mbuf_rd_remaining(self->mbuf)));
-      if(str) {oml_free(str);}
 
-      out = input_filter_process(ifilt, self->mbuf, self->mbuf);
-      if (0 == out) {
-        return 0;
+      if (mbuf_rd_remaining(self->mbuf)>0) {
+        /* Process the rest of the input through the filter before trying to parse it further */
+        logdebug3("%s: Processing remaining input through new filter %p\n%s\n",
+            __FUNCTION__,
+            ifilt,
+            str = to_octets(mbuf_rdptr(self->mbuf), mbuf_rd_remaining(self->mbuf)));
+        if(str) {oml_free(str);}
 
-      } else if (out>0) {
-        logdebug("%s: processed and generated %dB of output data through new filter\n",
-            __FUNCTION__, out);
+        out = input_filter_process(ifilt, self->mbuf, self->mbuf);
+        if (0 == out) {
+          return 0;
 
-      } else if (out < 0) {
-        logerror("%s: error processing through filter %p\n",
-            __FUNCTION__, ifilt);
-        self->state = CS_PROTOCOL_ERROR;
-        return -4;
+        } else if (out > 0) {
+          logdebug("%s: processed and generated %dB of output data through new filter\n",
+              __FUNCTION__, out);
+
+        } else if (out < 0) {
+          logerror("%s: error processing through filter %p\n",
+              __FUNCTION__, ifilt);
+          self->state = CS_PROTOCOL_ERROR;
+          return -4;
+        }
       }
 
+      return 0;
     }
+
+    return -3; /* We shouldn't reach this */
 
   } else if (strcmp(key, "protocol") == 0) {
     protocol = atoi (value);
