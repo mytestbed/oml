@@ -122,6 +122,7 @@ zlib_filter_destroy(InputFilter *self)
     oml_zlib_end(&state->strm, OML_ZLIB_INFLATE, state->mbuf);
     /* I'll store this precious data here... */
     mbuf_destroy((MBuffer*)state->mbuf);
+    oml_free(state);
   }
 }
 /*

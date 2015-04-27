@@ -467,13 +467,18 @@ destroyBufferChain(BufferedWriter* self) {
 
   /* BufferChunk is a circular buffer */
   start = self->firstChunk;
-  while( (chunk = self->firstChunk) && chunk!=start) {
+  while((chunk = self->firstChunk)) {
     logdebug("Destroying BufferChunk at %p\n", chunk);
     self->firstChunk = chunk->next;
 
     mbuf_destroy(chunk->mbuf);
     pthread_mutex_destroy(&chunk->lock);
     oml_free(chunk);
+
+    if(self->firstChunk == start) { break; } /* This could go first in the while statement,
+                                                but the order of execution is not deterministic;
+                                                here, we're sure to break when we're back at the start,
+                                                and not before. */
   }
 
   mbuf_destroy(self->meta_buf);

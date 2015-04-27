@@ -269,6 +269,8 @@ zlib_stream_close(OmlOutStream* stream)
   deflateEnd(&self->strm);
   out_stream_close(self->outs);
   mbuf_destroy(self->encapheader);
+  oml_free(self->in);
+  oml_free(self->out);
 
   return ret;
 }
