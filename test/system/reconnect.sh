@@ -63,7 +63,7 @@ tap_message "testing reconnection for ${MODE} mode"
 
 test_plan
 
-tap_test "make temporary directory" yes mktemp -d ${DOMAIN}-test.XXXXXX
+tap_test "make temporary directory" yes mktemp -d ${DOMAIN}.XXXXXX
 DIR=`tail -n 1 $LOG` # XXX: $LOG cannot be /dev/stdout here
 cd $DIR
 tap_message "working in $DIR; it won't be cleaned up in case of bail out"

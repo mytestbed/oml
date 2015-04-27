@@ -32,12 +32,10 @@ while shift; do
 	case "$1" in
 		"--long")
 			longopt="--long"
-			dir=${dir}_long
 			bufsize=$((1024 * 1024 * nblobs))
 			;;
 		"--gzip")
 			gzipscheme="gzip+"
-			dir=${dir}_gzip
 			;;
 	esac
 done
@@ -46,7 +44,9 @@ ntests=0
 tottests=$(($nblobs+$nmeta))
 
 port=$((RANDOM + 32766))
-exp=blobgen
+exptype=${longopt:+-long}${gzipscheme:+-gzip}
+exp=run${backend}${exptype}
+dir=${exp}
 
 ## Each backend should provide the following functions:
 #  ${backend}_prepare:	to prepare the backend and output the PID of daemons that were started, if relevant
@@ -98,7 +98,7 @@ pg_prepare() {
 		-e "s/^#bytea_output *=.*/bytea_output = 'hex'/g" \
 		${dir}/db/postgresql.conf
 	# Outputs pg_pid for the caller
-	startdaemon ${dir}/db.log "accept connections" ${POSTGRES} -k ${PWD}/${dir} -D ${PWD}/${dir}/db -p ${PGPORT}
+	startdaemon ${dir}/db.log "accept connections" ${POSTGRES} -k /tmp -D ${PWD}/${dir}/db -p ${PGPORT}
 }
 pg_params() {
 	echo "--backend=postgresql --pg-user=oml2 --pg-port=${PGPORT}"
@@ -173,7 +173,7 @@ memstats () {
 	backend=$3
 	file=$4
 	side=$(basename $file .log)
-	outfile=$side$exptype$backend.csv
+	outfile=$exp_$side.csv
 	echo "Version,Type,Backend,Side,Allocated,Freed,Leaked,Maximum" > $outfile
 	sed -n "/currently allocated/s/.*\[\([0-9]\+\).*, \([0-9]\+\).*, \([0-9]\+\).*, \([0-9]\+\).*\].*/$omlver,$exptype,$backend,$side,\1,\2,\3,\4/p" $file >> $outfile
 	tail -n 1 $outfile
@@ -250,7 +250,7 @@ echo "# $0 ($backend): $fail/$tottests tests failed" >&2
 # Cleanup
 killall -9 $server_pid $pids 2>/dev/null
 
-memstats "$VERSION" "$exp$long" "$backend" "$dir/client.log" >> memstats.csv
-memstats "$VERSION" "$exp$long" "$backend" "$dir/server.log" >> memstats.csv
+memstats "$VERSION" "$exptype" "$backend" "$dir/client.log" >> memstats.csv
+memstats "$VERSION" "$exptype" "$backend" "$dir/server.log" >> memstats.csv
 
 exit $fail

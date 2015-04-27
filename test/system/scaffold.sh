@@ -37,7 +37,7 @@ tap_message "testing scaffolding script; running with \`$SCAFFOLD'"
 
 test_plan
 
-tap_test "make temporary directory" yes mktemp -d scaffold-test.XXXXXX
+tap_test "make temporary directory" yes mktemp -d scaffold.XXXXXX
 DIR=`tail -n 1 $LOG` # XXX: $LOG cannot be /dev/stdout here
 cd $DIR
 tap_message "working in $DIR; it won't be cleaned up in case of bail out"

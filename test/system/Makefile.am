@@ -4,9 +4,9 @@ TESTS_ENVIRONMENT = top_srcdir=$(top_srcdir) srcdir=$(srcdir) \
 		    VERSION=$(VERSION) CC=$(CC) CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" LIBADD="$(LIBADD)" \
 		    POSTGRES=$(POSTGRES) TIMEOUT="$(TIMEOUT)" \
 		    MALLOC_CHECK_=3
-TESTS = scaffold.sh reconnect.sh reconnect-text.sh reconnect-gzip.sh reconnect-text-gzip.sh run.sh run-long.sh
+TESTS = scaffold.sh reconnect.sh reconnect-text.sh reconnect-gzip.sh reconnect-text-gzip.sh runsq3.sh runsq3-long.sh
 if HAVE_LIBZ
-TESTS += run-gzip.sh
+TESTS += runsq3-gzip.sh
 endif #HAVE_LIBZ
 
 if HAVE_LIBPQ
@@ -27,8 +27,10 @@ endif
 
 EXTRA_DIST = \
 	     tap_helper.sh \
-	     run.sh run-long.sh runpg.sh runpg-long.sh \
-	     run-gzip.sh runpg-long-gzip.sh \
+	     run.sh \
+	     runsq3.sh runsq3-long.sh \
+	     runpg.sh runpg-long.sh \
+	     runsq3-gzip.sh runpg-long-gzip.sh \
 	     scaffold.sh \
 	     reconnect.sh reconnect-text.sh \
 	     reconnect-gzip.sh reconnect-text-gzip.sh \
@@ -37,14 +39,12 @@ EXTRA_DIST = \
 check_PROGRAMS = blobgen
 
 CLEANFILES = memstats.csv \
-	     clientblobgen--longpg.csv \
-	     clientblobgen--longsq3.csv \
-	     clientblobgenpg.csv \
-	     clientblobgensq3.csv \
-	     serverblobgen--longpg.csv \
-	     serverblobgen--longsq3.csv \
-	     serverblobgenpg.csv \
-	     serverblobgensq3.csv \
+	     runsq3_client.csv runsq3_server.csv \
+	     runsq3-long_client.csv \ runsq3-long_server.csv \
+	     runpg_client.csv runpg_server.csv \
+	     runpg-long_client.csv runpg-long_server.csv \
+	     runsq3-gzip_client.csv runsq3-gzip_server.csv \
+	     runpg-long-gzip_client.csv runpg-long-gzip_server.csv \
 	     scaffold.log \
 	     reconnect.log reconnect-text.log \
 	     reconnect-gzip.log reconnect-text-gzip.log \
