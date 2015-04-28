@@ -26,7 +26,6 @@ interval=0 # [ms]
 bufsize=$((65536 * nblobs)) # [B], OML defaults to 2048
 
 backend=${1:-sq3}
-dir=${backend}
 
 while shift; do
 	case "$1" in
@@ -46,7 +45,9 @@ tottests=$(($nblobs+$nmeta))
 port=$((RANDOM + 32766))
 exptype=${longopt:+-long}${gzipscheme:+-gzip}
 exp=run${backend}${exptype}
-dir=${exp}
+dir=`mktemp -d ${exp}.XXXXXX`
+
+echo "# working in $dir; it won't be cleaned up in case of bail out"
 
 ## Each backend should provide the following functions:
 #  ${backend}_prepare:	to prepare the backend and output the PID of daemons that were started, if relevant
@@ -222,7 +223,7 @@ kill $server_pid
 while kill -0 $server_pid 2>/dev/null; do echo -n '.'; sleep 1; done # Wait for the oml2-server to have exited properly
 echo
 
-# Extract data 
+# Extract data
 ${backend}_extract $dir $exp
 
 # Stop everything else
@@ -252,5 +253,7 @@ killall -9 $server_pid $pids 2>/dev/null
 
 memstats "$VERSION" "$exptype" "$backend" "$dir/client.log" >> memstats.csv
 memstats "$VERSION" "$exptype" "$backend" "$dir/server.log" >> memstats.csv
+
+test x$fail == x0 && rm -rf $dir
 
 exit $fail

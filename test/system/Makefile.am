@@ -38,7 +38,7 @@ EXTRA_DIST = \
 
 check_PROGRAMS = blobgen
 
-CLEANFILES = memstats.csv \
+CLEANFILES = memstats.csv client.csv server.csv \
 	     runsq3_client.csv runsq3_server.csv \
 	     runsq3-long_client.csv \ runsq3-long_server.csv \
 	     runpg_client.csv runpg_server.csv \
