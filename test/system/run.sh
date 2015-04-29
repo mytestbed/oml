@@ -23,7 +23,7 @@ nblobs=100
 nmeta=2
 
 interval=0 # [ms]
-bufsize=$((65536 * nblobs)) # [B], OML defaults to 2048
+bufsize=$((1024 * nblobs)) # [B], liboml2(1) defaults to 2 1024B buffers, but grows buffers to at least one sample
 
 backend=${1:-sq3}
 
@@ -31,7 +31,6 @@ while shift; do
 	case "$1" in
 		"--long")
 			longopt="--long"
-			bufsize=$((1024 * 1024 * nblobs))
 			;;
 		"--gzip")
 			gzipscheme="gzip+"
