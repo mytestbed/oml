@@ -15,7 +15,7 @@
  * \page stddev_filter Standard deviation
  *
  *  The `stddev` filter calculates the standard deviation using a running
- *  accumulation method due to B.P. Belford, cited in:
+ *  accumulation method due to B.P. Welford, cited in:
  *
  *  Donald Knuth, Art of Computer Programming, Vol 2, page 232, 3rd edition.
  *
