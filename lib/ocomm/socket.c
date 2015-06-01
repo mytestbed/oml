@@ -541,7 +541,8 @@ socket_sendto(Socket* socket, char* buf, int buf_size)
     if (!(sent < 0 && EAGAIN == errno)) {
       /* EAGAIN is the expected case: connection alive but no data,
        * everything else is a problem */
-      logwarn("socket(%s): Server appears to have closed the connection\n", self->name);
+      logwarn("socket(%s): Server appears to have closed the connection (cannot read from socket): %s\n",
+          self->name, strerror(errno));
 
       self->is_disconnected = 1;
       /* We want higher levels to be aware of this disconnection */
