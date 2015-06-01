@@ -28,6 +28,7 @@ static int longblob = 0;
 static int fixed_size = 0;
 static int samples = -1;
 static int hex = 0;
+static int noout = 0;
 static int quiet = 0;
 static int interval = 0;
 
@@ -37,6 +38,7 @@ struct poptOption options[] = {
   { "fixed", 'f', POPT_ARG_INT, &fixed_size, 0, "Used fixed size blobs", "SIZE" },
   { "samples", 'n', POPT_ARG_INT, &samples, 0, "Number of samples to generate. Default=forever", "SAMPLES"},
   { "hex", 'h', POPT_ARG_NONE, &hex, 0, "Generate HEX file output instead of binary", NULL},
+  { "noout", 'N', POPT_ARG_NONE, &noout, 0, "Don't generate files output", NULL},
   { "interval", 'i', POPT_ARG_INT, &interval, 0, "Interval between tuple generation [ms]", NULL},
   { "quiet", 'q', POPT_ARG_NONE, &quiet, 0, "If set, don't print", NULL},
   { NULL, 0, 0, NULL, 0, NULL, NULL }
@@ -179,14 +181,18 @@ run (void)
   /* Piggyback on v[0] which should later contain a string */
   omlc_set_string(v[0], "v1");
   omlc_inject_metadata(mp, "k1", &v[0], OML_STRING_VALUE, NULL);
-  meta_to_file("k1", "v1", "blobmp", NULL);
+  if(!noout) {
+    meta_to_file("k1", "v1", "blobmp", NULL);
+  }
 
   gettimeofday(&beg, NULL);
   fprintf (stderr, "# blobgen: writing blobs:");
   for (i = 0; samples != 0; i++, samples--) {
     snprintf (s, sizeof(s)-1, "sample-%04d\n", i);
     blob = randgen (&blob_length);
-    blob_to_file (i + 1, blob, blob_length);
+    if(!noout) {
+      blob_to_file (i + 1, blob, blob_length);
+    }
     totlength += blob_length;
     fprintf (stderr, " %d (%dB)", i, (int)blob_length);
     omlc_set_string (v[0], s);
@@ -198,14 +204,17 @@ run (void)
   }
   gettimeofday(&end, NULL);
   deltaT = difftv(end, beg);
-  fprintf (stderr, " (%d injects and %dB in %fs: %fips, %fBps).\n", i, (int)totlength, deltaT,
+  fprintf (stderr, ".\n");
+  fprintf (stderr, "# %d injects and %dB in %fs: %fips, %fBps\n", i, (int)totlength, deltaT,
       (double)i/deltaT, (double)totlength/deltaT);
 
   omlc_set_string(v[0], "v2");
   omlc_inject_metadata(mp, "k2", &v[0], OML_STRING_VALUE, "blob");
-  meta_to_file("k2", "v2", "blobmp", "blob");
   omlc_inject_metadata(mp, "k1", &v[0], OML_STRING_VALUE, NULL);
-  meta_to_file("k1", "v2", "blobmp", NULL);
+  if(!noout) {
+    meta_to_file("k2", "v2", "blobmp", "blob");
+    meta_to_file("k1", "v2", "blobmp", NULL);
+  }
 
   omlc_reset_string(v[0]);
   omlc_reset_blob(v[2]);
