@@ -512,6 +512,7 @@ socket_close(Socket* socket)
     // TODO: should check if close suceeds
     self->sockfd = -1;
   }
+  self->is_disconnected = 1;
   return 0;
 }
 
@@ -543,8 +544,8 @@ socket_sendto(Socket* socket, char* buf, int buf_size)
        * everything else is a problem */
       logwarn("socket(%s): Server appears to have closed the connection (cannot read from socket): %s\n",
           self->name, strerror(errno));
+      socket_close(socket);
 
-      self->is_disconnected = 1;
       /* We want higher levels to be aware of this disconnection */
       return 0;
     }
@@ -556,12 +557,12 @@ socket_sendto(Socket* socket, char* buf, int buf_size)
                     sizeof(self->servAddr.sa_stor))) < 0) {
     if (errno == EPIPE || errno == ECONNRESET) {
       // The other end closed the connection.
-      self->is_disconnected = 1;
+      socket_close(socket);
       o_log(O_LOG_ERROR, "socket(%s): The remote peer closed the connection: %s\n",
             self->name, strerror(errno));
       return 0;
     } else if (errno == ECONNREFUSED) {
-      self->is_disconnected = 1;
+      socket_close(socket);
       o_log(O_LOG_DEBUG, "socket(%s): Connection refused, trying next AI\n",
             self->name);
       self->rp = self->rp->ai_next;
