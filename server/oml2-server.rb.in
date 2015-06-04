@@ -54,8 +54,10 @@ database.
   app.defProperty('timeout', 'Timeout after which idle receiving sockets are cleaned up to avoid resource exhaustion', '-t',
 		  :type => :string, :default => "60", :mnemonic => 't', :var_name => 'socket_timeout')
   # XXX: Redundant with --oml-log-level
-  app.defProperty('debug-level', 'Increase debug level', '--debug-level',
-		  :type => :integer, :default => "{1 .. 4}", :mnemonic => 'd', :var_name => 'log_level')
+  app.defProperty('debug-level', 'Set debug level [1,4]', '--debug-level',
+		  :type => :integer, :default => "3", :mnemonic => 'd', :var_name => 'log_level')
+  app.defProperty('report-period', 'Set the period [s] of the resource report', '--report-period',
+		  :type => :integer, :default => "-1", :mnemonic => 'r', :var_name => 'report_period')
   app.defProperty('logfile', 'File to log to', '--logfile',
 		  :type => :string, :default => "", :var_name => 'logfile_name')
   app.defProperty('version', 'Print version information and exit', '--version',
