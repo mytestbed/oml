@@ -12,6 +12,7 @@ SYNOPSIS
 	    [-l port | --listen=port] [--user=UID] [--group=GID]
 	    [-t idleto | --timeout=idleto]
 	    [-d loglevel | --debug-level=loglevel] [--logfile=file]
+	    [-r period | --report-period=period]
 ifdef::have_pg[]
 	    [-b db | --backend=db] [--pg-host=host] [--pg-port=port]
 	    [--pg-user=user] [--pg-pass=pass]
@@ -103,10 +104,17 @@ IRODS.
 	for the given user. *--user* and *--group* accept user and group
 	names as arguments; numeric user and group ids are not supported.
 
--d, --debug-level=level::
-	Set the verbosity of log output to level. The level should be
+-d loglevel::
+--debug-level=loglevel::
+	Set the verbosity of log output to *loglevel*. The level should be
 	an integer from 1 to 4 (1=ERROR, 2=WARNING, 3=INFO, 4=DEBUG).
 	The default log verbosity is 3, INFO.
+
+-r period::
+--report-period=period::
+	Set the period at which the *oml2-server* reports resource
+	usage (file descriptors, memory allocation) in its logs. The
+	default is -1 (disabled). The report is logged at level INFO.
 
 -t idleto::
 --timeout=idleto::

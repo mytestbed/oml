@@ -272,8 +272,9 @@ int eventloop_run()
       }
       t = t->next;
     }
-    if (timeout != -1)
+    if (timeout != -1) {
       o_log(O_LOG_DEBUG3, "EventLoop: Timeout = %d\n", timeout);
+    }
 
     if (self.fds_dirty)
       if (update_fds()<1 && timeout < 0) /* No FD nor timeout */
@@ -412,19 +413,21 @@ int eventloop_run()
     }
     if (timeout >= 0) {
       // check timers
+      o_log(O_LOG_DEBUG2, "EventLoop: Checking timers...\n");
       TimerInt* t = self.timers;
       while (t != NULL) {
         if (t->is_active) {
+          o_log(O_LOG_DEBUG4, "EventLoop: Timer %s due %d (now %d)\n", t->name, t->due_time, self.now);
           if (t->due_time <= self.now) {
             // fires
             o_log(O_LOG_DEBUG2, "EventLoop: Timer '%s' fired\n", t->name);
             if (t->callback) t->callback((TimerEvtSource*)t, t->handle);
 
             if (t->is_periodic) {
+              /* Increment timer until the next deadline in the future */
               while ((t->due_time += t->period) < self.now) {
-                // should really only happen during debugging
                 o_log(O_LOG_WARN, "EventLoop: Skipped timer period for '%s'\n",
-                      t->name);
+                    t->name);
               }
             } else {
               t->is_active = 0;
@@ -481,7 +484,7 @@ void eventloop_report (int loglevel)
  *
  * \param name name of this object, used for debugging
  * \param period period [s] of the timer
- * \param timer_cbk function called when the state of the timer expires
+ * \param timer_cbk o_el_timer_callback function called when the state of the timer expires
  * \param handle pointer to opaque data passed to callback functions
  * \return a pointer to the newly-created TimerInt, cast as a TimerEvtSource
  *

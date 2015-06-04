@@ -83,6 +83,7 @@ die (const char *fmt, ...)
 
 static char* listen_service = DEFAULT_PORT_STR;
 static int log_level = O_LOG_INFO;
+static int report_period = -1;
 static int socket_timeout = 60;
 static char* logfile_name = NULL;
 static char* uidstr = NULL;
@@ -114,7 +115,8 @@ struct poptOption options[] = {
   { "group", '\0', POPT_ARG_STRING, &gidstr, 0, "Change server's group id", "GID" },
   { "event-hook", 'H', POPT_ARG_STRING, &hook, 0, "Path to an event hook taking input on stdin", "HOOK" },
   { "timeout", 't', POPT_ARG_INT, &socket_timeout, 0, "Timeout after which idle receiving sockets are cleaned up to avoid resource exhaustion", "60"  },
-  { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Increase debug level", "{1 .. 4}"  },
+  { "debug-level", 'd', POPT_ARG_INT, &log_level, 0, "Set debug level [1,4]", "3"  },
+  { "report-period", 'r', POPT_ARG_INT, &report_period, 0, "Set the period [s] of the resource report", "-1"  },
   { "logfile", '\0', POPT_ARG_STRING, &logfile_name, 0, "File to log to", DEFAULT_LOG_FILE },
   { "version", 'v', POPT_ARG_NONE, NULL, 'v', "Print version information and exit", NULL },
   { NULL, 0, 0, NULL, 0, NULL, NULL }
@@ -171,6 +173,16 @@ static void sighandler(int signum)
   default:
     logwarn("Received unhandled signal %d\n", signum);
   }
+}
+
+/** Timer called periodically to dump resource usage in the logs
+ * \see eventloop_every, o_el_timer_callback
+ */
+static void memreport_timer(TimerEvtSource* source, void* handle)
+{
+  (void)source;
+  (void)handle;
+  eventloop_report(O_LOG_INFO);
 }
 
 /** XXX: Type of a signal handler, as I'm not sure __sighandler_t from <signal.h> is portable */
@@ -325,6 +337,11 @@ int main(int argc, const char **argv)
 
   eventloop_init();
   eventloop_set_socket_timeout(socket_timeout);
+
+  if (report_period>0) {
+    loginfo("Reporting resource usage every %ds\n", report_period);
+    eventloop_every("report", 20, memreport_timer, NULL);
+  }
 
   Socket* server_sock;
   server_sock = socket_server_new("server", NULL, listen_service, on_connect, NULL);
