@@ -158,6 +158,11 @@ AC_ARG_ENABLE([debug],
 	      [AC_DEFINE([DEBUG], [1],
 			 [Define if verbose debug code in time-sensitive parts of the code should be enabled.])])
 
+AC_ARG_ENABLE([profiling],
+	      [AS_HELP_STRING([--enable-profiling],
+			      [enable profiling information to be recorded while running, for use with gprof(1)])],
+	      [CFLAGS="-pg $CFLAGS"])
+
 AC_ARG_ENABLE([packaging],
 	      [AS_HELP_STRING([--enable-packaging],
 			      [enable targets to create distribution-specific packages (Git clone needed)])],
