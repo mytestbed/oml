@@ -116,7 +116,7 @@ net_stream_close(OmlOutStream* stream)
   OmlNetOutStream* self = (OmlNetOutStream*)stream;
 
   if (self->socket != 0) {
-    socket_close(self->socket);
+    socket_free(self->socket);
     self->socket = NULL;
   }
   logdebug("%s: Destroying OmlNetOutStream at %p\n", self->dest, self);

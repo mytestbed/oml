@@ -492,16 +492,16 @@ createBufferChunk(BufferedWriter* self)
  */
 int
 destroyBufferChain(BufferedWriter* self) {
-  BufferChunk *chunk, *start;
+  BufferChunk *chunk, *start = NULL;
 
   if (!self) {
     return -1;
   }
 
   /* BufferChunk is a circular buffer */
-  start = self->firstChunk;
-  while( (chunk = self->firstChunk) && chunk!=start) {
+  while((chunk=self->firstChunk) && chunk!=start) {
     logdebug("Destroying BufferChunk at %p\n", chunk);
+    if (!start) { start = chunk; }
     self->firstChunk = chunk->next;
 
     mbuf_destroy(chunk->mbuf);
@@ -510,6 +510,7 @@ destroyBufferChain(BufferedWriter* self) {
 
   pthread_cond_destroy(&self->semaphore);
   pthread_mutex_destroy(&self->lock);
+  mbuf_destroy(self->meta_buf);
 
   return 0;
 }
