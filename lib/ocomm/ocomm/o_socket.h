@@ -100,7 +100,7 @@ int socket_shutdown(Socket *socket);
 int socket_close(Socket* socket);
 
 /** Free memory associated to an OSocket. */
-void socket_free (Socket* socket);
+Socket* socket_free (Socket* socket);
 
 /** Send a message through the socket */
 int socket_sendto(Socket* socket, char* buf, int buf_size);

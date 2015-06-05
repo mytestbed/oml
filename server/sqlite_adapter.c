@@ -626,6 +626,8 @@ sq3_get_key_value (Database* database, const char* table, const char* key_column
   MString *stmt = mstring_create ();
   mstring_sprintf (stmt, "SELECT %s,%s FROM %s WHERE %s='%s';",
                    key_column, value_column, table, key_column, key);
+  char* value = NULL;
+  size_t len = 0;
   char* errmsg;
   char** result;
   int nrows;
@@ -636,27 +638,31 @@ sq3_get_key_value (Database* database, const char* table, const char* key_column
 
   if (ret != SQLITE_OK) {
     logerror("sqlite:%s: Error in SELECT statement '%s': %s\n", database->name, mstring_buf (stmt), errmsg);
-    sqlite3_free (errmsg);
-    return NULL;
+
+  } else if (ncols == 0) {
+    logerror("sqlite:%s: Key-value lookup for key '%s' in %s(%s, %s) returned no column.\n",
+        database->name, key, table, key_column, value_column);
+
+  } else if (nrows == 0) {
+    logdebug("sqlite:%s: Key-value lookup for key '%s' in %s(%s, %s) returned no value.\n",
+        database->name, key, table, key_column, value_column);
+
+  } else {
+    if (nrows > 1) {
+      logwarn("sqlite:%s: Key-value lookup for key '%s' in %s(%s, %s) returned more than one possible key.\n",
+          database->name, key, table, key_column, value_column);
+    }
+
+    if (strcmp (key, result[2]) == 0) {
+      len = strlen (result[3]);
+      value = oml_strndup (result[3], len);
+    }
   }
 
-  if (ncols == 0 || nrows == 0) {
-    sqlite3_free_table (result);
-    return NULL;
-  }
-
-  if (nrows > 1)
-    logwarn("sqlite:%s: Key-value lookup for key '%s' in %s(%s, %s) returned more than one possible key.\n",
-             database->name, key, table, key_column, value_column);
-
-  char* value = NULL;
-
-  if (strcmp (key, result[2]) == 0) {
-    size_t len = strlen (result[3]);
-    value = oml_strndup (result[3], len);
-  }
-
+  mstring_delete(stmt);
   sqlite3_free_table (result);
+  sqlite3_free (errmsg);
+
   return value;
 }
 

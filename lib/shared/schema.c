@@ -589,18 +589,9 @@ schema_copy (const struct schema *schema)
     new->fields[i].type = schema->fields[i].type;
   }
   return new;
+
  exit:
-  /* new has been successfully allocated if we reach here */
-  if (new->name) { oml_free (new->name); }
-  if (new->fields) {
-    for (i = 0; i < new->nfields; i++) {
-      if (new->fields[i].name) {
-        oml_free (new->fields[i].name);
-      }
-    }
-    oml_free (new->fields);
-  }
-  oml_free (new);
+  schema_free (new);
   return NULL;
 }
 

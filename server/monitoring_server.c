@@ -40,15 +40,20 @@ oml_setup(int *argc, const char **argv)
   result = omlc_init("server", argc, argv, NULL);
   if(0 == result) {
     logdebug("Initialised OML client library\n");
+
     oml_register_mps();
     if(omlc_start() == 0) {
       logdebug("Started OML reporting of server's internal metrics\n");
       oml_enabled = 1;
+
     } else {
       logwarn("Could not start OML client library; this does not impact the server's collection capabilities\n");
+      omlc_close();
     }
+
   } else if (result == 1) {
     logdebug ("OML was disabled by the user\n");
+
   } else {
     logwarn("Could not initialise OML client library; this does not impact the server's collection capabilities\n");
   }
