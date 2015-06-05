@@ -363,9 +363,13 @@ int main(int argc, const char **argv)
 
   eventloop_run();
 
+  database_cleanup();
+
   signal_cleanup();
 
   hook_cleanup();
+
+  while((server_sock=socket_free(server_sock)));
 
   oml_cleanup();
 

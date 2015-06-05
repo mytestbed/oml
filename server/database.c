@@ -156,27 +156,33 @@ database_setup_backend (const char* backend)
  */
 static int
 database_hook_send_event(Database *self, const char* event){
+  int ret = -1;
   char dburi[PATH_MAX+1];
-  MString *hook_command = mstring_create();
+  MString *hook_command = NULL;
 
-  if(hook_enabled()) {
+  if(!hook_enabled()) {
+    ret = 0;
+  } else {
+    hook_command = mstring_create();
+
     if(!self->get_uri(self, dburi, sizeof(dburi))) {
       logwarn("%s: Unable to get full URI to database for hook\n", self->name);
 
     } else if (mstring_sprintf(hook_command, "%s %s\n",
           event, dburi) == -1) {
       logwarn("%s: Failed to construct command string for event hook\n", self->name);
-      mstring_delete(hook_command);
-      return -1;
 
     } else if(hook_write(mstring_buf(hook_command), mstring_len(hook_command)) < (int)mstring_len(hook_command)) {
       logwarn("%s: Failed to send command string to event hook: %s\n", self->name, strerror(errno));
-      mstring_delete(hook_command);
-      return -1;
+
+    } else {
+      ret = 0;
     }
+
+    mstring_delete(hook_command);
   }
 
-  return 0;
+  return ret;
 }
 
 /** Get the database-creation function for the selected backend.
@@ -347,7 +353,7 @@ database_find_table (Database *database, const char *name)
  * table in the actual storage backend.
  *
  * \param database Database to add the DbTable to
- * \param schema schema structure for that tables
+ * \param schema schema structure for that table (gets copied)
  * \return an oml_malloc'd DbTable (already added to database), or NULL on error
  *
  * \see database_find_table, schema_copy, database_release
@@ -568,15 +574,15 @@ database_init (Database *database)
   TableDescr* tables = database->get_table_list (database, &num_tables);
   TableDescr* td = tables;
 
-  if (num_tables == -1)
+  if (num_tables == -1) {
     return -1;
+  }
 
   logdebug("%s: Got table list with %d tables in it\n", database->name, num_tables);
   int i = 0;
   for (i = 0; i < num_tables; i++, td = td->next) {
     if (td->schema) {
-      struct schema *schema = schema_copy (td->schema);
-      DbTable *table = database_create_table (database, schema);
+      DbTable *table = database_create_table (database, td->schema);
 
       if (!table) {
         logwarn ("%s: Failed to create table '%s'\n",

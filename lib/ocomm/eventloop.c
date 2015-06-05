@@ -194,6 +194,7 @@ static Channel* eventloop_on_out_fd( char* name, int fd, o_el_state_socket_callb
 
 static int update_fds(void);
 static void terminate_fds(void);
+static void terminate_timers(void);
 
 static void do_read_callback (Channel *ch, void *buffer, int buf_size);
 static void do_monitor_callback (Channel *ch);
@@ -407,8 +408,10 @@ int eventloop_run()
       }
       for (i = 0; i < self.size; i++) {
         Channel* ch = self.fds_channels[i];
-        if (ch->is_removable)
+        if (ch->is_removable) {
+          o_log(O_LOG_DEBUG2, "EventLoop: Removing channel %s\n", ch->name);
           eventloop_socket_remove ((SockEvtSource*)ch);
+        }
       }
     }
     if (timeout >= 0) {
@@ -456,6 +459,7 @@ void eventloop_stop(int reason)
     self.stopping = 1;
   }
   terminate_fds();
+  terminate_timers();
 }
 
 /** Terminate the eventloop,
@@ -613,8 +617,8 @@ SockEvtSource* eventloop_on_read_in_channel(
 /** Register a Socket as a new channel to monitor (e.g., listening socket).
  *
  * \param socket OComm Socket
- * \param monitor_cbk monitoring callback called when a new event arrives, can be NULL
- * \param status_cbk status-change callback, can be NULL
+ * \param monitor_cbk o_el_monitor_socket_callback monitoring callback called when a new event arrives, can be NULL
+ * \param status_cbk o_el_state_socket_callback status-change callback, can be NULL
  * \param handle pointer to opaque data passed to callback functions
  * \return a pointer to a new Channel cast as a SockEvtSource
  *
@@ -701,7 +705,6 @@ void eventloop_socket_activate(SockEvtSource* source, int flag)
 void eventloop_socket_release(SockEvtSource* source)
 {
   Channel *ch = (Channel*)source;
-  eventloop_socket_activate(source, 0);
   ch->is_removable = 1;
   ch->handle = NULL;
 }
@@ -769,6 +772,8 @@ static Channel* channel_new(
   Channel* ch = (Channel *)oml_malloc(sizeof(Channel));
   memset(ch, 0, sizeof(Channel));
 
+  o_log(O_LOG_DEBUG2, "EventLoop: creating new channel %s\n", name);
+
   ch->fds_fd = fd;
   ch->fds_events = fd_events;
 
@@ -788,16 +793,16 @@ static Channel* channel_new(
 
 /** Terminate Channel and free its allocated memory
  *
- * The file descriptor in ch->socket is *NOT* cleaned up here, as all Channels are created through eventloop_on_* functions which first argument is a Socket, socket or file descriptor. The caller of these functions is in charge of cleaning
+ * \warning The file descriptor in ch->socket is *NOT* cleaned up here, as all Channels are created through eventloop_on_* functions which first argument is a Socket, socket or file descriptor. The caller of these functions is in charge of cleaning
  *
  * \param ch Channel to terminate and free
  *
  * \see channel_new
  * \see oml_free
  */
-static void channel_free(
-    Channel *ch
-) {
+static void
+channel_free(Channel *ch)
+{
   if (!ch) {
     o_log(O_LOG_DEBUG, "EventLoop: %s: Trying to free NULL pointer\n", __FUNCTION__);
   } else {
@@ -809,9 +814,9 @@ static void channel_free(
  *
  * \param name name of this object, used for debugging
  * \param fd file descriptor to consider
- * \param read_cbk callback function called when there is data to read, can be NULL
- * \param monitor_cbk callback function called when a new normal event arrives but no read_cbk was registered (e.g., listening socket), can be NULL
- * \param status_cbk callback function called when the state of the socket changes, can be NULL
+ * \param read_cbk o_el_read_socket_callback callback function called when there is data to read, can be NULL
+ * \param monitor_cbk o_el_monitor_socket_callback callback function called when a new normal event arrives but no read_cbk was registered (e.g., listening socket), can be NULL
+ * \param status_cbk o_el_state_socket_callback callback function called when the state of the socket changes, can be NULL
  * \param handle pointer to opaque data passed to callback functions
  * \return a pointer to the new Channel
  *
@@ -896,33 +901,49 @@ static int update_fds(void)
  * channels and repeatedly calling functions which do the same), but it's only
  * used for cleanup, so it should be fine.
  *
- * \see eventloop_stop
+ * \see eventloop_stop, terminate_timers
  */
-static void terminate_fds(void)
+static void
+terminate_fds(void)
 {
-  Channel *ch = self.channels, *next;
-
+  Channel *ch = self.channels, *nextch;
   while (ch != NULL) {
-    next = ch->next;
-    o_log(O_LOG_DEBUG4, "EventLoop: Terminating channel %s\n", ch->name);
-    if (!ch->is_active ||
+    nextch = ch->next;
+    if (self.force_stop) {
+      o_log(O_LOG_DEBUG2, "EventLoop: Closing down %s\n", ch->name);
+      eventloop_socket_remove((SockEvtSource*)ch);
+    } else if (!ch->is_active ||
         socket_is_disconnected(ch->socket) ||
         socket_is_listening(ch->socket)) {
-      o_log(O_LOG_DEBUG3, "EventLoop: Releasing listening channel %s\n", ch->name);
+      o_log(O_LOG_DEBUG2, "EventLoop: Releasing listening channel %s\n", ch->name);
       eventloop_socket_release((SockEvtSource*)ch);
-    } else if (self.force_stop) {
-      o_log(O_LOG_DEBUG3, "EventLoop: Closing down %s\n", ch->name);
-      eventloop_socket_release((SockEvtSource*)ch);
-      socket_close(ch->socket);
+
     } else {
-      o_log(O_LOG_DEBUG3, "EventLoop: Shutting down %s\n", ch->name);
+      o_log(O_LOG_DEBUG2, "EventLoop: Shutting down %s\n", ch->name);
       socket_shutdown(ch->socket);
       ch->is_shutting_down = 1;
     }
-    ch = next;
+    ch = nextch;
   }
 
   update_fds();
+}
+
+/** Terminate timers.
+ * \see eventloop_stop, eventloop_every, terminate_fds
+ */
+static void
+terminate_timers(void)
+{
+  TimerInt *tm = self.timers, *nexttm;
+
+  self.timers = NULL;
+
+  while(tm != NULL) {
+    nexttm = tm->next;
+    eventloop_timer_free(tm);
+    tm = nexttm;
+  }
 }
 
 /** Execute the data-read callback of a channel, if defined.

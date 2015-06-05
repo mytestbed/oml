@@ -149,20 +149,29 @@ socket_initialize(const char* name)
 /** Terminate the Socket and free its allocated memory.
  *
  * If the socket is still open, it will be closed.
+ * Can be used in a loop:
+ *    while(server_sock=socket_free(server_sock));
  *
  * \param socket Socket to free
+ * \return the next Socket in the linked list
  * \see socket_new, socket_close
  */
-void
+Socket*
 socket_free (Socket* socket)
 {
   SocketInt* self = (SocketInt *)socket;
+  Socket  *next = self->next;
+
   socket_close(socket);
+
   if (self->name) { oml_free(self->name); }
   if (self->dest) { oml_free(self->dest); }
   if (self->service) { oml_free(self->service); }
   if (self->results) { freeaddrinfo(self->results); }
+
   oml_free (self);
+
+  return next;
 }
 
 /** Create an unbound Socket object.
@@ -481,7 +490,7 @@ socket_server_new(const char* name, const char* node, const char* service, o_so_
   return socketlist;
 }
 
-/** Prevent the remote sender from trasmitting more data.
+/** Prevent the remote sender from transmitting more data.
  *
  * \param socket Socket object for which to shut communication down
  *
