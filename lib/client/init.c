@@ -927,7 +927,6 @@ create_mstream (const char *name, OmlMP* mp, OmlWriter* writer, double sample_in
     return NULL;
   }
 
-  namestr = mstring_create();
   /* If name is not specified, create one by concatenating the application and
    * MP names.
    *
