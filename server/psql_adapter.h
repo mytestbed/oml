@@ -28,6 +28,8 @@ typedef struct PsqlDB {
 
 typedef struct PsqlTable {
   MString *insert_stmt; /* Named statement for inserting into this table */
+  int value_count;
+  char **values;
 } PsqlTable;
 
 int psql_backend_setup ();
