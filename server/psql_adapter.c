@@ -23,7 +23,9 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include <assert.h>
+#include <stdint.h>
 
+#include "htonll.h"
 #include "ocomm/o_log.h"
 #include "mem.h"
 #include "mstring.h"
@@ -49,31 +51,6 @@ char *pg_user = DEFAULT_PG_USER;
 char *pg_pass = DEFAULT_PG_PASS;
 char *pg_conninfo = DEFAULT_PG_CONNINFO;
 
-/** Mapping between OML and PostgreSQL data types
- * \info Sizes taken from http://www.postgresql.org/docs/current/static/datatype.html
- * \see psql_type_to_oml, psql_oml_to_type
- */
-static db_typemap psql_type_map[] = {
-  { OML_DB_PRIMARY_KEY, "SERIAL PRIMARY KEY", 4 }, /* We might need BIGSERIAL at some point. */
-  { OML_LONG_VALUE,     "INT4",               4 },
-  { OML_DOUBLE_VALUE,   "FLOAT8",             8 }, /* 15 bits of precision, need to use NUMERIC for more, see #1657 */
-  { OML_STRING_VALUE,   "TEXT",               0 },
-  { OML_BLOB_VALUE,     "BYTEA",              0 },
-  { OML_INT32_VALUE,    "INT4",               4 },
-  { OML_UINT32_VALUE,   "INT8",               8 }, /* PG doesn't support unsigned types --> promote; INT8 is actually BIGINT... */
-  { OML_INT64_VALUE,    "INT8",               8 },
-  { OML_UINT64_VALUE,   "BIGINT",             8 }, /* XXX: Same as INT8, so sign is lost... Promote to numeric? See #1921 */
-  { OML_GUID_VALUE,     "BIGINT",             8 }, /* XXX: Ditto */
-  { OML_BOOL_VALUE,     "BOOLEAN",            1 },
-  /* Vector types */
-  { OML_VECTOR_DOUBLE_VALUE, "TEXT", 0},
-  { OML_VECTOR_INT32_VALUE,  "TEXT", 0},
-  { OML_VECTOR_UINT32_VALUE, "TEXT", 0},
-  { OML_VECTOR_INT64_VALUE,  "TEXT", 0},
-  { OML_VECTOR_UINT64_VALUE, "TEXT", 0},
-  { OML_VECTOR_BOOL_VALUE,   "TEXT", 0},
-};
-
 static int sql_stmt(PsqlDB* self, const char* stmt);
 
 /* Functions needed by the Database struct */
@@ -98,6 +75,193 @@ static MString* psql_prepare_conninfo(const char *database, const char *host, co
 static char* psql_get_sender_id (Database* database, const char* name);
 static int psql_set_sender_id (Database* database, const char* name, int id);
 static void psql_receive_notice(void *arg, const PGresult *res);
+
+/* Functions to convert scalar data into PostgreSQL's binary format */
+static inline int psql_set_long_value(long val, char *paramValue);
+static inline int psql_set_double_value(double val, char *paramValue);
+static inline int psql_set_int8_value(int8_t val, char *paramValue);
+static inline int psql_set_int32_value(int32_t val, char *paramValue);
+static inline int psql_set_uint32_value(uint32_t val, char *paramValue);
+static inline int psql_set_int64_value(int64_t val, char *paramValue);
+static inline int psql_set_uint64_value(uint64_t val, char *paramValue);
+static inline int psql_set_guid_value(oml_guid_t val, char *paramValue);
+static inline int psql_set_bool_value(int8_t val, char *paramValue);
+
+/** Mapping between OML and PostgreSQL data types
+ * \info Sizes taken from http://www.postgresql.org/docs/9.4/static/datatype.html
+ * \see psql_type_to_oml, psql_oml_to_type
+ */
+static db_typemap psql_type_map[] = {
+  { OML_DB_PRIMARY_KEY, "SERIAL PRIMARY KEY", 4 }, /* We might need BIGSERIAL at some point. */
+  { OML_LONG_VALUE,     "INT4",               4 },
+  { OML_DOUBLE_VALUE,   "FLOAT8",             8 }, /* 15 bits of precision, need to use NUMERIC for more, see #1657 */
+  { OML_STRING_VALUE,   "TEXT",               0 },
+  { OML_BLOB_VALUE,     "BYTEA",              0 },
+  { OML_INT32_VALUE,    "INT4",               4 },
+  { OML_UINT32_VALUE,   "INT8",               8 }, /* PG doesn't support unsigned types --> promote; INT8 is actually BIGINT... */
+  { OML_INT64_VALUE,    "INT8",               8 },
+  { OML_UINT64_VALUE,   "BIGINT",             8 }, /* XXX: Same as INT8, so sign is lost... Promote to numeric? See #1921 */
+  { OML_GUID_VALUE,     "BIGINT",             8 }, /* XXX: Ditto */
+  { OML_BOOL_VALUE,     "BOOLEAN",            1 },
+  /* Vector types */
+  { OML_VECTOR_DOUBLE_VALUE, "TEXT", 0},
+  { OML_VECTOR_INT32_VALUE,  "TEXT", 0},
+  { OML_VECTOR_UINT32_VALUE, "TEXT", 0},
+  { OML_VECTOR_INT64_VALUE,  "TEXT", 0},
+  { OML_VECTOR_UINT64_VALUE, "TEXT", 0},
+  { OML_VECTOR_BOOL_VALUE,   "TEXT", 0},
+};
+
+/** Convert long into a 32-bit binary for insertion into PostgreSQL
+ *
+ * \warn Remember to update paramLength (with the return value), and paramFormat
+ *
+ * \param val long value to convert
+ * \param paramValue pointer to memory where the binary should be written
+ * \return the size of the binary, to be put in paramLength
+ * \see psql_insert, PQexecPrepared
+ */
+static inline int
+psql_set_long_value(long val, char *paramValue) {
+  return psql_set_int32_value((int32_t)val, paramValue);
+}
+
+/** Convert double into a double-length binary for insertion into PostgreSQL
+ *
+ * \warn Remember to update paramLength (with the return value), and paramFormat
+ *
+ * \param val double value to convert
+ * \param paramValue pointer to memory where the binary should be written
+ * \return the size of the binary, to be put in paramLength
+ * \see psql_insert, PQexecPrepared
+ */
+static inline int
+psql_set_double_value(double val, char *paramValue) {
+  /* The length of doubles vary. As we stuff them as ints into a char* array,
+   * we need to handle them properly. Nobody's going to help us here...
+   * XXX: Note the htonlL if SIZEOF_DOUBLE==8.
+   */
+#if SIZEOF_DOUBLE==8
+  /* We want to interpret the bits as if they were integers without altering them,
+   * cast the pointers rather than the variable */
+  uint64_t *binval = (uint64_t*)(&val);
+  *((uint64_t*)paramValue) = htonll(*binval);
+
+#else
+# warning Doubles on architecture where they are not 8 bytes is untested and likely broken
+  /* XXX: Assuming 32 bits */
+  uint32_t *binval = (uint32_t*)(&val);
+  memset(paramValue, 0, 8);
+  *((uint32_t*)paramValue) = htonl(*binval);
+
+#endif
+
+  return sizeof(binval);
+}
+
+/** Convert int8_t into binary for insertion into PostgreSQL
+ *
+ * \warn Remember to update paramLength (with the return value), and paramFormat
+ *
+ * \param val int8_t value to convert
+ * \param paramValue pointer to memory where the binary should be written
+ * \return the size of the binary, to be put in paramLength
+ * \see psql_insert, PQexecPrepared
+ */
+static inline int
+psql_set_int8_value(int8_t val, char *paramValue) {
+  *((int8_t*)paramValue) = val;
+  return sizeof((val));
+}
+
+/** Convert int32_t into binary for insertion into PostgreSQL
+ *
+ * \warn Remember to update paramLength (with the return value), and paramFormat
+ *
+ * \param val int32_t value to convert
+ * \param paramValue pointer to memory where the binary should be written
+ * \return the size of the binary, to be put in paramLength
+ * \see psql_insert, PQexecPrepared
+ */
+static inline int
+psql_set_int32_value(int32_t val, char *paramValue) {
+  *((int32_t*)paramValue) = htonl(val);
+  return sizeof((val));
+}
+
+/** Convert uint32_t into binary for insertion into PostgreSQL
+ *
+ * \warn Remember to update paramLength (with the return value), and paramFormat
+ * \warn uint32_t are stored in BIGINTs, which really are int64_t
+ *
+ * \param val uint32_t value to convert
+ * \param paramValue pointer to memory where the binary should be written
+ * \return the size of the binary, to be put in paramLength
+ * \see psql_insert, PQexecPrepared, psql_set_int64_value
+ */
+static inline int
+psql_set_uint32_value(uint32_t val, char *paramValue) {
+  /* We want this promoted to a wider type, with the same value, just cast */
+  return psql_set_int64_value((int64_t)val, paramValue);
+}
+
+/** Convert int64_t into binary for insertion into PostgreSQL
+ *
+ * \warn Remember to update paramLength (with the return value), and paramFormat
+ *
+ * \param val int64_t value to convert
+ * \param paramValue pointer to memory where the binary should be written
+ * \return the size of the binary, to be put in paramLength
+ * \see psql_insert, PQexecPrepared
+ */
+static inline int
+psql_set_int64_value(int64_t val, char *paramValue) {
+  *((int64_t*)paramValue) = htonll(val);
+  return sizeof((val));
+}
+
+/** Convert uint64_t into binary for insertion into PostgreSQL
+ *
+ * \warn Remember to update paramLength (with the return value), and paramFormat
+ *
+ * \param val uint64_t value to convert
+ * \param paramValue pointer to memory where the binary should be written
+ * \return the size of the binary, to be put in paramLength
+ * \see psql_insert, PQexecPrepared, psql_set_int64_value
+ */
+static inline int
+psql_set_uint64_value(uint64_t val, char *paramValue) {
+  return psql_set_int64_value((int64_t)val, paramValue);
+}
+
+/** Convert GUID into 64 binary for insertion into PostgreSQL
+ *
+ * \warn Remember to update paramLength (with the return value), and paramFormat
+ *
+ * \param val uint64_t value to convert
+ * \param paramValue pointer to memory where the binary should be written
+ * \return the size of the binary, to be put in paramLength
+ * \see psql_insert, PQexecPrepared, psql_set_uint64_value
+ */
+static inline int
+psql_set_guid_value(oml_guid_t val, char *paramValue) {
+  return psql_set_uint64_value((uint64_t)val, paramValue);
+}
+
+/** Convert uint64_t into binary for insertion into PostgreSQL
+ *
+ * \warn Remember to update paramLength (with the return value), and paramFormat
+ *
+ * \param val uint64_t value to convert
+ * \param paramValue pointer to memory where the binary should be written
+ * \return the size of the binary, to be put in paramLength
+ * \see psql_insert, PQexecPrepared, psql_set_int8_value
+ */
+static inline int
+psql_set_bool_value(int8_t val, char *paramValue) {
+  return psql_set_int8_value(val, paramValue);
+}
+
 
 /** Prepare the conninfo string to connect to the Postgresql server.
  *
@@ -550,17 +714,17 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   int paramLength[NMETA+value_count];
   int paramFormat[NMETA+value_count];
 
-  snprintf(psqltable->values[0], MAX_DIGITS, "%i",sender_id);
-  paramLength[0] = 0;
-  paramFormat[0] = 0;
+  i=0;
+  paramLength[i] = psql_set_int32_value(sender_id, psqltable->values[i]);
+  paramFormat[i] = 1;
 
-  snprintf(psqltable->values[1], MAX_DIGITS, "%i",seq_no);
-  paramLength[1] = 0;
-  paramFormat[1] = 0;
+  i++;
+  paramLength[i] = psql_set_int32_value(seq_no, psqltable->values[i]);
+  paramFormat[i] = 1;
 
-  snprintf(psqltable->values[2], MAX_DIGITS, "%.14e",time_stamp);
-  paramLength[2] = 0;
-  paramFormat[2] = 0;
+  i++;
+  paramLength[i] = psql_set_double_value(time_stamp, psqltable->values[i]);
+  paramFormat[i] = 1;
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -573,40 +737,100 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
     psqldb->last_commit = tv.tv_sec;
   }
 
-  snprintf(psqltable->values[3], MAX_DIGITS, "%.14e",time_stamp_server);
-  paramLength[3] = 0;
-  paramFormat[3] = 0;
+  i++;
+  paramLength[i] = psql_set_double_value(time_stamp_server, psqltable->values[i]);
+  paramFormat[i] = 1;
 
   OmlValue* v = values;
-  for (i = 0; i < value_count; i++, v++) {
-    struct schema_field *field = &table->schema->fields[i];
+  struct schema_field *field;
+  for (i = NMETA; i < value_count+NMETA; i++, v++) {
+    field = &table->schema->fields[i-NMETA];
+
     if (oml_value_get_type(v) != field->type) {
-      logerror("psql:%s: Value %d type mismatch for table '%s'\n", db->name, i, table->schema->name);
+      logerror("psql:%s: Value %d type mismatch for table '%s'\n", db->name, i-NMETA, table->schema->name);
       return -1;
     }
-    paramLength[NMETA+i] = 0;
-    paramFormat[NMETA+i] = 0;
+    paramLength[i] = 0;
+    paramFormat[i] = 0;
 
     switch (field->type) {
-    case OML_LONG_VALUE:   snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%i",(int)v->value.longValue); break;
-    case OML_INT32_VALUE:  snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%" PRId32,v->value.int32Value); break;
-    case OML_UINT32_VALUE: snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%" PRIu32,v->value.uint32Value); break;
-    case OML_INT64_VALUE:  snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%" PRId64,v->value.int64Value); break;
-    case OML_UINT64_VALUE: snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%" PRIu64,v->value.uint64Value); break;
-    case OML_DOUBLE_VALUE: snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%.14e",v->value.doubleValue); break;
-    case OML_BOOL_VALUE:   snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%d", v->value.boolValue ? 1 : 0); break;
+      {
+        long val = omlc_get_long(*oml_value_get_value(v));
+        paramLength[i] = psql_set_long_value(val, psqltable->values[i]);
+        paramFormat[i] = 1;
+        break;
+      }
+
+    case OML_INT32_VALUE:
+      {
+        int32_t val = omlc_get_int32(*oml_value_get_value(v));
+        paramLength[i] = psql_set_int32_value(val, psqltable->values[i]);
+        paramFormat[i] = 1;
+        break;
+      }
+
+    case OML_UINT32_VALUE:
+      {
+        /* XXX: To keep the sign in the backend, this has been promoted to INT8... */
+        uint32_t val = omlc_get_uint32(*oml_value_get_value(v));
+        paramLength[i] = psql_set_uint32_value(val, psqltable->values[i]);
+        paramFormat[i] = 1;
+      }
+
+    case OML_INT64_VALUE:
+      {
+        int64_t val = omlc_get_int64(*oml_value_get_value(v));
+        paramLength[i] = psql_set_int64_value(val, psqltable->values[i]);
+        paramFormat[i] = 1;
+        break;
+      }
+
+    case OML_UINT64_VALUE:
+      {
+        uint64_t val = omlc_get_uint64(*oml_value_get_value(v));
+        paramLength[i] = psql_set_uint64_value(val, psqltable->values[i]);
+        paramFormat[i] = 1;
+      }
+
+    case OML_DOUBLE_VALUE:
+      {
+        double val = omlc_get_double(*oml_value_get_value(v));
+        paramLength[i] = psql_set_double_value(val, psqltable->values[i]);
+        paramFormat[i] = 1;
+        break;
+      }
+
+    case OML_GUID_VALUE:
+      {
+        int64_t val = omlc_get_guid(*oml_value_get_value(v));
+        paramLength[i] = psql_set_int64_value(val, psqltable->values[i]);
+        paramFormat[i] = 1;
+        break;
+      }
+
+    case OML_BOOL_VALUE:
+      snprintf(psqltable->values[i], MAX_DIGITS, "%d", v->value.boolValue ? 1 : 0);
+      {
+        uint32_t val = omlc_get_bool(*oml_value_get_value(v));
+        paramLength[i] = psql_set_bool_value(val, psqltable->values[i]);
+        paramFormat[i] = 1;
+        break;
+      }
+      break;
+
     case OML_STRING_VALUE:
       len=omlc_get_string_length(*oml_value_get_value(v)) + 1;
       if (len > MAX_DIGITS) {
         logdebug2("psql:%s: Reallocating %d bytes for long string\n", db->name, len);
-        psqltable->values[NMETA+i] = oml_realloc(psqltable->values[NMETA+i], len);
-        if (!psqltable->values[NMETA+i]) {
+        psqltable->values[i] = oml_realloc(psqltable->values[i], len);
+        if (!psqltable->values[i]) {
           logerror("psql:%s: Could not realloc()at memory for string '%s' in field %d of table '%s'\n",
-              db->name, omlc_get_string_ptr(*oml_value_get_value(v)), i, table->schema->name);
+              db->name, omlc_get_string_ptr(*oml_value_get_value(v)), i-NMETA, table->schema->name);
+          /* XXX insert the rest anyway */
           return -1;
         }
       }
-      snprintf(psqltable->values[NMETA+i], len, "%s", omlc_get_string_ptr(*oml_value_get_value(v)));
+      snprintf(psqltable->values[i], len, "%s", omlc_get_string_ptr(*oml_value_get_value(v)));
       break;
 
     case OML_BLOB_VALUE:
@@ -614,51 +838,43 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
           v->value.blobValue.ptr, v->value.blobValue.length, &len);
       if (!escaped_blob) {
         logerror("psql:%s: Error escaping blob in field %d of table '%s': %s", /* PQerrorMessage strings already have '\n' */
-            db->name, i, table->schema->name, PQerrorMessage(psqldb->conn));
+            db->name, i-NMETA, table->schema->name, PQerrorMessage(psqldb->conn));
       }
       if (len > MAX_DIGITS) {
         logdebug2("psql:%s: Reallocating %d bytes for big blob\n", db->name, len);
-        psqltable->values[NMETA+i] = oml_realloc(psqltable->values[NMETA+i], len);
-        if (!psqltable->values[NMETA+i]) {
+        psqltable->values[i] = oml_realloc(psqltable->values[i], len);
+        if (!psqltable->values[i]) {
           logerror("psql:%s: Could not realloc()at memory for escaped blob in field %d of table '%s'\n",
-              db->name, i, table->schema->name);
+              db->name, i-NMETA, table->schema->name);
           return -1;
         }
       }
-      snprintf(psqltable->values[NMETA+i], len, "%s", escaped_blob);
+      snprintf(psqltable->values[i], len, "%s", escaped_blob);
       PQfreemem(escaped_blob);
       break;
 
-    case OML_GUID_VALUE:
-      if(v->value.guidValue != OMLC_GUID_NULL) {
-        snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%" PRId64, (int64_t)(v->value.guidValue));
-      } else {
-        psqltable->values[NMETA+i] = NULL;
-      }
-      break;
-
     case OML_VECTOR_DOUBLE_VALUE:
-      vector_double_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
+      vector_double_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[i]);
       break;
 
     case OML_VECTOR_INT32_VALUE:
-      vector_int32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
+      vector_int32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[i]);
       break;
 
     case OML_VECTOR_UINT32_VALUE:
-      vector_uint32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
+      vector_uint32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[i]);
       break;
 
     case OML_VECTOR_INT64_VALUE:
-      vector_int64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
+      vector_int64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[i]);
       break;
 
     case OML_VECTOR_UINT64_VALUE:
-      vector_uint64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
+      vector_uint64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[i]);
       break;
 
     case OML_VECTOR_BOOL_VALUE:
-      vector_bool_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
+      vector_bool_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[i]);
       break;
 
     default:
