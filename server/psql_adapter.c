@@ -22,6 +22,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include <assert.h>
 
 #include "ocomm/o_log.h"
 #include "mem.h"
@@ -841,7 +842,12 @@ psql_add_sender_id(Database *db, const char *sender_id)
 static char*
 psql_get_uri(Database *db, char *uri, size_t size)
 {
-  if(snprintf(uri, size, "postgresql://%s@%s:%d/%s", pg_user, pg_host, resolve_service(pg_port, 5432), db->name) >= size) {
+  int len;
+  assert(db);
+  assert(uri);
+  assert(size>0);
+  len = snprintf(uri, size, "postgresql://%s@%s:%d/%s", pg_user, pg_host, resolve_service(pg_port, 5432), db->name);
+  if(len < 0 || len >= (int)size) {
     return NULL;
   }
   return uri;
