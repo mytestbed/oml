@@ -429,11 +429,12 @@ psql_table_create (Database *db, DbTable *table, int shallow)
 
     insert = database_make_sql_insert (db, table);
     if (!insert) {
-      logerror("psql:%s: Failed to build SQL INSERT INTO statement for table '%s'\n",
+      logerror("psql:%s: Failed to build SQL INSERT statement for table '%s'\n",
           db->name, table->schema->name);
       goto fail_exit;
     }
 
+    logdebug("psql:%s: Preparing statement '%s' (%s)\n", db->name, mstring_buf(insert_name), mstring_buf(insert));
     res = PQprepare(psqldb->conn,
         mstring_buf (insert_name),
         mstring_buf (insert),
@@ -873,6 +874,7 @@ psql_get_table_list (Database *database, int *num_tables)
   int i, nrows;
 
   /* Get a list of table names */
+  logdebug("psql:%s: Preparing statement '%s' (%s)\n", database->name, ptable_stmt, table_stmt);
   res = PQprepare(self->conn, ptable_stmt, table_stmt, 0, NULL);
   if (PQresultStatus (res) != PGRES_COMMAND_OK) {
     logerror("psql:%s: Could not prepare statement %s from '%s': %s", /* PQerrorMessage strings already have '\n'  */
@@ -913,6 +915,7 @@ psql_get_table_list (Database *database, int *num_tables)
   }
 
   /* Get schema for all tables */
+  logdebug("psql:%s: Preparing statement '%s' (%s)\n", database->name, pschema_stmt, schema_stmt);
   schema_res = PQprepare(self->conn, pschema_stmt, schema_stmt, 1, NULL);
   if (PQresultStatus (schema_res) != PGRES_COMMAND_OK) {
     logerror("psql:%s: Could not prepare statement %s from '%s': %s", /* PQerrorMessage strings already have '\n'  */
