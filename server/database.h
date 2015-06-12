@@ -20,6 +20,9 @@
 
 #define DEFAULT_DB_BACKEND "sqlite"
 
+/** Number of metadata columns before the measurement tuple */
+#define NMETA 4
+
 #define MAX_DB_NAME_SIZE 64
 #define MAX_TABLE_NAME_SIZE 64
 #define MAX_COL_NAME_SIZE 64
