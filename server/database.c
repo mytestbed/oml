@@ -534,7 +534,7 @@ database_make_sql_insert (Database *db, DbTable* table)
   n += mstring_sprintf (mstr, ") VALUES (%s", pvar);
   oml_free(pvar); /* XXX: Not really efficient, but we only do this rarely */
 
-  max += 4; /* Number of metadata columns we want to be able to insert */
+  max += NMETA;
   for (i=2; i<=max; i++) {
     pvar = db->prepared_var(db, i);
     n += mstring_sprintf (mstr, ", %s", pvar);

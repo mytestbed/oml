@@ -445,7 +445,7 @@ psql_table_create (Database *db, DbTable *table, int shallow)
     res = PQprepare(psqldb->conn,
         mstring_buf (insert_name),
         mstring_buf (insert),
-        table->schema->nfields + 4, // FIXME:  magic number of metadata cols
+        table->schema->nfields + NMETA,
         NULL);
 
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
@@ -458,7 +458,7 @@ psql_table_create (Database *db, DbTable *table, int shallow)
   PQclear(res);
 
   psqltable->insert_stmt = insert_name;
-  psqltable->value_count = table->schema->nfields + 4;
+  psqltable->value_count = table->schema->nfields + NMETA;
   psqltable->values = oml_malloc(psqltable->value_count * sizeof(void*));
   for (i=0; i<psqltable->value_count; i++) {
     psqltable->values[i] = oml_malloc(MAX_DIGITS);
@@ -549,10 +549,10 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   unsigned char *escaped_blob;
   size_t len=MAX_DIGITS;
 
-  assert(4+value_count==psqltable->value_count);
+  assert(NMETA+value_count==psqltable->value_count);
 
-  int paramLength[4+value_count];
-  int paramFormat[4+value_count];
+  int paramLength[NMETA+value_count];
+  int paramFormat[NMETA+value_count];
 
   snprintf(psqltable->values[0], MAX_DIGITS, "%i",sender_id);
   paramLength[0] = 0;
@@ -588,71 +588,81 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
       logerror("psql:%s: Value %d type mismatch for table '%s'\n", db->name, i, table->schema->name);
       return -1;
     }
+    paramLength[NMETA+i] = 0;
+    paramFormat[NMETA+i] = 0;
+
     switch (field->type) {
-    case OML_LONG_VALUE:   snprintf(psqltable->values[4+i], MAX_DIGITS, "%i",(int)v->value.longValue); break;
-    case OML_INT32_VALUE:  snprintf(psqltable->values[4+i], MAX_DIGITS, "%" PRId32,v->value.int32Value); break;
-    case OML_UINT32_VALUE: snprintf(psqltable->values[4+i], MAX_DIGITS, "%" PRIu32,v->value.uint32Value); break;
-    case OML_INT64_VALUE:  snprintf(psqltable->values[4+i], MAX_DIGITS, "%" PRId64,v->value.int64Value); break;
-    case OML_UINT64_VALUE: snprintf(psqltable->values[4+i], MAX_DIGITS, "%" PRIu64,v->value.uint64Value); break;
-    case OML_DOUBLE_VALUE: snprintf(psqltable->values[4+i], MAX_DIGITS, "%.14e",v->value.doubleValue); break;
-    case OML_BOOL_VALUE:   snprintf(psqltable->values[4+i], MAX_DIGITS, "%d", v->value.boolValue ? 1 : 0); break;
+    case OML_LONG_VALUE:   snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%i",(int)v->value.longValue); break;
+    case OML_INT32_VALUE:  snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%" PRId32,v->value.int32Value); break;
+    case OML_UINT32_VALUE: snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%" PRIu32,v->value.uint32Value); break;
+    case OML_INT64_VALUE:  snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%" PRId64,v->value.int64Value); break;
+    case OML_UINT64_VALUE: snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%" PRIu64,v->value.uint64Value); break;
+    case OML_DOUBLE_VALUE: snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%.14e",v->value.doubleValue); break;
+    case OML_BOOL_VALUE:   snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%d", v->value.boolValue ? 1 : 0); break;
     case OML_STRING_VALUE:
-			   len=omlc_get_string_length(*oml_value_get_value(v)) + 1;
-			   if (len > MAX_DIGITS) {
-                             logdebug2("psql:%s: Reallocating %d bytes for long string\n", db->name, len);
-			     psqltable->values[4+i] = oml_realloc(psqltable->values[4+i], len);
-			     if (!psqltable->values[4+i]) {
-			       logerror("psql:%s: Could not realloc()at memory for string '%s' in field %d of table '%s'\n",
-				   db->name, omlc_get_string_ptr(*oml_value_get_value(v)), i, table->schema->name);
-			       return -1;
-			     }
-			   }
-			   snprintf(psqltable->values[4+i], len, "%s", omlc_get_string_ptr(*oml_value_get_value(v)));
-			   break;
+      len=omlc_get_string_length(*oml_value_get_value(v)) + 1;
+      if (len > MAX_DIGITS) {
+        logdebug2("psql:%s: Reallocating %d bytes for long string\n", db->name, len);
+        psqltable->values[NMETA+i] = oml_realloc(psqltable->values[NMETA+i], len);
+        if (!psqltable->values[NMETA+i]) {
+          logerror("psql:%s: Could not realloc()at memory for string '%s' in field %d of table '%s'\n",
+              db->name, omlc_get_string_ptr(*oml_value_get_value(v)), i, table->schema->name);
+          return -1;
+        }
+      }
+      snprintf(psqltable->values[NMETA+i], len, "%s", omlc_get_string_ptr(*oml_value_get_value(v)));
+      break;
+
     case OML_BLOB_VALUE:
-                           escaped_blob = PQescapeByteaConn(psqldb->conn,
-                               v->value.blobValue.ptr, v->value.blobValue.length, &len);
-                           if (!escaped_blob) {
-                             logerror("psql:%s: Error escaping blob in field %d of table '%s': %s", /* PQerrorMessage strings already have '\n' */
-                                 db->name, i, table->schema->name, PQerrorMessage(psqldb->conn));
-                           }
-                           if (len > MAX_DIGITS) {
-                             logdebug2("psql:%s: Reallocating %d bytes for big blob\n", db->name, len);
-                             psqltable->values[4+i] = oml_realloc(psqltable->values[4+i], len);
-                             if (!psqltable->values[4+i]) {
-                               logerror("psql:%s: Could not realloc()at memory for escaped blob in field %d of table '%s'\n",
-                                   db->name, i, table->schema->name);
-                               return -1;
-                             }
-                           }
-                           snprintf(psqltable->values[4+i], len, "%s", escaped_blob);
-                           PQfreemem(escaped_blob);
-                           break;
+      escaped_blob = PQescapeByteaConn(psqldb->conn,
+          v->value.blobValue.ptr, v->value.blobValue.length, &len);
+      if (!escaped_blob) {
+        logerror("psql:%s: Error escaping blob in field %d of table '%s': %s", /* PQerrorMessage strings already have '\n' */
+            db->name, i, table->schema->name, PQerrorMessage(psqldb->conn));
+      }
+      if (len > MAX_DIGITS) {
+        logdebug2("psql:%s: Reallocating %d bytes for big blob\n", db->name, len);
+        psqltable->values[NMETA+i] = oml_realloc(psqltable->values[NMETA+i], len);
+        if (!psqltable->values[NMETA+i]) {
+          logerror("psql:%s: Could not realloc()at memory for escaped blob in field %d of table '%s'\n",
+              db->name, i, table->schema->name);
+          return -1;
+        }
+      }
+      snprintf(psqltable->values[NMETA+i], len, "%s", escaped_blob);
+      PQfreemem(escaped_blob);
+      break;
+
     case OML_GUID_VALUE:
-                           if(v->value.guidValue != OMLC_GUID_NULL) {
-                             snprintf(psqltable->values[4+i], MAX_DIGITS, "%" PRId64, (int64_t)(v->value.guidValue));
-                           } else {
-                             psqltable->values[4+i] = NULL;
-                           }
-                           break;
+      if(v->value.guidValue != OMLC_GUID_NULL) {
+        snprintf(psqltable->values[NMETA+i], MAX_DIGITS, "%" PRId64, (int64_t)(v->value.guidValue));
+      } else {
+        psqltable->values[NMETA+i] = NULL;
+      }
+      break;
 
     case OML_VECTOR_DOUBLE_VALUE:
-      vector_double_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[4+i]);
+      vector_double_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
       break;
+
     case OML_VECTOR_INT32_VALUE:
-      vector_int32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[4+i]);
+      vector_int32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
       break;
+
     case OML_VECTOR_UINT32_VALUE:
-      vector_uint32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[4+i]);
+      vector_uint32_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
       break;
+
     case OML_VECTOR_INT64_VALUE:
-      vector_int64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[4+i]);
+      vector_int64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
       break;
+
     case OML_VECTOR_UINT64_VALUE:
-      vector_uint64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[4+i]);
+      vector_uint64_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
       break;
+
     case OML_VECTOR_BOOL_VALUE:
-      vector_bool_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[4+i]);
+      vector_bool_to_json(v->value.vectorValue.ptr, v->value.vectorValue.nof_elts, &psqltable->values[NMETA+i]);
       break;
 
     default:
@@ -660,13 +670,11 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
           db->name, field->type, field->name, table->schema->name);
       return -1;
     }
-    paramLength[4+i] = 0;
-    paramFormat[4+i] = 0;
   }
   /* Use stuff from http://www.postgresql.org/docs/current/static/plpgsql-control-structures.html#PLPGSQL-ERROR-TRAPPING */
 
   res = PQexecPrepared(psqldb->conn, insert_stmt,
-                       4+value_count, (const char**)psqltable->values,
+                       NMETA+value_count, (const char**)psqltable->values,
                        (int*) &paramLength, (int*) &paramFormat, 0 );
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
