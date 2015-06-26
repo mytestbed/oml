@@ -315,7 +315,6 @@ psql_create_database(Database* db)
 
   PsqlDB* self = (PsqlDB*)oml_malloc(sizeof(PsqlDB));
   self->conn = conn;
-  self->last_commit = time (NULL);
 
   db->backend_name = backend_name;
   db->o2t = psql_oml_to_type;
@@ -335,8 +334,6 @@ psql_create_database(Database* db)
   db->get_table_list = psql_get_table_list;
 
   db->handle = self;
-
-  dba_begin_transaction (db);
 
   /* Everything was successufl, prepare for cleanup */
   ret = 0;
@@ -358,7 +355,6 @@ static void
 psql_release(Database* db)
 {
   PsqlDB* self = (PsqlDB*)db->handle;
-  dba_end_transaction (db);
   PQfinish(self->conn);
   oml_free(self);
   db->handle = NULL;
@@ -423,16 +419,12 @@ psql_table_create (Database *db, DbTable *table, int shallow)
    * from dba_table_create_from_schema to do the following (in the case of
    * PostgreSQL). See #1056. This might also be the cause of #1268.
    */
-  /* This next test might kill the transaction */
-  dba_reopen_transaction(db);
   res = PQdescribePrepared(psqldb->conn, mstring_buf (insert_name));
   if(PQresultStatus(res) == PGRES_COMMAND_OK) {
     logdebug("psql:%s: Insertion statement %s already exists\n",
         db->name, mstring_buf (insert_name));
   } else {
     PQclear(res);
-    /* This test killed the transaction; start a new one */
-    dba_reopen_transaction(db);
 
     insert = database_make_sql_insert (db, table);
     if (!insert) {
@@ -569,13 +561,6 @@ psql_insert(Database* db, DbTable* table, int sender_id, int seq_no, double time
   struct timeval tv;
   gettimeofday(&tv, NULL);
   time_stamp_server = tv.tv_sec - db->start_time + 0.000001 * tv.tv_usec;
-
-  if (tv.tv_sec > psqldb->last_commit) {
-    if (dba_reopen_transaction (db) == -1) {
-      return -1;
-    }
-    psqldb->last_commit = tv.tv_sec;
-  }
 
   snprintf(psqltable->values[3], MAX_DIGITS, "%.14e",time_stamp_server);
   paramLength[3] = 0;

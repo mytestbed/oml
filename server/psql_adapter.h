@@ -23,7 +23,6 @@
 typedef struct PsqlDB {
   PGconn *conn;
   int sender_cnt;
-  time_t last_commit;
 } PsqlDB;
 
 typedef struct PsqlTable {
