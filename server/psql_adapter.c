@@ -50,27 +50,28 @@ char *pg_pass = DEFAULT_PG_PASS;
 char *pg_conninfo = DEFAULT_PG_CONNINFO;
 
 /** Mapping between OML and PostgreSQL data types
+ * \info Sizes taken from http://www.postgresql.org/docs/current/static/datatype.html
  * \see psql_type_to_oml, psql_oml_to_type
  */
-static db_typemap psql_type_pair[] = {
-  { OML_DB_PRIMARY_KEY, "SERIAL PRIMARY KEY"}, /* We might need BIGSERIAL at some point. */
-  { OML_LONG_VALUE,     "INT4" },
-  { OML_DOUBLE_VALUE,   "FLOAT8" },
-  { OML_STRING_VALUE,   "TEXT" },
-  { OML_BLOB_VALUE,     "BYTEA" },
-  { OML_INT32_VALUE,    "INT4" },
-  { OML_UINT32_VALUE,   "INT8" }, /* PG doesn't support unsigned types --> promote */
-  { OML_INT64_VALUE,    "INT8" },
-  { OML_UINT64_VALUE,   "BIGINT" },
-  { OML_GUID_VALUE,     "BIGINT" },
-  { OML_BOOL_VALUE,     "BOOLEAN" },
+static db_typemap psql_type_map[] = {
+  { OML_DB_PRIMARY_KEY, "SERIAL PRIMARY KEY", 4 }, /* We might need BIGSERIAL at some point. */
+  { OML_LONG_VALUE,     "INT4",               4 },
+  { OML_DOUBLE_VALUE,   "FLOAT8",             8 }, /* 15 bits of precision, need to use NUMERIC for more, see #1657 */
+  { OML_STRING_VALUE,   "TEXT",               0 },
+  { OML_BLOB_VALUE,     "BYTEA",              0 },
+  { OML_INT32_VALUE,    "INT4",               4 },
+  { OML_UINT32_VALUE,   "INT8",               8 }, /* PG doesn't support unsigned types --> promote; INT8 is actually BIGINT... */
+  { OML_INT64_VALUE,    "INT8",               8 },
+  { OML_UINT64_VALUE,   "BIGINT",             8 }, /* XXX: Same as INT8, so sign is lost... Promote to numeric? See #1921 */
+  { OML_GUID_VALUE,     "BIGINT",             8 }, /* XXX: Ditto */
+  { OML_BOOL_VALUE,     "BOOLEAN",            1 },
   /* Vector types */
-  { OML_VECTOR_DOUBLE_VALUE, "TEXT" },
-  { OML_VECTOR_INT32_VALUE,  "TEXT" },
-  { OML_VECTOR_UINT32_VALUE, "TEXT" },
-  { OML_VECTOR_INT64_VALUE,  "TEXT" },
-  { OML_VECTOR_UINT64_VALUE, "TEXT" },
-  { OML_VECTOR_BOOL_VALUE,   "TEXT" },
+  { OML_VECTOR_DOUBLE_VALUE, "TEXT", 0},
+  { OML_VECTOR_INT32_VALUE,  "TEXT", 0},
+  { OML_VECTOR_UINT32_VALUE, "TEXT", 0},
+  { OML_VECTOR_INT64_VALUE,  "TEXT", 0},
+  { OML_VECTOR_UINT64_VALUE, "TEXT", 0},
+  { OML_VECTOR_BOOL_VALUE,   "TEXT", 0},
 };
 
 static int sql_stmt(PsqlDB* self, const char* stmt);
@@ -78,6 +79,7 @@ static int sql_stmt(PsqlDB* self, const char* stmt);
 /* Functions needed by the Database struct */
 static OmlValueT psql_type_to_oml (const char *s);
 static const char* psql_oml_to_type (OmlValueT type);
+static ssize_t psql_oml_to_size (OmlValueT type);
 static int psql_stmt(Database* db, const char* stmt);
 static void psql_release(Database* db);
 static int psql_table_create (Database* db, DbTable* table, int shallow);
@@ -192,6 +194,15 @@ psql_oml_to_type (OmlValueT type)
   return tm->name;
 }
 
+/** Mapping from OML types to PostgreSQL storage size.
+ * \see db_adapter_oml_to_type
+ */
+static ssize_t
+psql_oml_to_size (OmlValueT type)
+{
+  db_typemap *tm = database_oml_to_typemap(psql_type_map, LENGTH(psql_type_map), type);
+  return tm->size;
+}
 
 /** Execute an SQL statement (using PQexec()).
  * \see db_adapter_stmt, PQexec
