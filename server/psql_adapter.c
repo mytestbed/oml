@@ -178,16 +178,8 @@ psql_backend_setup (void)
 static
 OmlValueT psql_type_to_oml (const char *type)
 {
-  int i = 0;
-  int n = LENGTH(psql_type_pair);
-
-  for (i = 0; i < n; i++) {
-    if (strcmp (type, psql_type_pair[i].name) == 0) {
-        return psql_type_pair[i].type;
-    }
-  }
-  logwarn("Unknown PostgreSQL type '%s', using OML_UNKNOWN_VALUE\n", type);
-  return OML_UNKNOWN_VALUE;
+  db_typemap *tm = database_db_to_typemap(psql_type_map, LENGTH(psql_type_map), type);
+  return tm->type;
 }
 
 /** Mapping from OML types to PostgreSQL types.
@@ -196,17 +188,10 @@ OmlValueT psql_type_to_oml (const char *type)
 static const char*
 psql_oml_to_type (OmlValueT type)
 {
-  int i = 0;
-  int n = LENGTH(psql_type_pair);
-
-  for (i = 0; i < n; i++) {
-    if (psql_type_pair[i].type == type) {
-        return psql_type_pair[i].name;
-    }
-  }
-  logerror("Unknown OML type %d\n", type);
-  return NULL;
+  db_typemap *tm = database_oml_to_typemap(psql_type_map, LENGTH(psql_type_map), type);
+  return tm->name;
 }
+
 
 /** Execute an SQL statement (using PQexec()).
  * \see db_adapter_stmt, PQexec
@@ -516,7 +501,7 @@ psql_table_free (Database *database, DbTable *table)
   return 0;
 }
 
-/** Return a string suitable for an unbound variable is PostgreSQL.
+/** Return a string suitable for an unbound variable in PostgreSQL.
  * \see db_adapter_prepared_var
  */
 static char*
