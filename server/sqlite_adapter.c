@@ -161,16 +161,8 @@ sq3_backend_setup (void)
 static
 OmlValueT sq3_type_to_oml (const char *type)
 {
-  int i = 0;
-  int n = LENGTH(sq3_type_pair);
-
-  for (i = 0; i < n; i++) {
-    if (strcmp (type, sq3_type_pair[i].name) == 0) {
-        return sq3_type_pair[i].type;
-    }
-  }
-  logwarn("Unknown SQLite3 type '%s', using OML_UNKNOWN_VALUE\n", type);
-  return OML_UNKNOWN_VALUE;
+  db_typemap *tm = database_db_to_typemap(sq3_type_map, LENGTH(sq3_type_map), type);
+  return tm->type;
 }
 
 /** Mapping from OML types to SQLite3 types.
@@ -179,16 +171,8 @@ OmlValueT sq3_type_to_oml (const char *type)
 static const char*
 sq3_oml_to_type (OmlValueT type)
 {
-  int i = 0;
-  int n = LENGTH(sq3_type_pair);
-
-  for (i = 0; i < n; i++) {
-    if (sq3_type_pair[i].type == type) {
-        return sq3_type_pair[i].name;
-    }
-  }
-  logerror("Unknown OML type %d\n", type);
-  return NULL;
+  db_typemap *tm = database_oml_to_typemap(sq3_type_map, LENGTH(sq3_type_map), type);
+  return tm->name;
 }
 
 /** Execute an SQL statement (using sqlite3_exec()).
