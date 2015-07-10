@@ -130,6 +130,8 @@ psql_set_long_value(long val, char *paramValue) {
  *
  * \warn Remember to update paramLength (with the return value), and paramFormat
  *
+ * \todo It would be wiser to use libpqtypes http://libpqtypes.esilo.com/
+ *
  * \param val double value to convert
  * \param paramValue pointer to memory where the binary should be written
  * \return the size of the binary, to be put in paramLength
@@ -621,9 +623,21 @@ psql_table_create (Database *db, DbTable *table, int shallow)
   psqltable->value_count = table->schema->nfields + NMETA;
   psqltable->values = oml_malloc(psqltable->value_count * sizeof(void*));
   for (i=0; i<psqltable->value_count; i++) {
-    psqltable->values[i] = oml_malloc(MAX_DIGITS);
+    ssize_t flength = -1;
+    if (i<NMETA) {
+      /* XXX: The first field in the metadata schema is the tuple ID which we let the DB set automatically */
+      flength = psql_oml_to_size(schema_metadata[i+1].type);
+
+    } else {
+      flength = psql_oml_to_size(table->schema->fields[i-NMETA].type);
+    }
+
+    if (flength<1) {
+      flength = MAX_DIGITS;
+    }
+    psqltable->values[i] = oml_malloc(flength);
     if(psqltable->values[i]) {
-      memset(psqltable->values[i], 0, MAX_DIGITS);
+      memset(psqltable->values[i], 0, flength);
     } else {
       logerror("psql:%s: Cannot allocate memory for data insertion into table %s:%d\n",
           db->name, table->schema->name, i);
