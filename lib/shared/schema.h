@@ -49,6 +49,9 @@ struct schema
   int index;
 };
 
+/** Default fields added to the database for each sample */
+extern struct schema_field schema_metadata[];
+
 /* These types should match those in server/database.h */
 /** \see db_adapter_type_to_oml */
 typedef OmlValueT (*typemap)(const char *type);

@@ -121,6 +121,16 @@
 #include "schema.h"
 #include "oml_util.h"
 
+/** Default fields added to the database for each sample */
+struct schema_field schema_metadata [] =
+{
+  { "oml_tuple_id", OML_DB_PRIMARY_KEY },
+  { "oml_sender_id", OML_INT32_VALUE },
+  { "oml_seq", OML_INT32_VALUE },
+  { "oml_ts_client", OML_DOUBLE_VALUE },
+  { "oml_ts_server", OML_DOUBLE_VALUE },
+};
+
 /** Parse a schema field like '<name>:<type>' into a struct schema_field.
  *
  * \param meta nil-terminated string to parse
@@ -383,22 +393,14 @@ schema_to_sql (const struct schema* schema, reverse_typemap o2t)
 static int
 schema_check_metadata (struct schema_field *field)
 {
-  struct schema_field metadata [] =
-    {
-      { "oml_tuple_id", OML_DB_PRIMARY_KEY },
-      { "oml_sender_id", OML_INT32_VALUE },
-      { "oml_seq", OML_INT32_VALUE },
-      { "oml_ts_client", OML_DOUBLE_VALUE },
-      { "oml_ts_server", OML_DOUBLE_VALUE },
-    };
   size_t i;
-  for (i = 0; i < LENGTH (metadata); i++) {
-    if (!strcmp (metadata[i].name, field->name)) {
-      if (metadata[i].type != field->type) {
-        const char *expected = oml_type_to_s (metadata[i].type);
+  for (i = 0; i < LENGTH (schema_metadata); i++) {
+    if (!strcmp (schema_metadata[i].name, field->name)) {
+      if (schema_metadata[i].type != field->type) {
+        const char *expected = oml_type_to_s (schema_metadata[i].type);
         const char *received = oml_type_to_s (field->type);
         logerror ("Existing table metadata type mismatch (%s expected %s, got %s)\n",
-                  metadata[i].name, expected, received);
+                  schema_metadata[i].name, expected, received);
         return -1;
       } else return 0;
     }
