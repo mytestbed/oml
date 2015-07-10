@@ -301,6 +301,24 @@ void logerror (const char *fmt, ...) {
   va_end (va);
 }
 
+/** Convenience function logging at level O_LOG_ERROR, and duplicating on stderr.
+ *
+ * \param fmt format string
+ * \param ... format string arguments
+ */
+void logdie (const char *fmt, ...) {
+  va_list va;
+  va_start (va, fmt);
+  o_vlog (O_LOG_ERROR, fmt, va);
+  va_end (va);
+  if (logfile != stderr) {
+    logfile = stderr;
+    va_start (va, fmt);
+    o_vlog (O_LOG_ERROR, fmt, va);
+    va_end (va);
+  }
+}
+
 /** Convenience function logging at level O_LOG_WARN.
  *
  * \param fmt format string
