@@ -62,7 +62,7 @@ typedef void (*o_log_fn)(int log_level, const char* format, ...);
  * \param fmt format string
  * \param ... format string arguments
  *
- * \see logerror, logwarn, loginfo, logdebug
+ * \see logerror, logdie, logwarn, loginfo, logdebug
  * \see o_set_log_file, o_set_log_level, o_set_log, o_set_simplified_logging
  */
 /* XXX: This is needed for backward compatibility with <=2.9 */
@@ -112,6 +112,8 @@ void o_set_simplified_logging (void);
 
 /** Convenience function logging at level O_LOG_ERROR. */
 void logerror (const char *fmt, ...);
+/** Convenience function logging at level O_LOG_ERROR. */
+void logdie (const char *fmt, ...);
 /** Convenience function logging at level O_LOG_WARN. */
 void logwarn (const char *fmt, ...);
 /** Convenience function logging at level O_LOG_INFO. */
