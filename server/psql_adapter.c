@@ -1011,6 +1011,7 @@ psql_get_key_value (Database *database, const char *table, const char *key_colum
 static int
 psql_set_key_value (Database *database, const char *table, const char *key_column, const char *value_column, const char *key, const char *value)
 {
+  int ret=-1;
   PsqlDB *psqldb = (PsqlDB*) database->handle;
   MString *stmt = mstring_create ();
   char *check_value = psql_get_key_value (database, table, key_column, value_column, key);
@@ -1022,13 +1023,18 @@ psql_set_key_value (Database *database, const char *table, const char *key_colum
                      table, value_column, value, key_column, key);
   }
 
-  if (sql_stmt (psqldb, mstring_buf (stmt))) {
+  if (!sql_stmt (psqldb, mstring_buf (stmt))) {
+    ret = 0;
+
+  } else {
     logwarn("psql:%s: Key-value update failed for %s='%s' in %s(%s, %s) (database error)\n",
             database->name, key, value, table, key_column, value_column);
-    return -1;
   }
 
-  return 0;
+  mstring_delete(stmt);
+
+  return ret;
+
 }
 
 /** Get data from the metadata table

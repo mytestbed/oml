@@ -669,6 +669,7 @@ sq3_set_key_value (Database* database, const char* table,
                    const char* key_column, const char* value_column,
                    const char* key, const char* value)
 {
+  int ret = -1;
   Sq3DB* sq3db = (Sq3DB*) database->handle;
   char stmt[512];
   size_t n;
@@ -679,29 +680,28 @@ sq3_set_key_value (Database* database, const char* table,
                   key_column, value_column,
                   key, value);
   } else {
+    oml_free (check_value);
     n = snprintf (stmt, LENGTH(stmt), "UPDATE \"%s\" SET \"%s\"='%s' WHERE \"%s\"='%s';",
                   table,
                   value_column, value,
                   key_column, key);
 
   }
-  if (check_value != NULL) {
-    oml_free (check_value);
-  }
 
   if (n >= LENGTH (stmt)) {
     logwarn("sqlite:%s: SQL statement too long trying to update key-value pair %s='%s' in %s(%s, %s)\n",
         database->name, key, value, table, key_column, value_column);
-    return -1;
-  }
 
-  if (sql_stmt (sq3db, stmt)) {
+  } else if (sql_stmt (sq3db, stmt)) {
     logwarn("sqlite:%s: Key-value update failed for %s='%s' in %s(%s, %s) (database error)\n",
             database->name, key, value, table, key_column, value_column);
-    return -1;
+
+  } else {
+    /* Success! */
+    ret = 0;
   }
 
-  return 0;
+  return ret;
 }
 
 /** Get data from the metadata table
