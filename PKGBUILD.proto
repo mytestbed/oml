@@ -6,7 +6,7 @@ _redmineid=1104
 #<GIT
 pkgname=oml2-git
 #GIT>
-pkgver=2.11.0
+pkgver=2.11.1~pre+shm
 pkgrel=1
 pkgdesc="OML is a measurement library that allows to define measurement points inside applications"
 arch=(i686 x86_64)
