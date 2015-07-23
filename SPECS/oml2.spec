@@ -1,6 +1,6 @@
 %define name		oml2
-%define srcver	2.11.0
-%define pkgver	%{srcver}
+%define srcver	2.11.1pre+shmtest
+%define pkgver	2.11.1~pre+shmtest
 %define pkgvernotilde	%{srcver}
 %define redmineid	1104
 
