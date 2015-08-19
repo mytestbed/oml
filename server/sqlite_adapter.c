@@ -43,7 +43,7 @@ char *sqlite_database_dir = NULL;
  * \see sq3_type_to_oml, sq3_oml_to_type
  */
 static db_typemap sq3_type_pair [] = {
-  { OML_DB_PRIMARY_KEY, "INTEGER PRIMARY KEY"},
+  { OML_DB_PRIMARY_KEY, "BIGINT PRIMARY KEY"},
   { OML_DB_PRIMARY_KEY, "INTEGER PRIMARY KEY"},
   { OML_INT32_VALUE,    "INTEGER"  },
   { OML_UINT32_VALUE,   "UNSIGNED INTEGER" },
