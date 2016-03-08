@@ -1,3 +1,9 @@
+oml2 (2.11.1~rc-mytestbed1) testing; urgency=medium
+
+  * New upstream release 2.11.1rc.
+
+ -- Olivier Mehani <omehani@blasturvion.dynhost.nicta.com.au>  Tue, 08 Mar 2016 15:48:07 +1100
+
 oml2 (2.11.1~pre+shmtest-mytestbed1) UNRELEASED; urgency=medium
 
   * Test release for SHM
