@@ -1,8 +1,8 @@
 %define name		oml2
-%define srcver	2.11.1pre+shmtest
-%define pkgver	2.11.1~pre+shmtest
-%define pkgvernotilde	%{srcver}
-%define redmineid	1104
+%define srcver		2.11.1rc
+%define pkgver		2.11.1~rc
+%define pkgvernotilde		2.11.1rc
+%define redmineid	1267
 
 # RPM 4.7 on our Jenkins instance does not seem to do this by default.
 %define __spec_install_post /usr/lib/rpm/brp-compress
