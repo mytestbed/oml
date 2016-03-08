@@ -1,3 +1,12 @@
+2016-03-08  Olivier Mehani <olivier.mehani@nicta.com.au>
+	* OML: Version 2.11.1rc
+                Better memory management in PSQL backend (#1916)
+                Use properly-typed prepared statements in PSQL backend (#1657)
+                Fix some memory leaks in client and server
+                Add --report-period to the server to dump resource usage
+                Allow to enable profiling at configuration time
+                Properly close failing sockets to avoid resource exhaustion
+
 2014-05-02  Olivier Mehani <olivier.mehani@nicta.com.au>
 	* OML: Version 2.11.0
 	* Build libshared into libocomm rather than liboml2
