@@ -21,7 +21,7 @@ REDMINE_PROJECT=${REDMINE_PROJECT:-oml}
 REDMINE_URL=http://oml.mytestbed.net
 
 OBS_URL=https://build.opensuse.org
-OBS_NS=devel:tools:mytestbed:stable
+OBS_NS=devel:tools:mytestbed
 OBS_NS_STAGING=devel:tools:mytestbed:sid
 
 # XXX: Linux-only
