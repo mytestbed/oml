@@ -5,7 +5,7 @@
 @c %**end of header
 
 @copying
-Copyright @copyright{} 2009-2015, NICTA
+Copyright @copyright{} 2009-2016, NICTA
 
 Locked Bag 9013 @*
 Alexandria NSW 1430 @*

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2015 National ICT Australia (NICTA), Australia
+ * Copyright 2013-2016 National ICT Australia (NICTA), Australia
  *
  *
  * This software may be used and distributed solely under the terms of
