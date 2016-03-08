@@ -2,7 +2,7 @@
 #
 # Example event hook for the OML server, copying an Sqlite database elsewhere
 # when the last client has exited.
-# Copyright 2012-2014 National ICT Australia (NICTA), Australia
+# Copyright 2012-2016 National ICT Australia (NICTA), Australia
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

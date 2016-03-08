@@ -1,8 +1,8 @@
 dnl OML_CHECK_MACOSX
-dnl Copyright (C) 2012-2014 NICTA, Olivier Mehani; under the terms of the GPL2 or later.
+dnl Copyright (C) 2012-2016 NICTA, Olivier Mehani; under the terms of the GPL2 or later.
 dnl This macro checks whether the system is OS X, and searches for Homebrew,
 dnl MacPorts and Fink paths (in this order).
-AC_COPYRIGHT([Copyright (C) 2012-2014 NICTA, Olivier Mehani.])
+AC_COPYRIGHT([Copyright (C) 2012-2016 NICTA, Olivier Mehani.])
 AC_DEFUN([OML_CHECK_MACOSX], [ 
 	  AC_ARG_WITH([macosx], 
 		      [AS_HELP_STRING([--with-macosx],

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 National ICT Australia Limited (NICTA).
+ * Copyright 2013-2016 National ICT Australia Limited (NICTA).
  *
  * This software may be used and distributed solely under the terms of
  * the MIT license (License).  You should find a copy of the License
