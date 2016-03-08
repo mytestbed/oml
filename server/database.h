@@ -247,12 +247,11 @@ struct Database{
 
 /** A typemapping between OML types and their representation in the database backend */
 typedef struct db_typemap {
-  /** OML type */
-  OmlValueT type;
-  /** Database equivalent */
-  const char * const name;
+  OmlValueT type;           /**< OML type */
+  const char * const name;  /**< Database equivalent */
+  ssize_t size;              /**< Size, in bytes, to allocate in structures used for transfer.
+                                  Use -1 for not used, or 0 for dynamic re-allocation */
 } db_typemap;
-
 
 int database_setup_backend (const char* backend);
 db_adapter_create database_create_function (const char *backend);
@@ -260,6 +259,9 @@ Database *database_find(const char* name);
 int database_init (Database *self);
 void database_release(Database* database);
 void database_cleanup();
+
+db_typemap *database_oml_to_typemap(db_typemap *tm, int len, OmlValueT type);
+db_typemap *database_db_to_typemap(db_typemap *tm, int len, const char *type);
 
 DbTable *database_find_table(Database* database, const char* name);
 DbTable *database_find_or_create_table(Database *database, struct schema *schema);

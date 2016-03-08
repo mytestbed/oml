@@ -28,7 +28,7 @@ gl_INIT
 OML_CHECK_MACOSX
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h malloc.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h unistd.h byteswap.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -39,6 +39,7 @@ AC_TYPE_SSIZE_T
 AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT8_T
+AC_CHECK_SIZEOF([double])
 
 # Checks for library functions.
 AC_FUNC_FORK
@@ -51,7 +52,7 @@ AC_C_BIGENDIAN
 missing_libs=""
 
 AC_SUBST([OML_BASE_VER], [`echo "$PACKAGE_VERSION" | sed 's/^\([[0-9]]\+\.[[0-9]]\+\).*$/\1/'`])
-AC_SUBST([OML_PKG_VER], [`echo "$PACKAGE_VERSION" | sed 's/^\([[0-9]]\+\(\.[[0-9]]\+\)\{1,2\}\)\([[-.a-zA-Z0-9]]\+\)\?.*$/\1~\3/;s/-/./g'`])
+AC_SUBST([OML_PKG_VER], [`echo "$PACKAGE_VERSION" | sed 's/^\([[0-9]]\+\(\.[[0-9]]\+\)\{1,2\}\)\([[+-.a-zA-Z0-9]]\+\)\?.*$/\1~\3/;s/-/./g'`])
 
 LIBOML2_LT_VER_CUR=10
 LIBOML2_LT_VER_REV=1 # Revisions of LIBOML2_LT_VER_CUR

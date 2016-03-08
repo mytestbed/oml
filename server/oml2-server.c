@@ -57,26 +57,6 @@
 #include "psql_adapter.h"
 #endif
 
-/** Die showing an error message
- * A newline is appended to the message.
- *
- * \param fmt format string
- * \param ... arguments for fmt
- */
-void
-die (const char *fmt, ...)
-{
-  char buf[1024]; /* This should be plenty... */
-
-  va_list va;
-  va_start (va, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, va);
-  va_end (va);
-
-  logerror("%s\n", buf);
-  exit (EXIT_FAILURE);
-}
-
 #define DEFAULT_PORT 3003
 #define DEFAULT_PORT_STR "3003"
 #define DEFAULT_LOG_FILE "oml_server.log"
@@ -227,23 +207,35 @@ static void signal_cleanup (void)
   signal_install((sh_t)SIG_DFL);
 }
 
-static void drop_privileges (const char *uidstr, const char *gidstr)
+static int drop_privileges (const char *uidstr, const char *gidstr)
 {
-  if (gidstr && !uidstr)
-    die ("--gid supplied without --uid\n");
+  int ret=-1;
 
-  if (uidstr) {
+  if (gidstr && !uidstr) {
+    logdie ("--gid supplied without --uid\n");
+    goto fail;
+  }
+
+  if (!uidstr) {
+    ret = 0;
+  } else {
     struct passwd *passwd = getpwnam (uidstr);
     gid_t gid;
 
-    if (!passwd)
-      die ("User '%s' not found\n", uidstr);
-    if (!gidstr)
+    if (!passwd) {
+      logdie ("User '%s' not found\n", uidstr);
+      goto fail;
+    }
+
+    if (!gidstr) {
       gid = passwd->pw_gid;
-    else {
+
+    } else {
       struct group *group = getgrnam (gidstr);
-      if (!group)
-        die ("Group '%s' not found\n", gidstr);
+      if (!group) {
+        logdie ("Group '%s' not found\n", gidstr);
+        goto fail;
+      }
       gid = group->gr_gid;
     }
 
@@ -251,18 +243,21 @@ static void drop_privileges (const char *uidstr, const char *gidstr)
     const char *groupname = group ? group->gr_name : "??";
     gid_t grouplist[] = { gid };
 
-    if (setgroups (1, grouplist) == -1)
-      die ("Couldn't restrict group list to just group '%s': %s\n", groupname, strerror (errno));
-
-    if (setgid (gid) == -1)
-      die ("Could not set group id to '%s': %s", groupname, strerror (errno));
-
-    if (setuid (passwd->pw_uid) == -1)
-      die ("Could not set user id to '%s': %s", passwd->pw_name, strerror (errno));
-
-    if (setuid (0) == 0)
-      die ("Tried to drop privileges but we seem able to become superuser still!\n");
+    if (setgroups (1, grouplist) == -1) {
+      logdie ("Couldn't restrict group list to just group '%s': %s\n", groupname, strerror (errno));
+    } else if (setgid (gid) == -1) {
+      logdie ("Could not set group id to '%s': %s", groupname, strerror (errno));
+    } else if (setuid (passwd->pw_uid) == -1) {
+      logdie ("Could not set user id to '%s': %s", passwd->pw_name, strerror (errno));
+    } else if (setuid (0) == 0) {
+      logdie ("Tried to drop privileges but we seem able to become superuser still!\n");
+    } else {
+      ret = 0;
+    }
   }
+
+fail:
+  return ret;
 }
 
 /** Callback called when a new connection is received on the listening Socket.
@@ -328,7 +323,8 @@ int main(int argc, const char **argv)
   logging_setup (logfile_name, log_level);
 
   if (c < -1) {
-    die ("%s: %s\n", poptBadOption (optCon, POPT_BADOPTION_NOALIAS), poptStrerror (c));
+    logdie ("%s: %s\n", poptBadOption (optCon, POPT_BADOPTION_NOALIAS), poptStrerror (c));
+    goto opt_fail;
   }
 
   loginfo(V_STRING, VERSION);
@@ -336,6 +332,8 @@ int main(int argc, const char **argv)
   loginfo(COPYRIGHT);
 
   eventloop_init();
+  /* XXX: Failures after this point will leak a bit of memory
+   * as the eventloop is not properly cleaned up. But the program is dying anyway... */
   eventloop_set_socket_timeout(socket_timeout);
 
   if (report_period>0) {
@@ -347,14 +345,18 @@ int main(int argc, const char **argv)
   server_sock = socket_server_new("server", NULL, listen_service, on_connect, NULL);
 
   if (!server_sock) {
-    die ("Failed to create listening socket for service %s\n", listen_service);
+    logdie ("Failed to create listening socket for service %s\n", listen_service);
+    goto sock_fail;
   }
 
-  drop_privileges (uidstr, gidstr);
+  if(drop_privileges (uidstr, gidstr)) {
+    goto drop_fail;
+  }
 
   /* Important that this comes after drop_privileges(). */
   if(database_setup_backend(dbbackend)) {
-      die("Failed to setup database backend '%s'\n", dbbackend);
+    logdie("Failed to setup database backend '%s'\n", dbbackend);
+    goto db_fail;
   }
 
   signal_setup();
@@ -369,8 +371,12 @@ int main(int argc, const char **argv)
 
   hook_cleanup();
 
+db_fail:
+drop_fail:
   while((server_sock=socket_free(server_sock)));
 
+opt_fail:
+sock_fail:
   oml_cleanup();
 
   oml_memreport(O_LOG_INFO);

@@ -42,28 +42,28 @@ char *sqlite_database_dir = NULL;
 /** Mapping between OML and SQLite3 data types
  * \see sq3_type_to_oml, sq3_oml_to_type
  */
-static db_typemap sq3_type_pair [] = {
-  { OML_DB_PRIMARY_KEY, "INTEGER PRIMARY KEY"},
-  { OML_DB_PRIMARY_KEY, "INTEGER PRIMARY KEY"},
-  { OML_INT32_VALUE,    "INTEGER"  },
-  { OML_UINT32_VALUE,   "UNSIGNED INTEGER" },
-  { OML_INT64_VALUE,    "BIGINT"  },
-  { OML_UINT64_VALUE,   "UNSIGNED BIGINT" },
-  { OML_DOUBLE_VALUE,   "REAL" },
-  { OML_STRING_VALUE,   "TEXT" },
-  { OML_BLOB_VALUE,     "BLOB" },
-  { OML_GUID_VALUE,     "UNSIGNED BIGINT" },
-  { OML_BOOL_VALUE,     "INTEGER" }, /* See [0]: "SQLite does not have a separate Boolean storage class.
-                                        Instead, Boolean values are stored as integers 0 (false) and 1 (true)."
-                                        [0] https://www.sqlite.org/datatype3.html */
+static db_typemap sq3_type_map [] = {
+  { OML_DB_PRIMARY_KEY, "INTEGER PRIMARY KEY", -1 },
+  { OML_DB_PRIMARY_KEY, "INTEGER PRIMARY KEY", -1 },
+  { OML_INT32_VALUE,    "INTEGER", -1 },
+  { OML_UINT32_VALUE,   "UNSIGNED INTEGER", -1 },
+  { OML_INT64_VALUE,    "BIGINT", -1  },
+  { OML_UINT64_VALUE,   "UNSIGNED BIGINT", -1 },
+  { OML_DOUBLE_VALUE,   "REAL", -1 },
+  { OML_STRING_VALUE,   "TEXT", -1 },
+  { OML_BLOB_VALUE,     "BLOB", -1 },
+  { OML_GUID_VALUE,     "UNSIGNED BIGINT", -1 },
+  { OML_BOOL_VALUE,     "INTEGER", -1 }, /* See [-1]: "SQLite does not have a separate Boolean storage class.
+                                           Instead, Boolean values are stored as integers -1 (false) and 1 (true)."
+                                           [-1] https://www.sqlite.org/datatype3.html */
 
   /* Vector types are rendered as JSON-format text */
-  { OML_VECTOR_DOUBLE_VALUE, "TEXT" },
-  { OML_VECTOR_INT32_VALUE,  "TEXT" },
-  { OML_VECTOR_UINT32_VALUE, "TEXT" },
-  { OML_VECTOR_INT64_VALUE,  "TEXT" },
-  { OML_VECTOR_UINT64_VALUE, "TEXT" },
-  { OML_VECTOR_BOOL_VALUE,   "TEXT" },
+  { OML_VECTOR_DOUBLE_VALUE, "TEXT", -1 },
+  { OML_VECTOR_INT32_VALUE,  "TEXT", -1 },
+  { OML_VECTOR_UINT32_VALUE, "TEXT", -1 },
+  { OML_VECTOR_INT64_VALUE,  "TEXT", -1 },
+  { OML_VECTOR_UINT64_VALUE, "TEXT", -1 },
+  { OML_VECTOR_BOOL_VALUE,   "TEXT", -1 },
 
 };
 
@@ -161,16 +161,8 @@ sq3_backend_setup (void)
 static
 OmlValueT sq3_type_to_oml (const char *type)
 {
-  int i = 0;
-  int n = LENGTH(sq3_type_pair);
-
-  for (i = 0; i < n; i++) {
-    if (strcmp (type, sq3_type_pair[i].name) == 0) {
-        return sq3_type_pair[i].type;
-    }
-  }
-  logwarn("Unknown SQLite3 type '%s', using OML_UNKNOWN_VALUE\n", type);
-  return OML_UNKNOWN_VALUE;
+  db_typemap *tm = database_db_to_typemap(sq3_type_map, LENGTH(sq3_type_map), type);
+  return tm->type;
 }
 
 /** Mapping from OML types to SQLite3 types.
@@ -179,16 +171,8 @@ OmlValueT sq3_type_to_oml (const char *type)
 static const char*
 sq3_oml_to_type (OmlValueT type)
 {
-  int i = 0;
-  int n = LENGTH(sq3_type_pair);
-
-  for (i = 0; i < n; i++) {
-    if (sq3_type_pair[i].type == type) {
-        return sq3_type_pair[i].name;
-    }
-  }
-  logerror("Unknown OML type %d\n", type);
-  return NULL;
+  db_typemap *tm = database_oml_to_typemap(sq3_type_map, LENGTH(sq3_type_map), type);
+  return tm->name;
 }
 
 /** Execute an SQL statement (using sqlite3_exec()).
@@ -685,6 +669,7 @@ sq3_set_key_value (Database* database, const char* table,
                    const char* key_column, const char* value_column,
                    const char* key, const char* value)
 {
+  int ret = -1;
   Sq3DB* sq3db = (Sq3DB*) database->handle;
   char stmt[512];
   size_t n;
@@ -695,29 +680,28 @@ sq3_set_key_value (Database* database, const char* table,
                   key_column, value_column,
                   key, value);
   } else {
+    oml_free (check_value);
     n = snprintf (stmt, LENGTH(stmt), "UPDATE \"%s\" SET \"%s\"='%s' WHERE \"%s\"='%s';",
                   table,
                   value_column, value,
                   key_column, key);
 
   }
-  if (check_value != NULL) {
-    oml_free (check_value);
-  }
 
   if (n >= LENGTH (stmt)) {
     logwarn("sqlite:%s: SQL statement too long trying to update key-value pair %s='%s' in %s(%s, %s)\n",
         database->name, key, value, table, key_column, value_column);
-    return -1;
-  }
 
-  if (sql_stmt (sq3db, stmt)) {
+  } else if (sql_stmt (sq3db, stmt)) {
     logwarn("sqlite:%s: Key-value update failed for %s='%s' in %s(%s, %s) (database error)\n",
             database->name, key, value, table, key_column, value_column);
-    return -1;
+
+  } else {
+    /* Success! */
+    ret = 0;
   }
 
-  return 0;
+  return ret;
 }
 
 /** Get data from the metadata table

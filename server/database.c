@@ -90,6 +90,8 @@ char* dbbackend = DEFAULT_DB_BACKEND;
 
 static Database *first_db = NULL;
 
+static db_typemap unknown_type = { OML_UNKNOWN_VALUE, "UNKNOWN TYPE", -1 };
+
 /** Get the list of valid database backends.
  *
  * \return a comma-separated list of the available backends
@@ -325,8 +327,44 @@ database_cleanup()
   }
 }
 
-/*
- * Find the table with matching "name".  Return NULL if not found.
+/** Look for a type-mapping for the OML type
+ * \param type OmlValueT type to look for
+ * \return a pointer to the typemaping, which can be unknown_type if not found
+ * \see unknown_type
+ */
+db_typemap*
+database_oml_to_typemap(db_typemap *map, int len, OmlValueT type)
+{
+  int i = 0;
+  for (i = 0; i < len; i++) {
+    if (type == map[i].type) {
+      return &(map)[i];
+    }
+  }
+  return &unknown_type;
+}
+
+/** Look for a type-mapping for the database type
+ * \param type string representing the database type
+ * \return a pointer to the typemaping, which can be unknown_type if not found
+ * \see unknown_type
+ */
+db_typemap*
+database_db_to_typemap(db_typemap *map, int len, const char *type) {
+  int i = 0;
+  for (i = 0; i < len; i++) {
+    if (0==strcmp(map[i].name, type)) {
+      return &(map)[i];
+    }
+  }
+  return &unknown_type;
+}
+
+/** Find the table with matching "name".
+ *
+ * \param database Database to search for the table
+ * \param name name of the table to look for
+ * \return a pointer to the DbTable, or NULL if not found.
  */
 DbTable*
 database_find_table (Database *database, const char *name)
